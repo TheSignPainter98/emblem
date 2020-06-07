@@ -1,0 +1,3 @@
+#!/bin/bash
+
+python2 ./scripts/doxy-coverage/doxy-coverage.py --threshold 100 ./docs/xml/

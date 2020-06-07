@@ -1,0 +1,22 @@
+$font-body: 'Noto Serif';
+$font-header: 'Noto Sans';
+$font-code:  'Noto Mono';
+
+body {
+	font-family: $font-body;
+}
+
+@for $i from 1 through 6 {
+	h#{$i} {
+		font-family: $font-header;
+	}
+}
+
+.rst-content code {
+	font-family: $font-code;
+	font-size: unset;
+}
+
+span.pre {
+	font-weight: normal;
+}

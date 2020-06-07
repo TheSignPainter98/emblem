@@ -1,0 +1,325 @@
+#!/usr/bin/python3
+# Copyright (C) Edward Jones
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+
+import argparse
+from datetime import datetime
+import sys
+import re
+import os
+from yaml import FullLoader, load
+
+version:str = 'v1.1.0'
+documentation_license:str = [
+        'Copyright (c) %s, Edward Jones' % datetime.now().year,
+        '',
+        '%%%%%%LICENSE_START(GPLv2+_DOC_FULL)',
+        'This is free documentation; you can redistribute it and/or',
+        'modify it under the terms of the GNU General Public License as',
+        'published by the Free Software Foundation; either version 2 of',
+        'the License, or (at your option) any later version.',
+        '',
+        'The GNU General Public License''s references to "object code"',
+        'and "executables" are to be interpreted as the output of any',
+        'document formatting or typesetting system, including',
+        'intermediate and printed output.',
+        'This manual is distributed in the hope that it will be useful,',
+        'but WITHOUT ANY WARRANTY; without even the implied warranty of',
+        'MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the',
+        'GNU General Public License for more details.',
+        '',
+        'You should have received a copy of the GNU General Public',
+        'License along with this manual; if not, see',
+        '<http://www.gnu.org/licenses/>.',
+        '%%%%%%LICENSE_EN'
+    ]
+
+def printe(*args, **kwargs) -> None:
+    print(*args, file=sys.stderr, **kwargs)
+
+def first_in(keys:[str], arg:dict) -> str:
+    for key in keys:
+        if key in arg:
+            return arg[key]
+    printe('None of %s present in %s' %(keys, arg))
+    exit(1)
+
+class Program:
+    def __init__(self, program:dict) -> None:
+        self.title = program['program'] # Mandatory
+        defaults:dict = {
+                'mandatory': lambda _: False,
+                'type': lambda a: 'flag' if ('short' in a or 'long' in a) and ('positional' not in a or not a['positional']) else 'char*',
+                'default': lambda a: 0 if 'type' not in a or a['type'] != 'char*' else '""',
+                'help': lambda _: '',
+                'positional': lambda a: 'short' not in a and 'long' not in a,
+                'metaDest': lambda a: a['dest'] if 'dest' in a else 'UNKNOWN'
+            }
+        self.args = program['args'] # Mandatory
+        for arg in self.args:
+            for key in defaults.keys():
+                if key not in arg:
+                    arg[key] = defaults[key](arg)
+        self.args.sort(key=lambda arg:(arg['positional'], pow(-1, arg['positional']) * arg['mandatory'], first_in(['short', 'long', 'metaDest', 'dest'], arg)))
+        self.shortDescription = self.formatGroff(program['description'])    if 'description' in program else            None
+        self.longDescription = self.formatGroff(program['longDescription'])    if 'longDescription' in program else        None
+        self.licence = program['licence']                                    if 'licence' in program else                 None
+        self.version = program['version']                                    if 'version' in program else                None
+        self.date = program['date']                                            if 'date' in program else                     ''
+        self.seeAlso = program['seeAlso']                                    if 'seeAlso' in program else                []
+        self.bugs = self.formatGroff(program['bugs'])                        if 'bugs' in program else                    None
+        self.author = self.formatGroff(program['author'])                    if 'author' in program else                    None
+        self.examples = program['examples']                                    if 'examples' in program else                []
+        self.autoGenerateSynopsis = program['autoGenerateSynopsis']            if 'autoGenerateSynopsis' in program else    True
+        for arg in self.args:
+            if 'mandatory' not in arg:
+                arg['mandatory'] = False
+        self.optionalArgs = list(filter(lambda arg: not arg['mandatory'], program['args']))
+        self.mandatoryArgs = list(filter(lambda arg: arg['mandatory'], program['args']))
+
+    def formatGroff(self, inputString:str) -> str:
+        # Rudamendary MD to roff converter---THIS IS REGULAR NOT CONTEXT FREE!
+        inputLines:[str] = inputString.split('\n')
+        for i in range(len(inputLines)):
+            inputLines[i] = inputLines[i].strip()
+            inputLines[i] = (re.sub(r'`([^\s`]*)`', r'\\fB\1\\fP', inputLines[i]))
+            inputLines[i] = (re.sub(r'(\s|\(|\)|\||^)_([^_]*)_(\s|\(|\)|\||$)', r'\1\\fI\2\\fP\3', inputLines[i]))
+            inputLines[i] = (re.sub(r'(\s|\(|\)|\||^)\*\*([^\*]*)\*\*(\s|\(|\)|\||$)', r'\1\\fB\2\\fP\3', inputLines[i]))
+        return '\n.PP\n'.join(inputLines)
+
+    def __str__(self) -> str:
+        return self.toString()
+
+    def toString(self) -> str:
+        toReturn:[str] = []
+        toReturn.append(f'.\\" This manual page was generated by mangen {version}:')
+
+        # Prepare the licence
+        licenceStr:str = '.\\" ' + '\n.\\" '.join(self.licence.split('\n') if self.licence is not None else documentation_license)
+        toReturn.append(licenceStr)
+
+        # Prepare the header
+        programVersion:str = self.title
+        if self.version is not None:
+            programVersion += f' {self.version}'
+        header:str = f'.TH "{self.title.upper()}" "1" "{self.date}" "{programVersion}" "User Commands"'
+        toReturn.append(header)
+
+        # Prepare description
+        if self.shortDescription is not None:
+            # Make the first letter lowercase
+            shortDesc:str = self.shortDescription[0].lower()
+            if len(self.shortDescription) > 1:
+                shortDesc += self.shortDescription[1:]
+            programDescription:str = f'\\fB{self.title}\\fP - {shortDesc}'
+            toReturn.append(f'.SH "NAME"')
+            toReturn.append(programDescription)
+
+        # Prepare synopsis
+        synopsis:[str] = []
+        if self.examples != [] or (self.autoGenerateSynopsis and self.args != []):
+            toReturn.append('.SH SYNOPSIS')
+        # Automatically from arguments
+        if self.autoGenerateSynopsis and self.args != []:
+            # Generate a synopsis
+            synopsisParts:[str] = [f'\\fB{self.title}\\fP']
+            #  self.args.sort(key=lambda arg:(arg['positional'], arg['mandatory']))
+            for argument in self.args:
+                argumentString:str
+                if not argument['positional']:
+                    argumentString = first_in(['short', 'long'], argument)
+                    # Add choices or variable
+                    if 'choices' in argument:
+                        argumentString += ' \\fR{\\fI' + '\\fR, \\fI'.join(list(map(str, argument['choices']))) + '\\fR}'
+                    elif 'metaDest' in argument and argument['type'] not in ['flag', 'help']:
+                        argumentString += ' \\fI' + argument['metaDest'] + '\\fP'
+                else:
+                    argumentString = '\\fI' + first_in(['metaDest', 'dest'], argument).upper() + '\\fP'
+
+                if argument['mandatory']:
+                    synopsisParts.append(f"\\fB{argumentString}\\fR")
+                else:
+                    synopsisParts.append(f"[\\fB{argumentString}\\fR]")
+            synopsis.append(' '.join(synopsisParts))
+        # From examples
+        if self.examples != []:
+            # Use specified synopsis
+            for example in self.examples:
+                exampleParts:[str] = example['input'].split(' ')
+                synopsisString:str = f'\\fB{exampleParts[0]}\\fP'
+                for examplePart in exampleParts[1:]:
+                    synopsisString += ' '
+                    inOption:bool = False
+                    for char in examplePart:
+                        if not inOption and len(examplePart) > 1:
+                            if char == '-':
+                                synopsisString += r'\fB'
+                                inOption = True
+                            synopsisString += char
+                        else:
+                            if char in [']', '|', ' ', '\t', '\n']:
+                                synopsisString += r'\fR'
+                                inOption = False
+                                synopsisString += char
+                            elif char == '=':
+                                synopsisString += char + r'\fR'
+                                inOption = False
+                            else:
+                                synopsisString += char
+                    if inOption:
+                        synopsisString += r'\fR'
+                synopsis.append(synopsisString)
+        if synopsis != []:
+            toReturn.append('\n.br\n'.join(synopsis))
+
+        # Prepare arguments
+        if self.args != []:
+            toReturn.append('.SH OPTIONS')
+            outputSubsections:bool = self.mandatoryArgs != [] and self.optionalArgs != []
+
+            # Output subsection header and mandatory arguments
+            if outputSubsections:
+                toReturn.append('.SS "Mandatory Arguments"')
+            for arg in self.mandatoryArgs:
+                toReturn.append(self.processArgument(arg))
+
+            # Output subsection header and optional arguments
+            if outputSubsections:
+                toReturn.append('.SS "Optional Arguments"')
+            for arg in self.optionalArgs:
+                toReturn.append(self.processArgument(arg))
+
+        # Prepare longer description
+        if self.longDescription is not None:
+            toReturn.append('.SH DESCRIPTION')
+            toReturn.append(self.longDescription)
+
+        # Prepare the see-alsos
+        if self.seeAlso != []:
+            toReturn.append('.SH "SEE ALSO"')
+            toReturn.append(', '.join([f'\\fB{toSee["name"]}\\fP({toSee["manLocation"]})' for toSee in self.seeAlso]))
+
+        # Prepare the bugs
+        if self.bugs is not None:
+            toReturn.append('.SH BUGS')
+            toReturn.append(self.bugs)
+
+        # Prepare the author
+        if self.author is not None:
+            toReturn.append('.SH AUTHOR')
+            toReturn.append(self.author)
+
+        return '\n'.join(toReturn)
+
+    def processArgument(self, arg:dict) -> str:
+        argumentString:str = '.TP\n'
+        argumentForms:[str] = []
+        formKeys:[str] = (['short'] if 'short' in arg else []) + (['long'] if 'long' in arg else [])
+        optionBodyString:str = None
+        if 'choices' in arg:
+            optionBodyString = '\\fR{\\fI' + '\\fR, \\fI'.join(list(map(str, arg['choices']))) + '\\fR}'
+        elif 'metaDest' in arg:
+            optionBodyString = r'\fI' + arg['metaDest'] + r'\fR'
+
+        for form in formKeys:
+            argumentForm:str = f'\\fB{arg[form]}\\fP'
+            if optionBodyString is not None:
+                argumentForm += ' ' + optionBodyString
+            argumentForms.append(argumentForm)
+        argumentString += ', '.join(argumentForms) + '\n' + self.formatGroff(arg['help'])
+        return argumentString
+
+def getYaml(file:str) -> dict:
+    spec:dict
+    try:
+        if file == '-':
+            spec = load(sys.stdin, Loader=FullLoader)
+        else:
+            if os.path.isfile(file):
+                with open(file, 'r') as i:
+                    spec = load(i, Loader=FullLoader)
+            else:
+                printe(f'File "{file}" does not exist')
+                sys.exit(-1)
+    except json.decoder.JSONDecodeError as jsonde:
+        printe(str(jsonde) + ' while handling json input')
+        return None
+    return spec
+
+class Args:
+    def __cinit__(self):
+        self.inputFile = '-'
+        self.outputFile = '-'
+        self.verbose = False
+        self.version = False
+
+def parseArgs(args:[str]=sys.argv[1:]) -> Args:
+    parser:argparse.ArgumentParser = argparse.ArgumentParser(add_help=False, description='A man-page generator from JSON specifications following user-argspec')
+
+    parser.add_argument('-i', '--input', help='the input file or `-` for stdin', dest='inputFile', type = str, default='-')
+    parser.add_argument('-o', '--output', help='the output file or `-` for stdout', dest='outputFile', type = str, default='-')
+    parser.add_argument('-v', '--verbose', help='specify the output verbosity (logging data is given on stderr)', dest='verbose', action='store_true')
+    parser.add_argument('-h', '--help', help='output a help message and exit', action='help')
+    parser.add_argument('-V', '--version', help='output the current version and exit', dest='version', action='store_true')
+
+    arguments:argparse.Namespace = parser.parse_args(args)
+
+    if not validateArgs(arguments):
+        sys.exit(125)
+
+    parsedArgs:Args = convert(arguments)
+
+    return parsedArgs
+
+def validateArgs(args:argparse.Namespace) -> int:
+
+    return True
+
+def convert(arguments:argparse.Namespace) -> Args:
+    argp:Args = Args()
+    argp.inputFile = arguments.inputFile
+    argp.outputFile = arguments.outputFile
+    argp.verbose = arguments.verbose
+    argp.version = arguments.version
+
+    return argp
+
+def main(args:[str]) -> int:
+    argp:Args = parseArgs(args)
+
+    if argp.version:
+        print('mangen ' + version)
+        return 0
+
+    spec:dict = getYaml(argp.inputFile)
+
+    if not spec:
+        printe('Empty YAML specification read, there should probably be something here')
+        return 1
+
+    program:Program = Program(spec)
+
+    if argp.outputFile == '-':
+        print(program)
+    else:
+        with open(argp.out, 'w+') as o:
+            o.write(program)
+
+        return 0
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

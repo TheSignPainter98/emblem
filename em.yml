@@ -1,0 +1,39 @@
+program: em
+description: A simple, format-agnostic typesetter
+version: 0.0.1
+date: 05 Jun 2020
+bugs: Please file any bugs or issues at <github.com/TheSignPainter98/emblem/issues>
+seeAlso: []
+longDescription: >
+  Takes input of a markdown-like document, preprocesses it, typesets it, and then passes the result to a driver for outputting in some format.
+  Extensions can be used to include arbitrary functionality; device drivers are also extensions.
+author: This is maintained by Edward Jones, source code is available at <github.com/TheSignPainter98/emblem>
+args:
+  - dest: asdf
+    short: -L
+    doc: Hello, world, how are you today?
+  - dest: file
+    mandatory: true
+  - dest: nonMandatoryFile
+  - mandatory: true
+    dest: outputStem
+    metaDest: stem
+    short: -o
+    long: --output-to
+    type: char*
+    default: '"-"'
+    help: set output file
+    doc: Holds the output file stem
+  - dest: verbose
+    short: -v
+    long: --verbose
+    type: int
+    help: 'set output verbosity, 3 outputs everything, -1 suppresses all messages including errors (default: 0)'
+    choices:
+      - -1
+      - 0
+      - 1
+      - 2
+      - 3
+    doc: Output verbosity
+    metadest: verbosity

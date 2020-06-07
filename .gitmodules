@@ -1,0 +1,3 @@
+[submodule "scripts/doxy-coverage"]
+	path = scripts/doxy-coverage
+	url = git@github.com:alobbs/doxy-coverage.git
