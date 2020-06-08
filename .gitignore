@@ -52,6 +52,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# Ignore generated argument parser
+argp.*
+
 # Ignore generated test files
 *.pdf
 
