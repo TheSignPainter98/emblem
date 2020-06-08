@@ -143,4 +143,7 @@ typedef struct DocAst_s
 	ANData andata;
 } DocAst;
 
+DocAst* create_doc_ast_node(ANType antype, DocAst* nxt, DocAst* prev, DocAst* pnt, size_t len, ANData andata);
+void delete_doc_ast_node(DocAst* docAst);
+
 #endif /* DOC_AST_H_ */
