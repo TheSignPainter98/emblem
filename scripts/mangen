@@ -67,14 +67,15 @@ class Program:
                 'default': lambda a: 0 if 'type' not in a or a['type'] != 'char*' else '""',
                 'help': lambda _: '',
                 'positional': lambda a: 'short' not in a and 'long' not in a,
-                'metaDest': lambda a: a['dest'] if 'dest' in a else 'UNKNOWN'
+                'metaDest': lambda a: a['dest'] if 'dest' in a else 'UNKNOWN',
+                'gobble': lambda _: False
             }
         self.args = program['args'] # Mandatory
         for arg in self.args:
             for key in defaults.keys():
                 if key not in arg:
                     arg[key] = defaults[key](arg)
-        self.args.sort(key=lambda arg:(arg['positional'], pow(-1, arg['positional']) * arg['mandatory'], first_in(['short', 'long', 'metaDest', 'dest'], arg)))
+        self.args.sort(key=lambda arg:(arg['positional'], pow(-1, arg['positional']) * arg['mandatory'], arg['gobble'], first_in(['short', 'long', 'metaDest', 'dest'], arg)))
         self.shortDescription = self.formatGroff(program['description'])    if 'description' in program else            None
         self.longDescription = self.formatGroff(program['longDescription'])    if 'longDescription' in program else        None
         self.licence = program['licence']                                    if 'licence' in program else                 None
@@ -140,6 +141,7 @@ class Program:
             #  self.args.sort(key=lambda arg:(arg['positional'], arg['mandatory']))
             for argument in self.args:
                 argumentString:str
+                gobbleDots:str = '...' if 'gobble' in argument and argument['gobble'] else ''
                 if not argument['positional']:
                     argumentString = first_in(['short', 'long'], argument)
                     # Add choices or variable
@@ -148,7 +150,7 @@ class Program:
                     elif 'metaDest' in argument and argument['type'] not in ['flag', 'help']:
                         argumentString += ' \\fI' + argument['metaDest'] + '\\fP'
                 else:
-                    argumentString = '\\fI' + first_in(['metaDest', 'dest'], argument).upper() + '\\fP'
+                    argumentString = '\\fI' + first_in(['metaDest', 'dest'], argument).upper() + gobbleDots + '\\fP'
 
                 if argument['mandatory']:
                     synopsisParts.append(f"\\fB{argumentString}\\fR")
