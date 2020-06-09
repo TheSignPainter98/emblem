@@ -62,6 +62,9 @@ argp.*
 tags
 types_*.taghl
 
+# Ignore temp folder
+temp/
+
 # Auto-generated documentation
 docs/html
 docs/man
