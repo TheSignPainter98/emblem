@@ -1,6 +1,14 @@
 #ifndef MEASUREMENT_H_
 #define MEASUREMENT_H_
 
+typedef struct
+{
+	double wid;
+	double hei;
+} Dimen;
+
+double area(Dimen* dim) __attribute__((pure));
+
 /**
  * @brief A position in 2D space
  */

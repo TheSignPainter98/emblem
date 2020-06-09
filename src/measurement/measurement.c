@@ -2,6 +2,11 @@
 
 #include <math.h>
 
+double area(Dimen* dim)
+{
+	return dim->wid * dim->hei;
+}
+
 double distance(Pos* a, Pos* b)
 {
 	double dx = a->x - b->x;
