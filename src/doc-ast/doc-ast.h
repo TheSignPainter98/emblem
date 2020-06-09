@@ -2,115 +2,7 @@
 #define DOC_AST_H_
 
 #include <stdio.h>
-
-/**
- * @brief DocAst node type
- */
-typedef enum ANType_e
-{
-	/**
-	 * @brief DocAst node represents a word
-	 */
-	WORD,
-	/**
-	 * @brief DocAst node represents punctuation
-	 */
-	PUNCT,
-	/**
-	 * @brief DocAst node represents a horizontal gap (e.g. word space)
-	 */
-	HGAP,
-	/**
-	 * @brief DocAst node represents a vertical gap (e.g. paragraph skip)
-	 */
-	VGAP,
-	/**
-	 * @brief DocAst node represents a function call
-	 */
-	CALL
-} ANType;
-
-/**
- * @brief Doc AST node data
- */
-typedef union ANData_e
-{
-	/**
-	 * @brief Word data
-	 */
-	struct {
-		/**
-		 * @brief Word content
-		 */
-		char* wrd;
-		/**
-		 * @brief Word content character length
-		 */
-		size_t wlen;
-	} word;
-	/**
-	 * @brief Punctuation data
-	 */
-	struct {
-		/**
-		 * @brief Punctuation content
-		 */
-		char* pnct;
-		/**
-		 * @brief Punctuation content length
-		 */
-		size_t plen;
-	} punct;
-	/**
-	 * @brief Horizontal gap data
-	 */
-	struct {
-		/**
-		 * @brief Horizontal gap content
-		 */
-		char* hgp;
-		/**
-		 * @brief Horizontal gap character length
-		 */
-		size_t hlen;
-	} hgap;
-	/**
-	 * @brief Vertical gap data
-	 */
-	struct {
-		/**
-		 * @brief Vertical gap content
-		 */
-		char* vgp;
-		/**
-		 * @brief Vertical gap character length
-		 */
-		size_t vlen;
-	} vgap;
-	/**
-	 * @brief Function call data
-	 */
-	struct {
-		/**
-		 * @brief Name of function being called
-		 */
-		const char* fname;
-		/**
-		 * @brief Source package of function being called
-		 */
-		const char* fpkg;
-		/**
-		 * @brief Pointer to function being called
-		 *
-		 * @param The parameter list of the function
-		 */
-		int (*fptr)(struct DocAst_s*);
-		/**
-		 * @brief Function call parameter list
-		 */
-		struct DocAst_s* argList;
-	} call;
-} ANData;
+#include "ast-node-data.h"
 
 /**
  * @brief Document abstract syntax tree structure
@@ -143,7 +35,24 @@ typedef struct DocAst_s
 	ANData andata;
 } DocAst;
 
+/**
+ * @brief Prepare memory for a document AST node
+ *
+ * @param antype Doc AST node type
+ * @param nxt Pointer to the next node in the AST or NULL
+ * @param prev Pointer to the previous AST node or NULL
+ * @param pnt Pointer to the parent AST node or NULL
+ * @param len Number of characters present in this node and any children
+ * @param andata AST node data
+ *
+ * @return A pointer to a new DocAst node
+ */
 DocAst* create_doc_ast_node(ANType antype, DocAst* nxt, DocAst* prev, DocAst* pnt, size_t len, ANData andata);
+/**
+ * @brief Free the memory of a DocAst node and any children
+ *
+ * @param docAst The node to delete
+ */
 void delete_doc_ast_node(DocAst* docAst);
 
 #endif /* DOC_AST_H_ */
