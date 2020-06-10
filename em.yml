@@ -25,7 +25,7 @@ args:
     short: -o
     long: --output-to
     type: char*
-    default: '"-"'
+    default: '-'
     help: set output file
     doc: Holds the output file stem
   - dest: driver
@@ -34,7 +34,7 @@ args:
     help: Set the output driver
     doc: The specified output driver
     type: char*
-    default: "pdf"
+    default: pdf
   - dest: style
     short: -c
     long: --class

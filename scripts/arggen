@@ -187,7 +187,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         if arg['gobble']:
             return 'NULL'
         elif arg['type'] == 'char*':
-            return 'strdup(%s)' % str(arg['default'])
+            return 'strdup("%s")' % arg['default']
         else:
             return str(arg['default'])
     defaults:[str] = list(map(lambda arg: '%s = %s;' %(arg['dest'], default_val(arg)), list(filter(lambda arg: arg['type'] != 'help', args + numGobbledDef))))
