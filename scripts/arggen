@@ -81,7 +81,8 @@ def sanitise_args(spec) -> bool:
             'default': lambda a: 0 if 'type' not in a or a['type'] != 'char*' else '""',
             'help': lambda _: '',
             'positional': lambda a: 'short' not in a and 'long' not in a,
-            'metaDest': lambda a: a['dest'] if 'dest' in a else 'UNKNOWN'
+            'metaDest': lambda a: a['dest'] if 'dest' in a else 'UNKNOWN',
+            'gobble': lambda _: False
         }
     required:[str] = ['dest']
     for arg in spec['args']:
@@ -101,10 +102,18 @@ def sanitise_args(spec) -> bool:
             if key not in arg:
                 arg[key] = defaults[key](arg)
 
-    if list(filter(lambda a: a['type'] == 'help', spec['args'])) == []:
-        spec['args'] += [{ 'type': 'help', 'short': '-h', 'long': '--help', 'help': 'display this help message and exit', 'mandatory': False, 'positional': False }]
+    numGobblers:int = len(list(filter(lambda a: a['gobble'], spec['args'])))
+    if numGobblers not in [0, 1]:
+        print('Too many gobbling arguments in the spec (%d of them), only one is supported' % numGobblers, file=stderr)
+        ret = False
+    if numGobblers != 0 and list(filter(lambda a: a['gobble'], spec['args']))[0]['mandatory'] and len(list(filter(lambda a: not a['mandatory'] and a['positional'], spec['args']))) != 0:
+        print('Mandatory gobbling arguments with non-mandatory positional arguments is not supported', file=stderr)
+        ret = False
 
-    spec['args'] = list(sorted(spec['args'], key=lambda a: (a['positional'], a['mandatory'])))
+    if list(filter(lambda a: a['type'] == 'help', spec['args'])) == []:
+        spec['args'] += [{ 'type': 'help', 'short': '-h', 'long': '--help', 'help': 'display this help message and exit', 'mandatory': False, 'positional': False, 'gobble': False }]
+
+    spec['args'] = list(sorted(spec['args'], key=lambda a: (a['positional'], a['mandatory'], a['gobble'])))
 
     return ret
 
@@ -125,8 +134,9 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     ifname_sanitised:str = ifname.replace('.', '_').replace('/', '__')
 
     args:dict = spec['args']
+    numGobbledDef:[dict] = [{ 'type': 'int', 'dest': 'numGobbled', 'gobble': False, 'default': 0, 'doc': 'Holds the number of arguments gobbled' }] if len(list(filter(lambda a: a['gobble'], args))) > 0 else []
 
-    opt_decls:str = '\n'.join(list(map(lambda a: ('/**\n * @brief %s\n */\n' %a['doc'] if 'doc' in a else '') + '%s %s;' %(a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] != 'help', args)))))
+    opt_decls:str = '\n'.join(list(map(lambda a: ('/**\n * @brief %s\n */\n' %a['doc'] if 'doc' in a else '') + '%s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] != 'help', args + numGobbledDef)))))
     header: str = '\n'.join([
         '#ifndef %s_H_' % ifname_sanitised.upper(),
         '#define %s_H_' % ifname_sanitised.upper(),
@@ -172,8 +182,15 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         return freearg + [ f'{asignand} = {asignarg};'] + mandarg +['break;']
 
     opts_short:str = ''.join(list(map(lambda arg: arg['short'][1] + ('' if arg['type'] in ['flag', 'help'] else ':'), list(filter(lambda a: not a['positional'] and 'short' in a, args)))))
-    opts_long:str = ', '.join(list(map(lambda a: '{ "%s", %d, NULL, \'%s\' }' %(a['long'][2:], 1 if a['type'] not in ['flag', 'help'] else 0, a['short'][1]), list(filter(lambda a: not a['positional'] and 'long' in a, args)))) + [ '{ 0, 0, 0, 0 }' ])
-    defaults:[str] = list(map(lambda arg: '%s = %s;' %(arg['dest'], ('strdup(%s)' if arg['type'] == 'char*' else '%s') %str(arg['default'])), list(filter(lambda arg: arg['type'] != 'help', args))))
+    opts_long:str = ', '.join(list(map(lambda a: '{ "%s", %d, NULL, \'%s\' }' %(a['long'][2:], 1 if a['type'] not in ['flag', 'help'] else 0, a['short'][1]), list(filter(lambda a: not a['positional'] and 'long' in a, args)))) + [ '{ NULL, 0, NULL, 0 }' ])
+    def default_val(arg:dict) -> str:
+        if arg['gobble']:
+            return 'NULL'
+        elif arg['type'] == 'char*':
+            return 'strdup(%s)' % str(arg['default'])
+        else:
+            return str(arg['default'])
+    defaults:[str] = list(map(lambda arg: '%s = %s;' %(arg['dest'], default_val(arg)), list(filter(lambda arg: arg['type'] != 'help', args + numGobbledDef))))
     opt_handlers:list = list(reduce(lambda a,b: a+b, list(map(lambda a: ["case '%s':" % a['short'][1], assignment_handler(a)], list(filter(lambda a: not a['positional'], args))))))
 
     def arg_usage(arg:dict, isShort:bool) -> str:
@@ -198,10 +215,41 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     help_printer:[str] = list(map(lambda s: 'fprintf(stderr, "%s\\n");' %s, list(map(arg_desc, args))))
 
     positionalArgs:[dict] = list(filter(lambda a: a['positional'], args))
-    posIssetPtrs:str = 'int* issets[] = { %s };' % ', '.join(list(map(lambda a: f'&is_set__{a["dest"]}', positionalArgs)))
-    posValPtrs:str = 'char** posargs[] = { %s };' % ', '.join(list(map(lambda a: f'&{a["dest"]}', positionalArgs)))
+    posIssetPtrs:str = 'int* issets[] = { %s };' % ', '.join(list(map(lambda a: f'&is_set__{a["dest"]}', list(filter(lambda a: a['mandatory'], positionalArgs)))))
+    posValPtrs:str = 'char** posargs[] = { %s };' % ', '.join(list(map(lambda a: f'&{a["dest"]}', sorted(list(filter(lambda a: not a['gobble'], positionalArgs)), key=lambda a: not a['mandatory']))))
+    gobbleHandler:[str]
+    gobblers:[dict] = list(filter(lambda a: a['gobble'], positionalArgs))
+    gobbler:dict = gobblers[0] if gobblers != [] else None
+    if len(gobblers) == 1:
+        gobbleHandler = [
+                'numGobbled = argc - pospos__;',
+                '%s = calloc(numGobbled, sizeof(%s));' %(gobbler['dest'], gobbler['type']),
+                'for(int i = 0; i < numGobbled; i++)', '{', [
+                    '%s[i] = %s;' %(gobbler['dest'], 'strdup(argv[pospos__ + i])' if gobbler['type'] == 'char*' else 'atoi(argv[pospos__ + i])')
+                ], '}'
+            ]
+    else:
+        gobbleHandler = [
+                'fprintf(stderr, "Too many positional arguments passed\\n");',
+                'showUsage = 1;'
+            ]
+
     positionalArgNum:int = len(list(filter(lambda a: a['positional'], args)))
-    positionalHandler:list = [posIssetPtrs, posValPtrs, 'int pospos__', 'for (pospos__ = 0; pospos__ < argc - optind && pospos__ < %d; pospos__++)' % positionalArgNum, '{', [ '*issets[pospos__] = 1;', 'free(*posargs[pospos__]);', '*posargs[pospos__] = strdup(argv[pospos__ + optind]);' ], '}', 'if (pospos__ == %d && pospos__ < argc - optind)' % positionalArgNum, '{', [ 'fprintf(stderr, "Too many positional arguments passed\\n");', 'showUsage = 1;' ], '}']
+    positionalHandler:list = [
+            posIssetPtrs,
+            'const int numIssets = sizeof(issets)/sizeof(*issets);',
+            posValPtrs,
+            'const int numPosargs = sizeof(posargs)/sizeof(*posargs);',
+            'int pospos__;',
+            'for (pospos__ = 0; pospos__ < argc - optind && pospos__ < numPosargs; pospos__++)', '{', [
+                'if (pospos__ < numIssets)', '{', [
+                    '*issets[pospos__] = 1;',
+                ], '}',
+                'free((void*)*posargs[pospos__]);',
+                '*posargs[pospos__] = strdup(argv[pospos__ + optind]);'
+            ], '}',
+            'if (pospos__ == numPosargs && pospos__ < argc - optind)',  '{', gobbleHandler, '}'
+        ]
 
     def validate_arg(arg:dict) -> [str]:
         vdr:[str] = []
@@ -209,7 +257,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             vdr += [
                     'if (!is_set__%s)' % arg['dest'],
                     '{', [
-                        'fprintf(stderr, "Missing argument: %s\\n");' % (arg['short'] if not arg['positional'] else arg['metaDest'].upper()),
+                        'fprintf(stderr, "%%s: Missing argument: %s\\n", argv[0]);' % (arg['short'] if not arg['positional'] else arg['metaDest'].upper()),
                         'showUsage = 1;',
                     ], '}'
                 ]
@@ -217,14 +265,15 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             vdr += [
                     'if (%s)' % ' && '.join(list(map(lambda c: ('strcmp(%s, "%s")' if arg['type'] == 'char*' else '%s != %s') % (arg['dest'], c), arg['choices']))) ,
                     '{', [
-                        'fprintf(stderr, "Value %s not allowed for argument %s\\n", %s);' %('%s' if arg['type'] == 'char*' else '%d', arg['short'], arg['dest']),
+                        'fprintf(stderr, "%%s: Value %s not allowed for argument %s\\n", argv[0], %s);' %('%s' if arg['type'] == 'char*' else '%d', arg['short'], arg['dest']),
                         'showUsage = 1;'
                      ],'}'
                 ]
         return vdr
     validator:[str] = list(reduce(lambda a,b: a+b, list(filter(lambda v: v != [], list(map(validate_arg, args))))))
 
-    destructor:[str] = list(map(lambda a: 'free(%s);' % a['dest'], list(filter(lambda a: a['type'] == 'char*', args))))
+    gobblerDestructor:[str] = [ 'for (int i = 0; i < numGobbled; i++)', '{', [ 'free(%s[i]);' % gobbler['dest'] ], '}', 'free(%s);' % gobbler['dest'] ] if gobblers != [] else []
+    destructor:[str] = list(map(lambda a: 'free(%s);' % a['dest'], list(filter(lambda a: not a['gobble'] and a['type'] == 'char*', args)))) + gobblerDestructor
 
     parser_body: str = indent([
         '#include "%s"' % hdrfl_rel,
@@ -242,7 +291,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         '/**',
         '* @brief Long getopt command-line parameter declaration',
         '*/',
-        '#define LONG_OPTS (const struct option*){ %s };' % opts_long,
+        'static struct option long_opts[] = { %s };' % opts_long,
         '',
         'static void init(void) __attribute__((constructor));',
         'static void fini(void) __attribute__((destructor));',
@@ -255,7 +304,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         'int parse_args(int argc, char** argv)', '{', mandatoryFlags + [
             'int optc;',
             'int showUsage = 0, showHelp = 0;',
-            'while ((optc = getopt_long(argc, argv, SHORT_OPTS, LONG_OPTS, NULL)) != -1)', '{', [
+            'while ((optc = getopt_long(argc, argv, SHORT_OPTS, long_opts, NULL)) != -1)', '{', [
                 'switch (optc)', '{', opt_handlers + [
                     'default:', [
                         'showUsage = 1;',
