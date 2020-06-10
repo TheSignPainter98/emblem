@@ -206,7 +206,11 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         return out if arg['mandatory'] else '[' + out + ']'
     usage_string:str = 'Usage: %s ' + ' '.join(list(map(lambda a: arg_usage(a, True), args))) + '\\n'
     def arg_desc(arg:dict) -> str:
-        inv:str = arg_usage(arg, True) + ', ' + arg_usage(arg, False)
+        inv:str
+        if arg['positional']:
+            inv = arg['metaDest'].upper() + ('...' if arg['gobble'] else '')
+        else:
+            inv = ', '.join([arg_usage(arg, True), arg_usage(arg, False)])
         if len(inv) >= DESC_INDENT + DESC_MIN_MARGIN - 2:
             return '  ' + inv + '\\n' + ' ' * (DESC_MIN_MARGIN + DESC_INDENT) + arg['help']
         else:
