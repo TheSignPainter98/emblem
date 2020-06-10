@@ -53,7 +53,7 @@ def printe(*args, **kwargs) -> None:
 
 def first_in(keys:[str], arg:dict) -> str:
     for key in keys:
-        if key in arg:
+        if key in arg and not arg[key] == "":
             return arg[key]
     printe('None of %s present in %s' %(keys, arg))
     exit(1)
@@ -230,18 +230,22 @@ class Program:
     def processArgument(self, arg:dict) -> str:
         argumentString:str = '.TP\n'
         argumentForms:[str] = []
-        formKeys:[str] = (['short'] if 'short' in arg else []) + (['long'] if 'long' in arg else [])
+        #  formKeys:[str] = (['short'] if 'short' in arg else []) + (['long'] if 'long' in arg else [])
         optionBodyString:str = None
         if 'choices' in arg:
             optionBodyString = '\\fR{\\fI' + '\\fR, \\fI'.join(list(map(str, arg['choices']))) + '\\fR}'
         elif 'metaDest' in arg:
-            optionBodyString = r'\fI' + arg['metaDest'] + r'\fR'
+            optionBodyString = r'\fI' + arg['metaDest'] + ('...' if arg['gobble'] else '') + r'\fR'
 
-        for form in formKeys:
-            argumentForm:str = f'\\fB{arg[form]}\\fP'
-            if optionBodyString is not None:
-                argumentForm += ' ' + optionBodyString
-            argumentForms.append(argumentForm)
+        for form in ['short', 'long']:
+            if form in arg:
+                argumentForm:[str] = [f'\\fB{arg[form]}\\fP']
+                if optionBodyString is not None:
+                    argumentForm += [optionBodyString]
+                sepStr:str = ' ' if form == 'short' else '='
+                argumentForms.append(sepStr.join(argumentForm))
+        if 'short' not in arg and 'long' not in arg:
+            argumentForms.append(r'\fI%s\fR' %(arg['metaDest'] +('...' if arg['gobble'] else '')))
         argumentString += ', '.join(argumentForms) + '\n' + self.formatGroff(arg['help'])
         return argumentString
 
