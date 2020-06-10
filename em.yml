@@ -3,20 +3,24 @@ description: A simple, format-agnostic typesetter
 version: 0.0.1
 date: 05 Jun 2020
 bugs: Please file any bugs or issues at <github.com/TheSignPainter98/emblem/issues>
-seeAlso: []
+seeAlso:
+  - name: pdflatex
+    manLocation: 1
+  - name: groff
+    manLocation: 1
 longDescription: >
   Takes input of a markdown-like document, preprocesses it, typesets it, and then passes the result to a driver for outputting in some format.
   Extensions can be used to include arbitrary functionality; device drivers are also extensions.
 author: This is maintained by Edward Jones, source code is available at <github.com/TheSignPainter98/emblem>
+examples:
+  - input: em -Tutf8 hello.em -
 args:
-  - dest: asdf
-    short: -L
-    doc: Hello, world, how are you today?
-  - dest: file
-    mandatory: true
-  - dest: nonMandatoryFile
-  - mandatory: true
-    dest: outputStem
+  - dest: inputFiles
+    gobble: true
+    metaDest: file
+    doc: List of input files
+    help: Input file list. Each file `-` is read from stdin, if none are present, treated as if `-` has been specified
+  - dest: outputStem
     metaDest: stem
     short: -o
     long: --output-to
@@ -24,11 +28,37 @@ args:
     default: '"-"'
     help: set output file
     doc: Holds the output file stem
+  - dest: driver
+    short: -T
+    long: --Type
+    help: Set the output driver
+    doc: The specified output driver
+    type: char*
+    default: "pdf"
+  - dest: style
+    short: -c
+    long: --class
+    help: Set the output class
+    doc: Holds the root style
+  - dest: defaultTypeface
+    short: -F
+    long: --font-family
+    metaDest: family
+    type: char*
+    help: Specify a default font family
+    doc: Holds the default font to use ignored iff equal to \"\"
+  - dest: defaultFontSize
+    short: -S
+    long: --font-size
+    type: int
+    metaDest: size
+    help: Specify the default font size
+    doc: Specifies the default font size, ignored iff equal to `0`
   - dest: verbose
     short: -v
     long: --verbose
     type: int
-    help: 'set output verbosity, 3 outputs everything, -1 suppresses all messages including errors (default: 0)'
+    help: 'set output verbosity, `3` outputs everything, `-1` suppresses all messages including errors (default = `0`)'
     choices:
       - -1
       - 0
@@ -36,4 +66,4 @@ args:
       - 2
       - 3
     doc: Output verbosity
-    metadest: verbosity
+    metaDest: verbosity
