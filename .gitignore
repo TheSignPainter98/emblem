@@ -58,6 +58,32 @@ argp.*
 # Ignore generated test files
 *.pdf
 
+# Ignore generated Autotools files
+PKGBUILD
+autom4te.cache/
+autoscan.log
+config.h
+config.h.in
+config.h.in~
+config.status
+configure
+configure.ac
+configure.scan
+aclocal.m4
+ChangeLog
+Makefile
+Makefile.in
+.deps/
+.dirstamp
+stamp-h1
+*.gz
+*.xz
+*.tar
+*.log
+*.trs
+pkg/
+.libs/
+
 # Ignore ctags things
 tags
 types_*.taghl
