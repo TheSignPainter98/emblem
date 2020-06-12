@@ -47,7 +47,7 @@ const char* succLeader	  = "\033[1;32msuccess\033[1;37m:\033[0m ";
  */
 void log_warn(const char* restrict format, ...)
 {
-	if (verbose >= WARN)
+	if (Verbose >= WARN)
 	{
 		const size_t warningLeaderLen = strlen(warningLeader);
 		va_list va;
@@ -82,7 +82,7 @@ void log_warn(const char* restrict format, ...)
  */
  void log_err(const char* restrict format, ...)
 {
-	if (verbose >= ERR)
+	if (Verbose >= ERR)
 	{
 		const size_t errorLeaderLen = strlen(errorLeader);
 		va_list va;
@@ -117,7 +117,7 @@ void log_warn(const char* restrict format, ...)
  */
 void log_info(const char* restrict format, ...)
 {
-	if (verbose >= INFO)
+	if (Verbose >= INFO)
 	{
 		const size_t infoLeaderLen = strlen(infoLeader);
 		va_list va;
@@ -152,7 +152,7 @@ void log_info(const char* restrict format, ...)
  */
 void log_succ(const char* restrict format, ...)
 {
-	if (verbose >= SUCC)
+	if (Verbose >= SUCC)
 	{
 		const size_t succLeaderLen = strlen(succLeader);
 		va_list va;

@@ -36,6 +36,7 @@
 *.x86_64
 *.hex
 em
+check_em
 
 # Debug files
 *.dSYM/

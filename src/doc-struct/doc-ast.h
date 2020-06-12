@@ -2,6 +2,7 @@
 #define DOC_AST_H_
 
 #include <stdio.h>
+#include <stdbool.h>
 #include "ast-node-data.h"
 
 /**
@@ -38,6 +39,7 @@ typedef struct DocAst_s
 /**
  * @brief Prepare memory for a document AST node
  *
+ * @param docAst Pointer to the docAst node to initialise
  * @param antype Doc AST node type
  * @param nxt Pointer to the next node in the AST or NULL
  * @param prev Pointer to the previous AST node or NULL
@@ -47,12 +49,13 @@ typedef struct DocAst_s
  *
  * @return A pointer to a new DocAst node
  */
-DocAst* create_doc_ast_node(ANType antype, DocAst* nxt, DocAst* prev, DocAst* pnt, size_t len, ANData andata);
+int doc_ast_node_create(DocAst* docAst, ANType antype, DocAst* nxt, DocAst* prev, DocAst* pnt, size_t len, ANData andata);
+
 /**
  * @brief Free the memory of a DocAst node and any children
  *
  * @param docAst The node to delete
  */
-void delete_doc_ast_node(DocAst* docAst);
+void doc_ast_node_destroy(DocAst* docAst);
 
 #endif /* DOC_AST_H_ */

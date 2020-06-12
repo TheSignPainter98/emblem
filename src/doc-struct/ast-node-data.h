@@ -113,7 +113,7 @@ typedef struct
 	 *
 	 * @param The parameter list of the function
 	 */
-	int (*fptr)(struct DocAst_s*);
+	// int (*fptr)(struct DocAst_s*);
 	/**
 	 * @brief Function call parameter list
 	 */
@@ -147,7 +147,7 @@ typedef struct
 	 *
 	 * The angle value must be ignored if and only if indiff == false
 	 */
-	bool indiff;
+	// bool indiff;
 	/**
 	 * @brief Direction the floater would like to be placed in, value is in the interval [0,1)
 	 *
@@ -177,7 +177,7 @@ typedef struct
 	/**
 	 * @brief coordsHint is absolute (based on the page) as opposed to relative (from the current position)
 	 */
-	bool absoluteCoordsHint;
+	// bool absoluteCoordsHint;
 	/**
 	 * @brief Priority of the floater placement
 	 */
@@ -191,7 +191,7 @@ typedef struct
 /**
  * @brief Doc AST node data
  */
-typedef union ANData_e
+typedef union ANData_u
 {
 	/**
 	 * @brief Word data

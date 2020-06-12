@@ -4,6 +4,7 @@ description: A simple, format-agnostic typesetter
 version: 0.0.1
 date: 05 Jun 2020
 bugs: Please file any bugs or issues at <github.com/TheSignPainter98/emblem/issues>
+bug_report_address: https://github.com/TheSignPainter98/emblem/issues
 seeAlso:
   - name: pdflatex
     manLocation: 1

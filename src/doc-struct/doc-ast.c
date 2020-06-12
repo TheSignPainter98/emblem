@@ -2,19 +2,18 @@
 
 #include <stdlib.h>
 
-DocAst* create_doc_ast_node(ANType antype, DocAst* nxt, DocAst* prev, DocAst* pnt, size_t len, ANData andata)
+int doc_ast_node_create(DocAst* docAst, ANType antype, DocAst* nxt, DocAst* prev, DocAst* pnt, size_t len, ANData andata)
 {
-	DocAst* docAst = calloc(1, sizeof(DocAst));
 	docAst->antype = antype;
 	docAst->nxt	   = nxt;
 	docAst->prev   = prev;
 	docAst->pnt	   = pnt;
 	docAst->len	   = len;
 	docAst->andata = andata;
-	return docAst;
+	return 0;
 }
 
-void delete_doc_ast_node(DocAst* docAst)
+void doc_ast_node_destroy(DocAst* docAst)
 {
 	switch (docAst->antype)
 	{
@@ -38,7 +37,7 @@ void delete_doc_ast_node(DocAst* docAst)
 			DocAst* arg = docAst->andata.call.argList;
 			while (arg)
 			{
-				delete_doc_ast_node(arg);
+				doc_ast_node_destroy(arg);
 				arg = arg->nxt;
 			}
 			break;

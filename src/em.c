@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "logs/logs.h"
+#include "argp.h"
 
 /**
  * @brief Entry point
@@ -12,10 +12,15 @@
  */
 int main(int argc, char** argv)
 {
-	printf("Got %d; called with %s", argc, *argv);
-	fprintf(stderr, "Got %d; called with %s", argc, *argv);
-	log_warn("Got %d; called with %s", argc, *argv);
-	log_err("Got %d; called with %s", argc, *argv);
+	// Parse arguments, exit if necessary
+	int rc = parse_args(argc, argv);
+	if (rc)
+		return rc;
+
+	printf("Verbosity is %d\n", Verbose);
+	printf("Style = %s\n", Style);
+	printf("DefaultTypeface = %s\n", DefaultTypeface);
+	printf("DefaultFontSize = %d\n", DefaultFontSize);
 
 	return 0;
 }
