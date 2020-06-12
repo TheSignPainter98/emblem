@@ -342,7 +342,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             'else if (showHelp)', '{', [
                 'fprintf(stderr, "%s", argv[0]);' % usage_string,
             ] + help_printer + [
-                'return -1;',
+                'exit(0);'
             ], '}',
             '',
             'return 0;'
