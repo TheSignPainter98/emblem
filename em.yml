@@ -39,6 +39,8 @@ args:
   - dest: Style
     short: -c
     long: --class
+    type: char*
+    default: article
     help: Set the output class
     doc: Holds the root style
   - dest: DefaultTypeface
