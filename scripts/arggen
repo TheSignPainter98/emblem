@@ -136,12 +136,13 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     args:dict = spec['args']
     numGobbledDef:[dict] = [{ 'type': 'int', 'dest': 'numGobbled', 'gobble': False, 'default': 0, 'doc': 'Holds the number of arguments gobbled' }] if len(list(filter(lambda a: a['gobble'], args))) > 0 else []
 
+    hdr_opt_decls:str = '\n'.join(list(map(lambda a: ('/**\n * @brief %s\n */\n' %a['doc'] if 'doc' in a else '') + 'extern %s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] != 'help', args + numGobbledDef)))))
     opt_decls:str = '\n'.join(list(map(lambda a: ('/**\n * @brief %s\n */\n' %a['doc'] if 'doc' in a else '') + '%s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] != 'help', args + numGobbledDef)))))
     header: str = '\n'.join([
         '#ifndef %s_H_' % ifname_sanitised.upper(),
         '#define %s_H_' % ifname_sanitised.upper(),
         '',
-        opt_decls,
+        hdr_opt_decls,
         '',
         '/**',
         ' * @brief Parse command-line arguments and assign to appropriate globals',
@@ -219,8 +220,6 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     help_printer:[str] = list(map(lambda s: 'fprintf(stderr, "%s\\n");' %s, list(map(arg_desc, args))))
 
     positionalArgs:[dict] = list(filter(lambda a: a['positional'], args))
-    posIssetPtrs:str = 'int* issets[] = { %s };' % ', '.join(list(map(lambda a: f'&is_set__{a["dest"]}', list(filter(lambda a: a['mandatory'], positionalArgs)))))
-    posValPtrs:str = 'char** posargs[] = { %s };' % ', '.join(list(map(lambda a: f'&{a["dest"]}', sorted(list(filter(lambda a: not a['gobble'], positionalArgs)), key=lambda a: not a['mandatory']))))
     gobbleHandler:[str]
     gobblers:[dict] = list(filter(lambda a: a['gobble'], positionalArgs))
     gobbler:dict = gobblers[0] if gobblers != [] else None
@@ -238,20 +237,35 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
                 'showUsage = 1;'
             ]
 
+    posIssetPtrs:str = 'int* issets[] = { %s };' % ', '.join(list(map(lambda a: f'&is_set__{a["dest"]}', list(filter(lambda a: a['mandatory'], positionalArgs)))))
+    posValPtrs:str = 'char** posargs[] = { %s };' % ', '.join(list(map(lambda a: f'&{a["dest"]}', sorted(list(filter(lambda a: not a['gobble'], positionalArgs)), key=lambda a: not a['mandatory']))))
+    hasNonGobblePositionals:bool = list(filter(lambda a: not a['gobble'], positionalArgs)) != []
+    hasMandatoryNonGobblePositionals:bool = list(filter(lambda a: a['mandatory'] and not a['gobble'], positionalArgs)) != []
+    posIssetInit:[str] = [ posIssetPtrs, 'const int numIssets = sizeof(issets)/sizeof(*issets);' ] if hasMandatoryNonGobblePositionals else []
+    posIssetSetter:[str] = []
+    if hasMandatoryNonGobblePositionals:
+        posIssetSetter = [ 'if (pospos__ < numIssets)', '{', [
+                '*issets[pospos__] = 1;',
+            ], '}' ]
+    posValInit:[str] = []
+    posValIter:[str] = []
+    if hasNonGobblePositionals:
+        posValInit = [ posValPtrs ]
+        posValIter = [
+                #  'for (; pospos__ < argc - optind && pospos__ < numPosargs; pospos__++)', '{', [
+                'while (pospos__ < argc - optind && pospos__ < numPosargs)', '{', posIssetSetter + [
+                    'free((void*)*posargs[pospos__]);',
+                    '*posargs[pospos__] = strdup(argv[pospos__ + optind]);',
+                    'pospos__++;'
+                ], '}'
+            ]
+    nonGobblePositionalHandler:[str] = posIssetInit + posValInit + posValIter
+
     positionalArgNum:int = len(list(filter(lambda a: a['positional'], args)))
     positionalHandler:list = [
-            posIssetPtrs,
-            'const int numIssets = sizeof(issets)/sizeof(*issets);',
-            posValPtrs,
-            'const int numPosargs = sizeof(posargs)/sizeof(*posargs);',
-            'int pospos__;',
-            'for (pospos__ = 0; pospos__ < argc - optind && pospos__ < numPosargs; pospos__++)', '{', [
-                'if (pospos__ < numIssets)', '{', [
-                    '*issets[pospos__] = 1;',
-                ], '}',
-                'free((void*)*posargs[pospos__]);',
-                '*posargs[pospos__] = strdup(argv[pospos__ + optind]);'
-            ], '}',
+            'int pospos__ = 0;',
+            'const int numPosargs = %s;' %('sizeof(posargs)/sizeof(*posargs)' if hasNonGobblePositionals else '0')
+        ] + nonGobblePositionalHandler + [
             'if (pospos__ == numPosargs && pospos__ < argc - optind)',  '{', gobbleHandler, '}'
         ]
 
@@ -286,6 +300,8 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         '#include <stdio.h>',
         '#include <stdlib.h>',
         '#include <string.h>',
+        '',
+        opt_decls,
         '',
         '/**',
         '* @brief Short getopt command-line parameter declaration',
