@@ -317,8 +317,8 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         'static void fini(void) __attribute__((destructor));',
         '',
         '/**',
-        '* @brief Set initial argument values',
-        '*/',
+        ' * @brief Set initial argument values',
+        ' */',
         'static void init(void)', '{', defaults, '}',
         '',
         'int parse_args(int argc, char** argv)', '{', mandatoryFlags + [
@@ -349,8 +349,8 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         ], '}',
         '',
         '/**',
-        '* @brief Clean up argument memory',
-        '*/',
+        ' * @brief Clean up argument memory',
+        ' */',
         'static void fini(void)', '{', destructor, '}'
     ])
 
