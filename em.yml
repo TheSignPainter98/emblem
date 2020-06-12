@@ -16,12 +16,12 @@ author: This is maintained by Edward Jones, source code is available at <github.
 examples:
   - input: em -Tutf8 hello.em -
 args:
-  - dest: inputFiles
+  - dest: InputFiles
     gobble: true
     metaDest: file
     doc: List of input files
     help: Input file list. Each file `-` is read from stdin, if none are present, treated as if `-` has been specified
-  - dest: outputStem
+  - dest: OutputStem
     metaDest: stem
     short: -o
     long: --output-to
@@ -29,33 +29,33 @@ args:
     default: '-'
     help: set output file
     doc: Holds the output file stem
-  - dest: driver
+  - dest: Driver
     short: -T
     long: --Type
     help: Set the output driver
     doc: The specified output driver
     type: char*
     default: pdf
-  - dest: style
+  - dest: Style
     short: -c
     long: --class
     help: Set the output class
     doc: Holds the root style
-  - dest: defaultTypeface
+  - dest: DefaultTypeface
     short: -F
     long: --font-family
     metaDest: family
     type: char*
     help: Specify a default font family
     doc: Holds the default font to use ignored iff equal to \"\"
-  - dest: defaultFontSize
+  - dest: DefaultFontSize
     short: -S
     long: --font-size
     type: int
     metaDest: size
     help: Specify the default font size
     doc: Specifies the default font size, ignored iff equal to `0`
-  - dest: verbose
+  - dest: Verbose
     short: -v
     long: --verbose
     type: int
