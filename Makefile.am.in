@@ -11,7 +11,7 @@ ACLOCAL_AMFLAGS = -I m4
 bin_PROGRAMS = em
 # BUILT_SOURCES = y.tab.h
 em_SOURCES = <SRC_FILES>
-# em_LDADD = -lm
+em_LDADD = -lm
 # src/bibtex_parser.y src/bibtex_lexer.l
 em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18
 em_LFLAGS = --bison-bridge --bison-locations -sL -R
