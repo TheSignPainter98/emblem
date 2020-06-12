@@ -1,0 +1,39 @@
+#!/usr/bin/automake
+
+# Required by libtoolize
+ACLOCAL_AMFLAGS = -I m4
+
+# # Use a library
+# lib_LTLIBRARIES = libspkg.la
+# libspkg_la_SOURCES = src/spkg/spkg.c src/spkg/spkg.h
+
+# Binary and sources
+bin_PROGRAMS = em
+# BUILT_SOURCES = y.tab.h
+em_SOURCES = <SRC_FILES>
+# em_LDADD = -lm
+# src/bibtex_parser.y src/bibtex_lexer.l
+em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18
+em_LFLAGS = --bison-bridge --bison-locations -sL -R
+em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Werror -LC --locations -l -d
+
+src/argp.h: ./src/argp.c
+
+./src/argp.c src/argp.h: em.yml ./scripts/arggen
+	./scripts/arggen -xc ./src/argp < $<
+
+
+# Add documentation
+dist_doc_DATA = README.md LICENSE ChangeLog
+
+ChangeLog: scripts/changelog.sh
+	. $< > $@
+
+# # Add tests
+# TESTS = check_em
+# check_PROGRAMS = check_em
+# check_em_SOURCES = test/test.c src/em.c
+# check_em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18
+# check_em_LDADD = -lcriterion
+
+y.tab.h: src/em-bibtex_parser.o

@@ -73,6 +73,7 @@ aclocal.m4
 ChangeLog
 Makefile
 Makefile.in
+Makefile.am
 .deps/
 .dirstamp
 stamp-h1

@@ -22,6 +22,7 @@ BEGIN {
 	print "AC_PROG_LEX([flex])"
 	print "AC_CONFIG_MACRO_DIRS([m4])"
 	print "AM_CONDITIONAL([ANALYZER], [false])"
+	print "AC_CONFIG_FILES([Makefile])"
 	print "LT_INIT"
 	next
 }
