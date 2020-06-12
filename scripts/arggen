@@ -150,7 +150,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         ' * @param argc Number of command-line arguments',
         ' * @param argv Pointer to start of command-line arguments',
         ' *',
-        ' * @return 0 for success, 1 for failure, -1 for success but an immediate exit is advised (e.g. --help)',
+        ' * @return 0 for success, 1 for failure',
         ' */',
         'int parse_args(int argc, char** argv);',
         '',
