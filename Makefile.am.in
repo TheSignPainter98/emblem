@@ -33,12 +33,12 @@ ChangeLog: ./scripts/changelog.sh
 ./em.1.gz: ./em.yml ./scripts/mangen
 	(./scripts/mangen | gzip - -) < $< > $@
 
-# # Add tests
-# TESTS = check_em
-# check_PROGRAMS = check_em
-# check_em_SOURCES = test/test.c src/em.c
-# check_em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18
-# check_em_LDADD = -lcriterion
+# Add tests
+TESTS = check_em
+check_PROGRAMS = check_em
+check_em_SOURCES = <TEST_FILES>
+check_em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18
+check_em_LDADD = -lcriterion $(em_LDADD)
 
 y.tab.h: src/em-bibtex_parser.o
 
