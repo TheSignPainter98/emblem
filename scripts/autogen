@@ -1,0 +1,37 @@
+#!/bin/zsh
+
+set -e
+
+v=0
+c=0
+
+while getopts 'vc' arg; do
+	case $arg in
+		v) v=1 ;;
+		c) c=1 ;;
+		\*) print nothing: $OPTARG ;;
+		\?) print invalid option: $OPTARG ;;
+	esac
+done
+
+[[ ! "$v" -eq "0" ]] && set -o verbose
+
+# Clean the existing directories
+rm -rf $(grep -v '^$' .gitignore | grep -v '^#')
+[[ -f "Makefile" ]] && make clean
+
+[[ "$c" -eq "0" ]] || exit 0
+
+pkg_name=$(yq -y .name em.yml | head -n 1)
+pkg_version=$(yq -y .version em.yml | head -n 1)
+pkg_bug_report_address=$(yq -y .bug_report_address em.yml | head -n 1)
+
+# Generate the new autotools files
+./scripts/Makefile.am.sh < Makefile.am.in > Makefile.am
+autoscan
+awk -f ./scripts/configure.scan.awk \
+	pkg_name="$pkg_name" \
+	pkg_version="$pkg_version" \
+	pkg_bug_report_address="$pkg_bug_report_address" \
+	< ./configure.scan > ./configure.ac
+autoreconf -Wall -Werror

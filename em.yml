@@ -1,3 +1,4 @@
+name: emblem
 program: em
 description: A simple, format-agnostic typesetter
 version: 0.0.1
