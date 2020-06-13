@@ -33,6 +33,7 @@ args:
   - dest: Driver
     short: -T
     long: --Type
+    metaDest: driver
     help: Set the output driver
     doc: The specified output driver
     type: char*
@@ -41,6 +42,7 @@ args:
     short: -c
     long: --class
     type: char*
+    metaDest: style
     default: article
     help: Set the output class
     doc: Holds the root style
