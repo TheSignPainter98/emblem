@@ -33,7 +33,7 @@ typedef struct DocAst_s
 	/**
 	 * @brief Node data
 	 */
-	ANData andata;
+	AANData andata;
 } DocAst;
 
 /**
@@ -49,7 +49,7 @@ typedef struct DocAst_s
  *
  * @return A pointer to a new DocAst node
  */
-int doc_ast_node_create(DocAst* docAst, ANType antype, DocAst* nxt, DocAst* prev, DocAst* pnt, size_t len, ANData andata);
+int doc_ast_node_create(DocAst* docAst, ANType antype, DocAst* nxt, DocAst* prev, DocAst* pnt, size_t len, AANData andata);
 
 /**
  * @brief Free the memory of a DocAst node and any children
