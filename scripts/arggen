@@ -78,7 +78,7 @@ def sanitise_args(spec) -> bool:
     defaults:dict = {
             'mandatory': lambda _: False,
             'type': lambda a: 'flag' if ('short' in a or 'long' in a) and ('positional' not in a or not a['positional']) else 'char*',
-            'default': lambda a: 0 if 'type' not in a or a['type'] != 'char*' else '""',
+            'default': lambda a: 0 if 'type' not in a or a['type'] != 'char*' else '',
             'help': lambda _: '',
             'positional': lambda a: 'short' not in a and 'long' not in a,
             'metaDest': lambda a: a['dest'] if 'dest' in a else 'UNKNOWN',
@@ -180,7 +180,9 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         if arg['mandatory']:
             mandarg = ['is_set__%s = 1;' % arg['dest']]
 
-        return freearg + [ f'{asignand} = {asignarg};'] + mandarg +['break;']
+        valChecker:'list -> list' = lambda h: h if arg['type'] != 'int' else [ 'if (isInt(optarg))', '{', h, '}', 'else', '{', [ f'fprintf(stderr, "%s: Invalid value \\"%s\\" for option {arg["short"]}\\n", argv[0], optarg);', 'showUsage = 1;' ], '}' ]
+
+        return valChecker(freearg + [ f'{asignand} = {asignarg};'] + mandarg) + ['break;']
 
     opts_short:str = ''.join(list(map(lambda arg: arg['short'][1] + ('' if arg['type'] in ['flag', 'help'] else ':'), list(filter(lambda a: not a['positional'] and 'short' in a, args)))))
     opts_long:str = ', '.join(list(map(lambda a: '{ "%s", %d, NULL, \'%s\' }' %(a['long'][2:], 1 if a['type'] not in ['flag', 'help'] else 0, a['short'][1]), list(filter(lambda a: not a['positional'] and 'long' in a, args)))) + [ '{ NULL, 0, NULL, 0 }' ])
@@ -315,6 +317,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         '',
         'static void init(void) __attribute__((constructor));',
         'static void fini(void) __attribute__((destructor));',
+        'static int isInt(const char* s) __attribute__((pure));',
         '',
         '/**',
         ' * @brief Set initial argument values',
@@ -346,6 +349,18 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             ], '}',
             '',
             'return 0;'
+        ], '}',
+        '',
+        'static int isInt(const char* s)',
+        '{', [
+            'size_t len = strlen(s);',
+            'for (size_t i = 0; i < len; i++)',
+            '{', [
+                "if (s[i] < '0' || s[i] > '9')", '{', [
+                    'return 0;'
+                ], '}',
+            ], '}',
+            'return 1;'
         ], '}',
         '',
         '/**',
