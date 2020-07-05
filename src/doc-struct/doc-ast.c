@@ -79,6 +79,7 @@ void doc_ast_node_destroy(DocAst* docAst)
 			free(docAst->andata.floater.directionHint);
 			free(docAst->andata.floater.coordsHint);
 			doc_ast_node_destroy(docAst->andata.floater.cnt);
+			break;
 		default:
 			fprintf(stderr, "Attempted to delete memory of DocAst node of type %d\n", docAst->antype);
 			exit(1);
