@@ -15,11 +15,17 @@ BEGIN {
 	next
 }
 
+/^AC_PROG_CC/ {
+	print "AC_PROG_CC([gcc])"
+	next
+}
+
 /^AC_CONFIG_HEADERS/ {
 	printf "AC_CONFIG_HEADERS([%s])\n", config_headers
 	print "AM_INIT_AUTOMAKE([1.16 foreign subdir-objects dist-xz -Wgnu -Werror])"
 	print "AC_PROG_YACC([bison])"
-	print "AC_PROG_LEX([flex])"
+	# print "AC_PROG_LEX([flex])"
+	# print "AC_PROG_LEX([yywrap])"
 	print "AC_CONFIG_MACRO_DIRS([m4])"
 	print "AM_CONDITIONAL([ANALYZER], [false])"
 	print "AC_CONFIG_FILES([Makefile])"
