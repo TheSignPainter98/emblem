@@ -1,5 +1,4 @@
-#ifndef TYPESET_DOC_H_
-#define TYPESET_DOC_H_
+#pragma once
 
 #include "../measurement/measurement.h"
 #include "doc-ast.h"
@@ -110,5 +109,3 @@ int tdoc_meta_data_create(TDocMetaData* meta, char* dname, char* author, char* v
 int tdoc_meta_data_destroy(TDocMetaData* meta);
 int tdoc_create(TDoc* doc, TPage* fst, TPage* lst, int totPgs, TDocMetaData* meta);
 int tdoc_destroy(TDoc* doc);
-
-#endif /*  TYPESET_DOC_H_ */

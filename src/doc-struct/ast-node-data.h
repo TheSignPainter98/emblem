@@ -1,5 +1,4 @@
-#ifndef AST_NODE_DATA_H_
-#define AST_NODE_DATA_H_
+#pragma once
 
 #include "../measurement/measurement.h"
 #include <stdbool.h>
@@ -220,5 +219,3 @@ typedef union ANData_u
 	 */
 	AFloaterData floater;
 } AANData;
-
-#endif /* AST_NODE_DATA_H_ */

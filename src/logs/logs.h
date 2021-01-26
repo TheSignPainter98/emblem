@@ -1,5 +1,4 @@
-#ifndef LOGS_H_
-#define LOGS_H_
+#pragma once
 
 #include "../argp.h"
 #include "../config.h"
@@ -42,5 +41,3 @@ void log_info(const char* restrict format, ...) __attribute__((format(printf, 1,
  * @param ... Possible printf arguments
  */
 void log_succ(const char* restrict format, ...) __attribute__((format(printf, 1, 2)));
-
-#endif /* LOGS_H_ */

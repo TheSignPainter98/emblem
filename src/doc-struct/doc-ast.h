@@ -1,5 +1,4 @@
-#ifndef DOC_AST_H_
-#define DOC_AST_H_
+#pragma once
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -57,5 +56,3 @@ int doc_ast_node_create(DocAst* docAst, ANType antype, DocAst* nxt, DocAst* prev
  * @param docAst The node to delete
  */
 void doc_ast_node_destroy(DocAst* docAst);
-
-#endif /* DOC_AST_H_ */

@@ -1,5 +1,4 @@
-#ifndef MEASUREMENT_H_
-#define MEASUREMENT_H_
+#pragma once
 
 typedef struct
 {
@@ -33,5 +32,3 @@ typedef struct
  * @return The Euclidean distance between a and b
  */
 double distance(Pos* a, Pos* b) __attribute__((pure));
-
-#endif /* MEASUREMENT_H_ */
