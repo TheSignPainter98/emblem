@@ -10,6 +10,8 @@ ACLOCAL_AMFLAGS = -I m4
 M4 = m4 -P
 M4FLAGS = -E
 
+BUILT_SOURCES = <BUILT_SRCS>
+
 # Binary and sources
 bin_PROGRAMS = em
 # BUILT_SOURCES = y.tab.h
