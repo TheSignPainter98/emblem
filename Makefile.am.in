@@ -17,8 +17,7 @@ em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18
 em_LFLAGS = --bison-bridge --bison-locations -sL -R
 em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Werror -LC --locations -l -d
 
-src/argp.h: ./src/argp.c
-
+src/argp.c: ./src/argp.h
 ./src/argp.c src/argp.h: em.yml ./scripts/arggen
 	./scripts/arggen -xc ./src/argp < $<
 
@@ -42,6 +41,17 @@ check_em_LDADD = -lcriterion $(em_LDADD)
 
 y.tab.h: src/em-bibtex_parser.o
 
-./scripts/arggen ./scripts/changelog.sh ./scripts/mangen:;
+doc: docs/html/index.html
+.PHONY: doc
+
+doc-coverage: scripts/doxcov docs/html/index.html
+	./scripts/doxcov
+.PHONY: doc-coverage
+
+docs/html/index.html: scripts/docgen $(em_SOURCES)
+	./scripts/docgen
+
+./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./scripts/docgen:;
 
 EXTRA_DIST = ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./em.yml
+CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags

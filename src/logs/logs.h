@@ -1,6 +1,18 @@
 #ifndef LOGS_H_
 #define LOGS_H_
 
+#include "../argp.h"
+
+/**
+ * @brief Initialise logging
+ */
+void init_logs(Args* args);
+
+/**
+ * @brief Finalise logging
+ */
+void fini_logs(void);
+
 /**
  * @brief Write a warning to stderr
  *

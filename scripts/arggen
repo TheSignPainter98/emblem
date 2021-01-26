@@ -136,25 +136,30 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     args:dict = spec['args']
     numGobbledDef:[dict] = [{ 'type': 'int', 'dest': 'numGobbled', 'gobble': False, 'default': 0, 'doc': 'Holds the number of arguments gobbled' }] if len(list(filter(lambda a: a['gobble'], args))) > 0 else []
 
-    hdr_opt_decls:str = '\n'.join(list(map(lambda a: ('/**\n * @brief %s\n */\n' %a['doc'] if 'doc' in a else '') + 'extern %s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] != 'help', args + numGobbledDef)))))
+    hdr_opt_decls:str = '\n\t'.join(list(map(lambda a: ('\n\t/**\n\t * @brief %s\n\t */\n' %a['doc'] if 'doc' in a else '') + '\t%s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] != 'help', args + numGobbledDef)))))
     opt_decls:str = '\n'.join(list(map(lambda a: ('/**\n * @brief %s\n */\n' %a['doc'] if 'doc' in a else '') + '%s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] != 'help', args + numGobbledDef)))))
     header: str = '\n'.join([
-        '#ifndef %s_H_' % ifname_sanitised.upper(),
-        '#define %s_H_' % ifname_sanitised.upper(),
+        '#pragma once',
         '',
+        'typedef struct Args_s', '{',
         hdr_opt_decls,
+        '} Args;',
         '',
         '/**',
         ' * @brief Parse command-line arguments and assign to appropriate globals',
         ' *',
+        ' * @param argc Pointer to args object to populate',
         ' * @param argc Number of command-line arguments',
         ' * @param argv Pointer to start of command-line arguments',
         ' *',
         ' * @return 0 for success, 1 for failure',
         ' */',
-        'int parse_args(int argc, char** argv);',
+        'int parse_args(Args* args, int argc, char** argv);',
         '',
-        '#endif /* %s_H_ */' % ifname_sanitised.upper(),
+        '/**',
+        ' * @brief Clean up argument memory',
+        ' */',
+        'void fini_args(Args* args);',
     ])
 
     mandatoryArgs:[dict] = list(filter(lambda a: a['mandatory'], args))
@@ -168,13 +173,13 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         if arg['type'] == 'help':
             asignand = 'showHelp'
         else:
-            asignand = arg['dest']
+            asignand = 'args->' + arg['dest']
 
         if arg['type'] in [ 'help', 'flag' ]:
             asignarg = 1
         else:
             if arg['type'] == 'char*':
-                freearg = [f'free({arg["dest"]});']
+                freearg = [f'free(args->{arg["dest"]});']
             asignarg = 'strdup(optarg)' if arg['type'] == 'char*' else 'atoi(optarg)'
 
         if arg['mandatory']:
@@ -193,7 +198,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             return 'strdup("%s")' % arg['default']
         else:
             return str(arg['default'])
-    defaults:[str] = list(map(lambda arg: '%s = %s;' %(arg['dest'], default_val(arg)), list(filter(lambda arg: arg['type'] != 'help', args + numGobbledDef))))
+    defaults:[str] = list(map(lambda arg: 'args->%s = %s;' %(arg['dest'], default_val(arg)), list(filter(lambda arg: arg['type'] != 'help', args + numGobbledDef))))
     opt_handlers:list = list(reduce(lambda a,b: a+b, list(map(lambda a: ["case '%s':" % a['short'][1], assignment_handler(a)], list(filter(lambda a: not a['positional'], args))))))
 
     def arg_usage(arg:dict, isShort:bool) -> str:
@@ -227,10 +232,10 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     gobbler:dict = gobblers[0] if gobblers != [] else None
     if len(gobblers) == 1:
         gobbleHandler = [
-                'numGobbled = argc - pospos__;',
-                '%s = calloc(numGobbled, sizeof(%s));' %(gobbler['dest'], gobbler['type']),
-                'for(int i = 0; i < numGobbled; i++)', '{', [
-                    '%s[i] = %s;' %(gobbler['dest'], 'strdup(argv[pospos__ + i])' if gobbler['type'] == 'char*' else 'atoi(argv[pospos__ + i])')
+                'args->numGobbled = argc - pospos__;',
+                'args->%s = calloc(args->numGobbled, sizeof(%s));' %(gobbler['dest'], gobbler['type']),
+                'for(int i = 0; i < args->numGobbled; i++)', '{', [
+                    'args->%s[i] = %s;' %(gobbler['dest'], 'strdup(argv[pospos__ + i])' if gobbler['type'] == 'char*' else 'atoi(argv[pospos__ + i])')
                 ], '}'
             ]
     else:
@@ -283,17 +288,17 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
                 ]
         if 'choices' in arg:
             vdr += [
-                    'if (%s)' % ' && '.join(list(map(lambda c: ('strcmp(%s, "%s")' if arg['type'] == 'char*' else '%s != %s') % (arg['dest'], c), arg['choices']))) ,
+                    'if (%s)' % ' && '.join(list(map(lambda c: ('strcmp(args->%s, "%s")' if arg['type'] == 'char*' else 'args->%s != %s') % (arg['dest'], c), arg['choices']))) ,
                     '{', [
-                        'fprintf(stderr, "%%s: Value %s not allowed for argument %s\\n", argv[0], %s);' %('%s' if arg['type'] == 'char*' else '%d', arg['short'], arg['dest']),
+                        'fprintf(stderr, "%%s: Value %s not allowed for argument %s\\n", argv[0], args->%s);' %('%s' if arg['type'] == 'char*' else '%d', arg['short'], arg['dest']),
                         'showUsage = 1;'
                      ],'}'
                 ]
         return vdr
     validator:[str] = list(reduce(lambda a,b: a+b, list(filter(lambda v: v != [], list(map(validate_arg, args))))))
 
-    gobblerDestructor:[str] = [ 'for (int i = 0; i < numGobbled; i++)', '{', [ 'free(%s[i]);' % gobbler['dest'] ], '}', 'free(%s);' % gobbler['dest'] ] if gobblers != [] else []
-    destructor:[str] = list(map(lambda a: 'free(%s);' % a['dest'], list(filter(lambda a: not a['gobble'] and a['type'] == 'char*', args)))) + gobblerDestructor
+    gobblerDestructor:[str] = [ 'for (int i = 0; i < args->numGobbled; i++)', '{', [ 'free(args->%s[i]);' % gobbler['dest'] ], '}', 'free(args->%s);' % gobbler['dest'] ] if gobblers != [] else []
+    destructor:[str] = list(map(lambda a: 'free(args->%s);' % a['dest'], list(filter(lambda a: not a['gobble'] and a['type'] == 'char*', args)))) + gobblerDestructor
 
     parser_body: str = indent([
         '#include "%s"' % hdrfl_rel,
@@ -302,8 +307,6 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         '#include <stdio.h>',
         '#include <stdlib.h>',
         '#include <string.h>',
-        '',
-        opt_decls,
         '',
         '/**',
         '* @brief Short getopt command-line parameter declaration',
@@ -315,16 +318,16 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         '*/',
         'static struct option long_opts[] = { %s };' % opts_long,
         '',
-        'static void init(void) __attribute__((constructor));',
-        'static void fini(void) __attribute__((destructor));',
+        'static void init_args(Args* args);',
         'static int isInt(const char* s) __attribute__((pure));',
         '',
         '/**',
         ' * @brief Set initial argument values',
         ' */',
-        'static void init(void)', '{', defaults, '}',
+        'static void init_args(Args* args)', '{', defaults, '}',
         '',
-        'int parse_args(int argc, char** argv)', '{', mandatoryFlags + [
+        'int parse_args(Args* args, int argc, char** argv)', '{', mandatoryFlags + [
+            'init_args(args);'
             'int optc;',
             'int showUsage = 0, showHelp = 0;',
             'while ((optc = getopt_long(argc, argv, SHORT_OPTS, long_opts, NULL)) != -1)', '{', [
@@ -363,10 +366,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             'return 1;'
         ], '}',
         '',
-        '/**',
-        ' * @brief Clean up argument memory',
-        ' */',
-        'static void fini(void)', '{', destructor, '}'
+        'void fini_args(Args* args)', '{', destructor, '}'
     ])
 
     return [(hdrfl, header), (prsrfl, parser_body)]

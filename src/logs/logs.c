@@ -1,6 +1,5 @@
 #include "logs.h"
 
-#include "../argp.h"
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -13,14 +12,16 @@
 typedef enum Verbosity_e
 {
 	/** @brief Error verbosity level */
-	ERR = 0,
+	ERR,
 	/** @brief Warning verbosity level */
-	WARN = 1,
-	/** @brief Information verbosity level */
-	INFO = 2,
+	WARN,
 	/** @brief Success message verbosity level */
-	SUCC = 3
+	SUCC,
+	/** @brief Information verbosity level */
+	INFO,
 } Verbosity;
+
+static int log_verbosity;
 
 /**
  * @brief ANSI colourisation symbols for warnings
@@ -39,6 +40,13 @@ const char* infoLeader	  = "\033[1;34minfo\033[1;37m:\033[0m ";
  */
 const char* succLeader	  = "\033[1;32msuccess\033[1;37m:\033[0m ";
 
+void init_logs(Args* args)
+{
+	log_verbosity = args->verbose;
+}
+
+void fini_logs(void) {}
+
 /**
  * @brief Write a warning to stderr
  *
@@ -47,7 +55,7 @@ const char* succLeader	  = "\033[1;32msuccess\033[1;37m:\033[0m ";
  */
 void log_warn(const char* restrict format, ...)
 {
-	if (Verbose >= WARN)
+	if (log_verbosity >= WARN)
 	{
 		const size_t warningLeaderLen = strlen(warningLeader);
 		va_list va;
@@ -82,7 +90,7 @@ void log_warn(const char* restrict format, ...)
  */
  void log_err(const char* restrict format, ...)
 {
-	if (Verbose >= ERR)
+	if (log_verbosity >= ERR)
 	{
 		const size_t errorLeaderLen = strlen(errorLeader);
 		va_list va;
@@ -117,7 +125,7 @@ void log_warn(const char* restrict format, ...)
  */
 void log_info(const char* restrict format, ...)
 {
-	if (Verbose >= INFO)
+	if (log_verbosity >= INFO)
 	{
 		const size_t infoLeaderLen = strlen(infoLeader);
 		va_list va;
@@ -152,7 +160,7 @@ void log_info(const char* restrict format, ...)
  */
 void log_succ(const char* restrict format, ...)
 {
-	if (Verbose >= SUCC)
+	if (log_verbosity >= SUCC)
 	{
 		const size_t succLeaderLen = strlen(succLeader);
 		va_list va;
