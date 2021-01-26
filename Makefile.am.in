@@ -7,6 +7,9 @@ ACLOCAL_AMFLAGS = -I m4
 # lib_LTLIBRARIES = libspkg.la
 # libspkg_la_SOURCES = src/spkg/spkg.c src/spkg/spkg.h
 
+M4 = m4 -P
+M4FLAGS = -E
+
 # Binary and sources
 bin_PROGRAMS = em
 # BUILT_SOURCES = y.tab.h
@@ -20,6 +23,9 @@ em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Werror -LC --locations -l -d
 src/argp.c: ./src/argp.h
 ./src/argp.c src/argp.h: em.yml ./scripts/arggen
 	./scripts/arggen -xc ./src/argp < $<
+
+./src/pp/ignore_warning.h: ./src/pp/ignore_warning.h.m4
+	$(M4) $(M4FLAGS) $< > $@
 
 em.yml:;
 
