@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "types/maybe.h"
+#include "maybe.h"
 
 typedef struct
 {

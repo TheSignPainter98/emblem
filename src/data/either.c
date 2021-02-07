@@ -1,6 +1,6 @@
 #include "either.h"
 
-#include "../../pp/not_implemented.h"
+#include "pp/not_implemented.h"
 
 void make_either_left(Either* e, void* left_val)
 {

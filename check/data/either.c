@@ -1,7 +1,7 @@
-#include "../../../src/data/types/either.h"
+#include "data/either.h"
 
 #include <criterion/criterion.h>
-#include "../../../src/pp/lambda.h"
+#include "pp/lambda.h"
 
 Test(either, left_memory_life_cycle)
 {

@@ -1,6 +1,6 @@
 #include "maybe.h"
 
-#include "../../pp/not_implemented.h"
+#include "pp/not_implemented.h"
 
 void make_maybe_nothing(Maybe* m)
 {

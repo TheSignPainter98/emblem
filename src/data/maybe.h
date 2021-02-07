@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../pp/lambda.h"
-#include "../../pp/not_implemented.h"
-#include "../../config.h"
+#include "pp/lambda.h"
+#include "pp/not_implemented.h"
+#include "config.h"
 #include "unit.h"
 #include <stdbool.h>
 

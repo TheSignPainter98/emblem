@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../argp.h"
-#include "../config.h"
+#include "argp.h"
+#include "config.h"
 
 /**
  * @brief Initialise logging

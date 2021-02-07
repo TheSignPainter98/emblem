@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../measurement/measurement.h"
+#include "measurement/measurement.h"
 #include <stdbool.h>
 #include <stdio.h>
 

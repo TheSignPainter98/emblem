@@ -1,4 +1,4 @@
-#include "../../../src/data/types/maybe.h"
+#include "data/maybe.h"
 
 #include <criterion/criterion.h>
 

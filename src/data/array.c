@@ -1,5 +1,5 @@
 #include "array.h"
-#include "../pp/ignore_warning.h"
+#include "pp/ignore_warning.h"
 
 bool make_arr(Array* arr, size_t cnt)
 {
