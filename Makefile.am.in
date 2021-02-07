@@ -16,14 +16,13 @@ BUILT_SOURCES = <BUILT_SRCS>
 bin_PROGRAMS = em
 # BUILT_SOURCES = y.tab.h
 em_SOURCES = <SRC_FILES>
-em_LDADD = -lm
-# src/bibtex_parser.y src/bibtex_lexer.l
-em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18
+em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x -pthread <DEPS_CFLAGS>
+em_LDADD = -lm <DEPS_LIBS>
 em_LFLAGS = --bison-bridge --bison-locations -sL -R
 em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Werror -LC --locations -l -d
 
-src/argp.c: ./src/argp.h
-./src/argp.c src/argp.h: em.yml ./scripts/arggen
+src/argp.h: src/argp.c
+src/argp.h src/argp.c: em.yml ./scripts/arggen
 	./scripts/arggen -xc ./src/argp < $<
 
 ./src/pp/ignore_warning.h: ./src/pp/ignore_warning.h.m4
@@ -44,8 +43,8 @@ ChangeLog: ./scripts/changelog.sh
 TESTS = check_em
 check_PROGRAMS = check_em
 check_em_SOURCES = <TEST_FILES>
-check_em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18
-check_em_LDADD = -lcriterion $(em_LDADD)
+check_em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18 <CHECK_DEPS_CFLAGS>
+check_em_LDADD = $(em_LDADD) <CHECK_DEPS_LIBS>
 
 y.tab.h: src/em-bibtex_parser.o
 

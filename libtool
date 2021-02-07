@@ -11910,7 +11910,7 @@ pic_flag=" -fPIC -DPIC"
 wl="-Wl,"
 
 # Compiler flag to prevent dynamic linking.
-link_static_flag="-static"
+link_static_flag=""
 
 # Does compiler simultaneously support -c and -o options?
 compiler_c_o="yes"

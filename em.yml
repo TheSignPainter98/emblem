@@ -1,5 +1,13 @@
 name: emblem
 program: em
+check_deps:
+  - name: criterion
+    func_check: criterion_run_all_tests
+    minver: 2.3.2
+deps:
+  - name: lua
+    func_check: luaL_init
+    minver: 5.4.2
 description: A simple, format-agnostic typesetter
 version: 0.0.1
 date: 05 Jun 2020
