@@ -117,3 +117,6 @@ ignore_warning.h
 
 # Ignore `bear`-generated files
 compile_commands.*
+
+# Ignore core dumps
+vgcore.*

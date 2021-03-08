@@ -148,7 +148,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         '/**',
         ' * @brief Parse command-line arguments and assign to appropriate globals',
         ' *',
-        ' * @param argc Pointer to args object to populate',
+        ' * @param args Pointer to args object to populate',
         ' * @param argc Number of command-line arguments',
         ' * @param argv Pointer to start of command-line arguments',
         ' *',
@@ -159,7 +159,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         '/**',
         ' * @brief Clean up argument memory',
         ' */',
-        'void fini_args(Args* args);',
+        'void dest_args(Args* args);',
     ])
 
     mandatoryArgs:[dict] = list(filter(lambda a: a['mandatory'], args))
@@ -318,16 +318,16 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         '*/',
         'static struct option long_opts[] = { %s };' % opts_long,
         '',
-        'static void init_args(Args* args);',
+        'static void make_args(Args* args);',
         'static int isInt(const char* s) __attribute__((pure));',
         '',
         '/**',
         ' * @brief Set initial argument values',
         ' */',
-        'static void init_args(Args* args)', '{', defaults, '}',
+        'static void make_args(Args* args)', '{', defaults, '}',
         '',
         'int parse_args(Args* args, int argc, char** argv)', '{', mandatoryFlags + [
-            'init_args(args);'
+            'make_args(args);'
             'int optc;',
             'int showUsage = 0, showHelp = 0;',
             'while ((optc = getopt_long(argc, argv, SHORT_OPTS, long_opts, NULL)) != -1)', '{', [
@@ -366,7 +366,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             'return 1;'
         ], '}',
         '',
-        'void fini_args(Args* args)', '{', destructor, '}'
+        'void dest_args(Args* args)', '{', destructor, '}'
     ])
 
     return [(hdrfl, header), (prsrfl, parser_body)]

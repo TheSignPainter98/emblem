@@ -1,4 +1,5 @@
 #include "array.h"
+
 #include "pp/ignore_warning.h"
 
 bool make_arr(Array* arr, size_t cnt)
@@ -10,11 +11,17 @@ bool make_arr(Array* arr, size_t cnt)
 	return !!arr->data;
 }
 
-void dest_arr(Array* arr)
+void dest_arr(Array* arr, func_sig(void, ed, (void*)))
 {
 	if (!arr)
 		return;
+
+	if (ed)
+		for (size_t i = 0; i < arr->cnt; i++)
+			ed(arr->data[i]);
+
 	free(arr->data);
+	arr->cnt = 0;
 }
 
 void get_arrv(Maybe* ret, Array* arr, size_t idx)
@@ -32,4 +39,15 @@ bool set_arrv(Array* arr, size_t idx, void* val)
 
 	arr->data[idx] = val;
 	return true;
+}
+
+void make_arr_from_list(Array* arr, List* l)
+{
+	make_arr(arr, l->cnt);
+	ListNode* curr = l->fst;
+	for (size_t i = 0; i < l->cnt; i++)
+	{
+		arr->data[i] = curr->data;
+		curr = curr->nxt;
+	}
 }

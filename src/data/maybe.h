@@ -43,7 +43,7 @@ void make_maybe_just(Maybe* m, void* data);
  *
  * @param m Pointer to a meybe object to destroy
  */
-void dest_maybe(Maybe* m);
+void dest_maybe(Maybe* m, func_sig(void, ed, (void*)));
 
 /**
  * @brief Apply a function to the stored data in the maybe and output a new maybe object with the new value.
@@ -53,7 +53,7 @@ void dest_maybe(Maybe* m);
  *
  * @param mo Ouptut maybe object. Should be an uninitialised maybe-type pointer.
  * @param mi Input maybe object which will have `f` applied to it
- * param func_sig Function to apply to any data inside `mi`
+ * @param f Function to apply to any data inside `mi`
  */
 void fmap_maybe(Maybe* restrict mo, Maybe* restrict mi, func_sig(void, f, (void**, void*)));
 

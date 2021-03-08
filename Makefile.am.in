@@ -16,7 +16,7 @@ BUILT_SOURCES = <BUILT_SRCS>
 bin_PROGRAMS = em
 # BUILT_SOURCES = y.tab.h
 em_SOURCES = <SRC_FILES>
-em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x -pthread <DEPS_CFLAGS>
+em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x <DEPS_CFLAGS>
 em_LDADD = -lm <DEPS_LIBS>
 em_LFLAGS = --bison-bridge --bison-locations -sL -R
 em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Werror -LC --locations -l -d

@@ -2,14 +2,14 @@
 
 #include <criterion/criterion.h>
 
-Test(unit_, memory_life_cycle)
+Test(unit, memory_life_cycle)
 {
 	Unit u;
 	make_unit(&u);
 	dest_unit(&u);
 }
 
-Test(unit_, unit_values_equal)
+Test(unit, unit_values_equal)
 {
 	Unit u1;
 	Unit u2;

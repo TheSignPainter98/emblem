@@ -5,7 +5,7 @@
 void make_maybe_nothing(Maybe* m)
 {
 	m->type	   = NOTHING;
-	m->nothing = unit;
+	m->nothing = UNIT;
 }
 
 void make_maybe_just(Maybe* m, void* data)
@@ -14,7 +14,11 @@ void make_maybe_just(Maybe* m, void* data)
 	m->just = data;
 }
 
-void dest_maybe(Maybe* m __attribute__((unused))) { }
+void dest_maybe(Maybe* m, func_sig(void, ed, (void*)))
+{
+	if (m && m->type == JUST && ed)
+		ed(m->just);
+}
 
 bool succ_maybe(Maybe* m) { return m->type != NOTHING; }
 

@@ -7,8 +7,8 @@ Test(maybe, nothing_memory_life_cycle)
 	Maybe m;
 	make_maybe_nothing(&m);
 	cr_assert(m.type == NOTHING, "Type of maybe is not nothing");
-	cr_assert(m.nothing == unit, "Value of maybe-nothing is not the unit");
-	dest_maybe(&m);
+	cr_assert(m.nothing == UNIT, "Value of maybe-nothing is not the unit");
+	dest_maybe(&m, NULL);
 }
 
 Test(maybe, just_memory_life_cycle)
@@ -18,7 +18,7 @@ Test(maybe, just_memory_life_cycle)
 	make_maybe_just(&m, (void*)val);
 	cr_assert(m.type == JUST, "Type of maybe is not just");
 	cr_assert((long int)m.just == val, "Value of maybe-just is not %ld, got %ld instead", val, (long int)m.just);
-	dest_maybe(&m);
+	dest_maybe(&m, NULL);
 }
 
 Test(maybe, nothing_is_not_successful)
@@ -26,7 +26,7 @@ Test(maybe, nothing_is_not_successful)
 	Maybe m;
 	make_maybe_nothing(&m);
 	cr_assert(!succ_maybe(&m), "Nothing is successful");
-	dest_maybe(&m);
+	dest_maybe(&m, NULL);
 }
 
 Test(maybe, just_is_successful)
@@ -34,7 +34,7 @@ Test(maybe, just_is_successful)
 	Maybe m;
 	make_maybe_just(&m, (void*)100);
 	cr_assert(succ_maybe(&m), "Just is unsuccessfil");
-	dest_maybe(&m);
+	dest_maybe(&m, NULL);
 }
 
 Test(maybe, fmap_nothing)
@@ -44,9 +44,9 @@ Test(maybe, fmap_nothing)
 	func_sig(void, f, (void**, void*)) = NULL;
 	make_maybe_nothing(&mi);
 	fmap_maybe(&mo, &mi, f);
-	cr_assert((long int)mo.nothing == unit, "Fmap was incorrectly applied to the unit");
-	dest_maybe(&mi);
-	dest_maybe(&mo);
+	cr_assert((long int)mo.nothing == UNIT, "Fmap was incorrectly applied to the unit");
+	dest_maybe(&mi, NULL);
+	dest_maybe(&mo, NULL);
 }
 
 Test(maybe, fmap_just)
@@ -60,6 +60,6 @@ Test(maybe, fmap_just)
 	long int oval;
 	f((void**)&oval, (void*)val);
 	cr_assert((long int)mo.just == oval, "Fmap was incorrectly applied to the stored value");
-	dest_maybe(&mi);
-	dest_maybe(&mo);
+	dest_maybe(&mi, NULL);
+	dest_maybe(&mo, NULL);
 }

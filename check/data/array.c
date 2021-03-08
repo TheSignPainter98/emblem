@@ -1,5 +1,7 @@
 #include "src/data/array.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <criterion/criterion.h>
 
 Test(array, memory_life_cycle)
@@ -9,7 +11,7 @@ Test(array, memory_life_cycle)
 	make_arr(&arr, cnt);
 	cr_assert(arr.cnt == cnt, "Array length was not as expected");
 	cr_assert(arr.cnt == cnt, "Array length was not as expected");
-	dest_arr(&arr);
+	dest_arr(&arr, NULL);
 }
 
 Test(array, initial_memory_is_empty)
@@ -24,6 +26,7 @@ Test(array, initial_memory_is_empty)
 		cr_assert(succ_maybe(&m), "Array get was not successful");
 		cr_assert(m.just == 0, "Array index %d was not zero", i);
 	}
+	dest_arr(&arr, NULL);
 }
 
 Test(array, get_set_normal_function)
@@ -37,6 +40,7 @@ Test(array, get_set_normal_function)
 	Maybe m;
 	get_arrv(&m, &arr, 1);
 	cr_assert(m.just == val);
+	dest_arr(&arr, NULL);
 }
 
 Test(array, cannot_get_or_set_bad_indices)
@@ -49,4 +53,35 @@ Test(array, cannot_get_or_set_bad_indices)
 	Maybe m;
 	get_arrv(&m, &arr, 100);
 	cr_assert_not(succ_maybe(&m), "Got successful result type when indexing array with bad index");
+	dest_arr(&arr, NULL);
+}
+
+Test(array, conversion_from_list)
+{
+	const size_t llen = 100;
+	Array arr;
+	List list;
+	make_list(&list);
+
+	for (size_t i = 0; i < llen; i++)
+	{
+		ListNode* ln = malloc(sizeof(ListNode));
+		make_list_node(ln, (void*)i);
+		append_list_node(&list, ln);
+	}
+
+	make_arr_from_list(&arr, &list);
+
+	cr_assert(arr.cnt == list.cnt, "Array created from list had a different length, got %ld but expected %ld", arr.cnt, list.cnt);
+
+	for (size_t i = 0; i < llen; i++)
+	{
+		Maybe m;
+		get_arrv(&m, &arr, i);
+		cr_assert(m.type == JUST, "Array read returned object with nothing constructor");
+		cr_assert((size_t)m.just == i, "Incorrect value in array, expected %ld but got %ld", i, (size_t)m.just);
+	}
+
+	dest_arr(&arr, NULL);
+	dest_list(&list, true, NULL);
 }

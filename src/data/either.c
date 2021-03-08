@@ -14,7 +14,13 @@ void make_either_right(Either* e, void* right_val)
 	e->right = right_val;
 }
 
-void dest_either(Either* e __attribute__((unused))) { }
+void dest_either(Either* e, func_sig(void, led, (void*)), func_sig(void, red, (void*)))
+{
+	if (e->type == LEFT && led)
+		led(e->left);
+	else if (red)
+		red(e->right);
+}
 
 bool succ_either(Either* e) { return e->type != LEFT; }
 

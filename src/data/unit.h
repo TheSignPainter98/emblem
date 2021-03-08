@@ -1,7 +1,7 @@
 #pragma once
 
 typedef int Unit;
-#define unit 0
+#define UNIT (0)
 
 /**
  * @brief Destroy a unit

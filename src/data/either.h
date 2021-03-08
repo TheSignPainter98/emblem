@@ -42,7 +42,7 @@ void fmap_either(Either* eo, Either* ei, func_sig(void, f, (void**, void*)));
  *
  * @param e Pointer to the either object to destroy
  */
-void dest_either(Either* e);
+void dest_either(Either* e, func_sig(void, led, (void*)), func_sig(void, red, (void*)));
 
 /**
  * @brief Return whether a given either-type object represents a successful result
