@@ -18,14 +18,7 @@ int main(int argc, char** argv)
 	int rc = parse_args(&args, argc, argv);
 	if (rc)
 		return rc;
-
 	init_logs(&args);
-	log_err("Hello, world %s", "how are you?");
-	log_warn("Hello, world %s", "how are you?");
-	log_info("Hello, world %s", "how are you?");
-	log_succ("Hello, world %s", "how are you?");
-
-	log_succ("Got default font %s @ %dpt", args.default_typeface, args.default_font_size);
-
+	dest_args(&args);
 	return 0;
 }
