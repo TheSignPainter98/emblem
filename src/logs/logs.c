@@ -8,7 +8,7 @@
 #include <string.h>
 
 /**
- * @brief Verbosity level
+ * @brief Verbosity level values
  */
 typedef enum
 {
@@ -22,6 +22,9 @@ typedef enum
 	SUCC,
 } Verbosity;
 
+/**
+ * @brief Running verbosity level of the program
+ */
 static Verbosity log_verbosity;
 
 /**
@@ -34,6 +37,9 @@ static const char* const leaders[] = {
 	[SUCC] = "\033[1;32msucc\033[1;37m:\033[0m ",
 };
 
+/**
+ * @brief Lock to prevent multiple threads from simultaneously logging
+ */
 static pthread_mutex_t log_lock;
 
 void init_logs(Args* args)
@@ -46,6 +52,14 @@ void fini_logs(void) { pthread_mutex_destroy(&log_lock); }
 
 static void log_x(Verbosity lvl, const char* restrict format, va_list va);
 
+/**
+ * @brief Construct a call to the logging function at verbosity `lvl`, where `v` is the start of the formatting arguments
+ *
+ * @param lvl Verbosity level of the call
+ * @param v Name of the first format argument
+ *
+ * @return A call to log_x with va_args handled
+ */
 #define LOG_X_CALL(lvl, v) \
 	va_list va;\
 	va_start(va, v);\

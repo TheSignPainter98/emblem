@@ -141,6 +141,9 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     header: str = '\n'.join([
         '#pragma once',
         '',
+        '/**',
+        ' * @brief Container for parsed arguments',
+        ' */',
         'typedef struct Args_s', '{',
         hdr_opt_decls,
         '} Args;',

@@ -1,6 +1,7 @@
 #include "list.h"
 
-#include "stddef.h"
+#include "pp/unused.h"
+#include <stddef.h>
 
 void make_list(List* l)
 {
@@ -106,7 +107,7 @@ bool remove_list_node(List* l, ListNode* ln)
 
 void make_list_iter(ListIter* i, List* l) { i->nxt = l->fst; }
 
-void dest_list_iter(ListIter* i __attribute__((unused))) { }
+void dest_list_iter(ListIter* i) { UNUSED(i); }
 
 bool iter_list(void** val, ListIter* i)
 {
@@ -144,7 +145,14 @@ void make_list_from_arr(List* l, Array* arr)
 	}
 }
 
-void in_list(Maybe* m, List* l, void* val) { in_list_eq(m, l, cmp_size_ts, val); }
+bool in_list(List* l, void* val)
+{
+	Maybe m;
+	in_list_eq(&m, l, cmp_size_ts, val);
+	bool rv = m.type == JUST;
+	dest_maybe(&m, NULL);
+	return rv;
+}
 
 void in_list_eq(Maybe* m, List* l, Comparator cmp, void* val)
 {
@@ -154,15 +162,13 @@ void in_list_eq(Maybe* m, List* l, Comparator cmp, void* val)
 	{
 		if (!cmp(val, curr->data))
 		{
-			break;
+			make_maybe_just(m, curr);
+			return;
 		}
 		curr = curr->nxt;
 	}
 
-	if (curr)
-		make_maybe_just(m, curr);
-	else
-		make_maybe_nothing(m);
+	make_maybe_nothing(m);
 }
 
 bool all_list(List* l)

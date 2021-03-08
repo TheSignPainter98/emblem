@@ -1,7 +1,16 @@
 #pragma once
 
+/**
+ * @brief Unit type, has only one value value and hence conveys no information
+ */
 typedef int Unit;
-#define UNIT (0)
+
+/**
+ * @brief Value of the unit type
+ *
+ * @return The unique valid value of the unit type
+ */
+#define UNIT 0
 
 /**
  * @brief Destroy a unit

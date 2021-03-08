@@ -5,15 +5,33 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+/**
+ * @brief Managed-memory array structure with safe access
+ */
 typedef struct
 {
+	/**
+	 * @brief Pointer to the data stored
+	 */
 	void** data;
+	/**
+	 * @brief Number of elements in the stored array
+	 */
 	size_t cnt;
 } Array;
 
+/**
+ * @brief Array iterator
+ */
 typedef struct
 {
+	/**
+	 * @brief Pointer to the array to iterate over
+	 */
 	Array* arr;
+	/**
+	 * @brief Index of the next element to iterate over
+	 */
 	size_t next;
 } ArrayIter;
 
@@ -67,6 +85,27 @@ bool set_arrv(Array* arr, size_t idx, void* val);
  */
 void make_arr_from_list(Array* arr, List* l);
 
+/**
+ * @brief Make an array iterator
+ *
+ * @param iter Pointer to the iterator to make
+ * @param arr Pointer to the array to iterate over
+ */
 void make_arr_iter(ArrayIter* iter, Array* arr);
-void dest_arr_iter(ArrayIter* iter, Array* arr);
-void iter_arr(ArrayIter* iter, Array* arr);
+
+/**
+ * @brief Destror an array iterator
+ *
+ * @param iter Pointer to the iterator to destroy
+ */
+void dest_arr_iter(ArrayIter* iter);
+
+/**
+ * @brief Iterate once over an array
+ *
+ * @param v Pointer to the return value
+ * @param iter Pointer to the array iterator to use
+ *
+ * @return True iff a value was successfully written to `v`, false iff there were no elements left
+ */
+bool iter_arr(void** v, ArrayIter* iter);

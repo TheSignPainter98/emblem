@@ -5,6 +5,14 @@
 #include "str.h"
 #include <limits.h>
 
+/**
+ * @brief Construct a function which hashes a specified numeric type
+ *
+ * @param name The name of the type to hash
+ * @param type The type of the values to hash
+ *
+ * @return A function which hashes `type`s
+ */
 #define HASH_NUM(name, type)                                                                                           \
 	HASH_SIG(name)                                                                                                     \
 	{                                                                                                                  \

@@ -85,3 +85,36 @@ Test(array, conversion_from_list)
 	dest_arr(&arr, NULL);
 	dest_list(&list, true, NULL);
 }
+
+Test(array, iter_memory_life_cycle)
+{
+	Array a;
+	make_arr(&a, 10);
+	ArrayIter iter;
+	make_arr_iter(&iter, &a);
+	dest_arr_iter(&iter);
+	dest_arr(&a, NULL);
+}
+
+Test(array, iter)
+{
+	Array a;
+	const size_t arrLen = 100;
+	make_arr(&a, arrLen);
+	for (size_t i = 0; i < arrLen; i++)
+		a.data[i] = (void*)i;
+
+	ArrayIter iter;
+	size_t itered = 0;
+	void* elem;
+	make_arr_iter(&iter, &a);
+	while (iter_arr(&elem, &iter))
+	{
+		cr_assert((size_t)elem == itered, "Array oterator returned incorrect value, expected %ld but got %ld" ,itered, (size_t)elem);
+		itered++;
+	}
+	cr_assert(itered == arrLen, "Iterated too few elements, expected %ld but only oterated over %ld", arrLen, itered);
+
+	dest_arr_iter(&iter);
+	dest_arr(&a, NULL);
+}

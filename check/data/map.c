@@ -81,12 +81,12 @@ Test(map, push_get_present)
 	size_t valv = val + 1;
 	make_map(&m, hash_size_t, cmp_size_ts, NULL);
 	Maybe r0;
-	push_map(&r0, &m, (void*)val, (void*)(valv));
+	cr_assert(push_map(&r0, &m, (void*)val, (void*)(valv)), "Successfully pushing to map did not return true");
 	dest_maybe(&r0, NULL);
 	for (size_t i = 0; i < NUM_MAP_TEST_ENTRIES; i++)
 	{
 		Maybe r;
-		push_map(&r, &m, (void*)val, (void*)(val * val));
+		cr_assert(push_map(&r, &m, (void*)val, (void*)(val * val)), "Successfully pushing to map did not return true");
 		cr_assert(r.type == JUST, "Pushing present value did not return the old one");
 		cr_assert((size_t)r.just == (i ? val * val : valv), "Pushing present value did not return original value, expected %ld but got %ld instead", valv, r.just);
 

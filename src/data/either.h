@@ -1,8 +1,10 @@
 #pragma once
 
-#include "unit.h"
 #include "config.h"
+#include "destructor.h"
+#include "fmap.h"
 #include "pp/lambda.h"
+#include "unit.h"
 #include <stdbool.h>
 
 typedef struct
@@ -35,14 +37,26 @@ void make_either_left(Either* e, void* left_val);
  */
 void make_either_right(Either* e, void* right_val);
 
-void fmap_either(Either* eo, Either* ei, func_sig(void, f, (void**, void*)));
+/**
+ * @brief Fmap over either-type object
+ *
+ * If the type of `ei` is LEFT, then the type of `eo` will also be left and `eo.left == ei.left`.
+ * Otherwise, the type of `eo` is RIGHT and the value of `eo.right = f(ei.right)`.
+ *
+ * @param eo Output either type
+ * @param ei Input Either type
+ * @param f Function to apply to the contents of `ei` to produce `eo`
+ */
+void fmap_either(Either* eo, Either* ei, Fmap f);
 
 /**
  * @brief Destroy an either-type object.
  *
  * @param e Pointer to the either object to destroy
+ * @param led Element destructor for the left
+ * @param red Element destructor for the right
  */
-void dest_either(Either* e, func_sig(void, led, (void*)), func_sig(void, red, (void*)));
+void dest_either(Either* e, Destructor led, Destructor red);
 
 /**
  * @brief Return whether a given either-type object represents a successful result

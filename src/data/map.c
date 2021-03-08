@@ -3,11 +3,41 @@
 #include "pp/not_implemented.h"
 #include <stdio.h>
 
+/**
+ * @brief Initial size of a map table
+ *
+ * @return The initial size of a map table
+ */
 #define MAP_INITIAL_SIZE		 100
+/**
+ * @brief The proportion of values stored to the total number of buckets which must be exceeded to cause a resize
+ *
+ * @return The resizing threshold proprtion
+ */
 #define MAP_RESIZE_THRESHOLD	 0.5
+/**
+ * @brief The factor by which the size of a map's table is increased when resizing
+ *
+ * @return The resize increase factor
+ */
 #define MAP_SIZE_INCREASE_FACTOR 1.6
+/**
+ * @brief Key comparator function between a kv pair and a specific key
+ *
+ * @param kcmp Location of the key comparator function
+ *
+ * @return A lambda function which compares its input `v1` to the key of its input `v2`
+ */
 #define pkcmp(kcmp)				 lambda(Cmp, (void* v1, void* v2), kcmp(v1, ((Pair*)v2)->p0))
 
+/**
+ * @brief Find the next non-empty bucket with an index strictly after a specified index
+ *
+ * @param map Map to search
+ * @param curr Strict index lower bound
+ *
+ * @return `true` iff a non-empty bucket at index > `curr` was found, else `false`
+ */
 static bool next_non_empty_bucket(Map* map, unsigned int* curr);
 
 bool make_map(Map* map, Hasher hash, Comparator kcmp, Destructor ked)
@@ -60,14 +90,15 @@ bool make_map_from_list(Map* map, List* list, Hasher hash, Comparator kcmp, Dest
 	while (iter_list((void**)&val, &iter))
 	{
 		Maybe _;
-		push_map(&_, map, val->p0, val->p1);
+		if (!push_map(&_, map, val->p0, val->p1))
+			return false;
 		dest_maybe(&_, NULL);
 	}
 
 	return !!map->tbl;
 }
 
-void push_map(Maybe* oldval, Map* m, void* k, void* v)
+bool push_map(Maybe* oldval, Map* m, void* k, void* v)
 {
 	// Increase table size of necessary
 	size_t resize_threshold = MAP_RESIZE_THRESHOLD * m->tbl_size;
@@ -75,6 +106,8 @@ void push_map(Maybe* oldval, Map* m, void* k, void* v)
 	{
 		size_t ntbl_size = MAP_SIZE_INCREASE_FACTOR * m->tbl_size;
 		List** ntbl = calloc(ntbl_size, sizeof(List*));
+		if (!ntbl)
+			return false;
 		for (unsigned int i = 0; i < m->tbl_size; i++)
 			if (m->tbl[i])
 			{
@@ -87,9 +120,13 @@ void push_map(Maybe* oldval, Map* m, void* k, void* v)
 					if (!ntbl[nhb])
 					{
 						ntbl[nhb] = malloc(sizeof(List));
+						if (!ntbl[nhb])
+							return false;
 						make_list(ntbl[nhb]);
 					}
 					ListNode* nln = malloc(sizeof(ListNode));
+					if (!nln)
+						return false;
 					make_list_node(nln, kv);
 					append_list_node(ntbl[nhb], nln);
 				}
@@ -132,19 +169,27 @@ void push_map(Maybe* oldval, Map* m, void* k, void* v)
 	else
 	{
 		m->tbl[bh] = malloc(sizeof(List));
+		if (!m->tbl[bh])
+			return false;
 		make_list(m->tbl[bh]);
 		make_maybe_nothing(oldval);
 	}
 
 	Pair* kv	 = malloc(sizeof(Pair));
+	if (!kv)
+		return false;
 	kv->p0		 = k;
 	kv->p1		 = v;
 	ListNode* nn = malloc(sizeof(ListNode));
+	if (!nn)
+		return false;
 	make_list_node(nn, kv);
 	prepend_list_node(m->tbl[bh], nn);
 
 	if (oldval->type == NOTHING)
 		m->curr_stored++;
+
+	return true;
 }
 
 void get_map(Maybe* mo, Map* map, void* key)

@@ -3,6 +3,8 @@
 #include "pp/lambda.h"
 #include "pp/not_implemented.h"
 #include "config.h"
+#include "destructor.h"
+#include "fmap.h"
 #include "unit.h"
 #include <stdbool.h>
 
@@ -42,8 +44,9 @@ void make_maybe_just(Maybe* m, void* data);
  * @brief Destroy a maybe-type object. Any stored data must be destroyed separately.
  *
  * @param m Pointer to a meybe object to destroy
+ * @param ed Element destructor to be called on the just field if the constructor permits
  */
-void dest_maybe(Maybe* m, func_sig(void, ed, (void*)));
+void dest_maybe(Maybe* m, Destructor ed);
 
 /**
  * @brief Apply a function to the stored data in the maybe and output a new maybe object with the new value.
@@ -55,7 +58,7 @@ void dest_maybe(Maybe* m, func_sig(void, ed, (void*)));
  * @param mi Input maybe object which will have `f` applied to it
  * @param f Function to apply to any data inside `mi`
  */
-void fmap_maybe(Maybe* restrict mo, Maybe* restrict mi, func_sig(void, f, (void**, void*)));
+void fmap_maybe(Maybe* restrict mo, Maybe* restrict mi, Fmap f);
 
 /**
  * @brief Check whether a maybe-type object represents a success

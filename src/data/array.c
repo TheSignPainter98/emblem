@@ -1,6 +1,7 @@
 #include "array.h"
 
 #include "pp/ignore_warning.h"
+#include "pp/unused.h"
 
 bool make_arr(Array* arr, size_t cnt)
 {
@@ -49,5 +50,30 @@ void make_arr_from_list(Array* arr, List* l)
 	{
 		arr->data[i] = curr->data;
 		curr = curr->nxt;
+	}
+}
+
+void make_arr_iter(ArrayIter* iter, Array* arr)
+{
+	iter->arr = arr;
+	iter->next = 0;
+}
+
+void dest_arr_iter(ArrayIter* iter)
+{
+	UNUSED(iter);
+}
+
+bool iter_arr(void** v, ArrayIter* iter)
+{
+	if (iter->next >= iter->arr->cnt)
+	{
+		*v = NULL;
+		return false;
+	}
+	else
+	{
+		*v = iter->arr->data[iter->next++];
+		return true;
 	}
 }

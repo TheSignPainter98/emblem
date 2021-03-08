@@ -6,22 +6,52 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+/**
+ * @brief Memory structure of the nodes stored in linked lists
+ */
 typedef struct ListNode_s
 {
+	/**
+	 * @brief Pointer to the next element or NULL if it is at the end of the list
+	 */
 	struct ListNode_s* nxt;
+	/**
+	 * @brief Pointer to the previous element or NULL if it is at the beginning of the list
+	 */
 	struct ListNode_s* prv;
+	/**
+	 * @brief Pointer to the data stored at this node
+	 */
 	void* data;
 } ListNode;
 
+/**
+ * @brief Linked list
+ */
 typedef struct
 {
+	/**
+	 * @brief Pointer to the first node of the list or NULL if empty
+	 */
 	ListNode* fst;
+	/**
+	 * @brief Pointer to the last node of the list or NULL if empty
+	 */
 	ListNode* lst;
+	/**
+	 * @brief The number of elements stored in the list
+	 */
 	size_t cnt;
 } List;
 
+/**
+ * @brief Iterator over a list structure
+ */
 typedef struct
 {
+	/**
+	 * @brief Pointer to the next list node to explore or NULL if at final element of the list
+	 */
 	ListNode* nxt;
 } ListIter;
 
@@ -38,6 +68,8 @@ void make_list(List* l);
  * @brief Destroy a list. Does not affect list elements
  *
  * @param l Pointer to the list to destroy.
+ * @param freeNodes Iff not false, frees the memory used by the contained ListNodes
+ * @param ed Element destructor called on the data field of each ListNode or NULL
  */
 void dest_list(List* l, bool freeNodes, Destructor ed);
 
@@ -53,6 +85,7 @@ void make_list_node(ListNode* ln, void* data);
  * @brief Destroy a list node
  *
  * @param ln Pointer to the list node to destroy
+ * @param ed Element destructor to be called on the data field of the list node or NULL
  */
 void dest_list_node(ListNode* ln, Destructor ed);
 
@@ -136,16 +169,15 @@ void make_list_from_arr(List* l, Array* arr);
  *
  * @return true iff the value is in the list
  */
-void in_list(Maybe* m, List* l, void* val);
+bool in_list(List* l, void* val);
 
 /**
  * @brief Tests whether there exists an element in a given list which is equal under some function
  *
+ * @param m Maybe container for the value found to be equal to `val` under `cmp`
  * @param l Pointer to the list to check
- * @param eq Function to check
+ * @param cmp Comparator function to check, val is placed into the first argument.
  * @param val The value to test against
- *
- * @return true iff present
  */
 void in_list_eq(Maybe* m, List* l, Comparator cmp, void* val);
 

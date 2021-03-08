@@ -4,6 +4,14 @@
 #include "pp/ignore_warning.h"
 #include <string.h>
 
+/**
+ * @brief Create a generic comparator function
+ *
+ * @param name Name of the type
+ * @param type Type to compare
+ *
+ * @return A function which compares two `type`s
+ */
 #define CMP(name, type)                                                                                                \
 	Cmp cmp_##name##s(void* v1, void* v2)                                                                              \
 	{                                                                                                                  \

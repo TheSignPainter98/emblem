@@ -14,7 +14,7 @@ void make_either_right(Either* e, void* right_val)
 	e->right = right_val;
 }
 
-void dest_either(Either* e, func_sig(void, led, (void*)), func_sig(void, red, (void*)))
+void dest_either(Either* e, Destructor led, Destructor red)
 {
 	if (e->type == LEFT && led)
 		led(e->left);
@@ -24,7 +24,7 @@ void dest_either(Either* e, func_sig(void, led, (void*)), func_sig(void, red, (v
 
 bool succ_either(Either* e) { return e->type != LEFT; }
 
-void fmap_either(Either* eo, Either* ei, func_sig(void, f, (void**, void*)))
+void fmap_either(Either* eo, Either* ei, Fmap f)
 {
 	if (ei->type == LEFT)
 		make_either_left(eo, ei->left);

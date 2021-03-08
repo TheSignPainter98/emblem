@@ -348,14 +348,11 @@ Test(list, in)
 
 	const size_t needle = 51;
 	const size_t missingNeedle = 2 * llen;
-	Maybe m;
-	in_list(&m, &l, (void*)needle);
-	cr_assert(m.type == JUST, "Value %ld was not present in list of the numbers 0..%ld", needle, llen - 1);
-	cr_assert((size_t)((ListNode*)m.just)->data == needle, "List found wrong value, expected %ld but got %ld", needle, (size_t)((ListNode*)m.just)->data);
-	dest_maybe(&m, NULL);
-	Maybe m2;
-	in_list(&m2, &l, (void*)missingNeedle);
-	cr_assert(m2.type == NOTHING, "Value %ld was present in list of the numbers 0..%ld", missingNeedle, llen - 1);
+	bool r = in_list(&l, (void*)needle);
+	cr_assert(r, "Value %ld was not present in list of the numbers 0..%ld", needle, llen - 1);
+
+	bool r2 = in_list(&l, (void*)missingNeedle);
+	cr_assert_not(r2, "Value %ld was present in list of the numbers 0..%ld", missingNeedle, llen - 1);
 
 	dest_list(&l, true, NULL);
 }

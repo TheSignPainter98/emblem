@@ -14,7 +14,7 @@ void make_maybe_just(Maybe* m, void* data)
 	m->just = data;
 }
 
-void dest_maybe(Maybe* m, func_sig(void, ed, (void*)))
+void dest_maybe(Maybe* m, Destructor ed)
 {
 	if (m && m->type == JUST && ed)
 		ed(m->just);
@@ -22,7 +22,7 @@ void dest_maybe(Maybe* m, func_sig(void, ed, (void*)))
 
 bool succ_maybe(Maybe* m) { return m->type != NOTHING; }
 
-void fmap_maybe(Maybe* mo, Maybe* mi, func_sig(void, f, (void**, void*))) {
+void fmap_maybe(Maybe* restrict mo, Maybe* restrict mi, Fmap f) {
 	if (mi->type == NOTHING)
 		make_maybe_nothing(mo);
 	else

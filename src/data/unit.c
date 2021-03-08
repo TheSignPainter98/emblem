@@ -1,10 +1,13 @@
 #include "unit.h"
 
-void dest_unit(Unit* unitp __attribute__((unused)))
-{
-}
+#include "pp/unused.h"
 
 void make_unit(Unit* unitp)
 {
 	*unitp = UNIT;
+}
+
+void dest_unit(Unit* unitp)
+{
+	UNUSED(unitp);
 }
