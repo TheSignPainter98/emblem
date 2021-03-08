@@ -40,7 +40,7 @@ args:
     doc: Holds the output file stem
   - dest: driver
     short: -T
-    long: --Type
+    long: --type
     metaDest: driver
     help: Set the output driver
     doc: The specified output driver
@@ -83,3 +83,9 @@ args:
       - 3
     doc: Output verbosity
     metaDest: verbosity
+  - dest: safe_mode
+    short: -s
+    long: --safe-mode
+    type: flag
+    help: Restrict file system access
+    doc: Don't allow file writing or calls to arbitrary system commands
