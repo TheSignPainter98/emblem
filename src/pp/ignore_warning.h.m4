@@ -1,6 +1,7 @@
 #pragma once
 
 #if __GNUC__
+#	pragma GCC dependency "ignore_warning.h.m4"
 m4_define(`define_ignore_warning', `m4_dnl
 #	define $1(cmd) \
 	_Pragma("GCC diagnostic push"); \
