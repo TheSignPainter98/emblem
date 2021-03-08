@@ -16,10 +16,10 @@ typedef enum
 	ERR,
 	/** @brief Warning verbosity level */
 	WARN,
-	/** @brief Success message verbosity level */
-	SUCC,
 	/** @brief Information verbosity level */
 	INFO,
+	/** @brief Success message verbosity level */
+	SUCC,
 } Verbosity;
 
 static Verbosity log_verbosity;
@@ -29,7 +29,7 @@ static Verbosity log_verbosity;
  */
 static const char* const leaders[] = {
 	[WARN] = "\033[1;33mwarn\033[1;37m:\033[0m ",
-	[ERR] = "\033[1;31merr\033[1;37m:\033[0m  ",
+	[ERR] = "\033[1;31mfail\033[1;37m:\033[0m ",
 	[INFO] = "\033[1;34minfo\033[1;37m:\033[0m ",
 	[SUCC] = "\033[1;32msucc\033[1;37m:\033[0m ",
 };
