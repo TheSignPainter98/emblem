@@ -283,5 +283,3 @@ bool iter_map_values(void** v, MapIter* iter)
 		*v = p->p1;
 	return rc;
 }
-
-// TODO: Find the memory leak in map creation
