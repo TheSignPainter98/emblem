@@ -1,5 +1,8 @@
 #!/usr/bin/automake
 
+FORMATTER = clang-format
+FORMAT_ARGS = -Werror -i
+
 # Required by libtoolize
 ACLOCAL_AMFLAGS = -I m4
 
@@ -59,6 +62,10 @@ docs/html/index.html: scripts/docgen $(em_SOURCES)
 	./scripts/docgen
 
 ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./scripts/docgen:;
+
+format:
+	$(FORMATTER) $(FORMAT_ARGS) $(shell find src/ -type f -regex '.*.[ch]') $(shell find check/ -type f -regex '.*.[ch]')
+.PHONY: format
 
 EXTRA_DIST = ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./em.yml
 CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags
