@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "argp.h"
+#include "logs/logs.h"
 
 /**
  * @brief Entry point
@@ -13,14 +14,11 @@
 int main(int argc, char** argv)
 {
 	// Parse arguments, exit if necessary
-	int rc = parse_args(argc, argv);
+	Args args;
+	int rc = parse_args(&args, argc, argv);
 	if (rc)
 		return rc;
-
-	printf("Verbosity is %d\n", Verbose);
-	printf("Style = %s\n", Style);
-	printf("DefaultTypeface = %s\n", DefaultTypeface);
-	printf("DefaultFontSize = %d\n", DefaultFontSize);
-
+	init_logs(&args);
+	dest_args(&args);
 	return 0;
 }

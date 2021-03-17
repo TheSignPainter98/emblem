@@ -6,8 +6,7 @@ BEGIN {
 	pkg_bug_report_address = "https://github.com/TheSignPainter98/emblem-autotools/issues"
 	config_headers = "src/config.h"
 
-	func_checks["lua"] = "luaL_init"
-	func_checks["criterion"] = "criterion_run_all_tests"
+FUNC_CHECKS
 }
 
 /^AC_INIT/ {

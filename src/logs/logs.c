@@ -1,6 +1,6 @@
 #include "logs.h"
 
-#include "../argp.h"
+#include <pthread.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -8,36 +8,63 @@
 #include <string.h>
 
 /**
- * @brief Verbosity level
+ * @brief Verbosity level values
  */
-typedef enum Verbosity_e
+typedef enum
 {
 	/** @brief Error verbosity level */
-	ERR = 0,
+	ERR,
 	/** @brief Warning verbosity level */
-	WARN = 1,
+	WARN,
 	/** @brief Information verbosity level */
-	INFO = 2,
+	INFO,
 	/** @brief Success message verbosity level */
-	SUCC = 3
+	SUCC,
 } Verbosity;
 
 /**
- * @brief ANSI colourisation symbols for warnings
+ * @brief Running verbosity level of the program
  */
-const char* warningLeader = "\033[1;33mwarning\033[1;37m:\033[0m ";
+static Verbosity log_verbosity;
+
 /**
- * @brief ANSI colourisation symbols for errors
+ * @brief Log message prefixes with colour
  */
-const char* errorLeader	  = "\033[1;31merror\033[1;37m:\033[0m ";
+static const char* const leaders[] = {
+	[WARN] = "\033[1;33mwarn\033[1;37m:\033[0m ",
+	[ERR] = "\033[1;31mfail\033[1;37m:\033[0m ",
+	[INFO] = "\033[1;34minfo\033[1;37m:\033[0m ",
+	[SUCC] = "\033[1;32msucc\033[1;37m:\033[0m ",
+};
+
 /**
- * @brief ANSI colourisation symbols for information
+ * @brief Lock to prevent multiple threads from simultaneously logging
  */
-const char* infoLeader	  = "\033[1;34minfo\033[1;37m:\033[0m ";
+static pthread_mutex_t log_lock;
+
+void init_logs(Args* args)
+{
+	log_verbosity = args->verbose;
+	pthread_mutex_init(&log_lock, NULL);
+}
+
+void fini_logs(void) { pthread_mutex_destroy(&log_lock); }
+
+static void log_x(Verbosity lvl, const char* restrict format, va_list va);
+
 /**
- * @brief ANSI colourisation symbols for success messages
+ * @brief Construct a call to the logging function at verbosity `lvl`, where `v` is the start of the formatting arguments
+ *
+ * @param lvl Verbosity level of the call
+ * @param v Name of the first format argument
+ *
+ * @return A call to log_x with va_args handled
  */
-const char* succLeader	  = "\033[1;32msuccess\033[1;37m:\033[0m ";
+#define LOG_X_CALL(lvl, v) \
+	va_list va;\
+	va_start(va, v);\
+	log_x(lvl, v, va);\
+	va_end(va);
 
 /**
  * @brief Write a warning to stderr
@@ -47,31 +74,7 @@ const char* succLeader	  = "\033[1;32msuccess\033[1;37m:\033[0m ";
  */
 void log_warn(const char* restrict format, ...)
 {
-	if (Verbose >= WARN)
-	{
-		const size_t warningLeaderLen = strlen(warningLeader);
-		va_list va;
-		va_start(va, format);
-		size_t formatLen	   = strlen(format);
-		char* colourisedFormat = malloc((formatLen + warningLeaderLen + 2) * sizeof(char));
-		if (colourisedFormat == NULL)
-		{
-			fprintf(stderr, "Failed to allocate space for formatted string during output when outputting:\n");
-			vfprintf(stderr, format, va);
-			fprintf(stderr, "Exiting...\n");
-			exit(1);
-		}
-
-		strcpy(colourisedFormat, warningLeader);
-		strcpy(&colourisedFormat[warningLeaderLen], format);
-		colourisedFormat[formatLen + warningLeaderLen]	   = '\n';
-		colourisedFormat[formatLen + warningLeaderLen + 1] = '\0';
-
-		vfprintf(stderr, colourisedFormat, va);
-
-		free(colourisedFormat);
-		va_end(va);
-	}
+	LOG_X_CALL(WARN, format)
 }
 
 /**
@@ -80,33 +83,9 @@ void log_warn(const char* restrict format, ...)
  * @param format Error format (printf)
  * @param ... Possible printf arguments
  */
- void log_err(const char* restrict format, ...)
+void log_err(const char* restrict format, ...)
 {
-	if (Verbose >= ERR)
-	{
-		const size_t errorLeaderLen = strlen(errorLeader);
-		va_list va;
-		va_start(va, format);
-		size_t formatLen	   = strlen(format);
-		char* colourisedFormat = malloc((formatLen + errorLeaderLen + 2) * sizeof(char));
-		if (colourisedFormat == NULL)
-		{
-			fprintf(stderr, "Failed to allocate space for formatted string during output when outputting:\n");
-			vfprintf(stderr, format, va);
-			fprintf(stderr, "Exiting...\n");
-			exit(1);
-		}
-
-		strcpy(colourisedFormat, errorLeader);
-		strcpy(&colourisedFormat[errorLeaderLen], format);
-		colourisedFormat[formatLen + errorLeaderLen]	 = '\n';
-		colourisedFormat[formatLen + errorLeaderLen + 1] = '\0';
-
-		vfprintf(stderr, colourisedFormat, va);
-
-		free(colourisedFormat);
-		va_end(va);
-	}
+	LOG_X_CALL(ERR, format)
 }
 
 /**
@@ -117,31 +96,7 @@ void log_warn(const char* restrict format, ...)
  */
 void log_info(const char* restrict format, ...)
 {
-	if (Verbose >= INFO)
-	{
-		const size_t infoLeaderLen = strlen(infoLeader);
-		va_list va;
-		va_start(va, format);
-		size_t formatLen	   = strlen(format);
-		char* colourisedFormat = malloc((formatLen + infoLeaderLen + 2) * sizeof(char));
-		if (colourisedFormat == NULL)
-		{
-			fprintf(stderr, "Failed to allocate space for formatted string during output when outputting:\n");
-			vfprintf(stderr, format, va);
-			fprintf(stderr, "Exiting...\n");
-			exit(1);
-		}
-
-		strcpy(colourisedFormat, infoLeader);
-		strcpy(&colourisedFormat[infoLeaderLen], format);
-		colourisedFormat[formatLen + infoLeaderLen]		= '\n';
-		colourisedFormat[formatLen + infoLeaderLen + 1] = '\0';
-
-		vfprintf(stderr, colourisedFormat, va);
-
-		free(colourisedFormat);
-		va_end(va);
-	}
+	LOG_X_CALL(INFO, format);
 }
 
 /**
@@ -152,29 +107,43 @@ void log_info(const char* restrict format, ...)
  */
 void log_succ(const char* restrict format, ...)
 {
-	if (Verbose >= SUCC)
+	LOG_X_CALL(SUCC, format);
+}
+
+static void log_x(Verbosity lvl, const char* restrict format, va_list va)
+{
+	if (log_verbosity >= lvl)
 	{
-		const size_t succLeaderLen = strlen(succLeader);
-		va_list va;
-		va_start(va, format);
-		size_t formatLen	   = strlen(format);
-		char* colourisedFormat = malloc((formatLen + succLeaderLen + 2) * sizeof(char));
-		if (colourisedFormat == NULL)
+		pthread_mutex_lock(&log_lock);
+
+		const char* const leader = leaders[lvl];
+		size_t leaderLen = strlen(leader);
+		va_list va2;
+		va_copy(va2, va);
+		size_t msgLen = vsnprintf(NULL, 0, format, va2);
+		size_t outStrLen = 2 + leaderLen + msgLen;
+		char* outStr = malloc(outStrLen * sizeof(char));
+
+		// Handle if out of memory
+		if (!outStr)
 		{
 			fprintf(stderr, "Failed to allocate space for formatted string during output when outputting:\n");
 			vfprintf(stderr, format, va);
 			fprintf(stderr, "Exiting...\n");
+			pthread_mutex_unlock(&log_lock);
 			exit(1);
 		}
 
-		strcpy(colourisedFormat, succLeader);
-		strcpy(&colourisedFormat[succLeaderLen], format);
-		colourisedFormat[formatLen + succLeaderLen]		= '\n';
-		colourisedFormat[formatLen + succLeaderLen + 1] = '\0';
+		// Format output message
+		strncpy(outStr, leader, leaderLen);
+		vsnprintf(outStr + leaderLen, msgLen + 1, format, va);
+		outStr[leaderLen + msgLen] = '\n';
+		outStr[leaderLen + msgLen + 1] = '\0';
 
-		vfprintf(stderr, colourisedFormat, va);
+		fprintf(stderr, outStr);
 
-		free(colourisedFormat);
-		va_end(va);
+		pthread_mutex_unlock(&log_lock);
+
+		free(outStr);
 	}
 }

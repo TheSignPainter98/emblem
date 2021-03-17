@@ -1,5 +1,13 @@
 name: emblem
 program: em
+check_deps:
+  - name: criterion
+    func_check: criterion_run_all_tests
+    minver: 2.3.2
+deps:
+  - name: lua
+    func_check: luaL_init
+    minver: 5.4.2
 description: A simple, format-agnostic typesetter
 version: 0.0.1
 date: 05 Jun 2020
@@ -17,12 +25,12 @@ author: This is maintained by Edward Jones, source code is available at <github.
 examples:
   - input: em -Tutf8 hello.em -
 args:
-  - dest: InputFiles
+  - dest: input_files
     gobble: true
     metaDest: file
     doc: List of input files
     help: Input file list. Each file `-` is read from stdin, if none are present, treated as if `-` has been specified
-  - dest: OutputStem
+  - dest: output_stem
     metaDest: stem
     short: -o
     long: --output-to
@@ -30,15 +38,15 @@ args:
     default: '-'
     help: set output file
     doc: Holds the output file stem
-  - dest: Driver
+  - dest: driver
     short: -T
-    long: --Type
+    long: --type
     metaDest: driver
     help: Set the output driver
     doc: The specified output driver
     type: char*
     default: pdf
-  - dest: Style
+  - dest: style
     short: -c
     long: --class
     type: char*
@@ -46,30 +54,38 @@ args:
     default: article
     help: Set the output class
     doc: Holds the root style
-  - dest: DefaultTypeface
+  - dest: default_typeface
     short: -F
     long: --font-family
     metaDest: family
     type: char*
     help: Specify a default font family
     doc: Holds the default font to use ignored iff equal to \"\"
-  - dest: DefaultFontSize
+    default: Times New Roman
+  - dest: default_font_size
     short: -S
     long: --font-size
     type: int
     metaDest: size
     help: Specify the default font size
     doc: Specifies the default font size, ignored iff equal to `0`
-  - dest: Verbose
+    default: 11
+  - dest: verbose
     short: -v
     long: --verbose
     type: int
-    help: 'set output verbosity, `3` outputs everything, `-1` suppresses all messages including errors (default = `0`)'
+    help: 'set output verbosity, `3` outputs everything, `0` suppresses all messages including errors (default = `1`)'
+    default: 1
     choices:
-      - -1
       - 0
       - 1
       - 2
       - 3
     doc: Output verbosity
     metaDest: verbosity
+  - dest: safe_mode
+    short: -s
+    long: --safe-mode
+    type: flag
+    help: Restrict file system access
+    doc: Don't allow file writing or calls to arbitrary system commands
