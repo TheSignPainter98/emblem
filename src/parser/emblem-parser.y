@@ -220,11 +220,13 @@ void parse_file(Maybe* mo, Args* args, char* fname)
 	if (!use_stdin)
 		fclose(fp);
 
-	if (nerrs)
-		log_err("Parsing file '%s' failed with %d error%s.", fname, nerrs, nerrs - 1 ? "s" : "");
-
-	if (pd.doc)
+	if (!nerrs && pd.doc)
 		make_maybe_just(mo, pd.doc);
 	else
+	{
+		log_err("Parsing file '%s' failed with %d error%s.", fname, nerrs, nerrs - 1 ? "s" : "");
+		if (pd.doc)
+			dest_doc(pd.doc);
 		make_maybe_nothing(mo);
+	}
 }
