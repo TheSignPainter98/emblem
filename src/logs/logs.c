@@ -60,11 +60,11 @@ static void log_x(Verbosity lvl, const char* restrict format, va_list va);
  *
  * @return A call to log_x with va_args handled
  */
-#define LOG_X_CALL(lvl, v) \
+#define LOG_X_CALL(name, f) \
 	va_list va;\
-	va_start(va, v);\
-	log_x(lvl, v, va);\
-	va_end(va);
+	va_start(va, f);\
+	v##log_##name(f, va);\
+	va_end(va)
 
 /**
  * @brief Write a warning to stderr
@@ -74,7 +74,12 @@ static void log_x(Verbosity lvl, const char* restrict format, va_list va);
  */
 void log_warn(const char* restrict format, ...)
 {
-	LOG_X_CALL(WARN, format)
+	LOG_X_CALL(warn, format);
+}
+
+void vlog_warn(const char* restrict format, va_list va)
+{
+	log_x(WARN, format, va);
 }
 
 /**
@@ -85,7 +90,12 @@ void log_warn(const char* restrict format, ...)
  */
 void log_err(const char* restrict format, ...)
 {
-	LOG_X_CALL(ERR, format)
+	LOG_X_CALL(err, format);
+}
+
+void vlog_err(const char* restrict format, va_list va)
+{
+	log_x(ERR, format, va);
 }
 
 /**
@@ -96,7 +106,12 @@ void log_err(const char* restrict format, ...)
  */
 void log_info(const char* restrict format, ...)
 {
-	LOG_X_CALL(INFO, format);
+	LOG_X_CALL(info, format);
+}
+
+void vlog_info(const char* restrict format, va_list va)
+{
+	log_x(INFO, format, va);
 }
 
 /**
@@ -107,7 +122,12 @@ void log_info(const char* restrict format, ...)
  */
 void log_succ(const char* restrict format, ...)
 {
-	LOG_X_CALL(SUCC, format);
+	LOG_X_CALL(succ, format);
+}
+
+void vlog_succ(const char* restrict format, va_list va)
+{
+	log_x(SUCC, format, va);
 }
 
 static void log_x(Verbosity lvl, const char* restrict format, va_list va)
