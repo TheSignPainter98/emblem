@@ -134,7 +134,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     ifname_sanitised:str = ifname.replace('.', '_').replace('/', '__')
 
     args:dict = spec['args']
-    numGobbledDef:[dict] = [{ 'type': 'int', 'dest': 'numGobbled', 'gobble': False, 'default': 0, 'doc': 'Holds the number of arguments gobbled' }] if len(list(filter(lambda a: a['gobble'], args))) > 0 else []
+    numGobbledDef:[dict] = [{ 'type': 'int', 'dest': 'num_gobbled', 'gobble': False, 'default': 0, 'doc': 'Holds the number of arguments gobbled' }] if len(list(filter(lambda a: a['gobble'], args))) > 0 else []
 
     hdr_opt_decls:str = '\n\t'.join(list(map(lambda a: ('\n\t/**\n\t * @brief %s\n\t */\n' %a['doc'] if 'doc' in a else '') + '\t%s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] != 'help', args + numGobbledDef)))))
     opt_decls:str = '\n'.join(list(map(lambda a: ('/**\n * @brief %s\n */\n' %a['doc'] if 'doc' in a else '') + '%s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] != 'help', args + numGobbledDef)))))
@@ -235,9 +235,9 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     gobbler:dict = gobblers[0] if gobblers != [] else None
     if len(gobblers) == 1:
         gobbleHandler = [
-                'args->numGobbled = argc - pospos__;',
-                'args->%s = calloc(args->numGobbled, sizeof(%s));' %(gobbler['dest'], gobbler['type']),
-                'for(int i = 0; i < args->numGobbled; i++)', '{', [
+                'args->num_gobbled = argc - pospos__;',
+                'args->%s = calloc(args->num_gobbled, sizeof(%s));' %(gobbler['dest'], gobbler['type']),
+                'for(int i = 0; i < args->num_gobbled; i++)', '{', [
                     'args->%s[i] = %s;' %(gobbler['dest'], 'strdup(argv[pospos__ + i])' if gobbler['type'] == 'char*' else 'atoi(argv[pospos__ + i])')
                 ], '}'
             ]
@@ -248,7 +248,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             ]
 
     posIssetPtrs:str = 'int* issets[] = { %s };' % ', '.join(list(map(lambda a: f'&is_set__{a["dest"]}', list(filter(lambda a: a['mandatory'], positionalArgs)))))
-    posValPtrs:str = 'char** posargs[] = { %s };' % ', '.join(list(map(lambda a: f'&{a["dest"]}', sorted(list(filter(lambda a: not a['gobble'], positionalArgs)), key=lambda a: not a['mandatory']))))
+    posValPtrs:str = 'char** posargs[] = { %s };' % ', '.join(list(map(lambda a: f'&args->{a["dest"]}', sorted(list(filter(lambda a: not a['gobble'], positionalArgs)), key=lambda a: not a['mandatory']))))
     hasNonGobblePositionals:bool = list(filter(lambda a: not a['gobble'], positionalArgs)) != []
     hasMandatoryNonGobblePositionals:bool = list(filter(lambda a: a['mandatory'] and not a['gobble'], positionalArgs)) != []
     posIssetInit:[str] = [ posIssetPtrs, 'const int numIssets = sizeof(issets)/sizeof(*issets);' ] if hasMandatoryNonGobblePositionals else []
@@ -269,12 +269,13 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
                     'pospos__++;'
                 ], '}'
             ]
-    nonGobblePositionalHandler:[str] = posIssetInit + posValInit + posValIter
+    nonGobblePositionalHandler:[str] = posIssetInit + posValIter
 
     positionalArgNum:int = len(list(filter(lambda a: a['positional'], args)))
     positionalHandler:list = [
             'int pospos__ = 0;',
-            'const int numPosargs = %s;' %('sizeof(posargs)/sizeof(*posargs)' if hasNonGobblePositionals else '0')
+        ] + posValInit + [
+            'const int numPosargs = %s;' %('sizeof(posargs)/sizeof(*posargs)' if hasNonGobblePositionals else '0'),
         ] + nonGobblePositionalHandler + [
             'if (pospos__ == numPosargs && pospos__ < argc - optind)',  '{', gobbleHandler, '}'
         ]
@@ -300,7 +301,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         return vdr
     validator:[str] = list(reduce(lambda a,b: a+b, list(filter(lambda v: v != [], list(map(validate_arg, args))))))
 
-    gobblerDestructor:[str] = [ 'for (int i = 0; i < args->numGobbled; i++)', '{', [ 'free(args->%s[i]);' % gobbler['dest'] ], '}', 'free(args->%s);' % gobbler['dest'] ] if gobblers != [] else []
+    gobblerDestructor:[str] = [ 'for (int i = 0; i < args->num_gobbled; i++)', '{', [ 'free(args->%s[i]);' % gobbler['dest'] ], '}', 'free(args->%s);' % gobbler['dest'] ] if gobblers != [] else []
     destructor:[str] = list(map(lambda a: 'free(args->%s);' % a['dest'], list(filter(lambda a: not a['gobble'] and a['type'] == 'char*', args)))) + gobblerDestructor
 
     parser_body: str = indent([
