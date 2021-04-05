@@ -182,6 +182,15 @@ bool in_list(List* l, void* val);
 void in_list_eq(Maybe* m, List* l, Comparator cmp, void* val);
 
 /**
+ * @brief Concatenate a pair of lists into another
+ *
+ * @param r The list outputted
+ * @param l1 The first list to concatenate.
+ * @param l2 The second list to concatenate.
+ */
+void concat_list(List* r, List* l1, List* l2);
+
+/**
  * @brief Return whether all elements of a list of booleans are true
  * Empty list is vacuously true
  *

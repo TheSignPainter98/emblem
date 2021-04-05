@@ -140,8 +140,8 @@ void make_list_from_arr(List* l, Array* arr)
 
 		if (prevNode)
 			prevNode->nxt = ln;
-		ln->prv = prevNode;
-		prevNode	  = ln;
+		ln->prv	 = prevNode;
+		prevNode = ln;
 	}
 }
 
@@ -169,6 +169,28 @@ void in_list_eq(Maybe* m, List* l, Comparator cmp, void* val)
 	}
 
 	make_maybe_nothing(m);
+}
+
+void concat_list(List* r, List* l1, List* l2)
+{
+	r->cnt = l1->cnt + l2->cnt;
+	r->fst = l1->fst ? l1->fst : l2->fst;
+
+	ListNode* curr = l1->fst;
+	ListNode* prv = NULL;
+	ListNode* new_curr = NULL;
+	while (curr)
+	{
+		new_curr = malloc(sizeof(ListNode));
+		new_curr->data = curr->data;
+		new_curr->prv = prv;
+		if (prv)
+			prv->nxt = new_curr;
+		prv = curr;
+		curr = curr->nxt ? curr->nxt : l2->fst;
+	}
+	r->lst = new_curr;
+	r->lst->nxt = NULL;
 }
 
 bool all_list(List* l)
@@ -205,7 +227,4 @@ bool any_list(List* l)
 	return r;
 }
 
-bool is_empty_list(List* l)
-{
-	return l->cnt == 0;
-}
+bool is_empty_list(List* l) { return l->cnt == 0; }
