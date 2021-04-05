@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Parse args
+input=$1
+desired=$3
+while [[ "$1" != "--" ]] && [[ ! -z "$@" ]]; do
+	if [[ "$1" =~ ^-?-h* ]]; then
+		cat <<\EOF
+Usage: ylwrap [--help|--version] INPUT ______ DESIRED -- PROGRAM [ARGS]...
+
+Wrapper for lex/yacc invocations, renaming files as desired.
+
+  INPUT is the input file
+  ______ is ignored
+  DESIRED is the file we actually want instead of OUTPUT
+  PROGRAM is program to run
+  ARGS are passed to PROG
+
+Any number of OUTPUT,DESIRED pairs may be used.
+
+Report bugs to <bug-automake@gnu.org>.
+EOF
+		exit 0
+	fi
+	shift
+done
+shift
+prog=$1
+
+# Call required program
+$@ "$input"
+
+# Move output to correct location
+desired_stem=${desired%.*}
+if [[ $prog == flex ]]; then
+	[[ -f lex.em_.c ]] && (sed -E 's/^#line ([0-9][0-9]*) .*/#line \1 "'$(echo $desired_stem.c | sed 's/\//\\\//g')'"/' < lex.em_.c > $desired_stem.c) && rm lex.em_.c
+	[[ -f lex.em_.h ]] && mv lex.em_.h $desired_stem.h
+elif [[ $prog == bison ]]; then
+	[[ -f y.tab.h ]] && mv y.tab.h $desired_stem.h
+	if [[ -f y.tab.c ]]; then
+		mv y.tab.c $desired_stem.c
+		desired_header_base=$(basename $desired_stem.h)
+		sed -i "s/^#include \"y.tab.h\"$/#include \"$desired_header_base\"/" $desired_stem.c
+	fi
+	[[ -f y.output ]] && mv y.output $desired_stem.output || ([[ -f $desired_stem.output ]] && rm $desired_stem.output || true)
+else
+	echo "Unknown ylwrap program: $prog" >&2
+	exit 1
+fi

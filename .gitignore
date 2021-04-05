@@ -121,3 +121,8 @@ compile_commands.*
 
 # Ignore core dumps
 vgcore.*
+
+# Generated parser and lexer files
+*-parser.[ch]
+*-lexer.[ch]
+*.output

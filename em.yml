@@ -25,11 +25,11 @@ author: This is maintained by Edward Jones, source code is available at <github.
 examples:
   - input: em -Tutf8 hello.em -
 args:
-  - dest: input_files
-    gobble: true
+  - dest: input_file
     metaDest: file
-    doc: List of input files
-    help: Input file list. Each file `-` is read from stdin, if none are present, treated as if `-` has been specified
+    doc: Input file
+    default: '-'
+    help: File to typeset or `-` to read from stdin.
   - dest: output_stem
     metaDest: stem
     short: -o
@@ -89,3 +89,10 @@ args:
     type: flag
     help: Restrict file system access
     doc: Don't allow file writing or calls to arbitrary system commands
+  - dest: tab_size
+    short: -t
+    long: --tab-size
+    type: int
+    default: 4
+    help: The assumed size of tabs when lexing
+    doc: The taken equivalent size in spaces of a single tab

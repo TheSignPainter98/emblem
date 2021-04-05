@@ -7,24 +7,24 @@ FORMAT_CHECKER_FLAGS = -Werror -i --dry-run
 
 # Required by libtoolize
 ACLOCAL_AMFLAGS = -I m4
-
-# # Use a library
-# lib_LTLIBRARIES = libspkg.la
-# libspkg_la_SOURCES = src/spkg/spkg.c src/spkg/spkg.h
+AM_YFLAGS = -d
 
 M4 = m4 -P
 M4FLAGS = -E
 
-BUILT_SOURCES = <BUILT_SRCS>
+EM_LEX_PREFIX = em_
+
+BUILT_SOURCES = src/parser/em-emblem-parser.h <BUILT_SRCS>
 
 # Binary and sources
 bin_PROGRAMS = em
-# BUILT_SOURCES = y.tab.h
-em_SOURCES = <SRC_FILES>
-em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x <DEPS_CFLAGS>
+em_SOURCES = <SRC_FILES> src/parser/emblem-lexer.l src/parser/emblem-parser.y
+em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x <DEPS_CFLAGS> # -fanalyzer
 em_LDADD = -lm <DEPS_LIBS>
-em_LFLAGS = --bison-bridge --bison-locations -sL -R
-em_YFLAGS = -Wall -Wcounterexamples -Wdangling-alias -Wno-yacc -Werror -LC --locations -l -d
+em_LFLAGS = # -Cfar
+em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Werror -LC --locations -l -d -rall
+
+LEX = flex
 
 src/argp.h: src/argp.c
 src/argp.h src/argp.c: em.yml ./scripts/arggen
@@ -51,8 +51,6 @@ check_em_SOURCES = <TEST_FILES>
 check_em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18 <CHECK_DEPS_CFLAGS>
 check_em_LDADD = $(em_LDADD) <CHECK_DEPS_LIBS>
 
-y.tab.h: src/em-bibtex_parser.o
-
 doc: docs/html/index.html
 .PHONY: doc
 
@@ -74,4 +72,4 @@ format-check:
 .PHONY: format-check
 
 EXTRA_DIST = ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./em.yml
-CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags
+CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c
