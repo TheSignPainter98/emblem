@@ -74,10 +74,9 @@ typedef struct
 %token <str> 			T_WORD 			"word"
 
 %destructor { dest_unit(&$$); } <doc>
-/* %destructor { if ($$) { dest_doc_tree_node($$); free($$); } } <node> */
-%destructor { log_info("Destroying node %s", $$->name->str); } <node>
+%destructor { if ($$) { dest_doc_tree_node($$), free($$); } } <node>
 %destructor { if ($$) { dest_str($$); free($$); } } <str>
-%destructor { log_info("Destroying args @ %p", (void*)$$); } <args>
+%destructor { if ($$) { dest_call_io($$), free($$); } } <args>
 
 %start doc
 

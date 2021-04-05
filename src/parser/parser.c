@@ -6,6 +6,5 @@
 
 void parse_doc(Maybe* mo, Args* args)
 {
-	log_warn("Would parse file '%s'", args->input_file);
 	parse_file(mo, args, args->input_file);
 }
