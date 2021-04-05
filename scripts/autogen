@@ -17,8 +17,8 @@ done
 [[ ! "$v" -eq "0" ]] && set -o verbose
 
 # Clean the existing directories
+[[ -f Makefile ]] && make clean
 rm -rf $(grep -v '^$' .gitignore | grep -v '^#')
-[[ -f "Makefile" ]] && make clean
 
 [[ "$c" -eq "0" ]] || exit 0
 
