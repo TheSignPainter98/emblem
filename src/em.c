@@ -1,7 +1,9 @@
 #include <stdio.h>
 
 #include "argp.h"
+#include "data/maybe.h"
 #include "logs/logs.h"
+#include "parser/parser.h"
 
 /**
  * @brief Entry point
@@ -19,6 +21,11 @@ int main(int argc, char** argv)
 	if (rc)
 		return rc;
 	init_logs(&args);
+
+	Maybe edoc;
+	parse_doc(&edoc, &args);
+	dest_maybe(&edoc, NULL);
+
 	dest_args(&args);
 	return 0;
 }
