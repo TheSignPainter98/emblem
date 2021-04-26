@@ -42,14 +42,14 @@ args:
     short: -o
     long: --output-to
     type: char*
-    default: '-'
-    help: set output file
+    default: ''
+    help: Name of the output file without file-extension. If left unspecified the input file (with its extension removed) is used, otherwise _emdoc_.
     doc: Holds the output file stem
   - dest: driver
     short: -T
     long: --type
     metaDest: driver
-    help: Set the output driver
+    help: Set the output driver, default is _html_
     doc: The specified output driver
     type: char*
     default: html
