@@ -120,3 +120,17 @@ env_vars:
     desc: >
       Base search path used when processing SASS/SCSS input files.
       Colons are used as delimiters
+dist:
+  aur:
+    depends:
+      - glibc
+      - libcss
+      - lua
+      - lua-argparse
+      - lua-lyaml
+    make-depends:
+      - gcc
+      - moonscript
+    check-depends:
+      - criterion
+    opt-depends: []
