@@ -201,17 +201,25 @@ static void make_syntactic_sugar_call(DocTreeNode* ret, char* sugar_call_name, D
 	make_doc_tree_node_call(ret, call, callio, loc);
 }
 
-	Str* ifn = malloc(sizeof(Str));;
-	make_strv(ifn, use_stdin ? "(stdin)" : fname);
+void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
+{
+	log_info("Parsing file '%s'", fname);
+	bool use_stdin = !strcmp(fname, "-");
 	FILE* fp = use_stdin ? stdin : fopen(fname, "r");
 	if (!fp)
 	{
-		log_err("Failed to open file '%s'", ifn->str);
+		log_err("Failed to open file '%s'", fname);
 		make_maybe_nothing(mo);
 		return;
 	}
 	else
-		log_succ("Opened file '%s'", ifn->str);
+		log_debug("Opened file '%s'", fname);
+
+	Str* ifn = malloc(sizeof(Str));
+	make_strv(ifn, use_stdin ? "(stdin)" : fname);
+	ListNode* ln = malloc(sizeof(ListNode));
+	make_list_node(ln, ifn);
+	USE_LOCK(List* namesList, mtNamesList, append_list_node(namesList, ln));
 
 	int nerrs = 0;
 	LexerData ld = {
@@ -228,25 +236,27 @@ static void make_syntactic_sugar_call(DocTreeNode* ret, char* sugar_call_name, D
 	em_set_extra(&ld, scanner);
 	em_set_in(fp, scanner);
 	ParserData pd = {
+		.args = args,
 		.doc = NULL,
 		.ifn = ifn,
 		.nerrs = &nerrs,
 		.scanner = scanner,
 	};
 
-	log_info("Starting parser on file '%s'", pd.ifn->str);
+	log_debug("Starting parser on file '%s'", pd.ifn->str);
 	em_parse(&pd);
 	em_lex_destroy(scanner);
 	if (!use_stdin)
 		fclose(fp);
+
 
 	if (!nerrs && pd.doc)
 		make_maybe_just(mo, pd.doc);
 	else
 	{
 		log_err("Parsing file '%s' failed with %d error%s.", fname, nerrs, nerrs - 1 ? "s" : "");
-		if (pd.doc)
-			dest_doc(pd.doc);
+		dest_str(ifn);
+		free(ifn);
 		make_maybe_nothing(mo);
 	}
 }

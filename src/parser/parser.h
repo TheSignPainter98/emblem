@@ -1,10 +1,12 @@
 #pragma once
 
 #include "argp.h"
+#include "data/list.h"
+#include "data/locked.h"
 #include "data/maybe.h"
 #include "data/str.h"
 #include "doc-struct/ast.h"
 
-void parse_doc(Maybe* mo, Args* args);
+void parse_doc(Maybe* mo, List* namesList, Args* args);
 
-void parse_file(Maybe* mo, Args* args, char* fname);
+void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname);
