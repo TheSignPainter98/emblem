@@ -83,7 +83,7 @@ class Program:
         self.date = program['date']                                            if 'date' in program else                     ''
         self.seeAlso = program['seeAlso']                                    if 'seeAlso' in program else                []
         self.bugs = self.formatGroff(program['bugs'])                        if 'bugs' in program else                    None
-        self.author = self.formatGroff(program['author'])                    if 'author' in program else                    None
+        self.author_note = self.formatGroff(program['author_note'])                    if 'author_note' in program else                    None
         self.examples = program['examples']                                    if 'examples' in program else                []
         self.autoGenerateSynopsis = program['autoGenerateSynopsis']            if 'autoGenerateSynopsis' in program else    True
         self.env_vars = program['env_vars']                                 if 'env_vars' in program else                   []
@@ -189,6 +189,11 @@ class Program:
         if synopsis != []:
             toReturn.append('\n.br\n'.join(synopsis))
 
+        # Prepare longer description
+        if self.longDescription is not None:
+            toReturn.append('.SH DESCRIPTION')
+            toReturn.append(self.longDescription)
+
         # Prepare arguments
         if self.args != []:
             toReturn.append('.SH OPTIONS')
@@ -224,9 +229,9 @@ class Program:
             toReturn.append(self.bugs)
 
         # Prepare the author
-        if self.author is not None:
+        if self.author_note is not None:
             toReturn.append('.SH AUTHOR')
-            toReturn.append(self.author)
+            toReturn.append(self.author_note)
 
         return '\n'.join(toReturn)
 

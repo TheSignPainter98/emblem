@@ -19,9 +19,10 @@ seeAlso:
   - name: groff
     manLocation: 1
 longDescription: >
-  Takes input of a markdown-like document, preprocesses it, typesets it, and then passes the result to a driver for outputting in some format.
+  Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format.
   Extensions can be used to include arbitrary functionality; device drivers are also extensions.
-author: This is maintained by Edward Jones, source code is available at <github.com/TheSignPainter98/emblem>
+author: Edward Jones
+author_note: This is maintained by Edward Jones, source code is available at <github.com/TheSignPainter98/emblem>
 examples:
   - input: em -Tutf8 hello.em -
 args:
