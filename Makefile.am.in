@@ -5,6 +5,8 @@ FORMAT_FLAGS = -Werror -i
 FORMAT_CHECKER = clang-format
 FORMAT_CHECKER_FLAGS = -Werror -i --dry-run
 
+SUFFIXES = .moon
+
 # Required by libtoolize
 ACLOCAL_AMFLAGS = -I m4
 AM_YFLAGS = -d
@@ -14,7 +16,7 @@ M4FLAGS = -E
 
 EM_LEX_PREFIX = em_
 
-BUILT_SOURCES = src/parser/em-emblem-parser.h <BUILT_SRCS>
+BUILT_SOURCES = src/parser/em-emblem-parser.h src/ext/lua-lib-load.c <BUILT_SRCS>
 
 # Binary and sources
 bin_PROGRAMS = em
@@ -25,6 +27,16 @@ em_LFLAGS = # -Cfar
 em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Werror -LC --locations -l -d -rall
 
 LEX = flex
+
+define moon2c
+	(awk -f scripts/moon-module-make.awk -v module_name="$(shell scripts/module_name $<)" | moonc -- | luac -o - - | ./scripts/bin2c.lua /dev/stdin $(shell scripts/module_name $<)) < $< > $@
+endef
+
+src/ext/lua-lib-load.c: scripts/lua-lib-load.c.sh
+	. $< > $@
+
+src/ext/lib/std/std.lc: src/ext/lib/std/std.moon scripts/bin2c.lua scripts/module_name
+	$(moon2c)
 
 src/argp.h: src/argp.c
 src/argp.h src/argp.c: em.yml ./scripts/arggen
@@ -72,4 +84,4 @@ format-check:
 .PHONY: format-check
 
 EXTRA_DIST = ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./em.yml
-CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c
+CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c

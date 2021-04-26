@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+
+(echo $1 \
+| sed 's/src\/ext\/lib\///' \
+| sed 's/.moon$//' \
+| sed 's/\//./'
+) < /dev/stdin
