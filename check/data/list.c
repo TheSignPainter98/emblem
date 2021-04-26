@@ -288,6 +288,16 @@ Test(list, iter)
 	dest_list(&l, false, NULL);
 }
 
+Test(list, reversed_iter_memory_cycle)
+{
+	List l;
+	make_list(&l);
+	ReversedListIter i;
+	make_reversed_list_iter(&i, &l);
+	dest_reversed_list_iter(&i);
+	dest_list(&l, false, NULL);
+}
+
 Test(list, is_empty)
 {
 	List l;

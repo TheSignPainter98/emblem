@@ -163,6 +163,13 @@ void make_reversed_list_iter(ReversedListIter* i, List* l);
 void dest_list_iter(ListIter* i);
 
 /**
+ * @brief Destroy a reversed iterator
+ *
+ * @param i Pointer to the iterator to destroy
+ */
+void dest_reversed_list_iter(ReversedListIter* i);
+
+/**
  * @brief Move the iterator to the next element in the list
  *
  * @param v A location where the value at the current point in the list will be written

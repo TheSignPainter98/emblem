@@ -111,6 +111,8 @@ void make_reversed_list_iter(ReversedListIter* i, List* l) { i->nxt = l->lst; }
 
 void dest_list_iter(ListIter* i) { UNUSED(i); }
 
+void dest_reversed_list_iter(ReversedListIter* i) { UNUSED(i); }
+
 bool iter_list(void** val, ListIter* i)
 {
 	bool succ = i->nxt;
