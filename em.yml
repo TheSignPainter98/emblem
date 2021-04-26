@@ -96,3 +96,8 @@ args:
     default: 4
     help: The assumed size of tabs when lexing
     doc: The taken equivalent size in spaces of a single tab
+env_vars:
+  - name: EM_STYLE_PATH
+    desc: >
+      Base search path used when processing SASS/SCSS input files.
+      Colons are used as delimiters

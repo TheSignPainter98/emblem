@@ -86,6 +86,7 @@ class Program:
         self.author = self.formatGroff(program['author'])                    if 'author' in program else                    None
         self.examples = program['examples']                                    if 'examples' in program else                []
         self.autoGenerateSynopsis = program['autoGenerateSynopsis']            if 'autoGenerateSynopsis' in program else    True
+        self.env_vars = program['env_vars']                                 if 'env_vars' in program else                   []
         for arg in self.args:
             if 'mandatory' not in arg:
                 arg['mandatory'] = False
@@ -205,10 +206,12 @@ class Program:
             for arg in self.optionalArgs:
                 toReturn.append(self.processArgument(arg))
 
-        # Prepare longer description
-        if self.longDescription is not None:
-            toReturn.append('.SH DESCRIPTION')
-            toReturn.append(self.longDescription)
+        if self.env_vars != []:
+            toReturn.append('.SH "ENVIRONMENT"')
+            for env_var in self.env_vars:
+                toReturn.append('.TP')
+                toReturn.append('.B %s' % env_var['name'])
+                toReturn.append(self.formatGroff(env_var['desc']))
 
         # Prepare the see-alsos
         if self.seeAlso != []:
