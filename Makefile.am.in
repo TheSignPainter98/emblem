@@ -1,5 +1,7 @@
 #!/usr/bin/automake
 
+.DEFAULT_GOAL = all-am
+
 FORMATTER = clang-format
 FORMAT_FLAGS = -Werror -i
 FORMAT_CHECKER = clang-format
