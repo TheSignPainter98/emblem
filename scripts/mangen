@@ -99,8 +99,8 @@ class Program:
         for i in range(len(inputLines)):
             inputLines[i] = inputLines[i].strip()
             inputLines[i] = (re.sub(r'`([^\s`]*)`', r'\\fB\1\\fP', inputLines[i]))
-            inputLines[i] = (re.sub(r'(\s|\(|\)|\||^)_([^_]*)_(\s|\(|\)|\||$)', r'\1\\fI\2\\fP\3', inputLines[i]))
-            inputLines[i] = (re.sub(r'(\s|\(|\)|\||^)\*\*([^\*]*)\*\*(\s|\(|\)|\||$)', r'\1\\fB\2\\fP\3', inputLines[i]))
+            inputLines[i] = (re.sub(r'(\s|\(|\)|\||^)_([^_]*)_(\s|\(|\)|\||\.|$)', r'\1\\fI\2\\fP\3', inputLines[i]))
+            inputLines[i] = (re.sub(r'(\s|\(|\)|\||^)\*\*([^\*]*)\*\*(\s|\(|\)|\||\.|$)', r'\1\\fB\2\\fP\3', inputLines[i]))
         return '\n.PP\n'.join(inputLines)
 
     def __str__(self) -> str:
