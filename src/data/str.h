@@ -124,3 +124,5 @@ bool set_strc(Str* str, size_t idx, char val);
  * @return `true` iff `startIdx` is low enough to allow all of `ins` to fit in `cont` otherwise `false`
  */
 bool copy_into_str(Str* cont, Str* ins, size_t startIdx);
+
+void dup_str(Str* o, Str* todup);

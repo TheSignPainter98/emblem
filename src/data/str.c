@@ -90,3 +90,11 @@ bool copy_into_str(Str* cont, Str* ins, size_t startIdx)
 
 	return true;
 }
+
+void dup_str(Str* o, Str* todup)
+{
+	*(bool*)&o->free_mem = true;
+	*(size_t*)&o->len = todup->len;
+	*(char**)&o->str = malloc((todup->len + 1) * sizeof(char));
+	memcpy(o->str, todup->str, todup->len + 1);
+}
