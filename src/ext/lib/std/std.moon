@@ -172,8 +172,17 @@ class SyncContainer extends Component
 		error "Function not implemented"
 
 class Toc extends SyncContainer
+	new: =>
+		super!
+		@contents_max_depth = 3
 	output: =>
-		'Table of contents ' .. show @contents
+		-- 'Table of contents ' .. show @contents
+		formatted_contents = {}
+		for contents_line in *@contents
+			if contents_line[2] <= @contents_max_depth
+				insert formatted_contents, (rep '&nbsp;', contents_line[2]) .. contents_line[1]
+		concat formatted_contents, '</br>'
+
 
 toc = Toc!
 em.toc = toc\output
