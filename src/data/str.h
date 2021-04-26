@@ -42,6 +42,14 @@ void make_str(Str* str);
 void make_strv(Str* str, char* raw);
 
 /**
+ * @brief Make a string by reference to a raw value, freeing the raw value when destroyed.
+ *
+ * @param str Pointer to the string to make
+ * @param raw Pointer to the raw characters
+ */
+void make_strr(Str* str, char* raw);
+
+/**
  * @brief Make a string by copying another
  *
  * Frees stored memory at destruction

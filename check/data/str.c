@@ -34,6 +34,18 @@ Test(str, make_copied_raw)
 	cr_assert(s.free_mem, "Memory marked to be freed from non-copied string");
 	dest_str(&s);
 }
+
+Test(str, make_copied_raw_reference)
+{
+	Str s;
+	char str_content[] = "Hello, world!";
+	make_strr(&s, str_content);
+	cr_assert(!strcmp(s.str, str_content), "Stored string has different length than what was input, expected '%s' but got '%s'", str_content, s.str);
+	cr_assert(s.len == strlen(str_content), "Stored string reported different length field than was input, expected %d but got %d", strlen(str_content), s.len);
+	cr_assert(s.free_mem, "Memory marked to be freed from non-copied string");
+	dest_str(&s);
+}
+
 Test(str, make_length)
 {
 	Str s;

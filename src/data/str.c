@@ -16,6 +16,13 @@ void make_strv(Str* str, char* raw)
 	*(bool*)&str->free_mem = false;
 }
 
+void make_strr(Str* str, char* raw)
+{
+	*(char**)&str->str = raw;
+	*(size_t*)&str->len = strlen(raw);
+	*(bool*)&str->free_mem = true;
+}
+
 void make_strc(Str* str, char* raw)
 {
 	*(char**)&str->str = strdup(raw);
