@@ -23,8 +23,8 @@ bin_PROGRAMS = em
 em_SOURCES = <SRC_FILES> src/parser/emblem-lexer.l src/parser/emblem-parser.y
 em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x <DEPS_CFLAGS> # -fanalyzer
 em_LDADD = -lm <DEPS_LIBS>
-em_LFLAGS = # -Cfar
-em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Werror -LC --locations -l -d -rall
+em_LFLAGS = -Cfar
+em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Wcounterexamples -Werror -LC --locations -l -d -rall
 
 LEX = flex
 
