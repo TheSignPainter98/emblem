@@ -6,8 +6,14 @@ check_deps:
     minver: 2.3.2
 deps:
   - name: lua
-    func_check: luaL_init
-    minver: 5.4.2
+    func_check: lua_newtable
+    minver: 5.4.3
+  - name: libcss
+    func_check: css_select_style
+    minver: 0.9.1
+  - name: libsass
+    func_check: sass_make_data_context
+    minver: 3.6.4
 description: A simple, format-agnostic typesetter
 version: 0.0.1
 date: 05 Jun 2020
@@ -46,13 +52,13 @@ args:
     help: Set the output driver
     doc: The specified output driver
     type: char*
-    default: pdf
+    default: html
   - dest: style
     short: -c
     long: --class
     type: char*
     metaDest: style
-    default: article
+    default: share/em/article
     help: Set the output class
     doc: Holds the root style
   - dest: default_typeface
@@ -61,21 +67,21 @@ args:
     metaDest: family
     type: char*
     help: Specify a default font family
-    doc: Holds the default font to use ignored iff equal to \"\"
-    default: Times New Roman
+    doc: Holds the default font to use; ignored iff equal to \"\"
+    default: ""
   - dest: default_font_size
     short: -S
     long: --font-size
-    type: int
+    type: double
     metaDest: size
     help: Specify the default font size
     doc: Specifies the default font size, ignored iff equal to `0`
-    default: 11
+    default: 0
   - dest: verbose
     short: -v
     long: --verbose
     type: int
-    help: 'set output verbosity, `3` outputs everything, `0` suppresses all messages including errors (default = `1`)'
+    help: set output verbosity, _3_ outputs everything, _0_ suppresses all messages including errors. Default is _1_.
     default: 1
     choices:
       - 0

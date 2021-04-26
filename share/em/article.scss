@@ -1,0 +1,52 @@
+$dark_mode: 1;
+$header_max: 6;
+
+@function size($num) {
+	$min_size: 12;
+	$max_size: 24;
+	@return ($min_size + ($num / $header_max) * ($max_size - $min_size)) * 1pt;
+}
+
+body {
+	margin-left: 33vw;
+	margin-right: 33vw;
+	margin-top: 16vh;
+	margin-bottom: 20vh;
+	font-family: 'Bodoni* 06', 'Amiri', serif;
+	font-variant-ligatures: discretionary-ligatures;
+	font-variant-numeric: oldstyle-nums;
+	font-size: size(0);
+	@if $dark_mode != 0 {
+		background-color: #2d2d2d;
+		color: #dddddd;
+	}
+}
+
+.title {
+	// font-size: size(2);
+	font-size: 30pt;
+	font-family: 'Bodoni* 11', serif;
+	font-weight: bold;
+	color: #00ff00;
+}
+
+.sc {
+	font-variant: small-caps;
+}
+
+.bf {
+	font-weight: bolder;
+}
+
+.it {
+	font-style: italic;
+}
+
+@for $i from 1 through $header_max {
+	.h#{$i}, .h#{$i}\* {
+		font-size: size(1 + $header_max - $i);
+		font-family: 'Bodoni* 11', serif;
+		font-weight: bold;
+		color: #00ff00;
+	}
+}
