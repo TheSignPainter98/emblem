@@ -107,6 +107,8 @@ bool remove_list_node(List* l, ListNode* ln)
 
 void make_list_iter(ListIter* i, List* l) { i->nxt = l->fst; }
 
+void make_reversed_list_iter(ReversedListIter* i, List* l) { i->nxt = l->lst; }
+
 void dest_list_iter(ListIter* i) { UNUSED(i); }
 
 bool iter_list(void** val, ListIter* i)
@@ -116,6 +118,20 @@ bool iter_list(void** val, ListIter* i)
 	{
 		*val   = i->nxt->data;
 		i->nxt = i->nxt->nxt;
+	}
+	else
+		*val = NULL;
+
+	return !!succ;
+}
+
+bool iter_list_reversed(void** val, ReversedListIter* i)
+{
+	bool succ = i->nxt;
+	if (succ)
+	{
+		*val = i->nxt->data;
+		i->nxt = i->nxt->prv;
 	}
 	else
 		*val = NULL;

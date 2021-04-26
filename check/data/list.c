@@ -404,7 +404,7 @@ Cmp weird_eq(void* v1, void* v2)
 {
 	size_t s1 = (size_t)v1;
 	size_t s2 = (size_t)v2 - 1;
-	return s1 < s2 ? LT : s1 == s2 ? EQ : GT;
+	return s1 < s2 ? CMP_LT : s1 == s2 ? CMP_EQ : CMP_GT;
 }
 
 Test(list, all)

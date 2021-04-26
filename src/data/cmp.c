@@ -17,7 +17,7 @@
 	{                                                                                                                  \
 		TYPE_PUN_DEREFERENCE(type p1 = *(type*)&v1);                                                                   \
 		TYPE_PUN_DEREFERENCE(type p2 = *(type*)&v2);                                                                   \
-		return p1 < p2 ? LT : p1 == p2 ? EQ : GT;                                                                      \
+		return p1 < p2 ? CMP_LT : p1 == p2 ? CMP_EQ : CMP_GT;                                                                      \
 	}
 
 CMP(char, char)
