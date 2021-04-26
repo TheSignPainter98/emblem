@@ -66,7 +66,7 @@ LINE_COMMENT_START	"//"
 LN					"\n"|"\r"|"\r\n"
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
-WORD				[^:. \t\r\n/{}][^ \t\r\n/{}*]*
+WORD				[^:. \t\r\n{}][^ \t\r\n{}*]*
 
 %x COMMENT
 %x INITIAL_WHITE
