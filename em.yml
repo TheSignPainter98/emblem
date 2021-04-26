@@ -90,19 +90,31 @@ args:
       - 3
     doc: Output verbosity
     metaDest: verbosity
-  - dest: safe_mode
+  - dest: sandbox_lvl
     short: -s
-    long: --safe-mode
-    type: flag
-    help: Restrict file system access
-    doc: Don't allow file writing or calls to arbitrary system commands
+    long: --sandbox-level
+    type: int
+    default: 1
+    choices:
+      - 0
+      - 1
+      - 2
+    help: Restrict access to the system, _0_ makes no restrictions, _1_ restricts creation of new subprocesses, _2_ restricts uses all level _1_ restrictions and prevents file system access. Default is _1_.
+    doc: Restrict some dangerous operations, `0` = no restrictions, higher values place more.
   - dest: tab_size
     short: -t
     long: --tab-size
     type: int
     default: 4
-    help: The assumed size of tabs when lexing
+    help: The assumed size of tabs when reading input files
     doc: The taken equivalent size in spaces of a single tab
+  - dest: max_iters
+    short: -M
+    long: --max-iters
+    type: int
+    default: 4
+    help: Max number of typesetting iterations allowed
+    doc: Maximum number of permissible typesetting iterations
 env_vars:
   - name: EM_STYLE_PATH
     desc: >
