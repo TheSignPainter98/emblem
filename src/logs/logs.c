@@ -165,5 +165,6 @@ static void log_x(Verbosity lvl, const char* restrict format, va_list va)
 		pthread_mutex_unlock(&log_lock);
 
 		free(outStr);
+		va_end(va2);
 	}
 }
