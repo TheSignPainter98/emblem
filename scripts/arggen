@@ -15,6 +15,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
+from datetime import datetime
 from os.path import basename, dirname, relpath
 from sys import argv, exit, stderr
 from yaml import FullLoader, load
@@ -111,7 +112,9 @@ def sanitise_args(spec) -> bool:
         ret = False
 
     if list(filter(lambda a: a['type'] == 'help', spec['args'])) == []:
-        spec['args'] += [{ 'type': 'help', 'short': '-h', 'long': '--help', 'help': 'display this help message and exit', 'mandatory': False, 'positional': False, 'gobble': False }]
+        spec['args'] += [{ 'type': 'help', 'short': '-h', 'long': '--help', 'help': 'Display this help message and exit', 'mandatory': False, 'positional': False, 'gobble': False }]
+    if list(filter(lambda a: a['type'] == 'version', spec['args'])) == []:
+        spec['args'] += [{ 'type': 'version', 'short': '-V', 'long': '--version', 'help': 'Display version and license information and exit', 'mandatory': False, 'positional': False, 'gobble': False }]
 
     spec['args'] = list(sorted(spec['args'], key=lambda a: (a['positional'], a['mandatory'], a['gobble'])))
 
@@ -132,12 +135,13 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     prsrfl:str = ifname + '.c'
     hdrfl_rel:str = basename(hdrfl)
     ifname_sanitised:str = ifname.replace('.', '_').replace('/', '__')
+    license_string:str = '\\\n\t\t\t'.join(list(map(lambda l: '"%s\\n"' % l, format_license(spec['program'], spec['version'], spec['description'], spec['author']).splitlines())))
 
     args:dict = spec['args']
     numGobbledDef:[dict] = [{ 'type': 'int', 'dest': 'num_gobbled', 'gobble': False, 'default': 0, 'doc': 'Holds the number of arguments gobbled' }] if len(list(filter(lambda a: a['gobble'], args))) > 0 else []
 
-    hdr_opt_decls:str = '\n\t'.join(list(map(lambda a: ('\n\t/**\n\t * @brief %s\n\t */\n' %a['doc'] if 'doc' in a else '') + '\t%s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] != 'help', args + numGobbledDef)))))
-    opt_decls:str = '\n'.join(list(map(lambda a: ('/**\n * @brief %s\n */\n' %a['doc'] if 'doc' in a else '') + '%s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] != 'help', args + numGobbledDef)))))
+    hdr_opt_decls:str = '\n\t'.join(list(map(lambda a: ('\n\t/**\n\t * @brief %s\n\t */\n' %a['doc'] if 'doc' in a else '') + '\t%s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] not in ['help', 'version'], args + numGobbledDef)))))
+    opt_decls:str = '\n'.join(list(map(lambda a: ('/**\n * @brief %s\n */\n' %a['doc'] if 'doc' in a else '') + '%s %s;' %(a['type'] + '*' if a['gobble'] else a['type'].replace('flag','int'), a['dest']), list(filter(lambda a : a['type'] not in ['help', 'version'], args + numGobbledDef)))))
     header: str = '\n'.join([
         '#pragma once',
         '',
@@ -175,10 +179,12 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         freearg:[str] = []
         if arg['type'] == 'help':
             asignand = 'showHelp'
+        elif arg['type'] == 'version':
+            asignand = 'showVersion'
         else:
             asignand = 'args->' + arg['dest']
 
-        if arg['type'] in [ 'help', 'flag' ]:
+        if arg['type'] in [ 'flag', 'help', 'version' ]:
             asignarg = 1
         else:
             if arg['type'] == 'char*':
@@ -192,8 +198,8 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
 
         return valChecker(freearg + [ f'{asignand} = {asignarg};'] + mandarg) + ['break;']
 
-    opts_short:str = ''.join(list(map(lambda arg: arg['short'][1] + ('' if arg['type'] in ['flag', 'help'] else ':'), list(filter(lambda a: not a['positional'] and 'short' in a, args)))))
-    opts_long:str = ', '.join(list(map(lambda a: '{ "%s", %d, NULL, \'%s\' }' %(a['long'][2:], 1 if a['type'] not in ['flag', 'help'] else 0, a['short'][1]), list(filter(lambda a: not a['positional'] and 'long' in a, args)))) + [ '{ NULL, 0, NULL, 0 }' ])
+    opts_short:str = ''.join(list(map(lambda arg: arg['short'][1] + ('' if arg['type'] in ['flag', 'help', 'version'] else ':'), list(filter(lambda a: not a['positional'] and 'short' in a, args)))))
+    opts_long:str = ', '.join(list(map(lambda a: '{ "%s", %d, NULL, \'%s\' }' %(a['long'][2:], 1 if a['type'] not in ['flag', 'help', 'version'] else 0, a['short'][1]), list(filter(lambda a: not a['positional'] and 'long' in a, args)))) + [ '{ NULL, 0, NULL, 0 }' ])
     def default_val(arg:dict) -> str:
         if arg['gobble']:
             return 'NULL'
@@ -201,19 +207,20 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             return 'strdup("%s")' % arg['default']
         else:
             return str(arg['default'])
-    defaults:[str] = list(map(lambda arg: 'args->%s = %s;' %(arg['dest'], default_val(arg)), list(filter(lambda arg: arg['type'] != 'help', args + numGobbledDef))))
+    defaults:[str] = list(map(lambda arg: 'args->%s = %s;' %(arg['dest'], default_val(arg)), list(filter(lambda arg: arg['type'] not in ['help', 'version'], args + numGobbledDef))))
     opt_handlers:list = list(reduce(lambda a,b: a+b, list(map(lambda a: ["case '%s':" % a['short'][1], assignment_handler(a)], list(filter(lambda a: not a['positional'], args))))))
 
     def arg_usage(arg:dict, isShort:bool) -> str:
-        if isShort and 'short' not in arg or not isShort and 'long' not in arg:
+        if not arg['positional'] and (isShort and 'short' not in arg or not isShort and 'long' not in arg):
             return ''
-        out = arg['short' if isShort else 'long']
-        if 'choices' in arg:
+        out:str
+        out = arg['short' if isShort else 'long'] if not arg['positional'] else arg['metaDest'].upper()
+        if arg['positional']:
+            pass
+        elif 'choices' in arg:
             out = out + ('=' if not isShort else '') + ('{' + ', '.join(list(map(str, arg['choices']))) + '}')
-        elif 'metaDest' in arg and arg['type'] not in ['flag', 'help']:
+        elif 'metaDest' in arg and arg['type'] not in ['flag', 'help', 'version']:
             out = out + ('=' if not isShort else '') + arg['metaDest'].upper()
-        elif arg['positional']:
-            out = arg['metaDest'].upper()
         return out if arg['mandatory'] else '[' + out + ']'
     usage_string:str = 'Usage: %s ' + ' '.join(list(map(lambda a: arg_usage(a, True), args))) + '\\n'
     def arg_desc(arg:dict) -> str:
@@ -333,7 +340,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         'int parse_args(Args* args, int argc, char** argv)', '{', mandatoryFlags + [
             'make_args(args);'
             'int optc;',
-            'int showUsage = 0, showHelp = 0;',
+            'int showUsage = 0, showVersion = 0, showHelp = 0;',
             'while ((optc = getopt_long(argc, argv, SHORT_OPTS, long_opts, NULL)) != -1)', '{', [
                 'switch (optc)', '{', opt_handlers + [
                     'default:', [
@@ -348,6 +355,10 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             'if (showUsage)', '{', [
                 'fprintf(stderr, "%s", argv[0]);' % usage_string,
                 'return 1;'
+            ], '}',
+            'else if (showVersion)', '{', [
+                'printf(%s);' % license_string,
+                'return 1;',
             ], '}',
             'else if (showHelp)', '{', [
                 'fprintf(stderr, "%s", argv[0]);' % usage_string,
@@ -387,6 +398,28 @@ def indent(lst: list) -> str:
 
     return _indent(lst, 0, True)
 
+lic:str = '''
+%s %s - %s
+Copyright (C) 2020-%s %s
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+'''.strip()
+
+def format_license(pname:str, ver:str, desc:str, author:str) -> str:
+    year:str = datetime.today().year
+    desc = desc[0].lower() + desc[1:]
+    return lic % (pname, ver, desc, year, author)
 
 if __name__ == '__main__':
     try:
