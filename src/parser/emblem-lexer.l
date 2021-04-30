@@ -126,7 +126,7 @@ WORD				[^:. \t\r\n{}][^ \t\r\n{}*]*
 <FILE_BODY>{HEADING}				{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
 <FILE_BODY>{WORD}					{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext); return T_WORD; }
 
-<FILE_BODY>.						{ llerror("Unrecognised character"); }
+<FILE_BODY>.						{ llerror("Unrecognised character"); log_warn("Char is '%c' (%#x)", yytext[0], yytext[0]); }
 
 {SHEBANG}							;
 {LN}								{ BEGIN(FILE_BODY); }
