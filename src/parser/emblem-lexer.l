@@ -26,6 +26,7 @@
 #define YY_USER_ACTION update_yylloc(yylloc, yytext);
 static void update_yylloc(EM_LTYPE* loc, char* text);
 static void make_header_call_str(Str** hdr, char* ytext, size_t yleng);
+static void make_emph_str(Str** emph, size_t yleng);
 
 #define YY_EXTRA_TYPE LexerData*
 
@@ -54,6 +55,8 @@ static int indent_len(int tab_size, char* inp);
 %option extra-type="LexerData*"
 %pointer
 
+EMPH_UNDERSCORE     "_""_"?
+EMPH_ASTERISK       "*""*"?
 BLOCK_COMMENT_CLOSE "*/"
 BLOCK_COMMENT_OPEN  "/*"
 COLON				":"
@@ -64,9 +67,10 @@ GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
 LINE_COMMENT_START	"//"
 LN					"\n"|"\r"|"\r\n"
+PUNCT   			[.,]
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
-WORD				[^:. \t\r\n{}][^ \t\r\n{}*]*
+WORD 				"."|[^_*:. \t\r\n{}]([^_* \t\r\n{}]|[^ \t\r\n{}]*[^_* \t\r\n{}]{2}{PUNCT}*)?
 
 %x COMMENT
 %x INITIAL_WHITE
@@ -118,6 +122,10 @@ WORD				[^:. \t\r\n{}][^ \t\r\n{}*]*
 									}
 <FILE_BODY>{WHITE_SPACE}+			;
 <FILE_BODY>{COMMENT_LINE}			;
+<FILE_BODY>{EMPH_UNDERSCORE}/[^ \t\r\n_.,]	{ make_emph_str(&yylval->sugar, yyleng); return T_UNDERSCORE_OPEN; }
+<FILE_BODY>{EMPH_ASTERISK}/[^ \t\r\n*.,]	{ make_emph_str(&yylval->sugar, yyleng); return T_ASTERISK_OPEN; }
+<FILE_BODY>{EMPH_UNDERSCORE}/("*"|{PUNCT}|{LN}|{WHITE_SPACE}) { return T_UNDERSCORE_CLOSE; }
+<FILE_BODY>{EMPH_ASTERISK}/("_"|{PUNCT}|{LN}|{WHITE_SPACE}) { return T_ASTERISK_CLOSE; }
 <FILE_BODY>{LN}						{ BEGIN(INITIAL_WHITE); return T_LN; }
 <FILE_BODY>{DIRECTIVE}				{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
 <FILE_BODY>{COLON}					{ return T_COLON; }
@@ -167,6 +175,12 @@ static void update_yylloc(EM_LTYPE* loc, char* text)
 		else
 			loc->last_column++;
 	}
+}
+
+static void make_emph_str(Str** emph, size_t yleng)
+{
+	*emph = malloc(sizeof(Str));
+	make_strv(*emph, yleng == 2 ? "bf" : "it");
 }
 
 static void make_header_call_str(Str** hdr, char* ytext, size_t yleng)

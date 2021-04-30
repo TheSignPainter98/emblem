@@ -69,15 +69,19 @@ typedef struct
 %nterm <node>			line_element
 %nterm <node>			lines
 %nterm <node>			maybe_lines
-%token 					T_DEDENT		"dedent"
-%token 					T_GROUP_CLOSE	"}"
-%token 					T_GROUP_OPEN	"{"
-%token 					T_INDENT 		"indent"
-%token 					T_LN 			"newline"
-%token 		  			T_COLON			"colon"
-%token <str> 			T_DIRECTIVE		"directive"
-%token <str> 			T_WORD 			"word"
-%token <sugar> 			T_HEADING		"heading"
+%token 					T_DEDENT			"dedent"
+%token 					T_GROUP_CLOSE		"}"
+%token 					T_GROUP_OPEN		"{"
+%token 					T_INDENT 			"indent"
+%token 					T_LN 				"newline"
+%token 		  			T_COLON				"colon"
+%token <sugar>			T_UNDERSCORE_OPEN 	"opening underscore(s)"
+%token <sugar>			T_ASTERISK_OPEN		"opening asterisk(s)"
+%token 					T_UNDERSCORE_CLOSE	"closing underscore(s)"
+%token 					T_ASTERISK_CLOSE	"closing asterisk(s)"
+%token <str> 			T_DIRECTIVE			"directive"
+%token <str> 			T_WORD 				"word"
+%token <sugar> 			T_HEADING			"heading"
 
 %destructor { dest_unit(&$$); } <doc>
 %destructor { if ($$) { dest_free_doc_tree_node($$, false); } } <node>
@@ -90,7 +94,7 @@ typedef struct
 %{
 static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err);
 static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn) __attribute__((malloc));
-static void make_syntactic_sugar_call(DocTreeNode* ret, char* sugar_call_name, DocTreeNode* arg, Location* loc);
+static void make_syntactic_sugar_call(DocTreeNode* ret, Str* call, DocTreeNode* arg, Location* loc);
 %}
 
 %%
@@ -124,16 +128,18 @@ args
 	;
 
 line_content
-	: %empty					{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_line($$, alloc_assign_loc(@$, data->ifn)); }
-	| line_content_ne			{ $$ = $1; }
+	: %empty												{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_line($$, alloc_assign_loc(@$, data->ifn)); }
+	| line_content_ne										{ $$ = $1; }
 	;
 
 line_content_ne
-	: line_element line_content	{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->line, $1); }
+	: line_element line_content								{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->line, $1); }
 	;
 
 line_element
 	: T_WORD		{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_word($$, $1, alloc_assign_loc(@$, data->ifn)); }
+	| T_UNDERSCORE_OPEN line_content_ne T_UNDERSCORE_CLOSE	{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_ASTERISK_OPEN line_content_ne T_ASTERISK_CLOSE		{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	;
 
 
