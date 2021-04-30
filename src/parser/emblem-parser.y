@@ -96,7 +96,7 @@ static void make_syntactic_sugar_call(DocTreeNode* ret, char* sugar_call_name, D
 %%
 
 doc : maybe_lines	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(data->doc, $1, data->args); }
-	| error 		{ make_unit(&$$); log_err("Parsing failed somewhere!"); }
+	/* | error 		{ make_unit(&$$); log_err("Parsing failed somewhere!"); } */
 	;
 
 maybe_lines
