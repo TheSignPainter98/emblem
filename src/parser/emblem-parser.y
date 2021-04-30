@@ -94,13 +94,13 @@ typedef struct
 %{
 static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err);
 static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn) __attribute__((malloc));
+static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str* ifn);
 static void make_syntactic_sugar_call(DocTreeNode* ret, Str* call, DocTreeNode* arg, Location* loc);
 %}
 
 %%
 
 doc : maybe_lines	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(data->doc, $1, data->args); }
-	/* | error 		{ make_unit(&$$); log_err("Parsing failed somewhere!"); } */
 	;
 
 maybe_lines
@@ -118,6 +118,7 @@ line
 	: line_content T_LN  			{ $$ = $1; }
 	| T_HEADING line_content T_LN	{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_DIRECTIVE args 				{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| error 						{ alloc_malloc_error_word(&$$, @$, data->ifn); }
 	;
 
 args
@@ -195,6 +196,14 @@ static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn)
 	ret->src_file = ifn;
 
 	return ret;
+}
+
+static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str* ifn)
+{
+	*out = malloc(sizeof(DocTreeNode));
+	Str* erw = malloc(sizeof(Str));
+	make_strv(erw, "ERROR");
+	make_doc_tree_node_word(*out, erw, alloc_assign_loc(loc, ifn));
 }
 
 static void make_syntactic_sugar_call(DocTreeNode* ret, Str* call, DocTreeNode* arg, Location* loc)
