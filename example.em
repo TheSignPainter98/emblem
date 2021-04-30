@@ -34,11 +34,11 @@ cast sheep do fly through a tract
 ghjkgh g ghj gh kgh gh kghj=
 .bad_directive:
 	fhdjkas
-.test_func<This is the first argument><This is the second argument>:
+.test_func{This is the first argument}{This is the second argument}:
 	This is the first line after
-	/* .test_func<THIS IS SOMETHING NESTED> */
+	/* .test_func{THIS IS SOMETHING NESTED} */
 	This is the second line after
-.directive_bvename<format things>:
+.directive_bvename{format things}:
 	hfjdksa
 .fhdjksal:
 	1. fhjdskla
@@ -193,11 +193,11 @@ antidisestablishmentarianism
 antidisestablishmentarianism
 antidisestablishmentarianism
 
-.cite<carlson2011you>
-.cite<carlson2011you>
-.cite<greenfield2015asdf>
-.cite<carlson2011you>
-.cite<greenfield2015asdf>
-.cite<carlson2011you>
-.cite<non_existent_citation_2021>
+.cite{carlson2011you}
+.cite{carlson2011you}
+.cite{greenfield2015asdf}
+.cite{carlson2011you}
+.cite{greenfield2015asdf}
+.cite{carlson2011you}
+.cite{non_existent_citation_2021}
 .bib: example-bib.yml
