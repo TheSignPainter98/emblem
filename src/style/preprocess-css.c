@@ -67,7 +67,7 @@ static CssPreprocessResult run_scss_preprocessor(
 	*data_out = sass_context_take_output_string(ctx);
 
 	// Free memory
-
+	sass_delete_data_context(data_ctx);
 
 	return PROCESSED;
 }
