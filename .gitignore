@@ -37,6 +37,7 @@
 *.hex
 em
 check_em
+!share/em/
 
 # Debug files
 *.dSYM/
@@ -87,6 +88,9 @@ stamp-h1
 pkg/
 .libs/
 
+# Ignore generated autotools backup files
+*~
+
 # Ignore ctags things
 tags
 types_*.taghl
@@ -126,3 +130,13 @@ vgcore.*
 *-parser.[ch]
 *-lexer.[ch]
 *.output
+
+# Generated extension files
+*.lc
+src/ext/lua-lib-loaders.c
+
+# Generated files
+*.1
+*.css
+*.html
+emdoc.*

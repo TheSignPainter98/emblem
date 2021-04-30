@@ -63,7 +63,6 @@ void dest_map(Map* map, Destructor ved)
 			if (ved)
 				ved(p->p1);
 			free(p);
-			fprintf(stderr, "Freed %p\n", v);
 		}
 	}));
 	for (unsigned int i = 0; i < map->tbl_size; i++)

@@ -16,6 +16,13 @@ void make_strv(Str* str, char* raw)
 	*(bool*)&str->free_mem = false;
 }
 
+void make_strr(Str* str, char* raw)
+{
+	*(char**)&str->str = raw;
+	*(size_t*)&str->len = strlen(raw);
+	*(bool*)&str->free_mem = true;
+}
+
 void make_strc(Str* str, char* raw)
 {
 	*(char**)&str->str = strdup(raw);
@@ -82,4 +89,12 @@ bool copy_into_str(Str* cont, Str* ins, size_t startIdx)
 		cont->str[startIdx + i] = ins->str[i];
 
 	return true;
+}
+
+void dup_str(Str* o, Str* todup)
+{
+	*(bool*)&o->free_mem = true;
+	*(size_t*)&o->len = todup->len;
+	*(char**)&o->str = malloc((todup->len + 1) * sizeof(char));
+	memcpy(o->str, todup->str, todup->len + 1);
 }

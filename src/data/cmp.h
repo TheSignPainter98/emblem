@@ -8,15 +8,15 @@ typedef enum
 	/**
 	 * @brief Less than
 	 */
-	LT = -1,
+	CMP_LT = -1,
 	/**
 	 * @brief Equal
 	 */
-	EQ = 0,
+	CMP_EQ = 0,
 	/**
 	 * @brief Greater than
 	 */
-	GT = 1
+	CMP_GT = 1
 } Cmp;
 
 /**

@@ -42,6 +42,14 @@ void make_str(Str* str);
 void make_strv(Str* str, char* raw);
 
 /**
+ * @brief Make a string by reference to a raw value, freeing the raw value when destroyed.
+ *
+ * @param str Pointer to the string to make
+ * @param raw Pointer to the raw characters
+ */
+void make_strr(Str* str, char* raw);
+
+/**
  * @brief Make a string by copying another
  *
  * Frees stored memory at destruction
@@ -116,3 +124,5 @@ bool set_strc(Str* str, size_t idx, char val);
  * @return `true` iff `startIdx` is low enough to allow all of `ins` to fit in `cont` otherwise `false`
  */
 bool copy_into_str(Str* cont, Str* ins, size_t startIdx);
+
+void dup_str(Str* o, Str* todup);

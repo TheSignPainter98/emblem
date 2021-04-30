@@ -18,8 +18,8 @@ typedef enum
 	WARN,
 	/** @brief Information verbosity level */
 	INFO,
-	/** @brief Success message verbosity level */
-	SUCC,
+	/** @brief Debug message verbosity level */
+	DEBUG,
 } Verbosity;
 
 /**
@@ -31,10 +31,10 @@ static Verbosity log_verbosity;
  * @brief Log message prefixes with colour
  */
 static const char* const leaders[] = {
-	[WARN] = "\033[1;33mwarn\033[1;37m:\033[0m ",
-	[ERR] = "\033[1;31mfail\033[1;37m:\033[0m ",
-	[INFO] = "\033[1;34minfo\033[1;37m:\033[0m ",
-	[SUCC] = "\033[1;32msucc\033[1;37m:\033[0m ",
+	[WARN] = "\033[1;33mwrn\033[1;37m:\033[0m ",
+	[ERR] = "\033[1;31merr\033[1;37m:\033[0m ",
+	[INFO] = "\033[1;32minf\033[1;37m:\033[0m ",
+	[DEBUG] = "\033[1;34mdbg\033[1;37m:\033[0m ",
 };
 
 /**
@@ -115,19 +115,19 @@ void vlog_info(const char* restrict format, va_list va)
 }
 
 /**
- * @brief Write a success message to stderr
+ * @brief Write a debug message to stderr
  *
- * @param format Success message format (printf)
+ * @param format debug message format (printf)
  * @param ... Possible printf arguments
  */
-void log_succ(const char* restrict format, ...)
+void log_debug(const char* restrict format, ...)
 {
-	LOG_X_CALL(succ, format);
+	LOG_X_CALL(debug, format);
 }
 
-void vlog_succ(const char* restrict format, va_list va)
+void vlog_debug(const char* restrict format, va_list va)
 {
-	log_x(SUCC, format, va);
+	log_x(DEBUG, format, va);
 }
 
 static void log_x(Verbosity lvl, const char* restrict format, va_list va)
@@ -165,5 +165,6 @@ static void log_x(Verbosity lvl, const char* restrict format, va_list va)
 		pthread_mutex_unlock(&log_lock);
 
 		free(outStr);
+		va_end(va2);
 	}
 }

@@ -83,9 +83,10 @@ class Program:
         self.date = program['date']                                            if 'date' in program else                     ''
         self.seeAlso = program['seeAlso']                                    if 'seeAlso' in program else                []
         self.bugs = self.formatGroff(program['bugs'])                        if 'bugs' in program else                    None
-        self.author = self.formatGroff(program['author'])                    if 'author' in program else                    None
+        self.author_note = self.formatGroff(program['author_note'])                    if 'author_note' in program else                    None
         self.examples = program['examples']                                    if 'examples' in program else                []
         self.autoGenerateSynopsis = program['autoGenerateSynopsis']            if 'autoGenerateSynopsis' in program else    True
+        self.env_vars = program['env_vars']                                 if 'env_vars' in program else                   []
         for arg in self.args:
             if 'mandatory' not in arg:
                 arg['mandatory'] = False
@@ -98,8 +99,8 @@ class Program:
         for i in range(len(inputLines)):
             inputLines[i] = inputLines[i].strip()
             inputLines[i] = (re.sub(r'`([^\s`]*)`', r'\\fB\1\\fP', inputLines[i]))
-            inputLines[i] = (re.sub(r'(\s|\(|\)|\||^)_([^_]*)_(\s|\(|\)|\||$)', r'\1\\fI\2\\fP\3', inputLines[i]))
-            inputLines[i] = (re.sub(r'(\s|\(|\)|\||^)\*\*([^\*]*)\*\*(\s|\(|\)|\||$)', r'\1\\fB\2\\fP\3', inputLines[i]))
+            inputLines[i] = (re.sub(r'(\s|\(|\)|\||^)_([^_]*)_(\s|\(|\)|\||\.|$)', r'\1\\fI\2\\fP\3', inputLines[i]))
+            inputLines[i] = (re.sub(r'(\s|\(|\)|\||^)\*\*([^\*]*)\*\*(\s|\(|\)|\||\.|$)', r'\1\\fB\2\\fP\3', inputLines[i]))
         return '\n.PP\n'.join(inputLines)
 
     def __str__(self) -> str:
@@ -188,6 +189,11 @@ class Program:
         if synopsis != []:
             toReturn.append('\n.br\n'.join(synopsis))
 
+        # Prepare longer description
+        if self.longDescription is not None:
+            toReturn.append('.SH DESCRIPTION')
+            toReturn.append(self.longDescription)
+
         # Prepare arguments
         if self.args != []:
             toReturn.append('.SH OPTIONS')
@@ -205,10 +211,12 @@ class Program:
             for arg in self.optionalArgs:
                 toReturn.append(self.processArgument(arg))
 
-        # Prepare longer description
-        if self.longDescription is not None:
-            toReturn.append('.SH DESCRIPTION')
-            toReturn.append(self.longDescription)
+        if self.env_vars != []:
+            toReturn.append('.SH "ENVIRONMENT"')
+            for env_var in self.env_vars:
+                toReturn.append('.TP')
+                toReturn.append('.B %s' % env_var['name'])
+                toReturn.append(self.formatGroff(env_var['desc']))
 
         # Prepare the see-alsos
         if self.seeAlso != []:
@@ -221,9 +229,9 @@ class Program:
             toReturn.append(self.bugs)
 
         # Prepare the author
-        if self.author is not None:
+        if self.author_note is not None:
             toReturn.append('.SH AUTHOR')
-            toReturn.append(self.author)
+            toReturn.append(self.author_note)
 
         return '\n'.join(toReturn)
 

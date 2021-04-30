@@ -1,10 +1,12 @@
 #pragma once
 
+#include "argp.h"
 #include "data/list.h"
 #include "data/str.h"
+#include "ext/ext-params.h"
+#include "style/css-params.h"
 #include <libcss/select.h>
 #include <stdbool.h>
-#include "ext/lua.h"
 
 // Node names
 #define NODE_NAME_PARAGRAPH "p"
@@ -13,8 +15,11 @@
 #define NODE_NAME_WORD		"w"
 #define NODE_NAME_DOC		"body"
 
-#define REQUIRES_RERUN	  (1 << 0)
-#define IS_GENERATED_NODE (1 << 1)
+#define REQUIRES_RERUN		 (1 << 0)
+#define IS_GENERATED_NODE	 (1 << 1)
+#define IS_CALL_PARAM		 (1 << 2)
+#define CALL_HAS_NO_EXT_FUNC (1 << 3)
+#define CALL_HAS_NO_STYLE	 (1 << 4)
 
 struct DocTreeNodeContent_s;
 struct DocTreeNode_s;
@@ -25,7 +30,8 @@ struct Location_s;
 typedef struct
 {
 	struct DocTreeNode_s* root;
-	ExtensionState* ext_state;
+	ExtensionEnv* ext;
+	Styler* styler;
 } Doc;
 
 typedef struct Location_s
@@ -41,7 +47,7 @@ typedef struct DocTreeNode_s
 {
 	int flags;
 	Str* name;
-	css_computed_style* style;
+	Style* style;
 	struct DocTreeNodeContent_s* content;
 	struct DocTreeNode_s* parent;
 	struct Location_s* src_loc;
@@ -69,6 +75,9 @@ typedef struct DocTreeNodeContent_s
 	};
 } DocTreeNodeContent;
 
+#define POS_FMT "%s:%d:%d: "
+#define POS_FILL(locp) locp->src_file->str, locp->first_line, locp->first_column
+
 typedef struct CallIO_s
 {
 	List* args;
@@ -85,7 +94,7 @@ typedef struct CallIO_s
 	// List* items;
 // } ListContent;
 
-void make_doc(Doc* doc, DocTreeNode* root);
+void make_doc(Doc* doc, DocTreeNode* root, Args* args);
 void dest_doc(Doc* doc);
 
 void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc);
@@ -94,10 +103,14 @@ void make_doc_tree_node_lines(DocTreeNode* node, Location* src_loc);
 void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call_params, Location* src_loc);
 void make_doc_tree_node_par(DocTreeNode* node, List* par, Location* src_loc);
 void make_doc_tree_node_pars(DocTreeNode* node, List* pars, Location* src_loc);
-void dest_doc_tree_node(DocTreeNode* node);
+void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result);
+
+void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_result);
 
 void prepend_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child);
 
 void make_call_io(CallIO* call_params);
-void dest_call_io(CallIO* call_params);
+void dest_call_io(CallIO* call_params, bool processing_result);
 void prepend_call_io_arg(CallIO* call_params, DocTreeNode* arg);
+
+Location* dup_loc(Location* todup);

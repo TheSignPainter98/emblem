@@ -57,16 +57,16 @@ void log_info(const char* restrict format, ...) __attribute__((format(printf, 1,
  */
 void vlog_info(const char* restrict format, va_list va);
 /**
- * @brief Write a success message to stderr
+ * @brief Write a debug message to stderr
  *
- * @param format Success message format (printf)
+ * @param format debug message format (printf)
  * @param ... Possible printf arguments
  */
-void log_succ(const char* restrict format, ...) __attribute__((format(printf, 1, 2)));
+void log_debug(const char* restrict format, ...) __attribute__((format(printf, 1, 2)));
 /**
- * @brief Write a success message to stderr, using a va_list of format-arguments
+ * @brief Write a debug message to stderr, using a va_list of format-arguments
  *
- * @param format Success message format (printf)
+ * @param format debug message format (printf)
  * @param ... Possible printf arguments
  */
-void vlog_succ(const char* restrict format, va_list va);
+void vlog_debug(const char* restrict format, va_list va);

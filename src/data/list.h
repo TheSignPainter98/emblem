@@ -55,6 +55,17 @@ typedef struct
 	ListNode* nxt;
 } ListIter;
 
+/**
+ * @brief Reversed iterator over a list structure
+ */
+typedef struct
+{
+	/**
+	 * @brief Pointer to the next list node to explore or NULL if at final element of the list
+	 */
+	ListNode* nxt;
+} ReversedListIter;
+
 #include "array.h"
 
 /**
@@ -137,11 +148,26 @@ bool remove_list_node(List* l, ListNode* ln);
 void make_list_iter(ListIter* i, List* l);
 
 /**
+ * @brief Initialise a reverse-iterator for a list
+ *
+ * @param i Pointer to the iterator to initialise
+ * @param l Pointer to the list which the iterator will run over
+ */
+void make_reversed_list_iter(ReversedListIter* i, List* l);
+
+/**
  * @brief Destroy an iterator
  *
  * @param i Pointer to the iterator to destroy
  */
 void dest_list_iter(ListIter* i);
+
+/**
+ * @brief Destroy a reversed iterator
+ *
+ * @param i Pointer to the iterator to destroy
+ */
+void dest_reversed_list_iter(ReversedListIter* i);
 
 /**
  * @brief Move the iterator to the next element in the list
@@ -152,6 +178,16 @@ void dest_list_iter(ListIter* i);
  * @return false if there are no more elements to iterate, true otherwise
  */
 bool iter_list(void** v, ListIter* i);
+
+/**
+ * @brief Move the iterator to the next element in the list (when iterated backwards)
+ *
+ * @param val A location where the value at the current point in the list will be written
+ * @param i Pointer to the iterator to use
+ *
+ * @return false if there are no more elements to iterate, true otherwise
+ */
+bool iter_list_reversed(void** val, ReversedListIter* i);
 
 /**
  * @brief Create a list from an array. List myst be freed

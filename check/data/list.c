@@ -288,6 +288,16 @@ Test(list, iter)
 	dest_list(&l, false, NULL);
 }
 
+Test(list, reversed_iter_memory_cycle)
+{
+	List l;
+	make_list(&l);
+	ReversedListIter i;
+	make_reversed_list_iter(&i, &l);
+	dest_reversed_list_iter(&i);
+	dest_list(&l, false, NULL);
+}
+
 Test(list, is_empty)
 {
 	List l;
@@ -404,7 +414,7 @@ Cmp weird_eq(void* v1, void* v2)
 {
 	size_t s1 = (size_t)v1;
 	size_t s2 = (size_t)v2 - 1;
-	return s1 < s2 ? LT : s1 == s2 ? EQ : GT;
+	return s1 < s2 ? CMP_LT : s1 == s2 ? CMP_EQ : CMP_GT;
 }
 
 Test(list, all)

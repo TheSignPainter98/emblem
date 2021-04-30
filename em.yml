@@ -6,8 +6,14 @@ check_deps:
     minver: 2.3.2
 deps:
   - name: lua
-    func_check: luaL_init
-    minver: 5.4.2
+    func_check: lua_newtable
+    minver: 5.4.3
+  - name: libcss
+    func_check: css_select_style
+    minver: 0.9.1
+  - name: libsass
+    func_check: sass_make_data_context
+    minver: 3.6.4
 description: A simple, format-agnostic typesetter
 version: 0.0.1
 date: 05 Jun 2020
@@ -19,9 +25,10 @@ seeAlso:
   - name: groff
     manLocation: 1
 longDescription: >
-  Takes input of a markdown-like document, preprocesses it, typesets it, and then passes the result to a driver for outputting in some format.
+  Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format.
   Extensions can be used to include arbitrary functionality; device drivers are also extensions.
-author: This is maintained by Edward Jones, source code is available at <github.com/TheSignPainter98/emblem>
+author: Edward Jones
+author_note: This is maintained by Edward Jones, source code is available at <github.com/TheSignPainter98/emblem>
 examples:
   - input: em -Tutf8 hello.em -
 args:
@@ -35,23 +42,23 @@ args:
     short: -o
     long: --output-to
     type: char*
-    default: '-'
-    help: set output file
+    default: ''
+    help: Name of the output file without file-extension. If left unspecified the input file (with its extension removed) is used, otherwise _emdoc_.
     doc: Holds the output file stem
   - dest: driver
     short: -T
     long: --type
     metaDest: driver
-    help: Set the output driver
+    help: Set the output driver, default is _html_
     doc: The specified output driver
     type: char*
-    default: pdf
+    default: html
   - dest: style
     short: -c
     long: --class
     type: char*
     metaDest: style
-    default: article
+    default: share/em/article
     help: Set the output class
     doc: Holds the root style
   - dest: default_typeface
@@ -60,21 +67,21 @@ args:
     metaDest: family
     type: char*
     help: Specify a default font family
-    doc: Holds the default font to use ignored iff equal to \"\"
-    default: Times New Roman
+    doc: Holds the default font to use; ignored iff equal to \"\"
+    default: ""
   - dest: default_font_size
     short: -S
     long: --font-size
-    type: int
+    type: double
     metaDest: size
     help: Specify the default font size
     doc: Specifies the default font size, ignored iff equal to `0`
-    default: 11
+    default: 0
   - dest: verbose
     short: -v
     long: --verbose
     type: int
-    help: 'set output verbosity, `3` outputs everything, `0` suppresses all messages including errors (default = `1`)'
+    help: set output verbosity, _3_ outputs everything, _0_ suppresses all messages including errors. Default is _1_.
     default: 1
     choices:
       - 0
@@ -83,16 +90,47 @@ args:
       - 3
     doc: Output verbosity
     metaDest: verbosity
-  - dest: safe_mode
+  - dest: sandbox_lvl
     short: -s
-    long: --safe-mode
-    type: flag
-    help: Restrict file system access
-    doc: Don't allow file writing or calls to arbitrary system commands
+    long: --sandbox-level
+    type: int
+    default: 1
+    choices:
+      - 0
+      - 1
+      - 2
+    help: Restrict access to the system, _0_ makes no restrictions, _1_ restricts creation of new subprocesses, _2_ restricts uses all level _1_ restrictions and prevents file system access. Default is _1_.
+    doc: Restrict some dangerous operations, `0` = no restrictions, higher values place more.
   - dest: tab_size
     short: -t
     long: --tab-size
     type: int
     default: 4
-    help: The assumed size of tabs when lexing
+    help: The assumed size of tabs when reading input files
     doc: The taken equivalent size in spaces of a single tab
+  - dest: max_iters
+    short: -M
+    long: --max-iters
+    type: int
+    default: 4
+    help: Max number of typesetting iterations allowed
+    doc: Maximum number of permissible typesetting iterations
+env_vars:
+  - name: EM_STYLE_PATH
+    desc: >
+      Base search path used when processing SASS/SCSS input files.
+      Colons are used as delimiters
+dist:
+  aur:
+    depends:
+      - glibc
+      - libcss
+      - lua
+      - lua-argparse
+      - lua-lyaml
+    make-depends:
+      - gcc
+      - moonscript
+    check-depends:
+      - criterion
+    opt-depends: []
