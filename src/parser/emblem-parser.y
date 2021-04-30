@@ -101,7 +101,7 @@ doc : maybe_lines	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(da
 
 maybe_lines
 	: %empty									{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_lines($$, alloc_assign_loc(@$, data->ifn)); }
-	| lines										{ $$ = $1; }
+	| lines
 	;
 
 lines
@@ -111,7 +111,7 @@ lines
 	;
 
 line
-	: line_content T_LN  			{ $$ = $1; }
+	: line_content T_LN
 	| T_HEADING line_content T_LN	{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_DIRECTIVE args 				{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	;
@@ -125,7 +125,7 @@ args
 
 line_content
 	: %empty					{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_line($$, alloc_assign_loc(@$, data->ifn)); }
-	| line_content_ne			{ $$ = $1; }
+	| line_content_ne
 	;
 
 line_content_ne
