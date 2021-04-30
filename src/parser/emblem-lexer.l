@@ -25,7 +25,7 @@
 
 #define YY_USER_ACTION update_yylloc(yylloc, yytext);
 static void update_yylloc(EM_LTYPE* loc, char* text);
-static void make_header_call_str(char** hdr, char* ytext, size_t yleng);
+static void make_header_call_str(Str** hdr, char* ytext, size_t yleng);
 
 #define YY_EXTRA_TYPE LexerData*
 
@@ -169,18 +169,20 @@ static void update_yylloc(EM_LTYPE* loc, char* text)
 	}
 }
 
-static void make_header_call_str(char** hdr, char* ytext, size_t yleng)
+static void make_header_call_str(Str** hdr, char* ytext, size_t yleng)
 {
 	// Assume that yleng <= 7
 	bool star              = ytext[yleng - 1] == '*';
-	*hdr                   = malloc(3 + star);
-	char* hdr_raw          = *hdr;
+	char* hdr_raw          = malloc(3 + star);
 	unsigned int hdr_depth = yleng - star;
-	hdr_raw[0]            = 'h';
-	hdr_raw[1]            = '0' + hdr_depth;
-	hdr_raw[2]            = star ? '*' : '\0';
+	hdr_raw[0]             = 'h';
+	hdr_raw[1]             = '0' + hdr_depth;
+	hdr_raw[2]             = star ? '*' : '\0';
 	if (star)
 		hdr_raw[3] = '\0';
+
+	*hdr = malloc(sizeof(Str));
+	make_strr(*hdr, hdr_raw);
 }
 
 #if __GNUC__

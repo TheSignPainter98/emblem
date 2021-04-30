@@ -58,7 +58,7 @@ typedef struct
 	DocTreeNode* node;
 	CallIO* args;
 	Str* str;
-	char* sugar;
+	Str* sugar;
 }
 
 %nterm <args>			args
@@ -191,10 +191,8 @@ static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn)
 	return ret;
 }
 
-static void make_syntactic_sugar_call(DocTreeNode* ret, char* sugar_call_name, DocTreeNode* arg, Location* loc)
+static void make_syntactic_sugar_call(DocTreeNode* ret, Str* call, DocTreeNode* arg, Location* loc)
 {
-	Str* call = malloc(sizeof(Str));
-	make_strr(call, sugar_call_name);
 	CallIO* callio = malloc(sizeof(CallIO));
 	make_call_io(callio);
 	prepend_call_io_arg(callio, arg);
