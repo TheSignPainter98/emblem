@@ -72,6 +72,12 @@ export is_list = (l) ->
 		maxk = k if maxk < k
 	return maxk == #l
 
+export keys = (t) ->
+	[ k for k,_ in pairs t ]
+export values = (t) ->
+	[ v for _,v in pairs t ]
+
+
 
 -- class ExampleComponent extends Component
 -- new: =>
@@ -307,11 +313,6 @@ em.cite = (ref) ->
 		-- if n == 1
 			-- @curr_val = cite_str @ref if bib[@ref]
 			-- @bib_entry = bib_str @ref if bib[@ref]
-
--- export keys = (t) ->
-	-- [ k for k,_ in pairs t ]
--- export values = (t) ->
-	-- [ v for _,v in pairs t ]
 
 -- em.bib = ->
 	-- formatted_bib = {}
