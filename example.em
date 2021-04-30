@@ -2,6 +2,8 @@
 
 .title: Why CS Students Require Typesetters
 
+This is some _italic,_ some **bold** some *asterisk italic* and some __underscore bold.__
+
 #* Table of Contents
 .toc
 
