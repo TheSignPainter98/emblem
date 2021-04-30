@@ -1,5 +1,9 @@
 $dark_mode: 1;
 $header_max: 6;
+$title-font-family: 'Bodoni* 11', 'Amiri', serif;
+$main-font-family: 'Bodoni* 06', 'Amiri', serif;
+$alternate-font-family: 'Jost*', sans-serif;
+$mono-font-family: 'Ubuntu Mono', monospace;
 
 @function size($num) {
 	$min_size: 12;
@@ -8,17 +12,29 @@ $header_max: 6;
 }
 
 body {
-	margin-left: 33vw;
-	margin-right: 33vw;
-	margin-top: 16vh;
-	margin-bottom: 20vh;
-	font-family: 'Bodoni* 06', 'Amiri', serif;
+	font-family: $main-font-family;
 	font-variant-ligatures: discretionary-ligatures;
 	font-variant-numeric: oldstyle-nums;
 	font-size: size(0);
+	hyphens: auto;
 	@if $dark_mode != 0 {
 		background-color: #2d2d2d;
 		color: #dddddd;
+	}
+}
+
+@media only screen {
+	body {
+		margin-left: 33vw;
+		margin-right: 33vw;
+		margin-top: 16vh;
+		margin-bottom: 20vh;
+	}
+}
+
+@media only paper {
+	body {
+		text-align: justify;
 	}
 }
 
@@ -42,10 +58,19 @@ body {
 	font-style: italic;
 }
 
+.af {
+	font-family: $alternate-font-family;
+}
+
+.tt {
+	font-family: $mono-font-family;
+	font-size: 2.1ex;
+}
+
 @for $i from 1 through $header_max {
 	.h#{$i}, .h#{$i}\* {
 		font-size: size(1 + $header_max - $i);
-		font-family: 'Bodoni* 11', serif;
+		font-family: $title-font-family;
 		font-weight: bold;
 		color: #00ff00;
 	}
