@@ -5,13 +5,16 @@ import load from require 'lyaml'
 
 export em = {}
 
+export id = (x) -> x
+export do_nothing = (x) ->
+
 components = {}
 class Component extends {}
 	new: => insert components, @
-	on_start: nil
-	on_iter_start: nil
-	on_iter_end: nil
-	on_end: nil
+	on_start: do_nothing
+	on_iter_start: do_nothing
+	on_iter_end: do_nothing
+	on_end: do_nothing
 
 events = {
 	'on_start'
@@ -22,7 +25,7 @@ events = {
 for event in *events
 	_G[event] = (...) ->
 		for comp in *components
-			comp[event](comp, ...) if comp[event]
+			comp[event](comp, ...) if comp[event] != do_nothing
 
 export show = (v) ->
 	switch type v
@@ -105,8 +108,10 @@ class Counter extends Component
 	add_sub_counter: (c) => insert @sub_counters, c
 
 	on_start: =>
+		super!
 		@reset!
 	on_iter_start: =>
+		super!
 		@reset!
 
 extend = (a1, a2) ->
@@ -161,17 +166,27 @@ class SyncContainer extends Component
 		@contents = {}
 		@new_contents = {}
 	on_iter_start: =>
+		super!
 		@contents = @new_contents
 		@new_contents = {}
 	on_iter_end: =>
+		super!
 		if not eq @contents, @new_contents
 			requires_reiter!
-	add: (c) =>
-		insert @new_contents, c
+	add: =>
+		error "Function not implemented"
 	output: =>
 		error "Function not implemented"
 
-class Toc extends SyncContainer
+class SyncList extends SyncContainer
+	add: (c) =>
+		insert @new_contents, c
+
+class SyncSet extends SyncContainer
+	add: (c) =>
+		@new_contents[c] = true
+
+class Toc extends SyncList
 	new: =>
 		super!
 		@contents_max_depth = 3
@@ -209,8 +224,7 @@ export sorted = (t, ...) ->
 	sort t, ...
 	t
 
-
-class Bib extends SyncContainer
+class Bib extends SyncSet
 	new: =>
 		super!
 		@has_src = false
@@ -220,12 +234,13 @@ class Bib extends SyncContainer
 		super!
 		@unknown_citations = {}
 	on_end: =>
-		if #@unknown_citations != 0
-			print "The following citations were not known:\n\t" .. concat @unknown_citations, '\n\t'
+		super!
+		if not eq @unknown_citations, {}
+			print "The following citations were not known:\n\t" .. concat (sorted keys @unknown_citations), '\n\t'
 	add: (c) =>
-		@new_contents[c] = true
+		super c
 		if not @bib[c]
-			insert @unknown_citations, c
+			@unknown_citations[c] = true
 	read: (srcd) =>
 		if not @has_src
 			src = eval_string srcd
@@ -288,6 +303,7 @@ em.cite = (ref) ->
 	-- cite: =>
 		-- if @curr_val then @curr_val else '??'
 	-- on_iter_end: (n) =>
+		-- super!
 		-- if n == 1
 			-- @curr_val = cite_str @ref if bib[@ref]
 			-- @bib_entry = bib_str @ref if bib[@ref]
