@@ -3,8 +3,12 @@
 .title: Why CS Students Require Typesetters
 
 This is some _italic_ this is some _nested _strange_ italic._
-THis is a little bit of `monospaced` and this is `nested `super` monospace`.
+This is a little bit of `monospaced` and this is `nested `super` monospace`.
 This is some _italic,_ some **bold** some *asterisk italic* and some __underscore bold.__
+These are some =small caps= and =this CouLd gEtINtereSTinG=
+This is an ==alternative style as yet undefined,== but that's okay.
+
+This is some _**bold italic**_ and this is some `_**monospaced bold italic**_`
 
 #* Table of Contents
 .toc
@@ -35,7 +39,7 @@ This is some _italic,_ some **bold** some *asterisk italic* and some __underscor
 .h6: This is a heading!
 five fickle feinds fled the the effluent fjord.
 cast sheep do fly through a tract
-ghjkgh g ghj gh kgh gh kghj=
+ghjkgh g ghj gh kgh gh kghj
 .bad_directive:
 	fhdjkas
 .test_func{This is the first argument}{This is the second argument}:
