@@ -143,7 +143,7 @@ line_content_ne
 	;
 
 line_element
-	: T_WORD		{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_word($$, $1, alloc_assign_loc(@$, data->ifn)); }
+	: T_WORD												{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_word($$, $1, alloc_assign_loc(@$, data->ifn)); }
 	| T_UNDERSCORE_OPEN line_content_ne T_UNDERSCORE_CLOSE	{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_ASTERISK_OPEN line_content_ne T_ASTERISK_CLOSE		{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_BACKTICK_OPEN line_content_ne T_BACKTICK_CLOSE		{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
