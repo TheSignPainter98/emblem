@@ -26,7 +26,7 @@
 #define YY_USER_ACTION update_yylloc(yylloc, yytext);
 static void update_yylloc(EM_LTYPE* loc, char* text);
 static void make_header_call_str(Str** hdr, char* ytext, size_t yleng);
-static void make_emph_str(Str** emph, size_t yleng);
+static void make_emph_str(Str** emph, char* ytext, size_t yleng);
 
 #define YY_EXTRA_TYPE LexerData*
 
@@ -38,6 +38,14 @@ static void make_emph_str(Str** emph, size_t yleng);
 static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err);
 #define llerror(msg) handle_llerror(yylloc, yyextra, msg)
 static int indent_len(int tab_size, char* inp);
+
+#define EMPHASIS(T_open, T_close)\
+	if (yyextra->opening_emph)\
+	{\
+		make_emph_str(&yylval->sugar, yytext, yyleng);\
+		return T_open;\
+	}\
+	return T_close;
 %}
 
 /* %option outfile="lex.yy.c" */
@@ -57,6 +65,8 @@ static int indent_len(int tab_size, char* inp);
 
 EMPH_UNDERSCORE     "_""_"?
 EMPH_ASTERISK       "*""*"?
+EMPH_BACKTICK		"`"
+EMPH_EQUALS			"=""="?
 BLOCK_COMMENT_CLOSE "*/"
 BLOCK_COMMENT_OPEN  "/*"
 COLON				":"
@@ -70,7 +80,7 @@ LN					"\n"|"\r"|"\r\n"
 PUNCT   			[.,]
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
-WORD 				"."|[^_*:. \t\r\n{}]([^_* \t\r\n{}]|[^ \t\r\n{}]*[^_* \t\r\n{}]{2}{PUNCT}*)?
+WORD 				"."|[^_*`=:. \t\r\n{}]([^_*`= \t\r\n{}]|[^ \t\r\n{}]*[^_*`= \t\r\n{}]{2}{PUNCT}*)?
 
 %x COMMENT
 %x INITIAL_WHITE
@@ -110,29 +120,31 @@ WORD 				"."|[^_*:. \t\r\n{}]([^_* \t\r\n{}]|[^ \t\r\n{}]*[^_* \t\r\n{}]{2}{PUNC
 
 <INITIAL_WHITE>{WHITE_SPACE}*{LN}	;
 <INITIAL_WHITE>{WHITE_SPACE}+		{
+										yyextra->opening_emph = true;
 										yyextra->indent_lvl_target = indent_len(yyextra->tab_size, yytext);
 										BEGIN(INITIAL);
 										goto lex_start;
 									}
 <INITIAL_WHITE>.					{
+										yyextra->opening_emph = true;
 										yyless(0);
 										yyextra->indent_lvl_target = 0;
 										BEGIN(INITIAL);
 										goto lex_start;
 									}
-<FILE_BODY>{WHITE_SPACE}+			;
+<FILE_BODY>{WHITE_SPACE}+			{ yyextra->opening_emph = true; }
 <FILE_BODY>{COMMENT_LINE}			;
-<FILE_BODY>{EMPH_UNDERSCORE}/[^ \t\r\n_.,]	{ make_emph_str(&yylval->sugar, yyleng); return T_UNDERSCORE_OPEN; }
-<FILE_BODY>{EMPH_ASTERISK}/[^ \t\r\n*.,]	{ make_emph_str(&yylval->sugar, yyleng); return T_ASTERISK_OPEN; }
-<FILE_BODY>{EMPH_UNDERSCORE}/("*"|{PUNCT}|{LN}|{WHITE_SPACE}) { return T_UNDERSCORE_CLOSE; }
-<FILE_BODY>{EMPH_ASTERISK}/("_"|{PUNCT}|{LN}|{WHITE_SPACE}) { return T_ASTERISK_CLOSE; }
+<FILE_BODY>{EMPH_UNDERSCORE}		{ EMPHASIS(T_UNDERSCORE_OPEN, T_UNDERSCORE_CLOSE); }
+<FILE_BODY>{EMPH_ASTERISK}			{ EMPHASIS(T_ASTERISK_OPEN, T_ASTERISK_CLOSE); }
+<FILE_BODY>{EMPH_BACKTICK}			{ EMPHASIS(T_BACKTICK_OPEN, T_BACKTICK_CLOSE); }
+<FILE_BODY>{EMPH_EQUALS}			{ EMPHASIS(T_EQUALS_OPEN, T_EQUALS_CLOSE); }
 <FILE_BODY>{LN}						{ BEGIN(INITIAL_WHITE); return T_LN; }
 <FILE_BODY>{DIRECTIVE}				{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
-<FILE_BODY>{COLON}					{ return T_COLON; }
-<FILE_BODY>{GROUP_OPEN}				{ return T_GROUP_OPEN; }
-<FILE_BODY>{GROUP_CLOSE}			{ return T_GROUP_CLOSE; }
+<FILE_BODY>{COLON}					{ yyextra->opening_emph = false; return T_COLON; }
+<FILE_BODY>{GROUP_OPEN}				{ yyextra->opening_emph = true; return T_GROUP_OPEN; }
+<FILE_BODY>{GROUP_CLOSE}			{ yyextra->opening_emph = false; return T_GROUP_CLOSE; }
 <FILE_BODY>{HEADING}				{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
-<FILE_BODY>{WORD}					{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext); return T_WORD; }
+<FILE_BODY>{WORD}					{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext); return T_WORD; }
 
 <FILE_BODY>.						{ llerror("Unrecognised character"); log_warn("Char is '%c' (%#x)", yytext[0], yytext[0]); }
 
@@ -177,10 +189,25 @@ static void update_yylloc(EM_LTYPE* loc, char* text)
 	}
 }
 
-static void make_emph_str(Str** emph, size_t yleng)
+static void make_emph_str(Str** emph, char* ytext, size_t yleng)
 {
 	*emph = malloc(sizeof(Str));
-	make_strv(*emph, yleng == 2 ? "bf" : "it");
+	switch (ytext[0])
+	{
+		case '_':
+		case '*':
+			make_strv(*emph, yleng == 2 ? "bf" : "it");
+			break;
+		case '`':
+			make_strv(*emph, "tt");
+			break;
+		case '=':
+			make_strv(*emph, yleng == 2 ? "af" : "sc");
+			break;
+		default:
+			log_err("Unknown emphasis delimiter '%s'", ytext);
+			exit(1);
+	}
 }
 
 static void make_header_call_str(Str** hdr, char* ytext, size_t yleng)

@@ -11,6 +11,7 @@ typedef struct
 	int indent_lvl;
 	int indent_lvl_target;
 	int tab_size;
+	bool opening_emph;
 	int* nerrs;
 	FILE* ifp;
 	Str* ifn;
@@ -77,8 +78,12 @@ typedef struct
 %token 		  			T_COLON				"colon"
 %token <sugar>			T_UNDERSCORE_OPEN 	"opening underscore(s)"
 %token <sugar>			T_ASTERISK_OPEN		"opening asterisk(s)"
+%token <sugar>			T_BACKTICK_OPEN		"opening backtick"
+%token <sugar>			T_EQUALS_OPEN		"opening equal(s)"
 %token 					T_UNDERSCORE_CLOSE	"closing underscore(s)"
 %token 					T_ASTERISK_CLOSE	"closing asterisk(s)"
+%token 					T_BACKTICK_CLOSE	"closing backtick"
+%token 					T_EQUALS_CLOSE		"closing equal(s)"
 %token <str> 			T_DIRECTIVE			"directive"
 %token <str> 			T_WORD 				"word"
 %token <sugar> 			T_HEADING			"heading"
@@ -141,6 +146,8 @@ line_element
 	: T_WORD		{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_word($$, $1, alloc_assign_loc(@$, data->ifn)); }
 	| T_UNDERSCORE_OPEN line_content_ne T_UNDERSCORE_CLOSE	{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_ASTERISK_OPEN line_content_ne T_ASTERISK_CLOSE		{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_BACKTICK_OPEN line_content_ne T_BACKTICK_CLOSE		{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_EQUALS_OPEN line_content_ne T_EQUALS_CLOSE			{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	;
 
 
@@ -240,6 +247,7 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 		.indent_lvl = 0,
 		.indent_lvl_target = 0,
 		.tab_size = args->tab_size,
+		.opening_emph = true,
 		.nerrs = &nerrs,
 		.ifn = ifn,
 		.ifp = fp,
