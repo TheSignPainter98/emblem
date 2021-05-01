@@ -140,7 +140,7 @@ WORD 				"."|[^_*`=:. \t\r\n{}]([^_*`= \t\r\n{}]|[^ \t\r\n{}]*[^_*`= \t\r\n{}]{2
 <FILE_BODY>{EMPH_EQUALS}			{ EMPHASIS(T_EQUALS_OPEN, T_EQUALS_CLOSE); }
 <FILE_BODY>{LN}						{ BEGIN(INITIAL_WHITE); return T_LN; }
 <FILE_BODY>{DIRECTIVE}				{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
-<FILE_BODY>{COLON}					{ yyextra->opening_emph = false; return T_COLON; }
+<FILE_BODY>{COLON}					{ yyextra->opening_emph = true; return T_COLON; }
 <FILE_BODY>{GROUP_OPEN}				{ yyextra->opening_emph = true; return T_GROUP_OPEN; }
 <FILE_BODY>{GROUP_CLOSE}			{ yyextra->opening_emph = false; return T_GROUP_CLOSE; }
 <FILE_BODY>{HEADING}				{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
