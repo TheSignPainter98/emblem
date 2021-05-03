@@ -151,7 +151,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 				node->flags |= CALL_HAS_NO_EXT_FUNC;
 				if (is_empty_list(node->content->call_params->args))
 				{
-					log_err(POS_FMT "Directive is not a known function and has no arguments", POS_FILL(node->src_loc));
+					log_err_at(node->src_loc, "Directive is not a known function and has no arguments");
 					lua_pop(s, -1); // Remove call function
 					return -1;
 				}
@@ -217,8 +217,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 					log_warn("Lua function em.%s yielded instead of returned", node->name->str);
 					return 0;
 				default:
-					log_err(POS_FMT "Calling em.%s failed with error: %s", POS_FILL(node->src_loc), node->name->str,
-						lua_tostring(s, -1));
+					log_err_at(node->src_loc, "Calling em.%s failed with error: %s", node->name->str, lua_tostring(s, -1));
 					return -1;
 			}
 		}

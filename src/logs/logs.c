@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define POS_FMT "%s:%d:%d: "
+#define POS_FILL(locp) locp->src_file->str, locp->first_line, locp->first_column
+
 /**
  * @brief Verbosity level values
  */
@@ -96,6 +99,24 @@ void log_err(const char* restrict format, ...)
 void vlog_err(const char* restrict format, va_list va)
 {
 	log_x(ERR, format, va);
+}
+
+void log_err_at(Location* loc, const char* restrict format, ...)
+{
+	va_list va;
+	va_start(va, format);
+	vlog_err_at(loc, format, va);
+	va_end(va);
+}
+
+void vlog_err_at(Location* loc, const char* restrict format, va_list va)
+{
+	const size_t pos_fmt_len = snprintf(NULL, 0, POS_FMT, POS_FILL(loc));
+	const size_t fmtlen = 1 + strlen(format) + pos_fmt_len;
+	char newfmt[fmtlen];
+	snprintf(newfmt, pos_fmt_len, POS_FMT, POS_FILL(loc));
+	strcat(newfmt + pos_fmt_len - 1, format);
+	vlog_err(newfmt, va);
 }
 
 /**

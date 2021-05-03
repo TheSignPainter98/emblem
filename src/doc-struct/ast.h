@@ -75,9 +75,6 @@ typedef struct DocTreeNodeContent_s
 	};
 } DocTreeNodeContent;
 
-#define POS_FMT "%s:%d:%d: "
-#define POS_FILL(locp) locp->src_file->str, locp->first_line, locp->first_column
-
 typedef struct CallIO_s
 {
 	List* args;

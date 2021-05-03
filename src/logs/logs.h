@@ -2,6 +2,7 @@
 
 #include "argp.h"
 #include "config.h"
+#include "doc-struct/ast.h"
 #include <stdarg.h>
 
 /**
@@ -42,6 +43,21 @@ void log_err(const char* restrict format, ...) __attribute__((cold)) __attribute
  * @param ... Possible printf arguments
  */
 void vlog_err(const char* restrict format, va_list va);
+/**
+ * @brief Write an error stderr
+ *
+ * @param format Error format (printf)
+ * @param ... Possible printf arguments
+ */
+void log_err_at(Location* loc, const char* restrict format, ...) __attribute__((cold))
+__attribute__((format(printf, 2, 3)));
+/**
+ * @brief Write an error stderr, using a va_list of format-arguments
+ *
+ * @param format Error format (printf)
+ * @param ... Possible printf arguments
+ */
+void vlog_err_at(Location* loc, const char* restrict format, va_list va);
 /**
  * @brief Write information to stderr
  *
