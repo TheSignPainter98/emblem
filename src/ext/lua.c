@@ -214,8 +214,10 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 					log_debug("returned: %s", luaL_typename(s, -1));
 					return unpack_lua_result(&node->content->call_params->result, s, node);
 				case LUA_YIELD:
-					log_warn("Lua function em.%s yielded instead of returned", node->name->str);
-					return 0;
+				{
+					int fw = log_warn_at(node->src_loc, "Lua function em.%s yielded instead of returned", node->name->str);
+					return fw ? -1 : 0;
+				}
 				default:
 					log_err_at(node->src_loc, "Calling em.%s failed with error: %s", node->name->str, lua_tostring(s, -1));
 					return -1;
@@ -256,7 +258,8 @@ static bool is_callable(ExtensionState* s, int idx)
 static int ext_require_rerun(ExtensionState* s)
 {
 	if (lua_gettop(s) != 0)
-		log_warn("Arguments to %s are ignored", EM_REQUIRE_RUNS_FUNC_NAME);
+		if (log_warn("Arguments to %s are ignored", EM_REQUIRE_RUNS_FUNC_NAME))
+			luaL_error(s, "Warnings are fatal");
 
 	lua_getglobal(s, EM_ENV_VAR_NAME);
 	if (!lua_isuserdata(s, -1))

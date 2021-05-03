@@ -205,6 +205,8 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             return 'NULL'
         elif arg['type'] == 'char*':
             return 'strdup("%s")' % arg['default']
+        elif arg['type'] == 'flag':
+            return '1' if arg['default'] else '0'
         else:
             return str(arg['default'])
     defaults:[str] = list(map(lambda arg: 'args->%s = %s;' %(arg['dest'], default_val(arg)), list(filter(lambda arg: arg['type'] not in ['help', 'version'], args + numGobbledDef))))

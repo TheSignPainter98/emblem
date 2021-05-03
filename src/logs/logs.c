@@ -9,7 +9,12 @@
 
 #define POS_FMT "%s:%d:%d: "
 #define POS_FILL(locp) locp->src_file->str, locp->first_line, locp->first_column
-
+#define PREPEND_LOC_TO_FORMAT(newfmt, loc, format) \
+	const size_t pos_fmt_len = snprintf(NULL, 0, POS_FMT, POS_FILL(loc)); \
+	const size_t fmtlen = 1 + strlen(format) + pos_fmt_len; \
+	char newfmt[fmtlen]; \
+	snprintf(newfmt, pos_fmt_len, POS_FMT, POS_FILL(loc)); \
+	strcat(newfmt + pos_fmt_len - 1, format);
 /**
  * @brief Verbosity level values
  */
@@ -30,6 +35,8 @@ typedef enum
  */
 static Verbosity log_verbosity;
 
+static bool fatal_warnings;
+
 /**
  * @brief Log message prefixes with colour
  */
@@ -48,6 +55,7 @@ static pthread_mutex_t log_lock;
 void init_logs(Args* args)
 {
 	log_verbosity = args->verbose;
+	fatal_warnings = args->fatal_warnings;
 	pthread_mutex_init(&log_lock, NULL);
 }
 
@@ -75,14 +83,34 @@ static void log_x(Verbosity lvl, const char* restrict format, va_list va);
  * @param format Warning format (printf)
  * @param ... Possible printf arguments
  */
-void log_warn(const char* restrict format, ...)
+int log_warn(const char* restrict format, ...)
 {
 	LOG_X_CALL(warn, format);
+	return fatal_warnings;
 }
 
-void vlog_warn(const char* restrict format, va_list va)
+int vlog_warn(const char* restrict format, va_list va)
 {
-	log_x(WARN, format, va);
+	if (fatal_warnings)
+		log_x(ERR, format, va);
+	else
+		log_x(WARN, format, va);
+	return fatal_warnings;
+}
+
+int log_warn_at(Location* loc, const char* restrict format, ...)
+{
+	va_list va;
+	va_start(va, format);
+	vlog_warn_at(loc, format, va);
+	va_end(va);
+	return fatal_warnings;
+}
+
+int vlog_warn_at(Location* loc, const char* restrict format, va_list va)
+{
+	PREPEND_LOC_TO_FORMAT(newfmt, loc, format);
+	return vlog_warn(newfmt, va);
 }
 
 /**
@@ -111,11 +139,7 @@ void log_err_at(Location* loc, const char* restrict format, ...)
 
 void vlog_err_at(Location* loc, const char* restrict format, va_list va)
 {
-	const size_t pos_fmt_len = snprintf(NULL, 0, POS_FMT, POS_FILL(loc));
-	const size_t fmtlen = 1 + strlen(format) + pos_fmt_len;
-	char newfmt[fmtlen];
-	snprintf(newfmt, pos_fmt_len, POS_FMT, POS_FILL(loc));
-	strcat(newfmt + pos_fmt_len - 1, format);
+	PREPEND_LOC_TO_FORMAT(newfmt, loc, format);
 	vlog_err(newfmt, va);
 }
 

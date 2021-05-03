@@ -62,7 +62,8 @@ static int eval_tree(ExtensionState* s, DocTreeNode* node)
 			lua_pushstring(s, node->name->str);
 			lua_setfield(s, -2, "name");
 			/* TODO: does this work? */
-			log_warn("Packing node %p by executing its lua pass", (void*)node);
+			if(log_warn("Packing node %p by executing its lua pass", (void*)node))
+				luaL_error(s, "Warnings are fatal");
 			int rc = exec_lua_pass_on_node(s, node);
 			if (!rc && node->content->call_params->result)
 			{

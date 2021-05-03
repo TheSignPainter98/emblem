@@ -45,6 +45,13 @@ args:
     default: ''
     help: Name of the output file without file-extension. If left unspecified the input file (with its extension removed) is used, otherwise _emdoc_.
     doc: Holds the output file stem
+  - dest: fatal_warnings
+    short: -E
+    long: --fatal-warnings
+    help: Treat warnings as errors
+    doc: Make warnings fatal
+    type: flag
+    default: false
   - dest: driver
     short: -T
     long: --type
