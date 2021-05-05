@@ -2,7 +2,7 @@
 
 #include "argp.h"
 #include "config.h"
-#include "doc-struct/ast.h"
+#include "doc-struct/location.h"
 #include <stdarg.h>
 
 /**
