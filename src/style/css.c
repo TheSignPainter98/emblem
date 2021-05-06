@@ -148,8 +148,16 @@ int append_style_sheet(Styler* styler, Str* sheet_loc)
 	size_t len = 1 + ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 	char* raw_stylesheet_content = malloc(len);
-	fread(raw_stylesheet_content, 1, len, fp);
+	size_t fr = fread(raw_stylesheet_content, 1, len, fp);
 	raw_stylesheet_content[len - 1] = '\0';
+	if (fr != len)
+	{
+		if (feof(fp))
+			log_err("Premature end of file detected while reading %s", sheet_loc->str);
+		else if (ferror(fp))
+			log_err("Error while reading %s: %zu", sheet_loc->str, fr);
+		exit(1);
+	}
 
 	if (fclose(fp))
 	{
