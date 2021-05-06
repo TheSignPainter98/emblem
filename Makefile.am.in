@@ -9,7 +9,7 @@ FORMAT_FLAGS = -Werror -i
 FORMAT_CHECKER = clang-format
 FORMAT_CHECKER_FLAGS = -Werror -i --dry-run
 
-SUFFIXES = .moon
+SUFFIXES = .moon .lc
 
 # Required by libtoolize
 ACLOCAL_AMFLAGS = -I m4
@@ -20,15 +20,15 @@ M4FLAGS = -E
 
 EM_LEX_PREFIX = em_
 
-BUILT_SOURCES = src/parser/em-emblem-parser.h src/ext/lua-lib-load.c <BUILT_SRCS>
+BUILT_SOURCES = src/parser/em-emblem-parser.h src/ext/lua-lib-load.c ./src/pp/ignore_warning.h S_BUILT_SRCS
 
 PATH_DECLS = -DDATA_DIR=\"$(pkgdatadir)\" -DINCLUDE_DIR=\"$(pkgincludedir)\" -DLIB_DIR=\"$(pkglibdir)\" -DLIB_EXEC_DIR=\"$(pkglibexecdir)\"
 
 # Binary and sources
 bin_PROGRAMS = em
-em_SOURCES = <SRC_FILES> src/parser/emblem-lexer.l src/parser/emblem-parser.y
-em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x $(PATH_DECLS) <DEPS_CFLAGS># -fanalyzer
-em_LDADD = -lm -ldl <DEPS_LIBS>
+em_SOURCES = S_SRC_FILES src/parser/emblem-lexer.l src/parser/emblem-parser.y
+em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x $(PATH_DECLS) S_DEPS_CFLAGS# -fanalyzer
+em_LDADD = -lm -ldl S_DEPS_LIBS
 em_LFLAGS = -Cfar
 em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Wcounterexamples -Werror -LC --locations -l -d -rall
 dist_man_MANS = em.1
@@ -69,9 +69,9 @@ ChangeLog: ./scripts/changelog.sh
 # Add tests
 TESTS = check_em
 check_PROGRAMS = check_em
-check_em_SOURCES = <TEST_FILES>
-check_em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18 <CHECK_DEPS_CFLAGS>
-check_em_LDADD = $(em_LDADD) <CHECK_DEPS_LIBS>
+check_em_SOURCES = S_TEST_FILES
+check_em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18 S_CHECK_DEPS_CFLAGS
+check_em_LDADD = $(em_LDADD) S_CHECK_DEPS_LIBS
 
 doc: docs/html/index.html
 .PHONY: doc
@@ -93,5 +93,6 @@ format-check:
 	$(FORMAT_CHECKER) $(FORMAT_CHECKER_FLAGS) $(shell find src/ -type f -regex '.*.[ch]') $(shell find check/ -type f -regex '.*.[ch]')
 .PHONY: format-check
 
-EXTRA_DIST = ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./em.yml
-CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1 em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c emblem-*.tar.*
+dist_data_DATA = S_DIST_DATA
+EXTRA_DIST = ./em.yml ./src/pp/ignore_warning.h.m4 S_EXTRA_DIST
+CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1 em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c emblem-*.tar.* PKGBUILD

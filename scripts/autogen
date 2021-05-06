@@ -28,7 +28,7 @@ pkg_bug_report_address=$(yq -y .bug_report_address em.yml | head -n 1)
 
 # Generate the new autotools files
 ./scripts/configure.scan.awk.sh < ./scripts/configure.scan.awk.in > ./scripts/configure.scan.awk
-./scripts/Makefile.am.sh < Makefile.am.in > Makefile.am
+./scripts/Makefile.am.sh
 autoscan
 awk -f ./scripts/configure.scan.awk \
 	pkg_name="$pkg_name" \

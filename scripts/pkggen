@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+
+# Generate ChangeLog
+make -s ChangeLog
+
+# Make distributable
+make -s dist
+
+pkgname=$(yq -y .name em.yml | head -n 1)
+pkgver=$(yq -y .version em.yml | head -n 1)
+pkgsrc=$pkgname-$pkgver.tar.xz
+
+function deps()
+{
+	yq -y ".dist.aur[\"$1\"]" em.yml | cut -d' ' -f2- | xargs printf "'%s' " | grep -v "'\[]'" | sed 's/ $//'
+}
+
+# Generate PKGBUILD
+m4 -PE - PKGBUILD.m4 > PKGBUILD << EOF
+m4_define(S_PKGNAME, $pkgname)m4_dnl
+m4_define(S_PKGVER, $pkgver)m4_dnl
+m4_define(S_SRC, $pkgsrc)m4_dnl
+m4_define(S_PKGDESC, \`$(yq -y .description em.yml | head -n 1)')m4_dnl
+m4_define(S_DEPENDS, $(deps depends))m4_dnl
+m4_define(S_MAKEDEPENDS, $(deps make-depends))m4_dnl
+m4_define(S_CHECKDEPENDS, $(deps check-depends))m4_dnl
+m4_define(S_OPTDEPENDS, $(deps opt-depends))m4_dnl
+m4_define(S_SHA256SUM, $(sha256sum "$pkgsrc" | cut -d' ' -f1))m4_dnl
+m4_define(S_SHA512SUM, $(sha512sum "$pkgsrc" | cut -d' ' -f1))m4_dnl
+EOF
+
+# Lint the PKGBUILD
+namcap PKGBUILD
