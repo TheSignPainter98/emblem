@@ -2,6 +2,8 @@
 
 .DEFAULT_GOAL = all-am
 
+MKDIR_P = mkdir -m 755 -p
+
 FORMATTER = clang-format
 FORMAT_FLAGS = -Werror -i
 FORMAT_CHECKER = clang-format
@@ -27,6 +29,7 @@ em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x <DEPS_C
 em_LDADD = -lm -ldl <DEPS_LIBS>
 em_LFLAGS = -Cfar
 em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Wcounterexamples -Werror -LC --locations -l -d -rall
+dist_man_MANS = em.1.gz
 
 LEX = flex
 
@@ -50,13 +53,16 @@ src/argp.h src/argp.c: em.yml ./scripts/arggen
 em.yml:;
 
 # Add documentation
-dist_doc_DATA = README.md LICENSE ChangeLog em.1.gz
+dist_doc_DATA = README.md LICENSE ChangeLog
 
 ChangeLog: ./scripts/changelog.sh
 	. $< > $@
 
-./em.1.gz: ./em.yml ./scripts/mangen
-	(./scripts/mangen | gzip - -) < $< > $@
+./em.1.gz: ./em.1
+	gzip - - < $< > $@
+
+./em.1: ./em.yml ./scripts/mangen
+	./scripts/mangen < $< > $@
 
 # Add tests
 TESTS = check_em
@@ -85,5 +91,5 @@ format-check:
 	$(FORMAT_CHECKER) $(FORMAT_CHECKER_FLAGS) $(shell find src/ -type f -regex '.*.[ch]') $(shell find check/ -type f -regex '.*.[ch]')
 .PHONY: format-check
 
-EXTRA_DIST = ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./em.yml
+EXTRA_DIST = ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./em.yml ./em.1.gz
 CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c
