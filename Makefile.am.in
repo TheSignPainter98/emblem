@@ -61,7 +61,7 @@ ChangeLog: ./scripts/changelog.sh
 	. $< > $@
 
 ./em.1.gz: ./em.1
-	gzip - - < $< > $@
+	gzip -9c $< > $@
 
 ./em.1: ./em.yml ./scripts/mangen
 	./scripts/mangen < $< > $@
