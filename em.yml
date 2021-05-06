@@ -17,7 +17,7 @@ deps:
   - name: ncurses
     func_check: has_colors
     minver: 6.2.20200212
-description: A simple, format-agnostic typesetter
+description: A minimalist, format-agnostic typesetter
 version: 0.0.1
 date: 05 Jun 2020
 bugs: Please file any bugs or issues at <github.com/TheSignPainter98/emblem/issues>
