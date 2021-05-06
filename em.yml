@@ -14,6 +14,9 @@ deps:
   - name: libsass
     func_check: sass_make_data_context
     minver: 3.6.4
+  - name: ncurses
+    func_check: has_colors
+    minver: 6.2.20200212
 description: A simple, format-agnostic typesetter
 version: 0.0.1
 date: 05 Jun 2020
@@ -52,6 +55,17 @@ args:
     doc: Make warnings fatal
     type: flag
     default: false
+  - dest: colourise_output
+    short: -C
+    long: --colourise-output
+    help: Specify output colourisation, -1 for none, 1 for always, 0 for auto-detect (default is 0)
+    doc: Force colourisation on (when = 1) or off (when = -1) or detect (when = 0)
+    type: int
+    choices:
+      - -1
+      - 0
+      - 1
+    default: 0
   - dest: driver
     short: -T
     long: --type
@@ -132,9 +146,11 @@ dist:
     depends:
       - glibc
       - libcss
+      - libsass
       - lua
       - lua-argparse
       - lua-lyaml
+      - ncurses
     make-depends:
       - gcc
       - moonscript

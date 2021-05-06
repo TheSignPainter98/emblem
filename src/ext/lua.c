@@ -151,9 +151,9 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 				node->flags |= CALL_HAS_NO_EXT_FUNC;
 				if (is_empty_list(node->content->call_params->args))
 				{
-					log_err_at(node->src_loc, "Directive is not a known function and has no arguments");
+					int rc = log_warn_at(node->src_loc, "Directive '.%s' is not an extension function and has no arguments (would style nothing)", node->name->str);
 					lua_pop(s, -1); // Remove call function
-					return -1;
+					return rc ? -1 : 0;
 				}
 				else if (node->content->call_params->args->cnt == 1)
 				{
