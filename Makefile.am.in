@@ -22,10 +22,12 @@ EM_LEX_PREFIX = em_
 
 BUILT_SOURCES = src/parser/em-emblem-parser.h src/ext/lua-lib-load.c <BUILT_SRCS>
 
+PATH_DECLS = -DDATA_DIR=\"$(pkgdatadir)\" -DINCLUDE_DIR=\"$(pkgincludedir)\" -DLIB_DIR=\"$(pkglibdir)\" -DLIB_EXEC_DIR=\"$(pkglibexecdir)\"
+
 # Binary and sources
 bin_PROGRAMS = em
 em_SOURCES = <SRC_FILES> src/parser/emblem-lexer.l src/parser/emblem-parser.y
-em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x <DEPS_CFLAGS> # -fanalyzer
+em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x $(PATH_DECLS) <DEPS_CFLAGS># -fanalyzer
 em_LDADD = -lm -ldl <DEPS_LIBS>
 em_LFLAGS = -Cfar
 em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Wcounterexamples -Werror -LC --locations -l -d -rall

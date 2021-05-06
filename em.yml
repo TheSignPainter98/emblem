@@ -79,7 +79,7 @@ args:
     long: --class
     type: char*
     metaDest: style
-    default: share/em/article
+    default: '"DATA_DIR"/article'
     help: Set the output class
     doc: Holds the root style
   - dest: default_typeface
