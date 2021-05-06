@@ -175,7 +175,14 @@ line_element
 static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err)
 {
 	++*params->nerrs;
-	log_err("%s:%d:%d: %s", params->ifn->str, yyloc->first_line, yyloc->first_column, err);
+	Location loc = {
+		.first_line   = yyloc->first_line,
+		.first_column = yyloc->first_column,
+		.last_line    = yyloc->last_line,
+		.last_column  = yyloc->last_column,
+		.src_file     = params->ifn,
+	};
+	log_err_at(&loc, "%s", err);
 }
 
 static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn)
