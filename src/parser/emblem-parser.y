@@ -38,6 +38,8 @@ typedef struct
 #include <string.h>
 
 #define YYLEX_PARAM_ data->scanner
+
+#define DEFAULT_CONTENT_EXTENSION ".em"
 %}
 
 %define 		parse.trace true
@@ -212,18 +214,36 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 {
 	log_info("Parsing file '%s'", fname);
 	bool use_stdin = !strcmp(fname, "-");
-	FILE* fp = use_stdin ? stdin : fopen(fname, "r");
-	if (!fp)
-	{
-		log_err("Failed to open file '%s'", fname);
-		make_maybe_nothing(mo);
-		return;
-	}
-	else
-		log_debug("Opened file '%s'", fname);
-
 	Str* ifn = malloc(sizeof(Str));
 	make_strv(ifn, use_stdin ? "(stdin)" : fname);
+	FILE* fp = use_stdin ? stdin : fopen(ifn->str, "r");
+	if (!fp)
+	{
+		if (!strrchr(ifn->str, '.'))
+		{
+			char* fname_with_extension = malloc(1 + ifn->len + sizeof(DEFAULT_CONTENT_EXTENSION));
+			strcpy(fname_with_extension, ifn->str);
+			strcpy(fname_with_extension + ifn->len, DEFAULT_CONTENT_EXTENSION);
+			dest_str(ifn);
+			make_strr(ifn, fname_with_extension);
+
+			if (!(fp = fopen(ifn->str, "r")))
+			{
+				log_err("Failed to open file either '%s' or '%s'", fname, ifn->str);
+				make_maybe_nothing(mo);
+				return;
+			}
+		}
+		else
+		{
+			log_err("Failed to open file '%s'", fname);
+			make_maybe_nothing(mo);
+			return;
+		}
+	}
+
+	log_debug("Opened file '%s'", fname);
+
 	ListNode* ln = malloc(sizeof(ListNode));
 	make_list_node(ln, ifn);
 	USE_LOCK(List* namesList, mtNamesList, append_list_node(namesList, ln));
@@ -261,7 +281,7 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 		make_maybe_just(mo, pd.doc);
 	else
 	{
-		log_err("Parsing file '%s' failed with %d error%s.", fname, nerrs, nerrs - 1 ? "s" : "");
+		log_err("Parsing file '%s' failed with %d error%s.", ifn->str, nerrs, nerrs - 1 ? "s" : "");
 		dest_str(ifn);
 		free(ifn);
 		make_maybe_nothing(mo);
