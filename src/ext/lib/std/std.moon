@@ -342,14 +342,15 @@ em.cite = (ref) ->
 	-- used_bib[key] = BibItem(key) if not used_bib[key]
 	-- used_bib[key]\cite!
 
+export mkcall = (name) -> (...) ->
+	{
+		type: 3
+		name: styler
+		args: {...}
+	}
 stylers = { 'it', 'bf', 'sc', 'af', 'tt' }
 for styler in *stylers
-	_G[styler] = (node) ->
-		{
-			type: 3
-			name: styler
-			args: { node }
-		}
+	_G[styler] = mkcall styler
 
 -- stylesheet 'share/toc.scss'
 
