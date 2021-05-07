@@ -12,7 +12,7 @@
 #include <math.h>
 
 #include "data/str.h"
-#include "em-emblem-parser.h"
+#include "emblem-parser.h"
 #include "logs/logs.h"
 #include "parser.h"
 
