@@ -27,7 +27,7 @@ PATH_DECLS = -DDATA_DIR=\"$(pkgdatadir)\" -DINCLUDE_DIR=\"$(pkgincludedir)\" -DL
 # Binary and sources
 bin_PROGRAMS = em
 em_SOURCES = S_SRC_FILES src/parser/emblem-lexer.l src/parser/emblem-parser.y
-em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x $(PATH_DECLS) S_DEPS_CFLAGS# -fanalyzer
+em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x $(PATH_DECLS) S_DEPS_CFLAGS -pthread -fanalyzer
 em_LDADD = -lm -ldl S_DEPS_LIBS
 em_LFLAGS = -Cfar
 em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Wcounterexamples -Werror -LC --locations -l -d -rall
@@ -69,8 +69,10 @@ ChangeLog: ./scripts/changelog.sh
 # Add tests
 TESTS = check_em
 check_PROGRAMS = check_em
-check_em_SOURCES = S_TEST_FILES
-check_em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18 S_CHECK_DEPS_CFLAGS
+check_em_SOURCES = S_TEST_FILES src/parser/emblem-lexer.l src/parser/emblem-parser.y
+check_em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18 $(PATH_DECLS) -pthread S_CHECK_DEPS_CFLAGS
+check_em_LFLAGS = -Cfar
+check_em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Wcounterexamples -Werror -LC --locations -l -d -rall
 check_em_LDADD = $(em_LDADD) S_CHECK_DEPS_LIBS
 
 doc: docs/html/index.html
