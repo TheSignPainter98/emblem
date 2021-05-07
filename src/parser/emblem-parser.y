@@ -89,7 +89,7 @@ typedef struct
 %destructor { if ($$) { dest_free_doc_tree_node($$, false); } } <node>
 %destructor { if ($$) { dest_str($$); free($$); } } <str>
 %destructor { if ($$) { dest_call_io($$, false), free($$); } } <args>
-%destructor { if ($$) { free($$); } } <sugar>
+%destructor { if ($$) { dest_str($$); free($$); } } <sugar>
 
 %start doc
 
