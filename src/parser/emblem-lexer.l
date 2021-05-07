@@ -71,7 +71,7 @@ BLOCK_COMMENT_CLOSE "*/"
 BLOCK_COMMENT_OPEN  "/*"
 COLON				":"
 COMMENT_LINE		{LINE_COMMENT_START}.*{LN}
-DIRECTIVE			"."[a-zA-Z0-9$_@*]+
+DIRECTIVE			"."[^ \t\r\n:{}]+
 GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
