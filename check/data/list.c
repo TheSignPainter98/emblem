@@ -475,17 +475,17 @@ Test(list, concat)
 	{
 		ListNode* ln = malloc(sizeof(ListNode));
 		make_list_node(ln, (void*)i);
-		List* l = lns < change_point ? &l1 : &l2;
+		List* l = i < change_point ? &l1 : &l2;
 		append_list_node(l, ln);
 	}
 
 	List lr;
 	concat_list(&lr, &l1, &l2);
-	cr_assert(lr.cnt == lns, "Concatenated list length incorrect, expected %d but got %d", lns, l1.cnt);
+	cr_assert(lr.cnt == lns, "Concatenated list length incorrect, expected %d but got %d", lns, lr.cnt);
 	cr_assert(lr.fst->data == l1.fst->data, "Concatenated list had different first node");
-	cr_assert(lr.lst->data == lr.lst->data, "Concatenated list has incorrect last");
+	cr_assert(lr.lst->data == l2.lst->data, "Concatenated list has incorrect last");
 
-	ListNode* curr = l1.fst;
+	ListNode* curr = lr.fst;
 	for (size_t i = 0; i < lns; i++)
 	{
 		cr_assert((size_t)curr->data == i, "Concatenated list had incorrect stored value (iterated forwards), expected %ld but got %ld", i, (size_t)curr->data);
@@ -493,7 +493,7 @@ Test(list, concat)
 		curr = curr->nxt;
 	}
 
-	curr = l1.lst;
+	curr = lr.lst;
 	for (ssize_t i = lns - 1; i >= 0; i--)
 	{
 		cr_assert((size_t)curr->data == (size_t)i, "Concatenated list had incorrect stored value (iterated backwards), expected %ld but got %ld", i, (size_t)curr->data);
@@ -501,6 +501,7 @@ Test(list, concat)
 		curr = curr->prv;
 	}
 
+	dest_list(&lr, true, NULL);
 	dest_list(&l1, true, NULL);
 	dest_list(&l2, true, NULL);
 }
