@@ -3,8 +3,9 @@
 extension_lib_srcs=($(find src/ext/lib/ -name '*.moon'))
 extension_lib_built_srcs=($(find src/ext/lib/ -name '*.moon' | for f in $(</dev/stdin); do echo ${f%.*}.lc; done))
 built_srcs=(./src/argp.c ./src/argp.h ./src/pp/ignore_warning.h ${extension_lib_built_srcs[@]})
-srcs=(${built_srcs[@]} $(find src -name '*.c' -or -name '*.h' | grep -v 'argp.c$' | grep -v 'argp.h$' | grep -v 'src/pp/ignore_warning.h$'))
-tests=(./src/argp.c ./src/argp.h $(find src -name '*.c' -or -name '*.h' | grep -v 'argp.c$' | grep -v 'argp.h$' | grep -v 'em.c$' | grep -v 'em.h$') $(find check -name '*.c' -or -name '*.h'))
+parser_srcs=(src/parser/emblem-lexer.l src/parser/emblem-parser.y)
+srcs=(${built_srcs[@]} ${parser_srcs[@]} $(find src -name '*.c' -or -name '*.h' | grep -v 'argp.c$' | grep -v 'argp.h$' | grep -v 'src/pp/ignore_warning.h$'))
+tests=(${built_srcs[@]} ${parser_srcs[@]} $(find src -name '*.c' -or -name '*.h' | grep -v 'argp.c$' | grep -v 'argp.h$' | grep -v 'em.c$' | grep -v 'em.h$') $(find check -name '*.c' -or -name '*.h'))
 scripts=($(find scripts -type f | grep -v '.*\.swp'))
 dist_data=($(find share/emblem/ -type f))
 
@@ -22,7 +23,7 @@ m4_define(S_BUILT_SRCS, ${built_srcs[@]})m4_dnl
 m4_define(S_DEPS_CFLAGS, $deps_cflags)m4_dnl
 m4_define(S_DEPS_LIBS, $deps_libs)m4_dnl
 m4_define(S_CHECK_DEPS_CFLAGS, $check_deps_cflags)m4_dnl
-m4_define(S_CHECK_DEPS_LIBS, $check_deps_libs)m4_dnl
+m4_define(S_CHECK_DEPS_LIBS, $deps_libs $check_deps_libs)m4_dnl
 m4_define(S_DIST_DATA, ${dist_data[@]})m4_dnl
 m4_define(S_EXTRA_DIST, ${extra_dist[@]})m4_dnl
 EOF
