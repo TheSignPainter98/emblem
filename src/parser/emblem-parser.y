@@ -43,15 +43,12 @@ typedef struct
 
 %define 		parse.trace true
 %define 		parse.error verbose
-/* %define 		api.pure    true */
 %define 		api.pure    full
 %define 		api.prefix  {em_}
 %define 		lr.type 	ielr
 %parse-param 	            { ParserData* data }
 %lex-param 		            { yyscan_t YYLEX_PARAM_ }
 %locations
-/* %glr-parser */
-/* %expect 2 */
 %expect 0
 
 %union {
