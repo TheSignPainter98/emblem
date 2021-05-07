@@ -31,9 +31,9 @@ typedef struct
 
 #include "data/str.h"
 #include "data/either.h"
-#include "em-emblem-parser.h"
+#include "emblem-parser.h"
 #include "logs/logs.h"
-#include "em-emblem-lexer.h"
+#include "emblem-lexer.h"
 #include <stdbool.h>
 #include <string.h>
 
