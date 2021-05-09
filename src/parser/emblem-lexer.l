@@ -15,6 +15,7 @@
 #include "em-emblem-parser.h"
 #include "logs/logs.h"
 #include "parser.h"
+#include "sanitise-word.h"
 #include "sugar.h"
 
 /* #define YY_DECL int em_lex(EM_STYPE* yylval_param, EM_LTYPE* yylloc_param, yyscan_t yyscanner, ParserData* params) */
@@ -153,7 +154,7 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 <FILE_BODY>{GROUP_OPEN}				{ yyextra->opening_emph = true; return T_GROUP_OPEN; }
 <FILE_BODY>{GROUP_CLOSE}			{ yyextra->opening_emph = false; return T_GROUP_CLOSE; }
 <FILE_BODY>{HEADING}				{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
-<FILE_BODY>{WORD}					{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext); return T_WORD; }
+<FILE_BODY>{WORD}					{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strr(yylval->str, sanitise_word(yytext, yyleng)); return T_WORD; }
 
 <FILE_BODY>.						{ llerror("Unrecognised character"); log_warn("Char is '%c' (%#x)", yytext[0], yytext[0]); }
 

@@ -46,6 +46,10 @@ This is something `\\familiar@looking\{\}`, recognised but not accepted here.
 .h4: This is a heading!
 .h5: This is a heading!
 .h6: This is a heading!
+"This should contain some interesting quote marks."
+"'hi'"
+This is a dumb \' quote(s) \".
+"She said to me 'beneath the shop's rusted sign lies brick alone'"
 five fickle feinds fled the the effluent fjord.
 cast sheep do fly through a tract
 ghjkgh g ghj gh kgh gh kghj
