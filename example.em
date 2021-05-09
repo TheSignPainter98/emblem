@@ -8,7 +8,16 @@ This is some _italic,_ some **bold** some *asterisk italic* and some __underscor
 These are some =small caps= and =this CouLd gEtINtereSTinG=
 This is an ==alternative style as yet undefined,== but that's okay.
 
+You can also have escaped\{characters, more escaped\}characters \} \{ \: in the middle of words or even on their own \:.
+
+This is an _italic word._
+This is a __bold one__.
+This is a word with an underscore_in_the_middle.
+In some mathematical systems, 1=1 and 0!=1
+
 This is some _**bold italic**_ and this is some `_**monospaced bold italic**_`
+
+This is something `\\familiar@looking\{\}`, recognised but not accepted here.
 
 #* Table of Contents
 .toc

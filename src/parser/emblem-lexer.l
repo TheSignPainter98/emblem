@@ -80,7 +80,14 @@ LN					"\n"|"\r"|"\r\n"
 PUNCT   			[.,]
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
-WORD 				"."|[^_*`=:. \t\r\n{}]([^_*`= \t\r\n{}]|[^ \t\r\n{}]*[^_*`= \t\r\n{}]{2}{PUNCT}*)?
+WORD_ESCAPE_CHAR	"\\"[^ \t\r\n]
+WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}])
+WORD_MID_CHAR 		({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}])
+WORD_EASY_END_CHAR  [^\\_*`= \t\r\n{}]
+WORD_END_REGULAR 	{WORD_EASY_END_CHAR}{2}
+WORD_END_EMPH		[_*`=][^\\ \t\r\n{}_*`=,.'":;]
+WORD_END 			({WORD_ESCAPE_CHAR}|{WORD_END_REGULAR}|{WORD_END_EMPH})
+WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 
 %x COMMENT
 %x INITIAL_WHITE
