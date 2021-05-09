@@ -15,6 +15,7 @@
 #include "em-emblem-parser.h"
 #include "logs/logs.h"
 #include "parser.h"
+#include "sugar.h"
 
 /* #define YY_DECL int em_lex(EM_STYPE* yylval_param, EM_LTYPE* yylloc_param, yyscan_t yyscanner, ParserData* params) */
 
@@ -25,8 +26,8 @@
 
 #define YY_USER_ACTION update_yylloc(yylloc, yytext);
 static void update_yylloc(EM_LTYPE* loc, char* text);
-static void make_header_call_str(Str** hdr, char* ytext, size_t yleng);
-static void make_emph_str(Str** emph, char* ytext, size_t yleng);
+static void make_header_call_str(Sugar** hdr, char* ytext, size_t yleng);
+static void make_emph_str(Sugar** emph, char* ytext, size_t yleng);
 
 #define YY_EXTRA_TYPE LexerData*
 
@@ -45,6 +46,7 @@ static int indent_len(int tab_size, char* inp);
 		make_emph_str(&yylval->sugar, yytext, yyleng);\
 		return T_open;\
 	}\
+	yylval->len = yyleng;\
 	return T_close;
 %}
 
@@ -196,28 +198,30 @@ static void update_yylloc(EM_LTYPE* loc, char* text)
 	}
 }
 
-static void make_emph_str(Str** emph, char* ytext, size_t yleng)
+static void make_emph_str(Sugar** emph, char* ytext, size_t yleng)
 {
-	*emph = malloc(sizeof(Str));
+	Str* emph_call = malloc(sizeof(Str));
 	switch (ytext[0])
 	{
 		case '_':
 		case '*':
-			make_strv(*emph, yleng == 2 ? "bf" : "it");
+			make_strv(emph_call, yleng == 2 ? "bf" : "it");
 			break;
 		case '`':
-			make_strv(*emph, "tt");
+			make_strv(emph_call, "tt");
 			break;
 		case '=':
-			make_strv(*emph, yleng == 2 ? "af" : "sc");
+			make_strv(emph_call, yleng == 2 ? "af" : "sc");
 			break;
 		default:
 			log_err("Unknown emphasis delimiter '%s'", ytext);
 			exit(1);
 	}
+	*emph = malloc(sizeof(Sugar));
+	make_sugar(*emph, emph_call, yleng);
 }
 
-static void make_header_call_str(Str** hdr, char* ytext, size_t yleng)
+static void make_header_call_str(Sugar** hdr, char* ytext, size_t yleng)
 {
 	// Assume that yleng <= 7
 	bool star              = ytext[yleng - 1] == '*';
@@ -229,8 +233,11 @@ static void make_header_call_str(Str** hdr, char* ytext, size_t yleng)
 	if (star)
 		hdr_raw[3] = '\0';
 
-	*hdr = malloc(sizeof(Str));
-	make_strr(*hdr, hdr_raw);
+	Str* hdr_call = malloc(sizeof(Str));
+	make_strr(hdr_call, hdr_raw);
+
+	*hdr = malloc(sizeof(Sugar));
+	make_sugar(*hdr, hdr_call, yleng);
 }
 
 #if __GNUC__
