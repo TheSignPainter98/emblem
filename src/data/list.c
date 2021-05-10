@@ -192,23 +192,37 @@ void in_list_eq(Maybe* m, List* l, Comparator cmp, void* val)
 void concat_list(List* r, List* l1, List* l2)
 {
 	r->cnt = l1->cnt + l2->cnt;
-	r->fst = l1->fst ? l1->fst : l2->fst;
+	r->fst = NULL;
+	if (!r->cnt)
+	{
+		r->lst = NULL;
+		return;
+	}
 
-	ListNode* curr = l1->fst;
+	List* l = l1->fst ? l1 : l2;
+	ListNode* curr = l->fst;
 	ListNode* prv = NULL;
 	ListNode* new_curr = NULL;
 	while (curr)
 	{
 		new_curr = malloc(sizeof(ListNode));
+		if (!r->fst)
+			r->fst = new_curr;
 		new_curr->data = curr->data;
 		new_curr->prv = prv;
 		if (prv)
 			prv->nxt = new_curr;
-		prv = curr;
-		curr = curr->nxt ? curr->nxt : l2->fst;
+
+		prv = new_curr;
+		curr = curr->nxt;
+		if (!curr && l != l2)
+		{
+			l = l2;
+			curr = l2->fst;
+		}
 	}
+	new_curr->nxt = NULL;
 	r->lst = new_curr;
-	r->lst->nxt = NULL;
 }
 
 bool all_list(List* l)

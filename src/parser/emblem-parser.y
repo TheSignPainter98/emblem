@@ -33,9 +33,9 @@ typedef struct
 
 #include "data/str.h"
 #include "data/either.h"
-#include "em-emblem-parser.h"
+#include "emblem-parser.h"
 #include "logs/logs.h"
-#include "em-emblem-lexer.h"
+#include "emblem-lexer.h"
 #include <stdbool.h>
 #include <string.h>
 
@@ -51,6 +51,7 @@ typedef struct
 		yyerror(&close_tok_loc, params, msg);\
 		YYERROR;\
 	}
+#define DEFAULT_CONTENT_EXTENSION ".em"
 %}
 
 %define 		parse.trace true
@@ -120,7 +121,7 @@ doc : maybe_lines	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(da
 
 maybe_lines
 	: %empty									{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_lines($$, alloc_assign_loc(@$, data->ifn)); }
-	| lines										{ $$ = $1; }
+	| lines
 	;
 
 lines
@@ -130,7 +131,7 @@ lines
 	;
 
 line
-	: line_content T_LN  			{ $$ = $1; }
+	: line_content T_LN
 	| T_HEADING line_content T_LN	{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_DIRECTIVE args 				{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| error 						{ alloc_malloc_error_word(&$$, @$, data->ifn); }
@@ -144,8 +145,8 @@ args
 	;
 
 line_content
-	: %empty												{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_line($$, alloc_assign_loc(@$, data->ifn)); }
-	| line_content_ne										{ $$ = $1; }
+	: %empty			{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_line($$, alloc_assign_loc(@$, data->ifn)); }
+	| line_content_ne
 	;
 
 line_content_ne
@@ -199,7 +200,14 @@ line_element
 static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err)
 {
 	++*params->nerrs;
-	log_err("%s:%d:%d: %s", params->ifn->str, yyloc->first_line, yyloc->first_column, err);
+	Location loc = {
+		.first_line   = yyloc->first_line,
+		.first_column = yyloc->first_column,
+		.last_line    = yyloc->last_line,
+		.last_column  = yyloc->last_column,
+		.src_file     = params->ifn,
+	};
+	log_err_at(&loc, "%s", err);
 }
 
 static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn)
@@ -235,18 +243,36 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 {
 	log_info("Parsing file '%s'", fname);
 	bool use_stdin = !strcmp(fname, "-");
-	FILE* fp = use_stdin ? stdin : fopen(fname, "r");
-	if (!fp)
-	{
-		log_err("Failed to open file '%s'", fname);
-		make_maybe_nothing(mo);
-		return;
-	}
-	else
-		log_debug("Opened file '%s'", fname);
-
 	Str* ifn = malloc(sizeof(Str));
 	make_strv(ifn, use_stdin ? "(stdin)" : fname);
+	FILE* fp = use_stdin ? stdin : fopen(ifn->str, "r");
+	if (!fp)
+	{
+		if (!strrchr(ifn->str, '.'))
+		{
+			char* fname_with_extension = malloc(1 + ifn->len + sizeof(DEFAULT_CONTENT_EXTENSION));
+			strcpy(fname_with_extension, ifn->str);
+			strcpy(fname_with_extension + ifn->len, DEFAULT_CONTENT_EXTENSION);
+			dest_str(ifn);
+			make_strr(ifn, fname_with_extension);
+
+			if (!(fp = fopen(ifn->str, "r")))
+			{
+				log_err("Failed to open file either '%s' or '%s'", fname, ifn->str);
+				make_maybe_nothing(mo);
+				return;
+			}
+		}
+		else
+		{
+			log_err("Failed to open file '%s'", fname);
+			make_maybe_nothing(mo);
+			return;
+		}
+	}
+
+	log_debug("Opened file '%s'", fname);
+
 	ListNode* ln = malloc(sizeof(ListNode));
 	make_list_node(ln, ifn);
 	USE_LOCK(List* namesList, mtNamesList, append_list_node(namesList, ln));
@@ -285,7 +311,7 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 		make_maybe_just(mo, pd.doc);
 	else
 	{
-		log_err("Parsing file '%s' failed with %d error%s.", fname, nerrs, nerrs - 1 ? "s" : "");
+		log_err("Parsing file '%s' failed with %d error%s.", ifn->str, nerrs, nerrs - 1 ? "s" : "");
 		dest_str(ifn);
 		free(ifn);
 		make_maybe_nothing(mo);

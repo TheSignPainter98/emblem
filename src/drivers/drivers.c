@@ -70,9 +70,8 @@ static int init_external_driver(OutputDriver* driver, Args* args)
 {
 	driver->type = EXTERNAL;
 
-	const size_t driver_name_len = strlen(args->driver);
-	size_t lib_name_len			 = driver_name_len + sizeof(DRIVER_LIB_NAME_FMT);
-	char* lib_name				 = malloc(sizeof(lib_name_len));
+	const size_t lib_name_len = 1 + snprintf(NULL, 0, DRIVER_LIB_NAME_FMT, args->driver);
+	char* lib_name			  = malloc(sizeof(lib_name_len));
 	snprintf(lib_name, lib_name_len, DRIVER_LIB_NAME_FMT, args->driver);
 
 	driver->driver_name = malloc(sizeof(Str));

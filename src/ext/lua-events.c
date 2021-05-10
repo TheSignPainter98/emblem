@@ -53,7 +53,8 @@ static int do_event(ExtensionState* s, const char* event_name)
 		case LUA_OK:
 			return 0;
 		case LUA_YIELD:
-			log_warn("Running %s event yielded instead of returned", event_name);
+			if (log_warn("Running %s event yielded instead of returned", event_name))
+				luaL_error(s, "Warnings are fatal");
 			return 1;
 		default:
 			log_err("Running %s event failed with error: %s", event_name, lua_tostring(s, -1));

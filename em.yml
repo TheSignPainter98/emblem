@@ -14,7 +14,10 @@ deps:
   - name: libsass
     func_check: sass_make_data_context
     minver: 3.6.4
-description: A simple, format-agnostic typesetter
+  - name: ncurses
+    func_check: has_colors
+    minver: 6.2.20200212
+description: A minimalist, format-agnostic typesetter
 version: 0.0.1
 date: 05 Jun 2020
 bugs: Please file any bugs or issues at <github.com/TheSignPainter98/emblem/issues>
@@ -45,6 +48,24 @@ args:
     default: ''
     help: Name of the output file without file-extension. If left unspecified the input file (with its extension removed) is used, otherwise _emdoc_.
     doc: Holds the output file stem
+  - dest: fatal_warnings
+    short: -E
+    long: --fatal-warnings
+    help: Treat warnings as errors
+    doc: Make warnings fatal
+    type: flag
+    default: false
+  - dest: colourise_output
+    short: -C
+    long: --colourise-output
+    help: Specify output colourisation, -1 for none, 1 for always, 0 for auto-detect (default is 0)
+    doc: Force colourisation on (when = 1) or off (when = -1) or detect (when = 0)
+    type: int
+    choices:
+      - -1
+      - 0
+      - 1
+    default: 0
   - dest: driver
     short: -T
     long: --type
@@ -58,7 +79,7 @@ args:
     long: --class
     type: char*
     metaDest: style
-    default: share/em/article
+    default: '"DATA_DIR"/article'
     help: Set the output class
     doc: Holds the root style
   - dest: default_typeface
@@ -125,9 +146,11 @@ dist:
     depends:
       - glibc
       - libcss
+      - libsass
       - lua
       - lua-argparse
       - lua-lyaml
+      - ncurses
     make-depends:
       - gcc
       - moonscript

@@ -205,6 +205,8 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             return 'NULL'
         elif arg['type'] == 'char*':
             return 'strdup("%s")' % arg['default']
+        elif arg['type'] == 'flag':
+            return '1' if arg['default'] else '0'
         else:
             return str(arg['default'])
     defaults:[str] = list(map(lambda arg: 'args->%s = %s;' %(arg['dest'], default_val(arg)), list(filter(lambda arg: arg['type'] not in ['help', 'version'], args + numGobbledDef))))
@@ -372,12 +374,14 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         'static int isInt(const char* s)',
         '{', [
             'size_t len = strlen(s);',
-            'for (size_t i = 0; i < len; i++)',
-            '{', [
-                "if (s[i] < '0' || s[i] > '9')", '{', [
-                    'return 0;'
-                ], '}',
-            ], '}',
+            'if (len)', [
+                'for (size_t i = s[0] == \'-\'; i < len; i++)',
+                [
+                    "if (s[i] < '0' || s[i] > '9')", [
+                        'return 0;'
+                    ],
+                ],
+            ],
             'return 1;'
         ], '}',
         '',

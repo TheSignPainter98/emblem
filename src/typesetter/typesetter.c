@@ -53,7 +53,13 @@ int typeset_doc(Doc* doc, Args* args, OutputDriverInf* driver_inf)
 	} while (doc->ext->require_extra_run & (doc->ext->iter_num < args->max_iters));
 
 	if (doc->ext->iter_num == args->max_iters)
-		log_warn("Max number of typesetting iterations reached (%d)", args->max_iters);
+	{
+		if(log_warn("Max number of typesetting iterations reached (%d)", args->max_iters))
+		{
+			dest_doc_ext_state(doc);
+			return 1;
+		}
+	}
 
 	if (do_lua_end_event(doc->ext->state))
 	{

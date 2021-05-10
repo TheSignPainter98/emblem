@@ -2,12 +2,14 @@
 
 .DEFAULT_GOAL = all-am
 
+MKDIR_P = mkdir -m 755 -p
+
 FORMATTER = clang-format
 FORMAT_FLAGS = -Werror -i
 FORMAT_CHECKER = clang-format
 FORMAT_CHECKER_FLAGS = -Werror -i --dry-run
 
-SUFFIXES = .moon
+SUFFIXES = .moon .lc
 
 # Required by libtoolize
 ACLOCAL_AMFLAGS = -I m4
@@ -18,15 +20,22 @@ M4FLAGS = -E
 
 EM_LEX_PREFIX = em_
 
-BUILT_SOURCES = src/parser/em-emblem-parser.h src/ext/lua-lib-load.c <BUILT_SRCS>
+BUILT_SOURCES = src/parser/emblem-parser.h src/parser/emblem-lexer.h src/ext/lua-lib-load.c ./src/pp/ignore_warning.h S_BUILT_SRCS
+
+PATH_DECLS = -DDATA_DIR=\"$(pkgdatadir)\" -DINCLUDE_DIR=\"$(pkgincludedir)\" -DLIB_DIR=\"$(pkglibdir)\" -DLIB_EXEC_DIR=\"$(pkglibexecdir)\"
+CFLAGS_ALL = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x $(PATH_DECLS) -pthread
+LDADD_ALL = -lm -ldl
+LFLAGS_ALL = -Cfar
+YFLAGS_ALL = -Wall -Wdangling-alias -Wno-yacc -Wcounterexamples -Werror -LC --locations -l -d -rall
 
 # Binary and sources
 bin_PROGRAMS = em
-em_SOURCES = <SRC_FILES> src/parser/emblem-lexer.l src/parser/emblem-parser.y
-em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x <DEPS_CFLAGS> # -fanalyzer
-em_LDADD = -lm -ldl <DEPS_LIBS>
-em_LFLAGS = -Cfar
-em_YFLAGS = -Wall -Wdangling-alias -Wno-yacc -Wcounterexamples -Werror -LC --locations -l -d -rall
+em_SOURCES = S_SRC_FILES
+em_CFLAGS = $(CFLAGS_ALL) S_DEPS_CFLAGS -fanalyzer
+em_LDADD = $(LDADD_ALL) S_DEPS_LIBS
+em_LFLAGS = $(LFLAGS_ALL)
+em_YFLAGS = $(YFLAGS_ALL)
+dist_man_MANS = em.1
 
 LEX = flex
 
@@ -47,23 +56,33 @@ src/argp.h src/argp.c: em.yml ./scripts/arggen
 ./src/pp/ignore_warning.h: ./src/pp/ignore_warning.h.m4
 	$(M4) $(M4FLAGS) $< > $@
 
+src/parser/emblem-parser.h: src/parser/em-emblem-parser.h
+	cp $< $@
+
+src/parser/emblem-lexer.h: src/parser/emblem-lexer.c
+
 em.yml:;
 
 # Add documentation
-dist_doc_DATA = README.md LICENSE ChangeLog em.1.gz
+dist_doc_DATA = README.md LICENSE ChangeLog
 
 ChangeLog: ./scripts/changelog.sh
 	. $< > $@
 
-./em.1.gz: ./em.yml ./scripts/mangen
-	(./scripts/mangen | gzip - -) < $< > $@
+./em.1.gz: ./em.1
+	gzip -9c $< > $@
+
+./em.1: ./em.yml ./scripts/mangen
+	./scripts/mangen < $< > $@
 
 # Add tests
 TESTS = check_em
 check_PROGRAMS = check_em
-check_em_SOURCES = <TEST_FILES>
-check_em_CFLAGS = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu18 <CHECK_DEPS_CFLAGS>
-check_em_LDADD = $(em_LDADD) <CHECK_DEPS_LIBS>
+check_em_SOURCES = S_TEST_FILES src/parser/emblem-lexer.l src/parser/emblem-parser.y
+check_em_CFLAGS = $(CFLAGS_ALL) S_CHECK_DEPS_CFLAGS
+check_em_LDADD = $(LDADD_ALL) S_CHECK_DEPS_LIBS
+check_em_LFLAGS = $(LFLAGS_ALL)
+check_em_YFLAGS = $(YFLAGS_ALL)
 
 doc: docs/html/index.html
 .PHONY: doc
@@ -85,5 +104,6 @@ format-check:
 	$(FORMAT_CHECKER) $(FORMAT_CHECKER_FLAGS) $(shell find src/ -type f -regex '.*.[ch]') $(shell find check/ -type f -regex '.*.[ch]')
 .PHONY: format-check
 
-EXTRA_DIST = ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./em.yml
-CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c
+dist_pkgdata_DATA = S_DIST_DATA
+EXTRA_DIST = ./em.yml ./src/pp/ignore_warning.h.m4 S_EXTRA_DIST
+CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1 em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c emblem-*.tar.* PKGBUILD

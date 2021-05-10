@@ -181,10 +181,3 @@ void dest_call_io(CallIO* call_params, bool processing_result)
 	dest_list(call_params->args, true, ed);
 	free(call_params->args);
 }
-
-Location* dup_loc(Location* todup)
-{
-	Location* ret	  = malloc(sizeof(Location));
-	memcpy(ret, todup, sizeof(Location));
-	return ret;
-}
