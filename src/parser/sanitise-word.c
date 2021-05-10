@@ -71,13 +71,13 @@ char* sanitise_word(char* word, size_t len)
 			marks[i]			= NO_MARK;
 			seen_non_quote_mark = true;
 		}
-		else if (i + 3 < len && word[i] == '-' && word[i + 1] == '-' && word[i + 2] == '-')
+		else if (i + 3 <= len && word[i] == '-' && word[i + 1] == '-' && word[i + 2] == '-')
 		{
 			marks[i++] = EM_DASH;
 			marks[i++] = REMOVED;
 			marks[i]   = REMOVED;
 		}
-		else if (i + 2 < len && word[i] == '-' && word[i + 1] == '-')
+		else if (i + 2 <= len && word[i] == '-' && word[i + 1] == '-')
 		{
 			marks[i++] = EN_DASH;
 			marks[i]   = REMOVED;
