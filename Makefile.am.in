@@ -28,10 +28,16 @@ LDADD_ALL = -lm -ldl
 LFLAGS_ALL = -Cfar
 YFLAGS_ALL = -Wall -Wdangling-alias -Wno-yacc -Wcounterexamples -Werror -LC --locations -l -d -rall
 
+if ANALYZER
+CFLAGS_ANALYSER = -fanalyzer
+else
+CFLAGS_ANALYSER =
+endif
+
 # Binary and sources
 bin_PROGRAMS = em
 em_SOURCES = S_SRC_FILES
-em_CFLAGS = $(CFLAGS_ALL) S_DEPS_CFLAGS -fanalyzer
+em_CFLAGS = $(CFLAGS_ALL) S_DEPS_CFLAGS $(CFLAGS_ANALYSER)
 em_LDADD = $(LDADD_ALL) S_DEPS_LIBS
 em_LFLAGS = $(LFLAGS_ALL)
 em_YFLAGS = $(YFLAGS_ALL)
@@ -79,7 +85,7 @@ ChangeLog: ./scripts/changelog.sh
 TESTS = check_em
 check_PROGRAMS = check_em
 check_em_SOURCES = S_TEST_FILES src/parser/emblem-lexer.l src/parser/emblem-parser.y
-check_em_CFLAGS = $(CFLAGS_ALL) S_CHECK_DEPS_CFLAGS
+check_em_CFLAGS = $(CFLAGS_ALL) S_CHECK_DEPS_CFLAGS $(CFLAGS_ANALYSER)
 check_em_LDADD = $(LDADD_ALL) S_CHECK_DEPS_LIBS
 check_em_LFLAGS = $(LFLAGS_ALL)
 check_em_YFLAGS = $(YFLAGS_ALL)
