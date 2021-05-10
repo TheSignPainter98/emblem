@@ -38,7 +38,7 @@ make
 Once this has worked, you should how be able to run `./em`.
 From here, `make install` can be used to install the project.
 
-The test suite can be invoked with `make test`.
+The test suite can be invoked with `make check`.
 
 ## License
 
