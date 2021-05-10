@@ -80,7 +80,6 @@ GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
 LINE_COMMENT_START	"//"
 LN					"\n"|"\r"|"\r\n"
-PUNCT   			[.,]
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
 WORD_ESCAPE_CHAR	"\\"[^ \t\r\n]
