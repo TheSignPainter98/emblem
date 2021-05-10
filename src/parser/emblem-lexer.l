@@ -27,8 +27,8 @@
 
 #define YY_USER_ACTION update_yylloc(yylloc, yytext);
 static void update_yylloc(EM_LTYPE* loc, char* text);
-static void make_header_call_str(Sugar** hdr, char* ytext, size_t yleng);
-static void make_emph_str(Sugar** emph, char* ytext, size_t yleng);
+static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng);
+static void make_emph_str(Sugar* emph, char* ytext, size_t yleng);
 
 #define YY_EXTRA_TYPE LexerData*
 
@@ -199,7 +199,7 @@ static void update_yylloc(EM_LTYPE* loc, char* text)
 	}
 }
 
-static void make_emph_str(Sugar** emph, char* ytext, size_t yleng)
+static void make_emph_str(Sugar* emph, char* ytext, size_t yleng)
 {
 	Str* emph_call = malloc(sizeof(Str));
 	switch (ytext[0])
@@ -218,11 +218,10 @@ static void make_emph_str(Sugar** emph, char* ytext, size_t yleng)
 			log_err("Unknown emphasis delimiter '%s'", ytext);
 			exit(1);
 	}
-	*emph = malloc(sizeof(Sugar));
-	make_sugar(*emph, emph_call, yleng);
+	make_sugar(emph, emph_call, yleng);
 }
 
-static void make_header_call_str(Sugar** hdr, char* ytext, size_t yleng)
+static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng)
 {
 	// Assume that yleng <= 7
 	bool star              = ytext[yleng - 1] == '*';
@@ -237,8 +236,7 @@ static void make_header_call_str(Sugar** hdr, char* ytext, size_t yleng)
 	Str* hdr_call = malloc(sizeof(Str));
 	make_strr(hdr_call, hdr_raw);
 
-	*hdr = malloc(sizeof(Sugar));
-	make_sugar(*hdr, hdr_call, yleng);
+	make_sugar(hdr, hdr_call, yleng);
 }
 
 #if __GNUC__

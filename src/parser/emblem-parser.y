@@ -42,7 +42,7 @@ typedef struct
 #define YYLEX_PARAM_ data->scanner
 #define NON_MATCHING_PAIR_ERROR_MSG "Unpaired closing emphasis length, expected %ld characters but got %ld"
 #define ENSURE_MATCHING_PAIR(opening_sugar, close_len, close_tok_loc, params)\
-	const size_t open_len = opening_sugar->src_len;\
+	const size_t open_len = opening_sugar.src_len;\
 	if (open_len != close_len)\
 	{\
 		size_t msg_len = 1 + snprintf(NULL, 0, NON_MATCHING_PAIR_ERROR_MSG, open_len, close_len);\
@@ -68,7 +68,7 @@ typedef struct
 	DocTreeNode* node;
 	CallIO* args;
 	Str* str;
-	Sugar* sugar;
+	Sugar sugar;
 	size_t len;
 }
 
@@ -102,7 +102,7 @@ typedef struct
 %destructor { if ($$) { dest_free_doc_tree_node($$, false); } } <node>
 %destructor { if ($$) { dest_str($$); free($$); } } <str>
 %destructor { if ($$) { dest_call_io($$, false), free($$); } } <args>
-%destructor { if ($$) { dest_sugar($$); free($$); } } <sugar>
+%destructor { dest_sugar(&$$); } <sugar>
 
 %start doc
 
@@ -110,7 +110,7 @@ typedef struct
 static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err);
 static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn) __attribute__((malloc));
 static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str* ifn);
-static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar* sugar, DocTreeNode* arg, Location* loc);
+static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode* arg, Location* loc);
 %}
 
 %%
@@ -223,12 +223,12 @@ static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str* ifn)
 	make_doc_tree_node_word(*out, erw, alloc_assign_loc(loc, ifn));
 }
 
-static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar* sugar, DocTreeNode* arg, Location* loc)
+static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode* arg, Location* loc)
 {
 	CallIO* callio = malloc(sizeof(CallIO));
 	make_call_io(callio);
 	prepend_call_io_arg(callio, arg);
-	make_doc_tree_node_call(ret, sugar->call, callio, loc);
+	make_doc_tree_node_call(ret, sugar.call, callio, loc);
 }
 
 void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)

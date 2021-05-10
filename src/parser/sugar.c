@@ -1,5 +1,7 @@
 #include "sugar.h"
 
+#include "pp/unused.h"
+
 void make_sugar(Sugar* sugar, Str* call, size_t src_len)
 {
 	sugar->call	   = call;
@@ -8,6 +10,5 @@ void make_sugar(Sugar* sugar, Str* call, size_t src_len)
 
 void dest_sugar(Sugar* sugar)
 {
-	dest_str(sugar->call);
-	free(sugar->call);
+	UNUSED(sugar);
 }
