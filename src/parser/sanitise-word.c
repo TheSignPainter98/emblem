@@ -86,8 +86,7 @@ char* sanitise_word(char* word, size_t len)
 		}
 		else
 		{
-			/* log_warn("%p: mark_defs[%d] = %#02x: %s", (void*)new_wordp, marks[i], *mark_defs[marks[i]] & 0xff, mark_defs[marks[i]]); */
-			strcat(new_wordp, mark_defs[marks[i]]);
+			memcpy(new_wordp, mark_defs[marks[i]], mark_def_lens[marks[i]]);
 			new_wordp += mark_def_lens[marks[i]];
 		}
 	*new_wordp = '\0';
