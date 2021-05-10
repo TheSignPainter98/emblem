@@ -54,7 +54,8 @@ Test(maybe, fmap_just)
 	Maybe mi;
 	Maybe mo;
 	long int val = 104;
-	NON_ISO(func_sig(void, f, (void**, void*)) = ilambda(void, (void** o, void* i), { *(long int*)o = (long int)i + 1; }));
+	NON_ISO(
+		func_sig(void, f, (void**, void*)) = ilambda(void, (void** o, void* i), { *(long int*)o = (long int)i + 1; }));
 	make_maybe_just(&mi, (void*)val);
 	fmap_maybe(&mo, &mi, f);
 	long int oval;

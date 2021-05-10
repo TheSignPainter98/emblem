@@ -132,7 +132,7 @@ bool iter_list_reversed(void** val, ReversedListIter* i)
 	bool succ = i->nxt;
 	if (succ)
 	{
-		*val = i->nxt->data;
+		*val   = i->nxt->data;
 		i->nxt = i->nxt->prv;
 	}
 	else
@@ -199,9 +199,9 @@ void concat_list(List* r, List* l1, List* l2)
 		return;
 	}
 
-	List* l = l1->fst ? l1 : l2;
-	ListNode* curr = l->fst;
-	ListNode* prv = NULL;
+	List* l			   = l1->fst ? l1 : l2;
+	ListNode* curr	   = l->fst;
+	ListNode* prv	   = NULL;
 	ListNode* new_curr = NULL;
 	while (curr)
 	{
@@ -209,20 +209,20 @@ void concat_list(List* r, List* l1, List* l2)
 		if (!r->fst)
 			r->fst = new_curr;
 		new_curr->data = curr->data;
-		new_curr->prv = prv;
+		new_curr->prv  = prv;
 		if (prv)
 			prv->nxt = new_curr;
 
-		prv = new_curr;
+		prv	 = new_curr;
 		curr = curr->nxt;
 		if (!curr && l != l2)
 		{
-			l = l2;
+			l	 = l2;
 			curr = l2->fst;
 		}
 	}
 	new_curr->nxt = NULL;
-	r->lst = new_curr;
+	r->lst		  = new_curr;
 }
 
 bool all_list(List* l)

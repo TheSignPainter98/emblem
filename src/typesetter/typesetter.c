@@ -54,7 +54,7 @@ int typeset_doc(Doc* doc, Args* args, OutputDriverInf* driver_inf)
 
 	if (doc->ext->iter_num == args->max_iters)
 	{
-		if(log_warn("Max number of typesetting iterations reached (%d)", args->max_iters))
+		if (log_warn("Max number of typesetting iterations reached (%d)", args->max_iters))
 		{
 			dest_doc_ext_state(doc);
 			return 1;

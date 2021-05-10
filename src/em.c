@@ -46,7 +46,7 @@ int main(int argc, char** argv)
 		return rc;
 
 	Doc* doc = mdoc.just;
-	rc = typeset_doc(doc, &args, driver.inf);
+	rc		 = typeset_doc(doc, &args, driver.inf);
 	if (rc)
 		return rc;
 

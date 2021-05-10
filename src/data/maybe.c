@@ -22,7 +22,8 @@ void dest_maybe(Maybe* m, Destructor ed)
 
 bool succ_maybe(Maybe* m) { return m->type != NOTHING; }
 
-void fmap_maybe(Maybe* restrict mo, Maybe* restrict mi, Fmap f) {
+void fmap_maybe(Maybe* restrict mo, Maybe* restrict mi, Fmap f)
+{
 	if (mi->type == NOTHING)
 		make_maybe_nothing(mo);
 	else

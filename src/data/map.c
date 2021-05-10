@@ -8,13 +8,13 @@
  *
  * @return The initial size of a map table
  */
-#define MAP_INITIAL_SIZE		 100
+#define MAP_INITIAL_SIZE 100
 /**
  * @brief The proportion of values stored to the total number of buckets which must be exceeded to cause a resize
  *
  * @return The resizing threshold proprtion
  */
-#define MAP_RESIZE_THRESHOLD	 0.5
+#define MAP_RESIZE_THRESHOLD 0.5
 /**
  * @brief The factor by which the size of a map's table is increased when resizing
  *
@@ -28,7 +28,7 @@
  *
  * @return A lambda function which compares its input `v1` to the key of its input `v2`
  */
-#define pkcmp(kcmp)				 lambda(Cmp, (void* v1, void* v2), kcmp(v1, ((Pair*)v2)->p0))
+#define pkcmp(kcmp) lambda(Cmp, (void* v1, void* v2), kcmp(v1, ((Pair*)v2)->p0))
 
 /**
  * @brief Find the next non-empty bucket with an index strictly after a specified index
@@ -104,7 +104,7 @@ bool push_map(Maybe* oldval, Map* m, void* k, void* v)
 	if (m->curr_stored >= resize_threshold)
 	{
 		size_t ntbl_size = MAP_SIZE_INCREASE_FACTOR * m->tbl_size;
-		List** ntbl = calloc(ntbl_size, sizeof(List*));
+		List** ntbl		 = calloc(ntbl_size, sizeof(List*));
 		if (!ntbl)
 			return false;
 		for (unsigned int i = 0; i < m->tbl_size; i++)
@@ -174,7 +174,7 @@ bool push_map(Maybe* oldval, Map* m, void* k, void* v)
 		make_maybe_nothing(oldval);
 	}
 
-	Pair* kv	 = malloc(sizeof(Pair));
+	Pair* kv = malloc(sizeof(Pair));
 	if (!kv)
 		return false;
 	kv->p0		 = k;
@@ -221,7 +221,7 @@ void get_map(Maybe* mo, Map* map, void* key)
 void make_map_iter(MapIter* iter, Map* map)
 {
 	iter->bucket_idx = -1;
-	iter->map = map;
+	iter->map		 = map;
 	if (next_non_empty_bucket(map, &iter->bucket_idx))
 	{
 		iter->bucket_iter = malloc(sizeof(ListIter));

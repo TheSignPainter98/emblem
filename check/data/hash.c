@@ -28,7 +28,7 @@ void init_hash_test(void) { srand(RAND_SEED); }
 			TYPE_PUN_DEREFERENCE(hashes[i] = hash_##type(*(void**)&v));                                                \
 		}                                                                                                              \
 		int totCollisions = num_collisions(NUM_HASHES_TO_TEST, hashes);                                                \
-		cr_assert(totCollisions <= NUM_ACCEPTABLE_COLLISIONS, "Got %d (>= %d) collisions when hashing %d " #type "s",      \
+		cr_assert(totCollisions <= NUM_ACCEPTABLE_COLLISIONS, "Got %d (>= %d) collisions when hashing %d " #type "s",  \
 			totCollisions, NUM_ACCEPTABLE_COLLISIONS, NUM_HASHES_TO_TEST);                                             \
 	}
 

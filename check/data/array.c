@@ -1,8 +1,8 @@
 #include "src/data/array.h"
 
+#include <criterion/criterion.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <criterion/criterion.h>
 
 Test(array, memory_life_cycle)
 {
@@ -35,7 +35,7 @@ Test(array, get_set_normal_function)
 	size_t cnt = 3;
 	make_arr(&arr, cnt);
 	void* val = (void*)100;
-	bool r = set_arrv(&arr, 1, val);
+	bool r	  = set_arrv(&arr, 1, val);
 	cr_assert(r, "Valid array setting did not return true");
 	Maybe m;
 	get_arrv(&m, &arr, 1);
@@ -72,7 +72,8 @@ Test(array, conversion_from_list)
 
 	make_arr_from_list(&arr, &list);
 
-	cr_assert(arr.cnt == list.cnt, "Array created from list had a different length, got %ld but expected %ld", arr.cnt, list.cnt);
+	cr_assert(arr.cnt == list.cnt, "Array created from list had a different length, got %ld but expected %ld", arr.cnt,
+		list.cnt);
 
 	for (size_t i = 0; i < llen; i++)
 	{
@@ -110,7 +111,8 @@ Test(array, iter)
 	make_arr_iter(&iter, &a);
 	while (iter_arr(&elem, &iter))
 	{
-		cr_assert((size_t)elem == itered, "Array oterator returned incorrect value, expected %ld but got %ld" ,itered, (size_t)elem);
+		cr_assert((size_t)elem == itered, "Array oterator returned incorrect value, expected %ld but got %ld", itered,
+			(size_t)elem);
 		itered++;
 	}
 	cr_assert(itered == arrLen, "Iterated too few elements, expected %ld but only oterated over %ld", arrLen, itered);

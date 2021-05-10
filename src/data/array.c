@@ -49,20 +49,17 @@ void make_arr_from_list(Array* arr, List* l)
 	for (size_t i = 0; i < l->cnt; i++)
 	{
 		arr->data[i] = curr->data;
-		curr = curr->nxt;
+		curr		 = curr->nxt;
 	}
 }
 
 void make_arr_iter(ArrayIter* iter, Array* arr)
 {
-	iter->arr = arr;
+	iter->arr  = arr;
 	iter->next = 0;
 }
 
-void dest_arr_iter(ArrayIter* iter)
-{
-	UNUSED(iter);
-}
+void dest_arr_iter(ArrayIter* iter) { UNUSED(iter); }
 
 bool iter_arr(void** v, ArrayIter* iter)
 {

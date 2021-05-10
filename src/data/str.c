@@ -4,36 +4,36 @@
 
 void make_str(Str* str)
 {
-	*(char**)&str->str = NULL;
-	*(size_t*)&str->len = 0;
+	*(char**)&str->str	   = NULL;
+	*(size_t*)&str->len	   = 0;
 	*(bool*)&str->free_mem = false;
 }
 
 void make_strv(Str* str, char* raw)
 {
-	*(char**)&str->str = raw;
-	*(size_t*)&str->len = strlen(raw);
+	*(char**)&str->str	   = raw;
+	*(size_t*)&str->len	   = strlen(raw);
 	*(bool*)&str->free_mem = false;
 }
 
 void make_strr(Str* str, char* raw)
 {
-	*(char**)&str->str = raw;
-	*(size_t*)&str->len = strlen(raw);
+	*(char**)&str->str	   = raw;
+	*(size_t*)&str->len	   = strlen(raw);
 	*(bool*)&str->free_mem = true;
 }
 
 void make_strc(Str* str, char* raw)
 {
-	*(char**)&str->str = strdup(raw);
-	*(size_t*)&str->len = strlen(raw);
+	*(char**)&str->str	   = strdup(raw);
+	*(size_t*)&str->len	   = strlen(raw);
 	*(bool*)&str->free_mem = true;
 }
 
 bool make_strl(Str* str, size_t len)
 {
-	*(char**)&str->str = calloc(len + 1, sizeof(char));
-	*(size_t*)&str->len = len;
+	*(char**)&str->str	   = calloc(len + 1, sizeof(char));
+	*(size_t*)&str->len	   = len;
 	*(bool*)&str->free_mem = true;
 
 	return !!str->str;
@@ -93,7 +93,7 @@ bool copy_into_str(Str* cont, Str* ins, size_t startIdx)
 void dup_str(Str* o, Str* todup)
 {
 	*(bool*)&o->free_mem = true;
-	*(size_t*)&o->len = todup->len;
-	*(char**)&o->str = malloc((todup->len + 1) * sizeof(char));
+	*(size_t*)&o->len	 = todup->len;
+	*(char**)&o->str	 = malloc((todup->len + 1) * sizeof(char));
 	memcpy(o->str, todup->str, todup->len + 1);
 }

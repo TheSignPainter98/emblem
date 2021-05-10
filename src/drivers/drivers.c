@@ -127,22 +127,21 @@ void make_driver_params(DriverParams* params, Args* args)
 	params->output_stem = malloc(sizeof(Str));
 	if (strcmp(args->output_stem, ""))
 		make_strv(params->output_stem, args->output_stem);
+	else if (!strcmp(args->input_file, "-"))
+		make_strv(params->output_stem, "emdoc");
 	else
-		if (!strcmp(args->input_file, "-"))
-			make_strv(params->output_stem, "emdoc");
-		else
-		{
-			// Remove extension from the input and use that as the default
-			char* inoext = strdup(args->input_file);
-			strip_ext(inoext);
-			make_strr(params->output_stem, inoext);
-		}
+	{
+		// Remove extension from the input and use that as the default
+		char* inoext = strdup(args->input_file);
+		strip_ext(inoext);
+		make_strr(params->output_stem, inoext);
+	}
 }
 
 static void strip_ext(char* fname)
 {
 	char* end = fname + strlen(fname);
-	while (end > fname && *end != '.' && *end != '/' && *end != '\\' )
+	while (end > fname && *end != '.' && *end != '/' && *end != '\\')
 		end--;
 	if (end > fname && *end == '.' && *(end - 1) != '/' && *(end - 1) != '\\')
 		*end = '\0';

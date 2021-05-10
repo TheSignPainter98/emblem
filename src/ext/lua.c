@@ -14,7 +14,7 @@
 #define EM_AST_NODE_TYPE_FUNC_NAME "ast_type_name"
 #define EM_REQUIRE_RUNS_FUNC_NAME  "requires_reiter"
 #define EM_ITER_NUM_VAR_NAME	   "em_iter"
-#define EM_ENV_VAR_NAME 		   "_em_env"
+#define EM_ENV_VAR_NAME			   "_em_env"
 
 static void load_em_std_functions(ExtensionState* s);
 static int load_libraries(ExtensionState* s, ExtParams* params);
@@ -151,7 +151,9 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 				node->flags |= CALL_HAS_NO_EXT_FUNC;
 				if (is_empty_list(node->content->call_params->args))
 				{
-					int rc = log_warn_at(node->src_loc, "Directive '.%s' is not an extension function and has no arguments (would style nothing)", node->name->str);
+					int rc = log_warn_at(node->src_loc,
+						"Directive '.%s' is not an extension function and has no arguments (would style nothing)",
+						node->name->str);
 					lua_pop(s, -1); // Remove call function
 					return rc ? -1 : 0;
 				}
@@ -215,11 +217,13 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 					return unpack_lua_result(&node->content->call_params->result, s, node);
 				case LUA_YIELD:
 				{
-					int fw = log_warn_at(node->src_loc, "Lua function em.%s yielded instead of returned", node->name->str);
+					int fw
+						= log_warn_at(node->src_loc, "Lua function em.%s yielded instead of returned", node->name->str);
 					return fw ? -1 : 0;
 				}
 				default:
-					log_err_at(node->src_loc, "Calling em.%s failed with error: %s", node->name->str, lua_tostring(s, -1));
+					log_err_at(
+						node->src_loc, "Calling em.%s failed with error: %s", node->name->str, lua_tostring(s, -1));
 					return -1;
 			}
 		}
@@ -263,14 +267,20 @@ static int ext_require_rerun(ExtensionState* s)
 
 	lua_getglobal(s, EM_ENV_VAR_NAME);
 	if (!lua_isuserdata(s, -1))
-		luaL_error(s, "Environment variable %s is not a userdata object (it is a %s value). There is no reason to change its value so please don't", EM_ENV_VAR_NAME, luaL_typename(s, -1));
+		luaL_error(s,
+			"Environment variable %s is not a userdata object (it is a %s value). There is no reason to change its "
+			"value so please don't",
+			EM_ENV_VAR_NAME, luaL_typename(s, -1));
 
 	LuaPointer* lp = lua_touserdata(s, -1);
 	if (lp->type != EXT_ENV)
-		luaL_error(s, "Environment variable %s has been changed and no longer represents an environment. THere is no reason to change its value, so please don't", EM_ENV_VAR_NAME);
+		luaL_error(s,
+			"Environment variable %s has been changed and no longer represents an environment. THere is no reason to "
+			"change its value, so please don't",
+			EM_ENV_VAR_NAME);
 	lua_pop(s, -1);
 
-	ExtensionEnv* e = lp->data;
+	ExtensionEnv* e		 = lp->data;
 	e->require_extra_run = true;
 	return 0;
 }

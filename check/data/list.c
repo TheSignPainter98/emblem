@@ -321,12 +321,13 @@ Test(list, make_from_array)
 	Array arr;
 	make_arr(&arr, arrlen);
 
-	for(size_t i = 0; i < arrlen; i++)
+	for (size_t i = 0; i < arrlen; i++)
 		set_arrv(&arr, i, (void*)i);
 
 	make_list_from_arr(&l, &arr);
 
-	cr_assert(l.cnt == arr.cnt, "List created from array had different length, expected %ld but got %ld", l.cnt, arr.cnt);
+	cr_assert(
+		l.cnt == arr.cnt, "List created from array had different length, expected %ld but got %ld", l.cnt, arr.cnt);
 
 	ListIter iter;
 	make_list_iter(&iter, &l);
@@ -356,9 +357,9 @@ Test(list, in)
 		append_list_node(&l, ln);
 	}
 
-	const size_t needle = 51;
+	const size_t needle		   = 51;
 	const size_t missingNeedle = 2 * llen;
-	bool r = in_list(&l, (void*)needle);
+	bool r					   = in_list(&l, (void*)needle);
 	cr_assert(r, "Value %ld was not present in list of the numbers 0..%ld", needle, llen - 1);
 
 	bool r2 = in_list(&l, (void*)missingNeedle);
@@ -385,9 +386,9 @@ Test(list, in_eq)
 	Maybe m2;
 	Maybe m3;
 	Maybe m4;
-	const size_t needle = 51;
-	const size_t trickNeedle = -1;
-	const size_t missingNeedle = 2 * (llen + 1);
+	const size_t needle				= 51;
+	const size_t trickNeedle		= -1;
+	const size_t missingNeedle		= 2 * (llen + 1);
 	const size_t trickMissingNeedle = llen - 1;
 
 	in_list_eq(&m1, &l, weird_eq, (void*)needle);
@@ -395,12 +396,20 @@ Test(list, in_eq)
 	in_list_eq(&m3, &l, weird_eq, (void*)missingNeedle);
 	in_list_eq(&m4, &l, weird_eq, (void*)trickMissingNeedle);
 
-	cr_assert(m1.type == JUST, "Value %ld was not present in list of the numbers 0..%ld under eq-condition v1=v2-1", needle, llen - 1);
-	cr_assert((size_t)((ListNode*)m1.just)->data == needle + 1, "Retrieved incorrect value from list under fancy equality, expected %ld but got %ld", needle, (size_t)((ListNode*)m1.just)->data);
-	cr_assert(m2.type == JUST, "Value %ld was not present in list of the numbers 0..%ld under eq-condition v1=v2-1", trickNeedle, llen - 1);
-	cr_assert((size_t)((ListNode*)m2.just)->data == trickNeedle + 1, "Retrieved incorrect value from list inder fancy equality, expected %ld but got %ld", trickNeedle, (size_t)((ListNode*)m2.just)->data);
-	cr_assert(m3.type == NOTHING, "Value %ld present in list of the numbers 0..%ld under eq-condition v1=v2-1", missingNeedle, llen - 1);
-	cr_assert(m4.type == NOTHING, "Value %ld present in list of the numbers 0..%ld under eq-condition v1=v2-1", trickMissingNeedle, llen - 1);
+	cr_assert(m1.type == JUST, "Value %ld was not present in list of the numbers 0..%ld under eq-condition v1=v2-1",
+		needle, llen - 1);
+	cr_assert((size_t)((ListNode*)m1.just)->data == needle + 1,
+		"Retrieved incorrect value from list under fancy equality, expected %ld but got %ld", needle,
+		(size_t)((ListNode*)m1.just)->data);
+	cr_assert(m2.type == JUST, "Value %ld was not present in list of the numbers 0..%ld under eq-condition v1=v2-1",
+		trickNeedle, llen - 1);
+	cr_assert((size_t)((ListNode*)m2.just)->data == trickNeedle + 1,
+		"Retrieved incorrect value from list inder fancy equality, expected %ld but got %ld", trickNeedle,
+		(size_t)((ListNode*)m2.just)->data);
+	cr_assert(m3.type == NOTHING, "Value %ld present in list of the numbers 0..%ld under eq-condition v1=v2-1",
+		missingNeedle, llen - 1);
+	cr_assert(m4.type == NOTHING, "Value %ld present in list of the numbers 0..%ld under eq-condition v1=v2-1",
+		trickMissingNeedle, llen - 1);
 
 	dest_maybe(&m1, NULL);
 	dest_maybe(&m2, NULL);
@@ -468,7 +477,7 @@ Test(list, concat)
 	List l1;
 	List l2;
 	const int change_point = 50;
-	const int lns = 100;
+	const int lns		   = 100;
 	make_list(&l1);
 	make_list(&l2);
 	for (size_t i = 0; i < lns; i++)
@@ -488,7 +497,9 @@ Test(list, concat)
 	ListNode* curr = lr.fst;
 	for (size_t i = 0; i < lns; i++)
 	{
-		cr_assert((size_t)curr->data == i, "Concatenated list had incorrect stored value (iterated forwards), expected %ld but got %ld", i, (size_t)curr->data);
+		cr_assert((size_t)curr->data == i,
+			"Concatenated list had incorrect stored value (iterated forwards), expected %ld but got %ld", i,
+			(size_t)curr->data);
 
 		curr = curr->nxt;
 	}
@@ -496,7 +507,9 @@ Test(list, concat)
 	curr = lr.lst;
 	for (ssize_t i = lns - 1; i >= 0; i--)
 	{
-		cr_assert((size_t)curr->data == (size_t)i, "Concatenated list had incorrect stored value (iterated backwards), expected %ld but got %ld", i, (size_t)curr->data);
+		cr_assert((size_t)curr->data == (size_t)i,
+			"Concatenated list had incorrect stored value (iterated backwards), expected %ld but got %ld", i,
+			(size_t)curr->data);
 
 		curr = curr->prv;
 	}

@@ -2,10 +2,10 @@
 
 #include <lauxlib.h>
 
-#include "lua.h"
 #include "doc-struct/ast.h"
 #include "logs/logs.h"
 #include "lua-pointers.h"
+#include "lua.h"
 
 #include "debug.h"
 
@@ -62,7 +62,7 @@ static int eval_tree(ExtensionState* s, DocTreeNode* node)
 			lua_pushstring(s, node->name->str);
 			lua_setfield(s, -2, "name");
 			/* TODO: does this work? */
-			if(log_warn("Packing node %p by executing its lua pass", (void*)node))
+			if (log_warn("Packing node %p by executing its lua pass", (void*)node))
 				luaL_error(s, "Warnings are fatal");
 			int rc = exec_lua_pass_on_node(s, node);
 			if (!rc && node->content->call_params->result)
@@ -139,7 +139,7 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 				return -1;
 			}
 			log_debug("Passing reference to %p", (void*)p->data);
-			*result = p->data;
+			*result			  = p->data;
 			(*result)->parent = parentNode;
 			lua_pop(s, -1);
 			return 0;

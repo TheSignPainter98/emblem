@@ -74,12 +74,12 @@ typedef struct CallIO_s
 
 // typedef struct ListContent_s
 // {
-	// enum
-	// {
-		// ORDERED,
-		// UNORDERED,
-	// } num_type;
-	// List* items;
+// enum
+// {
+// ORDERED,
+// UNORDERED,
+// } num_type;
+// List* items;
 // } ListContent;
 
 void make_doc(Doc* doc, DocTreeNode* root, Args* args);

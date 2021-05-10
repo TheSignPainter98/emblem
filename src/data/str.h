@@ -97,7 +97,8 @@ void arr_to_str(Str* str, Array* arr);
 /**
  * @brief Get the character at a specified index
  *
- * @param ret Pointer to the return value, creates a Maybe object of constructor JUST iff the index was valid. In this case, `ret->just == str[i]`
+ * @param ret Pointer to the return value, creates a Maybe object of constructor JUST iff the index was valid. In this
+ * case, `ret->just == str[i]`
  * @param str Pointer to the string to search
  * @param idx Index to get if valid
  */
@@ -115,7 +116,8 @@ void get_strc(Maybe* ret, Str* str, size_t idx);
 bool set_strc(Str* str, size_t idx, char val);
 
 /**
- * @brief Copy the value of a string into another string starting at a given index. Only mutates if the entire string will fit
+ * @brief Copy the value of a string into another string starting at a given index. Only mutates if the entire string
+ * will fit
  *
  * @param cont The container string to write into
  * @param ins The insertion string to read from

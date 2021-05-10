@@ -1,10 +1,10 @@
 #pragma once
 
-#include "pp/lambda.h"
-#include "pp/not_implemented.h"
 #include "config.h"
 #include "destructor.h"
 #include "fmap.h"
+#include "pp/lambda.h"
+#include "pp/not_implemented.h"
 #include "unit.h"
 #include <stdbool.h>
 

@@ -73,7 +73,10 @@ void dest_styler(Styler* styler)
 {
 	dest_str(styler->default_typeface);
 	free(styler->default_typeface);
-	NON_ISO(Destructor ed = (Destructor)ilambda(void, (Str* s), { dest_str(s); free(s); }));
+	NON_ISO(Destructor ed = (Destructor)ilambda(void, (Str * s), {
+		dest_str(s);
+		free(s);
+	}));
 	dest_list(styler->snippets, true, ed);
 	/* NON_ISO(dest_list(styler->snippets, true, (Destructor)dest_str)); */
 	free(styler->snippets);
@@ -115,8 +118,8 @@ static int append_user_style_overrides(Styler* styler)
 		if (fsdef)
 			snprintf(user_style_override + fflen - 1, fslen, USER_STYLE_OVERRIDE_FONT_SIZE, styler->default_font_size);
 
-		css_error rc = css_stylesheet_append_data(
-			styler->stylesheet, (const uint8_t*)user_style_override, fflen + fslen - 1);
+		css_error rc
+			= css_stylesheet_append_data(styler->stylesheet, (const uint8_t*)user_style_override, fflen + fslen - 1);
 		if (rc != CSS_OK && rc != CSS_NEEDDATA)
 		{
 			log_err("Failed to append stylesheet to styler: %d", rc);
@@ -147,8 +150,8 @@ int append_style_sheet(Styler* styler, Str* sheet_loc)
 	fseek(fp, 0, SEEK_END);
 	size_t len = 1 + ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	char* raw_stylesheet_content = malloc(len);
-	size_t fr = fread(raw_stylesheet_content, 1, len, fp);
+	char* raw_stylesheet_content	= malloc(len);
+	size_t fr						= fread(raw_stylesheet_content, 1, len, fp);
 	raw_stylesheet_content[len - 1] = '\0';
 	if (fr != len)
 	{
@@ -177,8 +180,8 @@ int append_style_sheet(Styler* styler, Str* sheet_loc)
 	append_list_node(styler->snippets, ln);
 
 	// Append style to sheet
-	css_error rc = css_stylesheet_append_data(
-		styler->stylesheet, (const uint8_t*)preprocessed_stylesheet_content_str->str, preprocessed_stylesheet_content_str->len);
+	css_error rc = css_stylesheet_append_data(styler->stylesheet,
+		(const uint8_t*)preprocessed_stylesheet_content_str->str, preprocessed_stylesheet_content_str->len);
 	if (rc != CSS_OK && rc != CSS_NEEDDATA)
 	{
 		log_err("Failed to append stylesheet to styler: %d", rc);

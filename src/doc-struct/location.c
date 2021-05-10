@@ -4,7 +4,7 @@
 
 Location* dup_loc(Location* todup)
 {
-	Location* ret	  = malloc(sizeof(Location));
+	Location* ret = malloc(sizeof(Location));
 	memcpy(ret, todup, sizeof(Location));
 	return ret;
 }

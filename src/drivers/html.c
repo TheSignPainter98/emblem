@@ -26,13 +26,11 @@ static void make_html_formatter(HtmlFormatter* formatter, DriverParams* params);
 static void dest_html_formatter(HtmlFormatter* formatter);
 static int driver_runner(Doc* doc, DriverParams* params);
 static int output_stylesheet(HtmlFormatter* formatter, List* css_snippets);
-static int format_doc_as_html(
-	HtmlFormatter* formatter, Doc* doc);
+static int format_doc_as_html(HtmlFormatter* formatter, Doc* doc);
 static void get_time_str(Str* time_str);
 static void append_raw(HtmlFormatter* formatter, char* raw);
 static void append_str(HtmlFormatter* formatter, Str* str);
-static void append_strf(HtmlFormatter* formatter, char* restrict format, ...)
-	__attribute__((format(printf, 2, 3)));
+static void append_strf(HtmlFormatter* formatter, char* restrict format, ...) __attribute__((format(printf, 2, 3)));
 static int format_node_as_html(HtmlFormatter* formatter, DocTreeNode* doc);
 static int format_node_list_as_html(HtmlFormatter* formatter, List* node_list);
 static void dest_free_str(void* v);
@@ -70,14 +68,14 @@ static void make_html_formatter(HtmlFormatter* formatter, DriverParams* params)
 
 	// Compute the name of the outputted document
 	size_t output_doc_name_len = params->output_stem->len + sizeof(DOCUMENT_OUTPUT_NAME_FMT);
-	char* output_doc_name_raw = malloc(output_doc_name_len);
+	char* output_doc_name_raw  = malloc(output_doc_name_len);
 	snprintf(output_doc_name_raw, output_doc_name_len + 1, DOCUMENT_OUTPUT_NAME_FMT, params->output_stem->str);
 	formatter->output_doc_name = malloc(sizeof(Str));
 	make_strr(formatter->output_doc_name, output_doc_name_raw);
 
 	// Compute the name of the stylesheet file
 	size_t stylesheet_name_len = params->output_stem->len + sizeof(STYLESHEET_NAME_FMT);
-	char* stylesheet_name = malloc(stylesheet_name_len);
+	char* stylesheet_name	   = malloc(stylesheet_name_len);
 	snprintf(stylesheet_name, stylesheet_name_len + 1, STYLESHEET_NAME_FMT, params->output_stem->str);
 	formatter->stylesheet_name = malloc(sizeof(Str));
 	make_strr(formatter->stylesheet_name, stylesheet_name);

@@ -1,7 +1,7 @@
 #include "data/either.h"
 
-#include <criterion/criterion.h>
 #include "pp/lambda.h"
+#include <criterion/criterion.h>
 
 Test(either, left_memory_life_cycle)
 {
@@ -47,7 +47,8 @@ Test(either, left_fmap_unaffected)
 	Either eo;
 	long int val = 104;
 	make_either_left(&ei, (void*)val);
-	NON_ISO(func_sig(void, f, (void**, void*)) = ilambda(void, (void** o, void* i), { *(long int*)o = (long int)i + 1; }));
+	NON_ISO(
+		func_sig(void, f, (void**, void*)) = ilambda(void, (void** o, void* i), { *(long int*)o = (long int)i + 1; }));
 	fmap_either(&eo, &ei, f);
 	cr_assert((long int)eo.type == ei.type, "Constructor of fmapped either was not the same");
 	cr_assert((long int)eo.left == val, "Function was incorrectly applied to either right");
@@ -61,7 +62,8 @@ Test(either, right_fmap_affected)
 	Either eo;
 	long int val = 104;
 	make_either_right(&ei, (void*)val);
-	NON_ISO(func_sig(void, f, (void**, void*)) = ilambda(void, (void** o, void* i), { *(long int*)o = (long int)i + 1; }));
+	NON_ISO(
+		func_sig(void, f, (void**, void*)) = ilambda(void, (void** o, void* i), { *(long int*)o = (long int)i + 1; }));
 	long int oval;
 	f((void**)&oval, (void*)val);
 	fmap_either(&eo, &ei, f);

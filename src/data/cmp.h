@@ -36,7 +36,7 @@ typedef Cmp (*Comparator)(void* v1, void* v2);
  *
  * @return The signature of the comparison function for `name`s
  */
-#define CMP_SIG(name) Cmp cmp_## name ##s(void* v1, void* v2)
+#define CMP_SIG(name) Cmp cmp_##name##s(void* v1, void* v2)
 
 /**
  * @brief Compare characters

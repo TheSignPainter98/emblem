@@ -11,9 +11,9 @@
 		type rv2 = v2;                                                                                                 \
 		TYPE_PUN_DEREFERENCE(void* a = *(void**)&rv1);                                                                 \
 		TYPE_PUN_DEREFERENCE(void* b = *(void**)&rv2);                                                                 \
-		cr_assert(cmp_##name##s(a, b) == CMP_LT, #name " '" fmt "' >= '" fmt "'", a, b);                                   \
-		cr_assert(cmp_##name##s(b, b) == CMP_EQ, #name " '" fmt "' != '" fmt "'", b, b);                                   \
-		cr_assert(cmp_##name##s(b, a) == CMP_GT, #name " '" fmt "' <= '" fmt "'", b, a);                                   \
+		cr_assert(cmp_##name##s(a, b) == CMP_LT, #name " '" fmt "' >= '" fmt "'", a, b);                               \
+		cr_assert(cmp_##name##s(b, b) == CMP_EQ, #name " '" fmt "' != '" fmt "'", b, b);                               \
+		cr_assert(cmp_##name##s(b, a) == CMP_GT, #name " '" fmt "' <= '" fmt "'", b, a);                               \
 	}
 
 CMP_TEST(char, char, "%c", 'a', 'b')
