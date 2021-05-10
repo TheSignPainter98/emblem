@@ -3,6 +3,7 @@ extern int em_lex();
 #include "argp.h"
 #include "parser.h"
 #include "data/locked.h"
+#include "sugar.h"
 void parse_file(Maybe* eo, Locked* namesList, Args* args, char* fname);
 
 typedef struct
@@ -11,6 +12,7 @@ typedef struct
 	int indent_lvl;
 	int indent_lvl_target;
 	int tab_size;
+	bool opening_emph;
 	int* nerrs;
 	FILE* ifp;
 	Str* ifn;
@@ -38,21 +40,28 @@ typedef struct
 #include <string.h>
 
 #define YYLEX_PARAM_ data->scanner
-
+#define NON_MATCHING_PAIR_ERROR_MSG "Unpaired closing emphasis length, expected %ld characters but got %ld"
+#define ENSURE_MATCHING_PAIR(opening_sugar, close_len, close_tok_loc, params)\
+	const size_t open_len = opening_sugar.src_len;\
+	if (open_len != close_len)\
+	{\
+		size_t msg_len = 1 + snprintf(NULL, 0, NON_MATCHING_PAIR_ERROR_MSG, open_len, close_len);\
+		char msg[msg_len];\
+		sprintf(msg, NON_MATCHING_PAIR_ERROR_MSG, open_len, close_len);\
+		yyerror(&close_tok_loc, params, msg);\
+		YYERROR;\
+	}
 #define DEFAULT_CONTENT_EXTENSION ".em"
 %}
 
 %define 		parse.trace true
 %define 		parse.error verbose
-/* %define 		api.pure    true */
 %define 		api.pure    full
 %define 		api.prefix  {em_}
 %define 		lr.type 	ielr
 %parse-param 	            { ParserData* data }
 %lex-param 		            { yyscan_t YYLEX_PARAM_ }
 %locations
-/* %glr-parser */
-/* %expect 2 */
 %expect 0
 
 %union {
@@ -60,7 +69,8 @@ typedef struct
 	DocTreeNode* node;
 	CallIO* args;
 	Str* str;
-	char* sugar;
+	Sugar sugar;
+	size_t len;
 }
 
 %nterm <args>			args
@@ -71,34 +81,42 @@ typedef struct
 %nterm <node>			line_element
 %nterm <node>			lines
 %nterm <node>			maybe_lines
-%token 					T_DEDENT		"dedent"
-%token 					T_GROUP_CLOSE	"}"
-%token 					T_GROUP_OPEN	"{"
-%token 					T_INDENT 		"indent"
-%token 					T_LN 			"newline"
-%token 		  			T_COLON			"colon"
-%token <str> 			T_DIRECTIVE		"directive"
-%token <str> 			T_WORD 			"word"
-%token <sugar> 			T_HEADING		"heading"
+%token 					T_DEDENT			"dedent"
+%token 					T_GROUP_CLOSE		"}"
+%token 					T_GROUP_OPEN		"{"
+%token 					T_INDENT 			"indent"
+%token 					T_LN 				"newline"
+%token 		  			T_COLON				"colon"
+%token <sugar>			T_UNDERSCORE_OPEN 	"opening underscore(s)"
+%token <sugar>			T_ASTERISK_OPEN		"opening asterisk(s)"
+%token <sugar>			T_BACKTICK_OPEN		"opening backtick"
+%token <sugar>			T_EQUALS_OPEN		"opening equal(s)"
+%token <len>			T_UNDERSCORE_CLOSE	"closing underscore(s)"
+%token <len>			T_ASTERISK_CLOSE	"closing asterisk(s)"
+%token <len>			T_BACKTICK_CLOSE	"closing backtick"
+%token <len>			T_EQUALS_CLOSE		"closing equal(s)"
+%token <str> 			T_DIRECTIVE			"directive"
+%token <str> 			T_WORD 				"word"
+%token <sugar> 			T_HEADING			"heading"
 
 %destructor { dest_unit(&$$); } <doc>
 %destructor { if ($$) { dest_free_doc_tree_node($$, false); } } <node>
 %destructor { if ($$) { dest_str($$); free($$); } } <str>
 %destructor { if ($$) { dest_call_io($$, false), free($$); } } <args>
-%destructor { if ($$) { free($$); } } <sugar>
+%destructor { dest_sugar(&$$); } <sugar>
 
 %start doc
 
 %{
 static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err);
 static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn) __attribute__((malloc));
-static void make_syntactic_sugar_call(DocTreeNode* ret, char* sugar_call_name, DocTreeNode* arg, Location* loc);
+static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str* ifn);
+static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode* arg, Location* loc);
 %}
 
 %%
 
 doc : maybe_lines	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(data->doc, $1, data->args); }
-	/* | error 		{ make_unit(&$$); log_err("Parsing failed somewhere!"); } */
 	;
 
 maybe_lines
@@ -116,6 +134,7 @@ line
 	: line_content T_LN
 	| T_HEADING line_content T_LN	{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_DIRECTIVE args 				{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| error 						{ alloc_malloc_error_word(&$$, @$, data->ifn); }
 	;
 
 args
@@ -126,16 +145,20 @@ args
 	;
 
 line_content
-	: %empty					{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_line($$, alloc_assign_loc(@$, data->ifn)); }
+	: %empty			{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_line($$, alloc_assign_loc(@$, data->ifn)); }
 	| line_content_ne
 	;
 
 line_content_ne
-	: line_element line_content	{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->line, $1); }
+	: line_element line_content								{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->line, $1); }
 	;
 
 line_element
-	: T_WORD		{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_word($$, $1, alloc_assign_loc(@$, data->ifn)); }
+	: T_WORD												{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_word($$, $1, alloc_assign_loc(@$, data->ifn)); }
+	| T_UNDERSCORE_OPEN line_content_ne T_UNDERSCORE_CLOSE	{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_ASTERISK_OPEN line_content_ne T_ASTERISK_CLOSE		{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_BACKTICK_OPEN line_content_ne T_BACKTICK_CLOSE		{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_EQUALS_OPEN line_content_ne T_EQUALS_CLOSE			{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	;
 
 
@@ -200,14 +223,20 @@ static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn)
 	return ret;
 }
 
-static void make_syntactic_sugar_call(DocTreeNode* ret, char* sugar_call_name, DocTreeNode* arg, Location* loc)
+static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str* ifn)
 {
-	Str* call = malloc(sizeof(Str));
-	make_strr(call, sugar_call_name);
+	*out = malloc(sizeof(DocTreeNode));
+	Str* erw = malloc(sizeof(Str));
+	make_strv(erw, "ERROR");
+	make_doc_tree_node_word(*out, erw, alloc_assign_loc(loc, ifn));
+}
+
+static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode* arg, Location* loc)
+{
 	CallIO* callio = malloc(sizeof(CallIO));
 	make_call_io(callio);
 	prepend_call_io_arg(callio, arg);
-	make_doc_tree_node_call(ret, call, callio, loc);
+	make_doc_tree_node_call(ret, sugar.call, callio, loc);
 }
 
 void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
@@ -254,6 +283,7 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 		.indent_lvl = 0,
 		.indent_lvl_target = 0,
 		.tab_size = args->tab_size,
+		.opening_emph = true,
 		.nerrs = &nerrs,
 		.ifn = ifn,
 		.ifp = fp,
