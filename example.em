@@ -2,6 +2,26 @@
 
 .title: Why CS Students Require Typesetters
 
+This is some _italic_ this is some _nested _strange_ italic._
+This is a little bit of `monospaced` and this is `nested `super` monospace`.
+This is some _italic,_ some **bold** some *asterisk italic* and some __underscore bold.__
+These are some =small caps= and =this CouLd gEtINtereSTinG=
+This is an ==alternative style as yet undefined,== but that's okay.
+
+You can also have escaped\{characters, more escaped\}characters \} \{ \: in the middle of words or even on their own \:.
+
+This is an _italic word._
+This is a __bold one__.
+This is a word with an underscore_in_the_middle.
+In some mathematical systems, 1=1 and 0!=1
+
+This is some _**bold italic**_ and this is some `_**monospaced bold italic**_`
+
+This is an em---dash, and this is an en--dash and this is a hyphen-not-a-dash.
+This is an hyphen and en dash \--- and this is a pair of hyphens \-\-.
+
+This is something `\\familiar@looking\{\}`, recognised but not accepted here.
+
 #* Table of Contents
 .toc
 
@@ -29,9 +49,13 @@
 .h4: This is a heading!
 .h5: This is a heading!
 .h6: This is a heading!
+"This should contain some interesting quote marks."
+"'hi'"
+This is a dumb \' quote(s) \".
+"She said to me 'beneath the shop's rusted sign lies brick alone'"
 five fickle feinds fled the the effluent fjord.
 cast sheep do fly through a tract
-ghjkgh g ghj gh kgh gh kghj=
+ghjkgh g ghj gh kgh gh kghj
 .bad_directive:
 	fhdjkas
 .test_func{This is the first argument}{This is the second argument}:
