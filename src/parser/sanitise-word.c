@@ -9,10 +9,13 @@ typedef enum
 {
 	NO_MARK = 0,
 	ESCAPE,
+	REMOVED,
 	OPEN_SINGLE_QUOTE,
 	CLOSE_SINGLE_QUOTE,
 	OPEN_DOUBLE_QUOTE,
 	CLOSE_DOUBLE_QUOTE,
+	EM_DASH,
+	EN_DASH,
 	NUM_MARKS,
 } Mark;
 
@@ -21,22 +24,34 @@ static bool is_valid_escape_char(char c);
 static const char* mark_defs[] = {
 	[NO_MARK]			 = "",
 	[ESCAPE]			 = "",
+	[REMOVED]			 = "",
 	[OPEN_SINGLE_QUOTE]	 = "‘",
 	[CLOSE_SINGLE_QUOTE] = "’",
 	[OPEN_DOUBLE_QUOTE]	 = "“",
 	[CLOSE_DOUBLE_QUOTE] = "”",
+	[EM_DASH]			 = "—",
+	[EN_DASH]			 = "–",
 };
 
 static size_t mark_def_lens[NUM_MARKS];
 
-static const char valid_escape_chars[] = { '{', '}', '\'', '"', '\\', ':', };
+static const char valid_escape_chars[] = {
+	'{',
+	'}',
+	'\'',
+	'"',
+	'\\',
+	':',
+	'-',
+};
 
 static void init_word_sanitiser(void) __attribute__((constructor));
 static void init_word_sanitiser(void)
 {
 	for (size_t i = 0; i < NUM_MARKS; i++)
 		mark_def_lens[i] = strlen(mark_defs[i]);
-	mark_def_lens[ESCAPE] = -1;
+	mark_def_lens[ESCAPE]  = -1;
+	mark_def_lens[REMOVED] = -1;
 }
 
 char* sanitise_word(char* word, size_t len)
@@ -52,13 +67,24 @@ char* sanitise_word(char* word, size_t len)
 			marks[i] = seen_non_quote_mark ? CLOSE_DOUBLE_QUOTE : OPEN_DOUBLE_QUOTE;
 		else if (word[i] == '\\')
 		{
-			marks[i++] = ESCAPE;
-			marks[i] = NO_MARK;
+			marks[i++]			= ESCAPE;
+			marks[i]			= NO_MARK;
 			seen_non_quote_mark = true;
+		}
+		else if (i + 3 < len && word[i] == '-' && word[i + 1] == '-' && word[i + 2] == '-')
+		{
+			marks[i++] = EM_DASH;
+			marks[i++] = REMOVED;
+			marks[i]   = REMOVED;
+		}
+		else if (i + 2 < len && word[i] == '-' && word[i + 1] == '-')
+		{
+			marks[i++] = EN_DASH;
+			marks[i]   = REMOVED;
 		}
 		else
 		{
-			marks[i] = NO_MARK;
+			marks[i]			= NO_MARK;
 			seen_non_quote_mark = true;
 		}
 	}
@@ -73,6 +99,7 @@ char* sanitise_word(char* word, size_t len)
 	for (size_t i = 0; i < len; i++)
 		if (!marks[i])
 			*(new_wordp++) = word[i];
+		else if (marks[i] == REMOVED);
 		else if (marks[i] == ESCAPE)
 		{
 			*(new_wordp++) = word[++i];

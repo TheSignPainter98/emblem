@@ -17,6 +17,8 @@ In some mathematical systems, 1=1 and 0!=1
 
 This is some _**bold italic**_ and this is some `_**monospaced bold italic**_`
 
+This is an em---dash, and this is an en--dash.
+
 This is something `\\familiar@looking\{\}`, recognised but not accepted here.
 
 #* Table of Contents
