@@ -85,9 +85,9 @@ WHITE_SPACE			[ \t]
 WORD_ESCAPE_CHAR	"\\"[^ \t\r\n]
 WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}])
 WORD_MID_CHAR 		({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}])
-WORD_EASY_END_CHAR  [^\\_*`= \t\r\n{}]
+WORD_EASY_END_CHAR  ({WORD_ESCAPE_CHAR}|[^\\_*`= \t\r\n{}])
 WORD_END_REGULAR 	{WORD_EASY_END_CHAR}{2}
-WORD_END_EMPH		[_*`=][^\\ \t\r\n{}_*`=,.'":;]
+WORD_END_EMPH		[_*`=]({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}_*`=,.'":;])
 WORD_END 			({WORD_ESCAPE_CHAR}|{WORD_END_REGULAR}|{WORD_END_EMPH})
 WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 
