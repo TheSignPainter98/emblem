@@ -148,11 +148,11 @@ int append_style_sheet(Styler* styler, Str* sheet_loc)
 
 	// Read file
 	fseek(fp, 0, SEEK_END);
-	size_t len = 1 + ftell(fp);
+	size_t len = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	char* raw_stylesheet_content	= malloc(len);
+	char* raw_stylesheet_content	= malloc(1 + len);
 	size_t fr						= fread(raw_stylesheet_content, 1, len, fp);
-	raw_stylesheet_content[len - 1] = '\0';
+	raw_stylesheet_content[len] = '\0';
 	if (fr != len)
 	{
 		if (feof(fp))
