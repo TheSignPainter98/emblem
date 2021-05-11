@@ -42,17 +42,6 @@ bool set_arrv(Array* arr, size_t idx, void* val)
 	return true;
 }
 
-void make_arr_from_list(Array* arr, List* l)
-{
-	make_arr(arr, l->cnt);
-	ListNode* curr = l->fst;
-	for (size_t i = 0; i < l->cnt; i++)
-	{
-		arr->data[i] = curr->data;
-		curr		 = curr->nxt;
-	}
-}
-
 void make_arr_iter(ArrayIter* iter, Array* arr)
 {
 	iter->arr  = arr;

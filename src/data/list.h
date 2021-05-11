@@ -2,6 +2,7 @@
 
 #include "cmp.h"
 #include "destructor.h"
+#include "maybe.h"
 #include "pp/lambda.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -65,8 +66,6 @@ typedef struct
 	 */
 	ListNode* nxt;
 } ReversedListIter;
-
-#include "array.h"
 
 /**
  * @brief Initialise a list
@@ -188,14 +187,6 @@ bool iter_list(void** v, ListIter* i);
  * @return false if there are no more elements to iterate, true otherwise
  */
 bool iter_list_reversed(void** val, ReversedListIter* i);
-
-/**
- * @brief Create a list from an array. List myst be freed
- *
- * @param l Pointer to the list to create
- * @param arr Pointer to the array to copy
- */
-void make_list_from_arr(List* l, Array* arr);
 
 /**
  * @brief Checks whether a given element is in a list (by reference-equality)
