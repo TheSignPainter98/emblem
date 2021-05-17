@@ -37,8 +37,8 @@ static void make_emph_str(Sugar* emph, char* ytext, size_t yleng);
 #	pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 
-static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err);
-#define llerror(msg) handle_llerror(yylloc, yyextra, msg)
+static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err, ...);
+#define llerror(...) handle_llerror(yylloc, yyextra, __VA_ARGS__)
 static int indent_len(int tab_size, char* inp);
 
 #define EMPHASIS(T_open, T_close)\
@@ -155,7 +155,7 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 <FILE_BODY>{HEADING}				{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
 <FILE_BODY>{WORD}					{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strr(yylval->str, sanitise_word(yylloc, yyextra->ifn, yytext, yyleng)); return T_WORD; }
 
-<FILE_BODY>.						{ llerror("Unrecognised character"); log_warn("Char is '%c' (%#x)", yytext[0], yytext[0]); }
+<FILE_BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
 
 {SHEBANG}							;
 {LN}								{ BEGIN(FILE_BODY); }
@@ -163,10 +163,20 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 
 %%
 
-static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err)
+static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err, ...)
 {
 	++*data->nerrs;
-	log_err("%s:%d:%d: %s", data->ifn->str, yyloc->first_line, yyloc->first_column, err);
+	va_list va;
+	va_start(va, err);
+	Location loc = {
+		.first_line = yyloc->first_line,
+		.first_column = yyloc->first_column,
+		.last_line = yyloc->last_line,
+		.last_column = yyloc->last_column,
+		.src_file = data->ifn,
+	};
+	vlog_err_at(&loc, err, va);
+	va_end(va);
 }
 
 static int indent_len(int tab_size, char* inp)
