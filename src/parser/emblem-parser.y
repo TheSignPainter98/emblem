@@ -16,6 +16,7 @@ typedef struct
 	int* nerrs;
 	FILE* ifp;
 	Str* ifn;
+	Locked* mtNamesList;
 } LexerData;
 
 typedef struct
@@ -287,6 +288,7 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 		.nerrs = &nerrs,
 		.ifn = ifn,
 		.ifp = fp,
+		.mtNamesList = mtNamesList,
 	};
 	yyscan_t scanner;
 	em_lex_init(&scanner);

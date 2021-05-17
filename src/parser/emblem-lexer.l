@@ -8,16 +8,18 @@
 #define yyerror em_error
 #define yydebug em_debug
 #define yynerrs em_nerrs
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
 
+#include "data/list.h"
+#include "data/locked.h"
 #include "data/str.h"
 #include "emblem-parser.h"
 #include "logs/logs.h"
 #include "parser.h"
 #include "sanitise-word.h"
 #include "sugar.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /* #define YY_DECL int em_lex(EM_STYPE* yylval_param, EM_LTYPE* yylloc_param, yyscan_t yyscanner, ParserData* params) */
 
@@ -253,12 +255,16 @@ static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng)
 
 static void handle_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc, char* ytext)
 {
-	Str* s = malloc(sizeof(Str));
+	Str* nifn = malloc(sizeof(Str));
 	char* fname = 1 + strchr(ytext, '"');
 	char* cpos = strrchr(ytext, '"');
 	*cpos = '\0';
-	make_strc(s, fname);
-	yextra->ifn = s;
+	make_strc(nifn, fname);
+	yextra->ifn = nifn;
+
+	ListNode* ln = malloc(sizeof(ListNode));
+	make_list_node(ln, nifn);
+	USE_LOCK(List* namesList, yextra->mtNamesList, append_list_node(namesList, ln));
 
 	char* flnums = cpos + 2;
 	char* flcnumgap = strchr(flnums, ' ');
