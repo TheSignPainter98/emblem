@@ -68,14 +68,19 @@ static Substitution subs[] = {
 static const char valid_escape_chars[] = {
 	'{',
 	'}',
-	'\'',
-	'"',
 	'\\',
 	':',
 	'-',
 	'_',
 	'*',
 	'`',
+	'=',
+	'\'',
+	'"',
+	'.',
+	',',
+	'<',
+	'>',
 };
 
 static bool is_valid_escape_char(char c);
