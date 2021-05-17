@@ -181,8 +181,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 			}
 			else if (!is_callable(s, -1))
 			{
-				log_err("Expected function or callable table at em.%s", node->name->str);
-				log_err("Got a %s", luaL_typename(s, -1));
+				log_err("Expected function or callable table at em.%s, but got a %s", node->name->str, luaL_typename(s, -1));
 				node->flags |= CALL_HAS_NO_EXT_FUNC;
 				lua_pop(s, -1); // Remove call function
 				return -1;
