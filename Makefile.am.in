@@ -23,7 +23,7 @@ EM_LEX_PREFIX = em_
 BUILT_SOURCES = src/parser/emblem-parser.h src/parser/emblem-lexer.h src/ext/lua-lib-load.c ./src/pp/ignore_warning.h S_BUILT_SRCS
 
 PATH_DECLS = -DDATA_DIR=\"$(pkgdatadir)\" -DINCLUDE_DIR=\"$(pkgincludedir)\" -DLIB_DIR=\"$(pkglibdir)\" -DLIB_EXEC_DIR=\"$(pkglibexecdir)\"
-CFLAGS_ALL = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x $(PATH_DECLS) -pthread
+CFLAGS_ALL = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x $(PATH_DECLS) -pthread -fstack-protector
 LDADD_ALL = -lm -ldl
 LFLAGS_ALL = -Cfar
 YFLAGS_ALL = -Wall -Wdangling-alias -Wno-yacc -Wcounterexamples -Werror -LC --locations -l -d -rall
