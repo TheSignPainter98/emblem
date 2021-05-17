@@ -10,6 +10,7 @@
 #define yynerrs em_nerrs
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "data/str.h"
 #include "emblem-parser.h"
@@ -25,12 +26,12 @@
 		BEGIN(INITIAL_WHITE);\
 	} while (0)
 
+#define YY_EXTRA_TYPE LexerData*
 #define YY_USER_ACTION update_yylloc(yylloc, yytext);
 static void update_yylloc(EM_LTYPE* loc, char* text);
 static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng);
 static void make_emph_str(Sugar* emph, char* ytext, size_t yleng);
-
-#define YY_EXTRA_TYPE LexerData*
+static void handle_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc, char* ytext);
 
 #if __GNUC__
 #	pragma GCC diagnostic push
@@ -79,6 +80,7 @@ GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
 LINE_COMMENT_START	"//"
+LINE_DIRECTIVE		",line \""("\\"[^\r\n]|[^\\])*"\" "[0-9]+" "[0-9]*{LN}
 LN					"\n"|"\r"|"\r\n"
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
@@ -127,6 +129,7 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 											return EM_EOF;
 									}
 
+<INITIAL_WHITE>{LINE_DIRECTIVE}		{ handle_line_directive(yyextra, yylloc, yytext); }
 <INITIAL_WHITE>{WHITE_SPACE}*{LN}	;
 <INITIAL_WHITE>{WHITE_SPACE}+		{
 										yyextra->opening_emph = true;
@@ -246,6 +249,25 @@ static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng)
 	make_strr(hdr_call, hdr_raw);
 
 	make_sugar(hdr, hdr_call, yleng);
+}
+
+static void handle_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc, char* ytext)
+{
+	Str* s = malloc(sizeof(Str));
+	char* fname = 1 + strchr(ytext, '"');
+	char* cpos = strrchr(ytext, '"');
+	*cpos = '\0';
+	make_strc(s, fname);
+	yextra->ifn = s;
+
+	char* flnums = cpos + 2;
+	char* flcnumgap = strchr(flnums, ' ');
+	*flcnumgap = '\0';
+	char* fcnums = flcnumgap + 1;
+	yloc->first_line = atoi(flnums);
+	yloc->first_column = atoi(fcnums);
+	yloc->last_line = yloc->first_line;
+	yloc->last_column = yloc->first_column;
 }
 
 #if __GNUC__
