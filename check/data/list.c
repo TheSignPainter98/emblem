@@ -314,35 +314,6 @@ Test(list, is_empty)
 	dest_list(&l, false, NULL);
 }
 
-Test(list, make_from_array)
-{
-	const size_t arrlen = 100;
-	List l;
-	Array arr;
-	make_arr(&arr, arrlen);
-
-	for (size_t i = 0; i < arrlen; i++)
-		set_arrv(&arr, i, (void*)i);
-
-	make_list_from_arr(&l, &arr);
-
-	cr_assert(
-		l.cnt == arr.cnt, "List created from array had different length, expected %ld but got %ld", l.cnt, arr.cnt);
-
-	ListIter iter;
-	make_list_iter(&iter, &l);
-	void* val;
-	size_t i = 0;
-	while (iter_list(&val, &iter))
-	{
-		cr_assert((size_t)val == i, "Incorrect value in list from array, expected %ld but got %ld", i, (size_t)val);
-		i++;
-	}
-
-	dest_list(&l, true, NULL);
-	dest_arr(&arr, NULL);
-}
-
 Test(list, in)
 {
 	const size_t llen = 100;
