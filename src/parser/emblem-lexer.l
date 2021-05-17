@@ -20,6 +20,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* #define YY_DECL int em_lex(EM_STYPE* yylval_param, EM_LTYPE* yylloc_param, yyscan_t yyscanner, ParserData* params) */
 
@@ -255,21 +256,30 @@ static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng)
 
 static void handle_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc, char* ytext)
 {
-	Str* nifn = malloc(sizeof(Str));
+	// Extract file name
 	char* fname = 1 + strchr(ytext, '"');
-	char* cpos = strrchr(ytext, '"');
-	*cpos = '\0';
-	make_strc(nifn, fname);
-	yextra->ifn = nifn;
+	char* fnameclosepos = strrchr(ytext, '"');
+	*fnameclosepos = '\0';
 
-	ListNode* ln = malloc(sizeof(ListNode));
-	make_list_node(ln, nifn);
-	USE_LOCK(List* namesList, yextra->mtNamesList, append_list_node(namesList, ln));
+	// Only record a new filename
+	if (strcmp(yextra->ifn->str, fname))
+	{
+		Str* nifn = malloc(sizeof(Str));
+		make_strc(nifn, fname);
+		yextra->ifn = nifn;
 
-	char* flnums = cpos + 2;
+		ListNode* ln = malloc(sizeof(ListNode));
+		make_list_node(ln, nifn);
+		USE_LOCK(List* namesList, yextra->mtNamesList, append_list_node(namesList, ln));
+	}
+
+	// Extract line and column number strings
+	char* flnums = fnameclosepos + 2;
 	char* flcnumgap = strchr(flnums, ' ');
 	*flcnumgap = '\0';
 	char* fcnums = flcnumgap + 1;
+
+	// Assign locations
 	yloc->first_line = atoi(flnums);
 	yloc->first_column = atoi(fcnums);
 	yloc->last_line = yloc->first_line;
