@@ -80,7 +80,7 @@ GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
 LINE_COMMENT_START	"//"
-LINE_DIRECTIVE		",line \""("\\"[^\r\n]|[^\\])*"\" "[0-9]+" "[0-9]*{LN}
+LINE_DIRECTIVE		",line \""("\\"[^\r\n]|[^\\"])*"\" "[0-9]+" "[0-9]*{LN}
 LN					"\n"|"\r"|"\r\n"
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
