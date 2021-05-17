@@ -151,7 +151,7 @@ char* sanitise_word(EM_LTYPE* yylloc, Str* ifn, char* word, size_t len)
 				new_wordp += state.marks[i].sub_len;
 				break;
 			default:
-				log_err("Unknown mark %d generated at index %ld in word {%s}", state.marks[i].type,
+				log_err("Unknown mark %d generated at index %ld in word {%s} (This is a bug, you shouldn't be seeing this!)", state.marks[i].type,
 					new_wordp - new_word, word);
 				exit(1);
 		}
@@ -195,7 +195,7 @@ static void compute_mark(SanitiserState* state, size_t word_len, char* word, siz
 					state->out_len += state->marks[*pos].sub_len;
 					break;
 				default:
-					log_err("Unknown substitution type: %d\n", subs[i].substitution_type);
+					log_err("Unknown substitution type: %d (This is a bug, you shouldn't be seeing this!)", subs[i].substitution_type);
 					exit(1);
 			}
 

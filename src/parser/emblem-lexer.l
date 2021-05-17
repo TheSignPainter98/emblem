@@ -224,7 +224,7 @@ static void make_emph_str(Sugar* emph, char* ytext, size_t yleng)
 			make_strv(emph_call, yleng == 2 ? "af" : "sc");
 			break;
 		default:
-			log_err("Unknown emphasis delimiter '%s'", ytext);
+			log_err("Unknown emphasis delimiter '%s' (this is a bug, you shounldn't be seeing this!)", ytext);
 			exit(1);
 	}
 	make_sugar(emph, emph_call, yleng);
