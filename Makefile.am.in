@@ -10,7 +10,7 @@ FORMAT_CHECKER = clang-format
 FORMAT_CHECKER_FLAGS = -Werror -i --dry-run
 LINTER = clang-tidy
 LINTER_FLAGS = --use-color --quiet --warnings-as-errors='*'
-LINTER_EXTRA_FLAGS =
+LINTER_APPLY_CHANGES_FLAGS = --fix --fix-errors
 LINTER_OUTPUT_FILTER = | grep -v '^[0-9]* warnings*'
 
 SUFFIXES = .moon .lc
@@ -102,8 +102,13 @@ doc-coverage: scripts/doxcov docs/html/index.html
 .PHONY: doc-coverage
 
 lint: .clang-tidy S_LINTABLE_SRCS
-	@$(LINTER) $(LINTER_FLAGS) $(LINTER_EXTRA_FLAGS) $(filter %.c,$^) 2>&1 $(LINTER_OUTPUT_FILTER)
+	@$(LINTER) $(LINTER_FLAGS) $(filter %.c,$^) 2>&1 $(LINTER_OUTPUT_FILTER)
 .PHONY: lint
+
+lint-fix: .clang-tidy S_LINTABLE_SRCS
+	@$(LINTER) $(LINTER_FLAGS) $(LINTER_APPLY_CHANGES_FLAGS) $(filter %.c,$^) 2>&1 $(LINTER_OUTPUT_FILTER)
+	@$(FORMATTER) $(FORMAT_FLAGS) $(filter %.c,$^)
+.PHONY: lint-fix
 
 .clang-tidy: ./scripts/clang-tidy.sh .clang-tidy.in
 	. $<
