@@ -1,10 +1,9 @@
 ---
 Checks:           S_CHECKS
-WarningsAsErrors: ''
+WarningsAsErrors: S_ERRORS
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
 FormatStyle:     none
-User:            thesignpainter
 CheckOptions:
   - key:             abseil-string-find-startswith.AbseilStringsMatchHeader
     value:           'absl/strings/match.h'

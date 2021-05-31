@@ -9,7 +9,7 @@ FORMAT_FLAGS = -Werror -i
 FORMAT_CHECKER = clang-format
 FORMAT_CHECKER_FLAGS = -Werror -i --dry-run
 LINTER = clang-tidy
-LINTER_FLAGS = --use-color --quiet --warnings-as-errors='*'
+LINTER_FLAGS = --use-color --quiet
 LINTER_APPLY_CHANGES_FLAGS = --fix --fix-errors
 LINTER_OUTPUT_FILTER = | grep -v '^[0-9]* warnings*'
 
