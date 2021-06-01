@@ -216,9 +216,6 @@ static void log_x(Verbosity lvl, const char* prefix, const char* restrict format
 		*++outStrp = '\n';
 		*++outStrp = '\0';
 
-		/* outStr[leaderLen + msgLen]	   = '\n'; */
-		/* outStr[leaderLen + msgLen + 1] = '\0'; */
-
 		fputs(outStr, stderr);
 		fputs("\n", stderr);
 
