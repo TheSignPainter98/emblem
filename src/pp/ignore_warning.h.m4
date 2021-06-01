@@ -1,6 +1,6 @@
 #pragma once
 
-#if __GNUC__
+#if __GNUC__ && !__clang__
 #	pragma GCC dependency "ignore_warning.h.m4"
 m4_define(`define_ignore_warning', `m4_dnl
 /**
@@ -16,6 +16,8 @@ m4_define(`define_ignore_warning', `m4_dnl
 	cmd; \
 	_Pragma("GCC diagnostic pop")m4_dnl
 ')m4_dnl
+define_ignore_warning(ARRAY_BOUND_MISMATCH, array-bounds)
+define_ignore_warning(INT_CONVERSION, int-conversion)
 define_ignore_warning(INT_TO_POINTER_CAST, int-to-pointer-cast)
 define_ignore_warning(MALLOC_LEAK, analyzer-malloc-leak)
 define_ignore_warning(NON_ISO, pedantic)
@@ -30,8 +32,10 @@ m4_define(`define_dumb_ignore_warning', `m4_dnl
  *
  * @return If supported, The line cmd wrapped in warning-ignoring pragmas
  */
-#	define $1(cmd) cmd
+#	define $1(cmd) cmd;
 ')m4_dnl
+define_dumb_ignore_warning(ARRAY_BOUND_MISMATCH, array-bounds)
+define_dumb_ignore_warning(INT_CONVERSION, int-conversion)
 define_dumb_ignore_warning(INT_TO_POINTER_CAST, int-to-pointer-cast)
 define_dumb_ignore_warning(MALLOC_LEAK, analyzer-malloc-leak)
 define_dumb_ignore_warning(NON_ISO, pedantic)
