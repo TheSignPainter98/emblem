@@ -9,7 +9,7 @@ FORMAT_FLAGS = -Werror -i
 FORMAT_CHECKER = clang-format
 FORMAT_CHECKER_FLAGS = -Werror -i --dry-run
 LINTER = clang-tidy
-LINTER_FLAGS = --use-color --quiet
+LINTER_FLAGS = --use-color --quiet --line-filter="$$(cat clang-tidy-info.json)"
 LINTER_APPLY_CHANGES_FLAGS = --fix --fix-errors
 LINTER_OUTPUT_FILTER = | grep -v '^[0-9]* warnings*'
 
@@ -110,6 +110,9 @@ lint-fix: .clang-tidy S_LINTABLE_SRCS
 	@$(FORMATTER) $(FORMAT_FLAGS) $(filter %.c,$^)
 .PHONY: lint-fix
 
+clang-tidy-info.json: ./scripts/clang-tidy-info.sh ./scripts/linting-line-filter.awk $(shell find -name '*.c')
+	@. $<
+
 .clang-tidy: ./scripts/clang-tidy.sh .clang-tidy.in
 	. $<
 
@@ -128,4 +131,4 @@ format-check:
 
 dist_pkgdata_DATA = S_DIST_DATA
 EXTRA_DIST = ./em.yml ./src/pp/ignore_warning.h.m4 S_EXTRA_DIST
-CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1 em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c emblem-*.tar.* PKGBUILD .clang-tidy
+CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1 em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c emblem-*.tar.* PKGBUILD .clang-tidy clang-tidy-info.json
