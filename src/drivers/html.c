@@ -33,7 +33,6 @@ static void append_str(HtmlFormatter* formatter, Str* str);
 static void append_strf(HtmlFormatter* formatter, char* restrict format, ...) __attribute__((format(printf, 2, 3)));
 static int format_node_as_html(HtmlFormatter* formatter, DocTreeNode* node);
 static int format_node_list_as_html(HtmlFormatter* formatter, List* node_list);
-static void dest_free_str(void* v);
 
 #define HTML_HEADER                                                                                                    \
 	"<!DOCTYPE html>\n"                                                                                                \
@@ -317,11 +316,4 @@ static void get_time_str(Str* time_str)
 	time_buf[strlen(time_buf) - 1] = '\0'; // Strip trailing newline
 
 	make_strr(time_str, time_buf);
-}
-
-static void dest_free_str(void* v)
-{
-	Str* s = v;
-	dest_str(s);
-	free(s);
 }
