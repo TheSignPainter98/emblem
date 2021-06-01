@@ -171,7 +171,7 @@ void concat_list(List* r, List* l1, List* l2)
 {
 	r->cnt = l1->cnt + l2->cnt;
 	r->fst = NULL;
-	if (!r->cnt)
+	if (!r->cnt || (!l1->fst && !l2->fst))
 	{
 		r->lst = NULL;
 		return;

@@ -31,7 +31,7 @@ static void get_time_str(Str* time_str);
 static void append_raw(HtmlFormatter* formatter, char* raw);
 static void append_str(HtmlFormatter* formatter, Str* str);
 static void append_strf(HtmlFormatter* formatter, char* restrict format, ...) __attribute__((format(printf, 2, 3)));
-static int format_node_as_html(HtmlFormatter* formatter, DocTreeNode* doc);
+static int format_node_as_html(HtmlFormatter* formatter, DocTreeNode* node);
 static int format_node_list_as_html(HtmlFormatter* formatter, List* node_list);
 static void dest_free_str(void* v);
 
@@ -86,7 +86,7 @@ static void make_html_formatter(HtmlFormatter* formatter, DriverParams* params)
 	make_list(formatter->formatter_content);
 
 	formatter->call_name_map = malloc(sizeof(Map));
-	make_map(formatter->call_name_map, hash_str, cmp_strs, dest_free_str);
+	make_map(formatter->call_name_map, hash_str, cmp_strs, (Destructor)dest_free_str);
 	Pair ks[] = {
 		{ "h1", "h1" },
 		{ "h2", "h2" },
@@ -115,9 +115,9 @@ static void make_html_formatter(HtmlFormatter* formatter, DriverParams* params)
 
 static void dest_html_formatter(HtmlFormatter* formatter)
 {
-	dest_map(formatter->call_name_map, dest_free_str);
+	dest_map(formatter->call_name_map, (Destructor)dest_free_str);
 	free(formatter->call_name_map);
-	dest_list(formatter->formatter_content, true, dest_free_str);
+	dest_list(formatter->formatter_content, true, (Destructor)dest_free_str);
 	free(formatter->formatter_content);
 	dest_list(formatter->content, true, NULL);
 	free(formatter->content);
@@ -219,14 +219,14 @@ static int format_node_as_html(HtmlFormatter* formatter, DocTreeNode* node)
 		case LINE:
 			return format_node_list_as_html(formatter, node->content->line);
 		case LINES:
-			return format_node_list_as_html(formatter, node->content->line);
+			return format_node_list_as_html(formatter, node->content->lines);
 		case PAR:
 			append_raw(formatter, "<p>");
-			int rc = format_node_list_as_html(formatter, node->content->line);
+			int rc = format_node_list_as_html(formatter, node->content->par);
 			append_raw(formatter, "</p>");
 			return rc;
 		case PARS:
-			return format_node_list_as_html(formatter, node->content->line);
+			return format_node_list_as_html(formatter, node->content->pars);
 		default:
 			log_err("Unknown node content type: %d", node->content->type);
 			return 1;
@@ -274,7 +274,7 @@ static void append_strf(HtmlFormatter* formatter, char* restrict format, ...)
 	va_list va2;
 	va_start(va, format);
 	va_copy(va2, va);
-	size_t maxlen = 1 + vsnprintf(NULL, 0, format, va);
+	size_t maxlen = 1 + vsnprintf(NULL, 0, format, va); // NOLINT
 	Str* str	  = malloc(sizeof(Str));
 	char* raw	  = malloc(maxlen * sizeof(char));
 	vsnprintf(raw, maxlen, format, va2);
@@ -306,11 +306,12 @@ static int output_stylesheet(HtmlFormatter* formatter, List* css_snippets)
 	return write_output(formatter->stylesheet_name, css_snippets);
 }
 
+#define TIME_STR_MAX_SUPPORTED_SIZE 26
 static void get_time_str(Str* time_str)
 {
 	time_t curr_time;
 	time(&curr_time);
-	char* time_buf		 = malloc(26 * sizeof(char));
+	char* time_buf		 = malloc(TIME_STR_MAX_SUPPORTED_SIZE * sizeof(char));
 	struct tm* time_info = localtime(&curr_time);
 	asctime_r(time_info, time_buf);
 	time_buf[strlen(time_buf) - 1] = '\0'; // Strip trailing newline

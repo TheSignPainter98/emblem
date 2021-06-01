@@ -9,10 +9,10 @@
 #include <unistd.h>
 
 #define POS_FMT		   "%s:%d:%d: "
-#define POS_FILL(locp) locp->src_file->str, locp->first_line, locp->first_column
+#define POS_FILL(locp) locp->src_file->str, (locp)->first_line, (locp)->first_column
 #define PREPEND_LOC_TO_FORMAT(posstr, loc)                                                                             \
 	const size_t pos_fmt_len = 1 + snprintf(NULL, 0, POS_FMT, POS_FILL(loc));                                          \
-	char posstr[pos_fmt_len];                                                                                          \
+	char(posstr)[pos_fmt_len];                                                                                         \
 	snprintf(posstr, pos_fmt_len, POS_FMT, POS_FILL(loc));
 
 /**
@@ -191,7 +191,7 @@ static void log_x(Verbosity lvl, const char* prefix, const char* restrict format
 		size_t leaderLen		 = strlen(leader);
 		va_list va2;
 		va_copy(va2, va);
-		size_t msgLen	 = vsnprintf(NULL, 0, format, va2);
+		size_t msgLen	 = vsnprintf(NULL, 0, format, va2); // NOLINT
 		size_t outStrLen = 4 + prefix_len + leaderLen + msgLen;
 		char* outStr	 = malloc(outStrLen * sizeof(char));
 

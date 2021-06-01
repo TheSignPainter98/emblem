@@ -87,3 +87,13 @@ CMP_SIG(ptr);
  * @param v2 Another string to compare
  */
 CMP_SIG(str);
+
+/**
+ * @brief Check if two C-strings are equal (to improve readability with strcmp)
+ *
+ * @param s Pointer to a string to check
+ * @param t Pointer to a string to check
+ *
+ * @return true if the strings are equal, false otherwise
+ */
+bool streq(char const* s, char const* t);

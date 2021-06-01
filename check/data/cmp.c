@@ -42,3 +42,15 @@ Test(cmp, str)
 	dest_str(&a);
 	dest_str(&b);
 }
+
+Test(cmp, streq)
+{
+	char* ss[] = {
+		"Hello, world!",
+		"Hello, world!",
+		"How are you?",
+	};
+	cr_assert(streq(ss[0], ss[0]), "Pointers to the same string are not reported as equal");
+	cr_assert(streq(ss[0], ss[1]), "Pointers to equal strings are not recognised as such");
+	cr_assert_not(streq(ss[0], ss[2]), "Pointers to non-equal strings are not recognised as such");
+}

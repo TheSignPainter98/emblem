@@ -57,9 +57,7 @@ bool iter_arr(void** v, ArrayIter* iter)
 		*v = NULL;
 		return false;
 	}
-	else
-	{
-		*v = iter->arr->data[iter->next++];
-		return true;
-	}
+
+	*v = iter->arr->data[iter->next++];
+	return true;
 }

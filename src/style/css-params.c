@@ -1,22 +1,21 @@
 #include "css-params.h"
 
+#include "data/dest-free.h"
 #include "pp/lambda.h"
 #include "pp/unused.h"
+
+#define SASS_PREPROC_DEFAULT_PRECISION 7
 
 void make_style_preprocessor_params(StylePreprocessorParams* params, Args* args)
 {
 	UNUSED(args);
-	params->precision	 = 7;
+	params->precision	 = SASS_PREPROC_DEFAULT_PRECISION;
 	params->include_path = malloc(sizeof(List));
 	make_list(params->include_path);
 }
 
 void dest_style_preprocessor_params(StylePreprocessorParams* params)
 {
-	NON_ISO(Destructor ed = (Destructor)ilambda(void, (Str * s), {
-		dest_str(s);
-		free(s);
-	}));
-	dest_list(params->include_path, true, ed);
+	dest_list(params->include_path, true, (Destructor)dest_free_str);
 	free(params->include_path);
 }

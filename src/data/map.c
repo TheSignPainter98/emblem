@@ -120,12 +120,12 @@ bool push_map(Maybe* oldval, Map* m, void* k, void* v)
 					{
 						ntbl[nhb] = malloc(sizeof(List));
 						if (!ntbl[nhb])
-							return false;
+							return false; // NOLINT
 						make_list(ntbl[nhb]);
 					}
 					ListNode* nln = malloc(sizeof(ListNode));
 					if (!nln)
-						return false;
+						return false; // NOLINT
 					make_list_node(nln, kv);
 					append_list_node(ntbl[nhb], nln);
 				}
@@ -138,12 +138,12 @@ bool push_map(Maybe* oldval, Map* m, void* k, void* v)
 		m->tbl = ntbl;
 	}
 
-	Hash h = m->hash(k);
-	int bh = h % m->tbl_size;
+	Hash h	= m->hash(k);
+	unsigned int bh = h % m->tbl_size;
 	if (m->tbl[bh])
 	{
 		Maybe r;
-		NON_ISO(in_list_eq(&r, m->tbl[bh], pkcmp(m->kcmp), k));
+		NON_ISO(in_list_eq(&r, m->tbl[bh], pkcmp(m->kcmp), k)); // NOLINT
 		switch (r.type)
 		{
 			case NOTHING:
@@ -181,7 +181,7 @@ bool push_map(Maybe* oldval, Map* m, void* k, void* v)
 	kv->p1		 = v;
 	ListNode* nn = malloc(sizeof(ListNode));
 	if (!nn)
-		return false;
+		return false; // NOLINT
 	make_list_node(nn, kv);
 	prepend_list_node(m->tbl[bh], nn);
 
@@ -194,7 +194,7 @@ bool push_map(Maybe* oldval, Map* m, void* k, void* v)
 void get_map(Maybe* mo, Map* map, void* key)
 {
 	Hash h = map->hash(key);
-	int bh = h % map->tbl_size;
+	unsigned int bh = h % map->tbl_size;
 	if (!map->tbl[bh])
 		make_maybe_nothing(mo);
 	else

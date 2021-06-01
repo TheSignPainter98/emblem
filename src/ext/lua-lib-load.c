@@ -4,7 +4,7 @@
 #include "logs/logs.h"
 #include <lauxlib.h>
 
-int load_em_std_lib(ExtensionState* L)
+int load_em_std_lib(ExtensionState* s)
 {
 	int rc = 0;
 #include "lib/std/std.lc"

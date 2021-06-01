@@ -33,3 +33,5 @@ Cmp cmp_strs(void* v1, void* v2)
 	Str* s2 = v2;
 	return strcmp(s1->str, s2->str);
 }
+
+bool streq(char const* s, char const* t) { return !strcmp(s, t); }

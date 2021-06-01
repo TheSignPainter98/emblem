@@ -1,9 +1,12 @@
 #include "sanitise-word.h"
 
 #include "logs/logs.h"
+#include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define ONE_CHAR_MASK ((1 << CHAR_BIT) - 1)
 
 typedef enum
 {
@@ -99,7 +102,8 @@ char* sanitise_word(char* word, size_t len)
 	for (size_t i = 0; i < len; i++)
 		if (!marks[i])
 			*(new_wordp++) = word[i];
-		else if (marks[i] == REMOVED);
+		else if (marks[i] == REMOVED)
+			;
 		else if (marks[i] == ESCAPE)
 		{
 			*(new_wordp++) = word[++i];
@@ -107,7 +111,8 @@ char* sanitise_word(char* word, size_t len)
 			// Warn of unknown escape characters
 			if (!is_valid_escape_char(word[i]))
 			{
-				log_err("Unrecognised character escape '\\%c' (%#02x)", word[i] ? word[i] : '0', word[i] & 0xff);
+				log_err(
+					"Unrecognised character escape '\\%c' (%#02x)", word[i] ? word[i] : '0', word[i] & ONE_CHAR_MASK);
 				exit(1);
 			}
 		}

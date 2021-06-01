@@ -34,14 +34,16 @@ HASH_SIG(ptr)
 	return hash_size_t(v);
 }
 
+#define DJB2_INITIAL_HASH 5381
+#define DJB2_SHIFT		  5
 HASH_SIG(str)
 {
 	// The djb2 algorithm
-	Hash h = 5381;
+	Hash h = DJB2_INITIAL_HASH;
 	char c;
 	char* str = ((Str*)v)->str;
 	while ((c = *str++))
-		h = ((h << 5) + h) ^ c;
+		h = ((h << DJB2_SHIFT) + h) ^ c;
 
 	return h;
 }

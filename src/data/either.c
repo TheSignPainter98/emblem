@@ -31,7 +31,7 @@ void fmap_either(Either* eo, Either* ei, Fmap f)
 	else
 	{
 		void* o;
-		f(&o, (void*)ei->right);
+		f(&o, ei->right);
 		make_either_right(eo, o);
 	}
 }

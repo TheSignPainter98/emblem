@@ -32,8 +32,8 @@ void make_styler(Styler* styler, Args* args)
 	{
 		const size_t style_loc_len = strlen(args->style);
 		char style_loc[style_loc_len + sizeof(DEFAULT_STYLESHEET_EXTENSION) + 1];
-		strcpy(style_loc, args->style);
-		strcpy(style_loc + style_loc_len, DEFAULT_STYLESHEET_EXTENSION);
+		memcpy(style_loc, args->style, strlen(args->style));
+		strcpy(style_loc + style_loc_len, DEFAULT_STYLESHEET_EXTENSION); // NOLINT
 		log_debug("Reading from implied file %s", style_loc);
 		make_strc(styler->user_style_file, style_loc);
 	}
@@ -73,11 +73,7 @@ void dest_styler(Styler* styler)
 {
 	dest_str(styler->default_typeface);
 	free(styler->default_typeface);
-	NON_ISO(Destructor ed = (Destructor)ilambda(void, (Str * s), {
-		dest_str(s);
-		free(s);
-	}));
-	dest_list(styler->snippets, true, ed);
+	dest_list(styler->snippets, true, (Destructor)dest_free_str);
 	/* NON_ISO(dest_list(styler->snippets, true, (Destructor)dest_str)); */
 	free(styler->snippets);
 	dest_style_preprocessor_params(styler->prep_params);
@@ -150,9 +146,9 @@ int append_style_sheet(Styler* styler, Str* sheet_loc)
 	fseek(fp, 0, SEEK_END);
 	size_t len = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	char* raw_stylesheet_content	= malloc(1 + len);
-	size_t fr						= fread(raw_stylesheet_content, 1, len, fp);
-	raw_stylesheet_content[len] = '\0';
+	char* raw_stylesheet_content = malloc(1 + len);
+	size_t fr					 = fread(raw_stylesheet_content, 1, len, fp);
+	raw_stylesheet_content[len]	 = '\0';
 	if (fr != len)
 	{
 		if (feof(fp))

@@ -189,7 +189,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         else:
             if arg['type'] == 'char*':
                 freearg = [f'free(args->{arg["dest"]});']
-            asignarg = 'strdup(optarg)' if arg['type'] == 'char*' else 'atoi(optarg)'
+            asignarg = 'strdup(optarg)' if arg['type'] == 'char*' else 'get_int(optarg)'
 
         if arg['mandatory']:
             mandarg = ['is_set__%s = 1;' % arg['dest']]
@@ -247,7 +247,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
                 'args->num_gobbled = argc - pospos__;',
                 'args->%s = calloc(args->num_gobbled, sizeof(%s));' %(gobbler['dest'], gobbler['type']),
                 'for(int i = 0; i < args->num_gobbled; i++)', '{', [
-                    'args->%s[i] = %s;' %(gobbler['dest'], 'strdup(argv[pospos__ + i])' if gobbler['type'] == 'char*' else 'atoi(argv[pospos__ + i])')
+                    'args->%s[i] = %s;' %(gobbler['dest'], 'strdup(argv[pospos__ + i])' if gobbler['type'] == 'char*' else 'get_int(argv[pospos__ + i])')
                 ], '}'
             ]
     else:
@@ -333,6 +333,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         '',
         'static void make_args(Args* args);',
         'static int isInt(const char* s) __attribute__((pure));',
+        'static int get_int(const char* s);',
         '',
         '/**',
         ' * @brief Set initial argument values',
@@ -342,7 +343,9 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         'int parse_args(Args* args, int argc, char** argv)', '{', mandatoryFlags + [
             'make_args(args);'
             'int optc;',
-            'int showUsage = 0, showVersion = 0, showHelp = 0;',
+            'int showUsage = 0;',
+            'int showVersion = 0;',
+            'int showHelp = 0;',
             'while ((optc = getopt_long(argc, argv, SHORT_OPTS, long_opts, NULL)) != -1)', '{', [
                 'switch (optc)', '{', opt_handlers + [
                     'default:', [
@@ -358,11 +361,11 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
                 'fprintf(stderr, "%s", argv[0]);' % usage_string,
                 'return 1;'
             ], '}',
-            'else if (showVersion)', '{', [
+            'if (showVersion)', '{', [
                 'printf(%s);' % license_string,
                 'return 1;',
             ], '}',
-            'else if (showHelp)', '{', [
+            'if (showHelp)', '{', [
                 'fprintf(stderr, "%s", argv[0]);' % usage_string,
             ] + help_printer + [
                 'exit(0);'
@@ -384,6 +387,13 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             ],
             'return 1;'
         ], '}',
+        '',
+        'static int get_int(const char* s)',
+        '{', [
+            'char* ep;',
+            'const int base = 10;',
+            'return (int)strtol(s, &ep, base);',
+        ], '}'
         '',
         'void dest_args(Args* args)', '{', destructor, '}'
     ])
