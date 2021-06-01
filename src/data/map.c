@@ -68,7 +68,7 @@ void dest_map(Map* map, Destructor ved)
 	for (unsigned int i = 0; i < map->tbl_size; i++)
 		if (map->tbl[i])
 		{
-			dest_list(map->tbl[i], true, map->ked || ved ? dest_kv_pair : free);
+			dest_list(map->tbl[i], true, map->ked || ved ? dest_kv_pair : freel);
 			free(map->tbl[i]);
 		}
 	free(map->tbl);

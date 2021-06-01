@@ -1,9 +1,18 @@
 #pragma once
 
 #include "ignore_warning.h"
+#include <stdlib.h>
 
-#if __GNUC__
+#if __clang__
+#	define fun ^
+#	define ilambda(r, ps, e)                                                                                          \
+		^r ps e
+#	define lambda(r, ps, e)                                                                                           \
+		^r ps { return (e); }
+#elif __GNUC__
+#	define fun *
 extern int lambda_; // This doesn't exist, don't use it, it's just to shut up the syntax highlighter
+
 /**
  * @brief Create an impure anonymous function
  *
@@ -47,7 +56,7 @@ extern int lambda_; // This doesn't exist, don't use it, it's just to shut up th
  *
  * @return The signature of a function-pointer of name `n` which takes `ps` and returns `r`
  */
-#define func_sig(r, n, ps) r(*n) ps
+#define func_sig(r, n, ps) r(fun n) ps
 
 /**
  * @brief A function type
@@ -59,4 +68,11 @@ extern int lambda_; // This doesn't exist, don't use it, it's just to shut up th
  *
  * @return The type of a function-pointer which takes `ps` and returns `r`
  */
-#define func_type(r, ps) r(*) ps
+#define func_type(r, ps) r(fun) ps
+
+/**
+ * @brief Lambda-friendly implementation of `free`
+ *
+ * @param p Pointer to memory to free
+ */
+extern void (fun freel)(void* p);
