@@ -11,7 +11,7 @@ FORMAT_CHECKER_FLAGS = -Werror -i --dry-run
 LINTER = clang-tidy
 LINTER_FLAGS = --use-color --quiet --line-filter="$$(cat clang-tidy-info.json)"
 LINTER_APPLY_CHANGES_FLAGS = --fix --fix-errors
-LINTER_OUTPUT_FILTER = | grep -v '^[0-9]* warnings*'
+LINTER_OUTPUT_FILTER = | (grep -v '^[0-9]* warnings*' || true)
 
 SUFFIXES = .moon .lc
 
