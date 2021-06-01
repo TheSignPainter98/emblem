@@ -13,9 +13,11 @@ performance-.*
 readability-[^b].*
 EOF
 
-read -r -d' ' warn_only_regexes << EOF
+read -r -d' ' removed_checks << EOF
 clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
 EOF
+
+set -e
 
 function mkregex()
 {
@@ -28,14 +30,13 @@ function mkclanglist()
 }
 
 check_regex=$(mkregex ${check_regexes[@]})
-warn_regex=$(mkregex ${warn_only_regexes[@]})
+removed_checks_list=$(printf ",-%s" ${removed_checks[@]})
 
 supported_checks=($(clang-tidy --checks='*' --list-checks | grep '^[ ]' | cut -d' ' -f5-))
 
 checks_to_do=$(for c in ${supported_checks[@]}; do echo $c; done | grep -P "$check_regex" | mkclanglist)
-error_checks=$(for c in ${supported_checks[@]}; do echo $c; done | grep -vP "$warn_regex" | mkclanglist)
 
 m4 -PE - .clang-tidy.in > .clang-tidy << EOF
-m4_define(S_CHECKS, \`$checks_to_do')m4_dnl
-m4_define(S_ERRORS, \`$error_checks')m4_dnl
+m4_define(S_CHECKS, \`-*,$checks_to_do$removed_checks_list')m4_dnl
+m4_define(S_ERRORS, \`$checks_to_do')m4_dnl
 EOF
