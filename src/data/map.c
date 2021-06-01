@@ -138,7 +138,7 @@ bool push_map(Maybe* oldval, Map* m, void* k, void* v)
 		m->tbl = ntbl;
 	}
 
-	Hash h	= m->hash(k);
+	Hash h			= m->hash(k);
 	unsigned int bh = h % m->tbl_size;
 	if (m->tbl[bh])
 	{
@@ -193,7 +193,7 @@ bool push_map(Maybe* oldval, Map* m, void* k, void* v)
 
 void get_map(Maybe* mo, Map* map, void* key)
 {
-	Hash h = map->hash(key);
+	Hash h			= map->hash(key);
 	unsigned int bh = h % map->tbl_size;
 	if (!map->tbl[bh])
 		make_maybe_nothing(mo);

@@ -4,9 +4,8 @@
 #include <stdlib.h>
 
 #if __clang__
-#	define fun ^
-#	define ilambda(r, ps, e)                                                                                          \
-		^r ps e
+#	define fun				  ^
+#	define ilambda(r, ps, e) ^r ps e
 #	define lambda(r, ps, e)                                                                                           \
 		^r ps { return (e); }
 #elif __GNUC__
@@ -75,4 +74,4 @@ extern int lambda_; // This doesn't exist, don't use it, it's just to shut up th
  *
  * @param p Pointer to memory to free
  */
-extern void (fun freel)(void* p);
+extern void(fun freel)(void* p);

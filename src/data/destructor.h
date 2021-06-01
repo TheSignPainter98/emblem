@@ -7,4 +7,4 @@
  *
  * @param o Pointer to an object to destroy
  */
-typedef void (fun Destructor)(void* o);
+typedef void(fun Destructor)(void* o);
