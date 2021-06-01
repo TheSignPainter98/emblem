@@ -14,7 +14,7 @@ deps_libs=$(yq -y '.deps | map("$(" + .name + "_LIBS)")' em.yml | cut -d' ' -f2-
 check_deps_cflags=$(yq -y '.check_deps | map("$(" + .name + "_CFLAGS)")' em.yml | cut -d' ' -f2- | tr '\n' ' ' | sed 's/ $//')
 check_deps_libs=$(yq -y '.check_deps | map("$(" + .name + "_LIBS)")' em.yml | cut -d' ' -f2- | tr '\n' ' ' | sed 's/ $//')
 
-lintable_srcs=(./src/pp/ignore_warning.h ./src/parser/emblem-parser.h ./src/argp.c $(find src -name '*.c'))
+lintable_srcs=($(./scripts/lintable-srcs.sh))
 
 extra_dist=(${scripts[@]} ${extension_lib_srcs[@]})
 
