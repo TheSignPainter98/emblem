@@ -52,7 +52,7 @@ endef
 src/ext/lua-lib-load.c: scripts/lua-lib-load.c.sh
 	. $< > $@
 
-src/ext/lib/std/std.lc: src/ext/lib/std/std.moon scripts/bin2c.lua scripts/module_name
+%.lc: %.moon scripts/bin2c.lua scripts/module_name
 	$(moon2c)
 
 src/argp.h: src/argp.c
