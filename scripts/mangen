@@ -75,7 +75,7 @@ class Program:
             for key in defaults.keys():
                 if key not in arg:
                     arg[key] = defaults[key](arg)
-        self.args.sort(key=lambda arg:(arg['positional'], pow(-1, arg['positional']) * arg['mandatory'], arg['gobble'], first_in(['short', 'long', 'metaDest', 'dest'], arg)))
+        self.args.sort(key=lambda arg:(arg['positional'], pow(-1, arg['positional']) * arg['mandatory'], arg['gobble'], first_in(['short', 'long', 'metaDest', 'dest'], arg).lower(), first_in(['long', 'metaDest', 'dest'], arg).lower()))
         self.shortDescription = self.formatGroff(program['description'])    if 'description' in program else            None
         self.longDescription = self.formatGroff(program['longDescription'])    if 'longDescription' in program else        None
         self.licence = program['licence']                                    if 'licence' in program else                 None
@@ -148,7 +148,7 @@ class Program:
                     # Add choices or variable
                     if 'choices' in argument:
                         argumentString += ' \\fR{\\fI' + '\\fR, \\fI'.join(list(map(str, argument['choices']))) + '\\fR}'
-                    elif 'metaDest' in argument and argument['type'] not in ['flag', 'help']:
+                    elif 'metaDest' in argument and argument['type'] not in ['flag', 'help', 'version']:
                         argumentString += ' \\fI' + argument['metaDest'] + '\\fP'
                 else:
                     argumentString = '\\fI' + first_in(['metaDest', 'dest'], argument).upper() + gobbleDots + '\\fP'
@@ -242,7 +242,7 @@ class Program:
         optionBodyString:str = None
         if 'choices' in arg:
             optionBodyString = '\\fR{\\fI' + '\\fR, \\fI'.join(list(map(str, arg['choices']))) + '\\fR}'
-        elif 'metaDest' in arg and arg['type'] not in ['flag', 'help']:
+        elif 'metaDest' in arg and arg['type'] not in ['flag', 'help', 'version']:
             optionBodyString = r'\fI' + arg['metaDest'] + ('...' if arg['gobble'] else '') + r'\fR'
 
         for form in ['short', 'long']:
