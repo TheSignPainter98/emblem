@@ -33,7 +33,8 @@ longDescription: >
 author: Edward Jones
 author_note: This is maintained by Edward Jones, source code is available at <github.com/TheSignPainter98/emblem>
 examples:
-  - input: em -Tutf8 hello.em -
+  - input: em -Tutf8 example.em
+  - input: em hello
 args:
   - type: help
     short: -h
