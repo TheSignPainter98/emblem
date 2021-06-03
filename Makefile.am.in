@@ -9,7 +9,7 @@ FORMAT_FLAGS = -Werror -i
 FORMAT_CHECKER = clang-format
 FORMAT_CHECKER_FLAGS = -Werror -i --dry-run
 
-SUFFIXES = .moon .lc
+SUFFIXES = .moon .lc .Po
 
 # Required by libtoolize
 ACLOCAL_AMFLAGS = -I m4
@@ -84,7 +84,7 @@ ChangeLog: ./scripts/changelog.sh
 # Add tests
 TESTS = check_em
 check_PROGRAMS = check_em
-check_em_SOURCES = S_TEST_FILES src/parser/emblem-lexer.l src/parser/emblem-parser.y
+check_em_SOURCES = S_TEST_FILES
 check_em_CFLAGS = $(CFLAGS_ALL) S_CHECK_DEPS_CFLAGS $(CFLAGS_ANALYSER)
 check_em_LDADD = $(LDADD_ALL) S_CHECK_DEPS_LIBS
 check_em_LFLAGS = $(LFLAGS_ALL)
@@ -109,6 +109,8 @@ format:
 format-check:
 	$(FORMAT_CHECKER) $(FORMAT_CHECKER_FLAGS) $(shell find src/ -type f -regex '.*.[ch]') $(shell find check/ -type f -regex '.*.[ch]')
 .PHONY: format-check
+
+%.Po: em %.$(OBJEXT)
 
 dist_pkgdata_DATA = S_DIST_DATA
 EXTRA_DIST = ./em.yml ./src/pp/ignore_warning.h.m4 S_EXTRA_DIST
