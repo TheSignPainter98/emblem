@@ -447,8 +447,8 @@ Test(list, concat)
 {
 	List l1;
 	List l2;
-	const int change_point = 50;
-	const int lns		   = 100;
+	const size_t change_point = 50;
+	const size_t lns		  = 100;
 	make_list(&l1);
 	make_list(&l2);
 	for (size_t i = 0; i < lns; i++)
@@ -461,7 +461,7 @@ Test(list, concat)
 
 	List lr;
 	concat_list(&lr, &l1, &l2);
-	cr_assert(lr.cnt == lns, "Concatenated list length incorrect, expected %d but got %d", lns, lr.cnt);
+	cr_assert(lr.cnt == lns, "Concatenated list length incorrect, expected %ld but got %ld", lns, lr.cnt);
 	cr_assert(lr.fst->data == l1.fst->data, "Concatenated list had different first node");
 	cr_assert(lr.lst->data == l2.lst->data, "Concatenated list has incorrect last");
 
