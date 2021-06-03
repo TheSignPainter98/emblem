@@ -1,6 +1,7 @@
 #pragma once
 
 #include "array.h"
+#include "dest-free.h"
 #include "maybe.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -77,6 +78,13 @@ bool make_strl(Str* str, size_t len);
  * @param str Pointer to the string to destroy
  */
 void dest_str(Str* str);
+
+/**
+ * @brief Destroy and free a string
+ *
+ * @param str String to destroy
+ */
+dest_free_sig(str, Str);
 
 /**
  * @brief Create an array (of character values) from a string

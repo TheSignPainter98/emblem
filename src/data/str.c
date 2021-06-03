@@ -97,3 +97,5 @@ void dup_str(Str* o, Str* todup)
 	*(char**)&o->str	 = malloc((todup->len + 1) * sizeof(char));
 	memcpy(o->str, todup->str, todup->len + 1);
 }
+
+dest_free_def(str, Str)

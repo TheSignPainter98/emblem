@@ -1,5 +1,6 @@
 #include "drivers.h"
 
+#include "data/cmp.h"
 #include "html.h"
 #include "logs/logs.h"
 #include "pp/lambda.h"
@@ -35,7 +36,7 @@ int get_output_driver(OutputDriver* driver, Args* args)
 	bool is_internal_driver = false;
 	InternalDriver idriver;
 	for (size_t i = 0; i < sizeof(internal_drivers) / sizeof(*internal_drivers); i++)
-		if (!strcmp(internal_drivers[i].name, args->driver))
+		if (streq(internal_drivers[i].name, args->driver))
 		{
 			is_internal_driver = true;
 			int rc			   = internal_drivers[i].get_driver(&idriver);
@@ -46,8 +47,7 @@ int get_output_driver(OutputDriver* driver, Args* args)
 
 	if (is_internal_driver)
 		return init_internal_driver(driver, &idriver, args);
-	else
-		return init_external_driver(driver, args);
+	return init_external_driver(driver, args);
 }
 
 static int init_internal_driver(OutputDriver* driver, InternalDriver* idriver, Args* args)
@@ -71,7 +71,7 @@ static int init_external_driver(OutputDriver* driver, Args* args)
 	driver->type = EXTERNAL;
 
 	const size_t lib_name_len = 1 + snprintf(NULL, 0, DRIVER_LIB_NAME_FMT, args->driver);
-	char* lib_name			  = malloc(sizeof(lib_name_len));
+	char* lib_name			  = malloc(lib_name_len);
 	snprintf(lib_name, lib_name_len, DRIVER_LIB_NAME_FMT, args->driver);
 
 	driver->driver_name = malloc(sizeof(Str));
@@ -125,9 +125,9 @@ static void dest_output_driver_inf(OutputDriverInf* inf) { UNUSED(inf); }
 void make_driver_params(DriverParams* params, Args* args)
 {
 	params->output_stem = malloc(sizeof(Str));
-	if (strcmp(args->output_stem, ""))
+	if (!streq(args->output_stem, ""))
 		make_strv(params->output_stem, args->output_stem);
-	else if (!strcmp(args->input_file, "-"))
+	else if (streq(args->input_file, "-"))
 		make_strv(params->output_stem, "emdoc");
 	else
 	{

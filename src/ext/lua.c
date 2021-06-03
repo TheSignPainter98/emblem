@@ -18,7 +18,7 @@
 
 static void load_em_std_functions(ExtensionState* s);
 static int load_libraries(ExtensionState* s, ExtParams* params);
-static void load_library_set(ExtensionState* s, luaL_Reg* lua_std_libs);
+static void load_library_set(ExtensionState* s, luaL_Reg* lib);
 static bool is_callable(ExtensionState* s, int idx);
 static int ext_require_rerun(ExtensionState* s);
 
@@ -63,7 +63,7 @@ int make_doc_ext_state(Doc* doc, ExtParams* params)
 }
 
 #define LOAD_LIBRARY_SET(lvl, s, lib)                                                                                  \
-	if (params->sandbox_lvl <= lvl)                                                                                    \
+	if (params->sandbox_lvl <= (lvl))                                                                                  \
 	{                                                                                                                  \
 		load_library_set(s, lib);                                                                                      \
 	}
@@ -157,29 +157,27 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 					lua_pop(s, -1); // Remove call function
 					return rc ? -1 : 0;
 				}
-				else if (node->content->call_params->args->cnt == 1)
+				if (node->content->call_params->args->cnt == 1)
 				{
 					node->content->call_params->result = node->content->call_params->args->fst->data;
 					lua_pop(s, -1); // Remove call function
 					return 0;
 				}
-				else
-				{
-					log_debug("Putting args into lines node for result");
-					DocTreeNode* linesNode = malloc(sizeof(DocTreeNode));
-					make_doc_tree_node_lines(linesNode, dup_loc(node->src_loc));
-					linesNode->flags |= IS_GENERATED_NODE;
-					ListIter li;
-					make_list_iter(&li, node->content->call_params->args);
-					DocTreeNode* currArg;
-					while (iter_list((void**)&currArg, &li))
-						prepend_doc_tree_node_child(linesNode, linesNode->content->lines, currArg);
-					node->content->call_params->result = linesNode;
-					lua_pop(s, -1); // Remove call function
-					return 0;
-				}
+
+				log_debug("Putting args into lines node for result");
+				DocTreeNode* linesNode = malloc(sizeof(DocTreeNode));
+				make_doc_tree_node_lines(linesNode, dup_loc(node->src_loc));
+				linesNode->flags |= IS_GENERATED_NODE;
+				ListIter li;
+				make_list_iter(&li, node->content->call_params->args);
+				DocTreeNode* currArg;
+				while (iter_list((void**)&currArg, &li))
+					prepend_doc_tree_node_child(linesNode, linesNode->content->lines, currArg);
+				node->content->call_params->result = linesNode;
+				lua_pop(s, -1); // Remove call function
+				return 0;
 			}
-			else if (!is_callable(s, -1))
+			if (!is_callable(s, -1))
 			{
 				log_err("Expected function or callable table at em.%s, but got a %s", node->name->str, luaL_typename(s, -1));
 				node->flags |= CALL_HAS_NO_EXT_FUNC;

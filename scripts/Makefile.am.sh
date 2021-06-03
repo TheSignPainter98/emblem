@@ -14,6 +14,8 @@ deps_libs=$(yq -y '.deps | map("$(" + .name + "_LIBS)")' em.yml | cut -d' ' -f2-
 check_deps_cflags=$(yq -y '.check_deps | map("$(" + .name + "_CFLAGS)")' em.yml | cut -d' ' -f2- | tr '\n' ' ' | sed 's/ $//')
 check_deps_libs=$(yq -y '.check_deps | map("$(" + .name + "_LIBS)")' em.yml | cut -d' ' -f2- | tr '\n' ' ' | sed 's/ $//')
 
+lintable_srcs=($(./scripts/lintable-srcs.sh))
+
 function pofile()
 {
 	f=$(basename $1)
@@ -41,5 +43,6 @@ m4_define(S_DEPS_LIBS, $deps_libs)m4_dnl
 m4_define(S_CHECK_DEPS_CFLAGS, $check_deps_cflags)m4_dnl
 m4_define(S_CHECK_DEPS_LIBS, $deps_libs $check_deps_libs)m4_dnl
 m4_define(S_DIST_DATA, ${dist_data[@]})m4_dnl
+m4_define(S_LINTABLE_SRCS, ${lintable_srcs[@]})m4_dnl
 m4_define(S_EXTRA_DIST, ${extra_dist[@]})m4_dnl
 EOF

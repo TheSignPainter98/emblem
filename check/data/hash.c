@@ -14,7 +14,7 @@ int num_collisions(size_t numHashes, Hash hashes[numHashes]);
 #define RAND_SEED				  104
 
 void init_hash_test(void) __attribute__((constructor));
-void init_hash_test(void) { srand(RAND_SEED); }
+void init_hash_test(void) { srand(RAND_SEED); } // NOLINT
 
 #include <stdio.h>
 #define HASH_X_TEST(name, type, ftype, generator)                                                                      \
@@ -25,7 +25,9 @@ void init_hash_test(void) { srand(RAND_SEED); }
 		{                                                                                                              \
 			int r  = rand();                                                                                           \
 			type v = generator;                                                                                        \
-			TYPE_PUN_DEREFERENCE(hashes[i] = hash_##type(*(void**)&v));                                                \
+			void* w[1];                                                                                                \
+			TYPE_PUN_DEREFERENCE(ARRAY_BOUND_MISMATCH(w[0] = *(void**)&v));                                            \
+			hashes[i] = hash_##type(*w);                                                                               \
 		}                                                                                                              \
 		int totCollisions = num_collisions(NUM_HASHES_TO_TEST, hashes);                                                \
 		cr_assert(totCollisions <= NUM_ACCEPTABLE_COLLISIONS, "Got %d (>= %d) collisions when hashing %d " #type "s",  \

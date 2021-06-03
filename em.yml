@@ -17,6 +17,9 @@ deps:
   - name: ncurses
     func_check: has_colors
     minver: 6.2.20200212
+  # - name: libblocksruntime # For running with `clang -fblocks` on non-Darwin systems
+    # func_check: _NSConcreteGlobalBlock
+    # minver: UNKNOWN
 description: A minimalist, format-agnostic typesetter
 version: 0.0.1
 date: 05 Jun 2020
@@ -88,7 +91,7 @@ args:
     long: --class
     type: char*
     metaDest: style
-    default: '"DATA_DIR"/article'
+    default: '" DATA_DIR "/article'
     help: Set the output class
     doc: Holds the root style
   - dest: default_typeface

@@ -141,28 +141,6 @@ bool iter_list_reversed(void** val, ReversedListIter* i)
 	return !!succ;
 }
 
-void make_list_from_arr(List* l, Array* arr)
-{
-	make_list(l);
-	l->cnt			   = arr->cnt;
-	ListNode* prevNode = NULL;
-	for (size_t i = 0; i < arr->cnt; i++)
-	{
-		ListNode* ln = malloc(sizeof(ListNode));
-		make_list_node(ln, arr->data[i]);
-
-		if (!i)
-			l->fst = ln;
-		if (i == l->cnt - 1)
-			l->lst = ln;
-
-		if (prevNode)
-			prevNode->nxt = ln;
-		ln->prv	 = prevNode;
-		prevNode = ln;
-	}
-}
-
 bool in_list(List* l, void* val)
 {
 	Maybe m;
@@ -193,7 +171,7 @@ void concat_list(List* r, List* l1, List* l2)
 {
 	r->cnt = l1->cnt + l2->cnt;
 	r->fst = NULL;
-	if (!r->cnt)
+	if (!r->cnt || (!l1->fst && !l2->fst))
 	{
 		r->lst = NULL;
 		return;

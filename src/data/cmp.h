@@ -1,5 +1,8 @@
 #pragma once
 
+#include "pp/lambda.h"
+#include <stdbool.h>
+
 /**
  * @brief Valid values returned by a comparison.
  */
@@ -27,8 +30,11 @@ typedef enum
  *
  * @return The comparison result of `v1` against `v2`
  */
-typedef Cmp (*Comparator)(void* v1, void* v2);
+typedef Cmp(fun Comparator)(void* v1, void* v2);
 
+#if __clang__
+#	define CMP_SIG(name) extern Cmp(fun cmp_##name##s)(void*, void*)
+#else
 /**
  * @brief The signature of a comparator
  *
@@ -36,7 +42,8 @@ typedef Cmp (*Comparator)(void* v1, void* v2);
  *
  * @return The signature of the comparison function for `name`s
  */
-#define CMP_SIG(name) Cmp cmp_##name##s(void* v1, void* v2)
+#	define CMP_SIG(name) Cmp cmp_##name##s(void* v1, void* v2)
+#endif
 
 /**
  * @brief Compare characters
@@ -87,3 +94,13 @@ CMP_SIG(ptr);
  * @param v2 Another string to compare
  */
 CMP_SIG(str);
+
+/**
+ * @brief Check if two C-strings are equal (to improve readability with strcmp)
+ *
+ * @param s Pointer to a string to check
+ * @param t Pointer to a string to check
+ *
+ * @return true if the strings are equal, false otherwise
+ */
+bool streq(char const* s, char const* t);

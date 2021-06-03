@@ -35,8 +35,6 @@ typedef struct
 	size_t next;
 } ArrayIter;
 
-#include "list.h"
-
 /**
  * @brief Make an array object, a block of memory of finite length
  *
@@ -76,14 +74,6 @@ void get_arrv(Maybe* ret, Array* arr, size_t idx);
  * @return Returns true iff `idx` is a valid index of `arr`
  */
 bool set_arrv(Array* arr, size_t idx, void* val);
-
-/**
- * @brief Create an array from a list
- *
- * @param arr Array to write to
- * @param l List ot read
- */
-void make_arr_from_list(Array* arr, List* l);
 
 /**
  * @brief Make an array iterator

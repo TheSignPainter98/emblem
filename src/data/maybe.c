@@ -29,7 +29,7 @@ void fmap_maybe(Maybe* restrict mo, Maybe* restrict mi, Fmap f)
 	else
 	{
 		void* o;
-		f(&o, (void*)mi->just);
+		f(&o, mi->just);
 		make_maybe_just(mo, o);
 	}
 }

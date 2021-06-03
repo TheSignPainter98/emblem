@@ -1,9 +1,12 @@
 #include "sanitise-word.h"
 
 #include "logs/logs.h"
+#include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define ONE_CHAR_MASK ((1 << CHAR_BIT) - 1)
 
 typedef struct
 {
@@ -147,7 +150,7 @@ char* sanitise_word(EM_LTYPE* yylloc, Str* ifn, char* word, size_t len)
 					};
 
 					if (log_warn_at(&eloc, "Unrecognised character escape '\\%c' (%#02x)", word[i] ? word[i] : '0',
-							word[i] & 0xff))
+							word[i] & ONE_CHAR_MASK))
 						exit(1);
 				}
 				break;

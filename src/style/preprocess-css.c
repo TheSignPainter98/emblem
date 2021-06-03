@@ -20,7 +20,7 @@ CssPreprocessResult preprocess_css(char** data_out, char* data_in, Str* fname, S
 			*data_out = data_in;
 			return UNPROCESSED;
 		}
-		else if (!strcmp(ext, ".sass") || !strcmp(ext, ".scss"))
+		if (!strcmp(ext, ".sass") || !strcmp(ext, ".scss"))
 		{
 			return run_scss_preprocessor(data_out, data_in, ext[2] == 'a', fname, params);
 		}

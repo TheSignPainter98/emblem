@@ -1,16 +1,17 @@
 ### Problem description
 
-Please describe the problem you have noticed or encountered.
+<!-- Please describe the problem you have noticed or encountered. -->
 
 ### How this PR fixes the problem
 
-Please describe the contents of your PR here.
+<!-- Please describe the contents of your PR here. -->
 
 ### Check lists
 
-- [ ] Test passed
-- [ ] Coding style (indentation, etc)
+- [ ] All tests pass
+- [ ] No linting errors
+- [ ] Correctly formatted
 
-### Additional Comments (if any)
+<!-- ### Additional Comments (if any) -->
 
-Please specify any extra content here.
+<!-- Please specify any extra content here. -->

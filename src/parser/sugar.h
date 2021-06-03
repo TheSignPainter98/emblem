@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stddef.h>
 #include "data/str.h"
+#include <stddef.h>
 
 typedef struct
 {

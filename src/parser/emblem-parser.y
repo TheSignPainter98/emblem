@@ -1,5 +1,4 @@
 %code requires {
-extern int em_lex();
 #include "argp.h"
 #include "parser.h"
 #include "data/locked.h"

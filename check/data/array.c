@@ -56,37 +56,6 @@ Test(array, cannot_get_or_set_bad_indices)
 	dest_arr(&arr, NULL);
 }
 
-Test(array, conversion_from_list)
-{
-	const size_t llen = 100;
-	Array arr;
-	List list;
-	make_list(&list);
-
-	for (size_t i = 0; i < llen; i++)
-	{
-		ListNode* ln = malloc(sizeof(ListNode));
-		make_list_node(ln, (void*)i);
-		append_list_node(&list, ln);
-	}
-
-	make_arr_from_list(&arr, &list);
-
-	cr_assert(arr.cnt == list.cnt, "Array created from list had a different length, got %ld but expected %ld", arr.cnt,
-		list.cnt);
-
-	for (size_t i = 0; i < llen; i++)
-	{
-		Maybe m;
-		get_arrv(&m, &arr, i);
-		cr_assert(m.type == JUST, "Array read returned object with nothing constructor");
-		cr_assert((size_t)m.just == i, "Incorrect value in array, expected %ld but got %ld", i, (size_t)m.just);
-	}
-
-	dest_arr(&arr, NULL);
-	dest_list(&list, true, NULL);
-}
-
 Test(array, iter_memory_life_cycle)
 {
 	Array a;

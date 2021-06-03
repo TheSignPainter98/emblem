@@ -10,7 +10,7 @@
 #include "debug.h"
 
 static int eval_tree(ExtensionState* s, DocTreeNode* node);
-static int unpack_single_value(DocTreeNode** result, char* repr, DocTreeNode* parentNode);
+static int unpack_single_value(DocTreeNode** result, Str* repr, DocTreeNode* parentNode);
 
 int ext_eval_tree(ExtensionState* s)
 {
@@ -118,17 +118,33 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 			*result = NULL;
 			return 0;
 		case LUA_TBOOLEAN:
-			rc = unpack_single_value(result, lua_toboolean(s, -1) ? "true" : "false", parentNode);
+		{
+			Str* repr = malloc(sizeof(Str));
+			make_strv(repr, lua_toboolean(s, -1) ? "true" : "false");
+			rc = unpack_single_value(result, repr, parentNode);
 			lua_pop(s, -1);
 			return rc;
+		}
 		case LUA_TNUMBER:
-			rc = unpack_single_value(result, (char*)lua_tostring(s, -1), parentNode);
+		{
+			const int num		= lua_tonumber(s, -1);
+			const size_t numlen = 1 + snprintf(NULL, 0, "%d", num);
+			char* numr			= malloc(numlen);
+			snprintf(numr, numlen, "%d", num);
+			Str* repr = malloc(sizeof(Str));
+			make_strr(repr, numr);
+			rc = unpack_single_value(result, repr, parentNode);
 			lua_pop(s, -1);
 			return rc;
+		}
 		case LUA_TSTRING:
-			rc = unpack_single_value(result, (char*)lua_tostring(s, -1), parentNode);
+		{
+			Str* repr = malloc(sizeof(Str));
+			make_strv(repr, (char*)lua_tostring(s, -1));
+			rc = unpack_single_value(result, repr, parentNode);
 			lua_pop(s, -1);
 			return rc;
+		}
 		case LUA_TLIGHTUSERDATA:
 		{
 			LuaPointer* p = lua_touserdata(s, -1);
@@ -138,7 +154,7 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 					p->type, AST_NODE);
 				return -1;
 			}
-			log_debug("Passing reference to %p", (void*)p->data);
+			log_debug("Passing reference to %p", p->data);
 			*result			  = p->data;
 			(*result)->parent = parentNode;
 			lua_pop(s, -1);
@@ -160,11 +176,9 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 	}
 }
 
-static int unpack_single_value(DocTreeNode** result, char* rawRepr, DocTreeNode* parentNode)
+static int unpack_single_value(DocTreeNode** result, Str* repr, DocTreeNode* parentNode)
 {
-	*result	  = malloc(sizeof(DocTreeNode));
-	Str* repr = malloc(sizeof(Str));
-	make_strc(repr, rawRepr);
+	*result = malloc(sizeof(DocTreeNode));
 	make_doc_tree_node_word(*result, repr, dup_loc(parentNode->src_loc));
 	(*result)->flags |= IS_GENERATED_NODE;
 	(*result)->parent = parentNode;
