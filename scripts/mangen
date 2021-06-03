@@ -242,7 +242,7 @@ class Program:
         optionBodyString:str = None
         if 'choices' in arg:
             optionBodyString = '\\fR{\\fI' + '\\fR, \\fI'.join(list(map(str, arg['choices']))) + '\\fR}'
-        elif 'metaDest' in arg:
+        elif 'metaDest' in arg and arg['type'] not in ['flag', 'help']:
             optionBodyString = r'\fI' + arg['metaDest'] + ('...' if arg['gobble'] else '') + r'\fR'
 
         for form in ['short', 'long']:

@@ -96,7 +96,7 @@ def sanitise_args(spec) -> bool:
                 if req2 in arg:
                     hasSomeReq = True
                     break
-            if not hasSomeReq:
+            if not hasSomeReq and ('type' not in arg or arg['type'] not in ['version', 'help']):
                 print('Missing argument %s in %s definition' %(' or '.join(req), argName), file=stderr)
                 ret = False
         for key in defaults.keys():

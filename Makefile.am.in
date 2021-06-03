@@ -14,11 +14,12 @@ LINTER_COMPILE_FLAGS = $(CFLAGS_ALL) -Isrc/ -fblocks
 LINTER_APPLY_CHANGES_FLAGS = --fix --fix-errors
 LINTER_OUTPUT_FILTER = | (grep -v '^[0-9]* warnings*' || true)
 
-SUFFIXES = .moon .lc
+SUFFIXES = .moon .lc .Po
 
-# Required by libtoolize
+# libtool flags
 ACLOCAL_AMFLAGS = -I m4
 AM_YFLAGS = -d
+AM_LIBTOOLFLAGS = --quiet
 
 M4 = m4 -P
 M4FLAGS = -E
@@ -28,7 +29,7 @@ EM_LEX_PREFIX = em_
 BUILT_SOURCES = src/parser/emblem-parser.h src/parser/emblem-lexer.h src/ext/lua-lib-load.c ./src/pp/ignore_warning.h S_BUILT_SRCS
 
 PATH_DECLS = -DDATA_DIR=\"$(pkgdatadir)\" -DINCLUDE_DIR=\"$(pkgincludedir)\" -DLIB_DIR=\"$(pkglibdir)\" -DLIB_EXEC_DIR=\"$(pkglibexecdir)\"
-CFLAGS_ALL = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x $(PATH_DECLS) -pthread
+CFLAGS_ALL = -Wall -Wextra -Wpedantic -Werror -pedantic-errors -std=gnu2x $(PATH_DECLS) -pthread -fstack-protector
 LDADD_ALL = -lm -ldl
 LFLAGS_ALL = -Cfar
 YFLAGS_ALL = -Wall -Wdangling-alias -Wno-yacc -Wcounterexamples -Werror -LC --locations -l -d -rall
@@ -57,7 +58,7 @@ endef
 src/ext/lua-lib-load.c: scripts/lua-lib-load.c.sh
 	. $< > $@
 
-src/ext/lib/std/std.lc: src/ext/lib/std/std.moon scripts/bin2c.lua scripts/module_name
+%.lc: %.moon scripts/bin2c.lua scripts/module_name
 	$(moon2c)
 
 src/argp.h: src/argp.c
@@ -89,7 +90,7 @@ ChangeLog: ./scripts/changelog.sh
 # Add tests
 TESTS = check_em
 check_PROGRAMS = check_em
-check_em_SOURCES = S_TEST_FILES src/parser/emblem-lexer.l src/parser/emblem-parser.y
+check_em_SOURCES = S_TEST_FILES
 check_em_CFLAGS = $(CFLAGS_ALL) S_CHECK_DEPS_CFLAGS $(CFLAGS_ANALYSER)
 check_em_LDADD = $(LDADD_ALL) S_CHECK_DEPS_LIBS
 check_em_LFLAGS = $(LFLAGS_ALL)
@@ -129,6 +130,8 @@ format:
 format-check:
 	$(FORMAT_CHECKER) $(FORMAT_CHECKER_FLAGS) $(shell find src/ -type f -regex '.*.[ch]') $(shell find check/ -type f -regex '.*.[ch]')
 .PHONY: format-check
+
+%.Po: em %.$(OBJEXT)
 
 dist_pkgdata_DATA = S_DIST_DATA
 EXTRA_DIST = ./em.yml ./src/pp/ignore_warning.h.m4 S_EXTRA_DIST

@@ -6,6 +6,7 @@ set -e
 make -s ChangeLog
 
 # Make distributable
+make -s em
 make -s dist
 
 pkgname=$(yq -y .name em.yml | head -n 1)

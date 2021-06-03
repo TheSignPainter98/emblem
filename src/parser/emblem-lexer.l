@@ -8,15 +8,19 @@
 #define yyerror em_error
 #define yydebug em_debug
 #define yynerrs em_nerrs
-#include <stdio.h>
-#include <math.h>
 
+#include "data/list.h"
+#include "data/locked.h"
 #include "data/str.h"
 #include "emblem-parser.h"
 #include "logs/logs.h"
 #include "parser.h"
 #include "sanitise-word.h"
 #include "sugar.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* #define YY_DECL int em_lex(EM_STYPE* yylval_param, EM_LTYPE* yylloc_param, yyscan_t yyscanner, ParserData* params) */
 
@@ -25,20 +29,20 @@
 		BEGIN(INITIAL_WHITE);\
 	} while (0)
 
+#define YY_EXTRA_TYPE LexerData*
 #define YY_USER_ACTION update_yylloc(yylloc, yytext);
 static void update_yylloc(EM_LTYPE* loc, char* text);
 static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng);
 static void make_emph_str(Sugar* emph, char* ytext, size_t yleng);
-
-#define YY_EXTRA_TYPE LexerData*
+static void handle_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc, char* ytext);
 
 #if __GNUC__
 #	pragma GCC diagnostic push
 #	pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 
-static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err);
-#define llerror(msg) handle_llerror(yylloc, yyextra, msg)
+static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err, ...);
+#define llerror(...) handle_llerror(yylloc, yyextra, __VA_ARGS__)
 static int indent_len(int tab_size, char* inp);
 
 #define EMPHASIS(T_open, T_close)\
@@ -79,6 +83,7 @@ GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
 LINE_COMMENT_START	"//"
+LINE_DIRECTIVE		":line \""("\\"[^\r\n]|[^\\"])*"\" "[0-9]+" "[0-9]*{LN}
 LN					"\n"|"\r"|"\r\n"
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
@@ -127,6 +132,7 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 											return EM_EOF;
 									}
 
+<INITIAL_WHITE>{LINE_DIRECTIVE}		{ handle_line_directive(yyextra, yylloc, yytext); }
 <INITIAL_WHITE>{WHITE_SPACE}*{LN}	;
 <INITIAL_WHITE>{WHITE_SPACE}+		{
 										yyextra->opening_emph = true;
@@ -153,9 +159,9 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 <FILE_BODY>{GROUP_OPEN}				{ yyextra->opening_emph = true; return T_GROUP_OPEN; }
 <FILE_BODY>{GROUP_CLOSE}			{ yyextra->opening_emph = false; return T_GROUP_CLOSE; }
 <FILE_BODY>{HEADING}				{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
-<FILE_BODY>{WORD}					{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strr(yylval->str, sanitise_word(yytext, yyleng)); return T_WORD; }
+<FILE_BODY>{WORD}					{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strr(yylval->str, sanitise_word(yylloc, yyextra->ifn, yytext, yyleng)); return T_WORD; }
 
-<FILE_BODY>.						{ llerror("Unrecognised character"); log_warn("Char is '%c' (%#x)", yytext[0], yytext[0]); }
+<FILE_BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
 
 {SHEBANG}							;
 {LN}								{ BEGIN(FILE_BODY); }
@@ -163,10 +169,20 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 
 %%
 
-static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err)
+static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err, ...)
 {
 	++*data->nerrs;
-	log_err("%s:%d:%d: %s", data->ifn->str, yyloc->first_line, yyloc->first_column, err);
+	va_list va;
+	va_start(va, err);
+	Location loc = {
+		.first_line = yyloc->first_line,
+		.first_column = yyloc->first_column,
+		.last_line = yyloc->last_line,
+		.last_column = yyloc->last_column,
+		.src_file = data->ifn,
+	};
+	vlog_err_at(&loc, err, va);
+	va_end(va);
 }
 
 static int indent_len(int tab_size, char* inp)
@@ -214,7 +230,7 @@ static void make_emph_str(Sugar* emph, char* ytext, size_t yleng)
 			make_strv(emph_call, yleng == 2 ? "af" : "sc");
 			break;
 		default:
-			log_err("Unknown emphasis delimiter '%s'", ytext);
+			log_err("Unknown emphasis delimiter '%s' (this is a bug, you shounldn't be seeing this!)", ytext);
 			exit(1);
 	}
 	make_sugar(emph, emph_call, yleng);
@@ -236,6 +252,38 @@ static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng)
 	make_strr(hdr_call, hdr_raw);
 
 	make_sugar(hdr, hdr_call, yleng);
+}
+
+static void handle_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc, char* ytext)
+{
+	// Extract file name
+	char* fname = 1 + strchr(ytext, '"');
+	char* fnameclosepos = strrchr(ytext, '"');
+	*fnameclosepos = '\0';
+
+	// Only record a new filename
+	if (strcmp(yextra->ifn->str, fname))
+	{
+		Str* nifn = malloc(sizeof(Str));
+		make_strc(nifn, fname);
+		yextra->ifn = nifn;
+
+		ListNode* ln = malloc(sizeof(ListNode));
+		make_list_node(ln, nifn);
+		USE_LOCK(List* namesList, yextra->mtNamesList, append_list_node(namesList, ln));
+	}
+
+	// Extract line and column number strings
+	char* flnums = fnameclosepos + 2;
+	char* flcnumgap = strchr(flnums, ' ');
+	*flcnumgap = '\0';
+	char* fcnums = flcnumgap + 1;
+
+	// Assign locations
+	yloc->first_line = atoi(flnums);
+	yloc->first_column = atoi(fcnums);
+	yloc->last_line = yloc->first_line;
+	yloc->last_column = yloc->first_column;
 }
 
 #if __GNUC__
