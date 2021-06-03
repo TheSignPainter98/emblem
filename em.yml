@@ -35,6 +35,14 @@ author_note: This is maintained by Edward Jones, source code is available at <gi
 examples:
   - input: em -Tutf8 hello.em -
 args:
+  - type: help
+    short: -h
+    long: --help
+    help: Display this help message and exit
+  - type: version
+    short: -V
+    long: --version
+    help: Display version and license information and exit
   - dest: input_file
     metaDest: file
     doc: Input file
