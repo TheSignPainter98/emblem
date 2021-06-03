@@ -11,9 +11,10 @@ FORMAT_CHECKER_FLAGS = -Werror -i --dry-run
 
 SUFFIXES = .moon .lc .Po
 
-# Required by libtoolize
+# libtool flags
 ACLOCAL_AMFLAGS = -I m4
 AM_YFLAGS = -d
+AM_LIBTOOLFLAGS = --quiet
 
 M4 = m4 -P
 M4FLAGS = -E
