@@ -74,6 +74,7 @@ typedef struct
 }
 
 %nterm <args>			args
+%nterm <args>			trailing_args
 %nterm <doc>  			doc
 %nterm <node>			line
 %nterm <node>			line_content
@@ -87,6 +88,7 @@ typedef struct
 %token 					T_INDENT 			"indent"
 %token 					T_LN 				"newline"
 %token 		  			T_COLON				"colon"
+%token 		  			T_DOUBLE_COLON		"double-colon"
 %token <sugar>			T_UNDERSCORE_OPEN 	"opening underscore(s)"
 %token <sugar>			T_ASTERISK_OPEN		"opening asterisk(s)"
 %token <sugar>			T_BACKTICK_OPEN		"opening backtick"
@@ -138,10 +140,16 @@ line
 	;
 
 args
-	: %empty										{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
-	| T_COLON line_content_ne T_LN					{ $$ = malloc(sizeof(CallIO)); make_call_io($$); prepend_call_io_arg($$, $2); }
-	| T_COLON T_LN T_INDENT maybe_lines T_DEDENT	{ $$ = malloc(sizeof(CallIO)); make_call_io($$); prepend_call_io_arg($$, $4); }
-	| T_GROUP_OPEN line_content T_GROUP_CLOSE args 	{ $$ = $4; prepend_call_io_arg($$, $2); }
+	: %empty																{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
+	| T_COLON line_content_ne T_LN											{ $$ = malloc(sizeof(CallIO)); make_call_io($$); prepend_call_io_arg($$, $2); }
+	| T_COLON T_LN T_INDENT maybe_lines T_DEDENT trailing_args 				{ $$ = $6; prepend_call_io_arg($$, $4); }
+	| T_GROUP_OPEN line_content T_GROUP_CLOSE args 							{ $$ = $4; prepend_call_io_arg($$, $2); }
+	| T_GROUP_OPEN T_LN T_INDENT line_content T_DEDENT T_GROUP_CLOSE args 	{ $$ = $7; prepend_call_io_arg($$, $4); }
+	;
+
+trailing_args
+	: %empty 														{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
+	| T_DOUBLE_COLON T_LN T_INDENT maybe_lines T_DEDENT trailing_args	{ $$ = $6; prepend_call_io_arg($$, $4); }
 	;
 
 line_content

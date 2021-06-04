@@ -77,6 +77,7 @@ EMPH_EQUALS			"=""="?
 BLOCK_COMMENT_CLOSE "*/"
 BLOCK_COMMENT_OPEN  "/*"
 COLON				":"
+DOUBLE_COLON		"::"
 COMMENT_LINE		{LINE_COMMENT_START}.*{LN}
 DIRECTIVE			"."[^ \t\r\n:{}]+
 GROUP_CLOSE			"}"
@@ -155,6 +156,7 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 <FILE_BODY>{EMPH_EQUALS}			{ EMPHASIS(T_EQUALS_OPEN, T_EQUALS_CLOSE); }
 <FILE_BODY>{LN}						{ BEGIN(INITIAL_WHITE); return T_LN; }
 <FILE_BODY>{DIRECTIVE}				{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
+<FILE_BODY>{DOUBLE_COLON}			{ yyextra->opening_emph = true; return T_DOUBLE_COLON; }
 <FILE_BODY>{COLON}					{ yyextra->opening_emph = true; return T_COLON; }
 <FILE_BODY>{GROUP_OPEN}				{ yyextra->opening_emph = true; return T_GROUP_OPEN; }
 <FILE_BODY>{GROUP_CLOSE}			{ yyextra->opening_emph = false; return T_GROUP_CLOSE; }
