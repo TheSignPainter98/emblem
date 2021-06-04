@@ -10,7 +10,7 @@ cat << EOF
 #include "logs/logs.h"
 #include <lauxlib.h>
 
-int load_em_std_lib(ExtensionState* L)
+int load_em_std_lib(ExtensionState* s)
 {
 	int rc = 0;
 $extension_lib_loaders

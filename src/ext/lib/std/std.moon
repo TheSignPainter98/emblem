@@ -377,4 +377,4 @@ em.test_func = (...) ->
 	return false
 	-- return x
 
-{:Component, :Toc, :em}
+{:Component, :Toc, :eval, :node_string, :eval_string}

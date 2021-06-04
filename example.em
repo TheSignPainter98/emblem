@@ -22,6 +22,18 @@ This is an hyphen and en dash \--- and this is a pair of hyphens \-\-.
 
 This is something `\\familiar@looking\{\}`, recognised but not accepted here.
 
+.streq{asdf}{fdsa}
+.streq{asdf}{asdf}
+.echo{asdf}: Hello, world!
+
+.if{false}:
+	fdjakfdsa
+::
+	fdss
+
+//.while{false}:
+// 	hey?
+
 #* Table of Contents
 .toc
 
