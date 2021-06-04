@@ -142,3 +142,4 @@ src/ext/lua-lib-loaders.c
 emdoc.*
 .clang-tidy
 clang-tidy-info.json
+lua-lib-load.c
