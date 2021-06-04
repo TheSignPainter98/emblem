@@ -3,8 +3,6 @@ import rep from string
 import open from io
 import load from require 'lyaml'
 
-export em = {}
-
 export id = (x) -> x
 export do_nothing = (x) ->
 

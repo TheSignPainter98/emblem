@@ -16,6 +16,7 @@
 #define EM_ITER_NUM_VAR_NAME	   "em_iter"
 #define EM_ENV_VAR_NAME			   "_em_env"
 
+static void set_globals(ExtensionEnv* e);
 static void load_em_std_functions(ExtensionState* s);
 static int load_libraries(ExtensionState* s, ExtParams* params);
 static void load_library_set(ExtensionState* s, luaL_Reg* lib);
@@ -54,12 +55,22 @@ int make_doc_ext_state(Doc* doc, ExtParams* params)
 	make_lua_pointer(doc->ext->styler, STYLER, doc->styler);
 	provide_styler(doc->ext);
 
-	doc->ext->selfp = malloc(sizeof(LuaPointer));
-	make_lua_pointer(doc->ext->selfp, EXT_ENV, doc->ext);
-	lua_pushlightuserdata(doc->ext->state, doc->ext->selfp);
-	lua_setglobal(doc->ext->state, EM_ENV_VAR_NAME);
+	set_globals(doc->ext);
 
 	return load_libraries(doc->ext->state, params);
+}
+
+static void set_globals(ExtensionEnv* e)
+{
+	// Create the `em` table
+	lua_newtable(e->state);
+	lua_setglobal(e->state, EM_PUBLIC_TABLE);
+
+	// Allow the environment to access itself
+	e->selfp = malloc(sizeof(LuaPointer));
+	make_lua_pointer(e->selfp, EXT_ENV, e);
+	lua_pushlightuserdata(e->state, e->selfp);
+	lua_setglobal(e->state, EM_ENV_VAR_NAME);
 }
 
 #define LOAD_LIBRARY_SET(lvl, s, lib)                                                                                  \
