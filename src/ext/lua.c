@@ -38,9 +38,6 @@ int exec_lua_pass(Doc* doc) { return exec_lua_pass_on_node(doc->ext->state, doc-
 #include "debug.h"
 int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 {
-	log_debug("-asdf-");
-	dumpstack(s);
-	log_debug("-asdf-");
 	switch (node->content->type)
 	{
 		case WORD:
