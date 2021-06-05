@@ -3,7 +3,6 @@ import concat, insert from table
 import eval_string from require 'std.std'
 
 vars = {}
-warn_undefined = true
 
 get_var = (rn, d) ->
 	n = eval_string rn
