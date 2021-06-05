@@ -1,5 +1,6 @@
 #include "drivers.h"
 
+#include "bbcode.h"
 #include "data/cmp.h"
 #include "html.h"
 #include "logs/logs.h"
@@ -27,6 +28,7 @@ typedef struct
 
 InternalDriverDecl internal_drivers[] = {
 	{ "html", make_html_driver },
+	{ "bb", make_bbcode_driver },
 };
 
 int get_output_driver(OutputDriver* driver, Args* args)
