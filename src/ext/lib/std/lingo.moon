@@ -3,12 +3,18 @@ import concat, insert from table
 import eval_string from require 'std.std'
 
 vars = {}
+warn_undefined = true
 
-em.get_var = (n, d) ->
-	vars[n] if vars[n] else d
+get_var = (rn, d) ->
+	n = eval_string rn
+	if vars[n]
+		return vars[n]
+	return d
+em['get-var'] = get_var
 
-em.set_var = (n, v) ->
-	vars[n] = v
+set_var = (n, v) ->
+	vars[eval_string n] = eval_string v
+em['set-var'] = set_var
 
 em.echo = (...) ->
 	print concat [ eval_string v for v in *{...} ], ' '
@@ -41,7 +47,7 @@ em.while = (c, b) ->
 em.foreach = (v, vs, b) ->
 	ret = {}
 	for e in (eval_string vs)\gmatch('%S+')
-		em.set_var e, v
+		set_var e, v
 		insert ret, eval b
 	ret
 

@@ -162,7 +162,10 @@ node_string = (n) ->
 			error "Unrecognised node type '#{n.type}'"
 			return 1
 
-eval_string = (d) -> node_string eval d
+eval_string = (d) ->
+	if 'userdata' == type d
+		return node_string eval d
+	d
 
 class SyncContainer extends Component
 	new: =>

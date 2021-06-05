@@ -22,6 +22,15 @@ This is an hyphen and en dash \--- and this is a pair of hyphens \-\-.
 
 This is something `\\familiar@looking\{\}`, recognised but not accepted here.
 
+XXXXX
+.set-var{x}{fdhjfkldshafl}
+YYYYY
+.get-var{x}
+ZZZZZ
+.get-var{y}
+WWWWW
+.get-var{z}{123}
+XXXXX
 .streq{asdf}{fdsa}
 .streq{asdf}{asdf}
 .echo{asdf}: Hello, world!
@@ -33,6 +42,10 @@ This is something `\\familiar@looking\{\}`, recognised but not accepted here.
 
 //.while{false}:
 // 	hey?
+//.foreach{x}{hello world!}:
+//	asdf
+//	.get-var{x}
+//	fdsa
 
 #* Table of Contents
 .toc
