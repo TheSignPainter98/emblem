@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ext-params.h"
+#include "ext-env.h"
 
 #define EM_IMPORT_STYLESHEET_FUNC_NAME "stylesheet"
 #define STYLER_LP_LOC				   "_em_styler"

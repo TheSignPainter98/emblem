@@ -2,6 +2,14 @@ import lower from string
 import concat, insert from table
 import eval_string from require 'std.std'
 
+vars = {}
+
+em.get_var = (n, d) ->
+	vars[n] if vars[n] else d
+
+em.set_var = (n, v) ->
+	vars[n] = v
+
 em.echo = (...) ->
 	print concat [ eval_string v for v in *{...} ], ' '
 
@@ -30,14 +38,20 @@ em.while = (c, b) ->
 		insert ret, eval b
 	ret
 
-em.for = (v, vs, b) ->
+em.foreach = (v, vs, b) ->
 	ret = {}
-	for v in (eval_string vs)\gmatch('%S+')
-		-- TODO: set v
+	for e in (eval_string vs)\gmatch('%S+')
+		em.set_var e, v
 		insert ret, eval b
 	ret
 
 em.streq = (s, t) ->
 	toint (eval_string s) == eval_string t
+
+em.defined = (v) ->
+	toint vars[v] != nil
+
+em.exists = (f) ->
+	toint em[f] != nil
 
 {:cond, :toint}

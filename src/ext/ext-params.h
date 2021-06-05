@@ -1,24 +1,15 @@
 #pragma once
 
 #include "argp.h"
-#include "lua-pointers.h"
+#include "style/css-params.h"
 #include <lua.h>
 #include <stdbool.h>
-
-typedef lua_State ExtensionState;
-typedef struct
-{
-	ExtensionState* state;
-	LuaPointer* styler;
-	LuaPointer* selfp;
-	int iter_num;
-	bool require_extra_run;
-} ExtensionEnv;
 
 typedef struct
 {
 	int sandbox_lvl;
+	Styler* styler;
 } ExtParams;
 
-void init_ext_params(ExtParams* params, Args* args);
+void init_ext_params(ExtParams* params, Args* args, Styler* styler);
 void dest_ext_params(ExtParams* params);

@@ -11,10 +11,17 @@ void make_doc(Doc* doc, DocTreeNode* root, Args* args)
 	doc->root	= root;
 	doc->styler = malloc(sizeof(Styler));
 	make_styler(doc->styler, args);
+
+	ExtParams ext_params;
+	init_ext_params(&ext_params, args, doc->styler);
+	doc->ext = malloc(sizeof(ExtensionEnv));
+	make_ext_env(doc->ext, &ext_params);
 }
 
 void dest_doc(Doc* doc)
 {
+	dest_ext_env(doc->ext);
+	free(doc->ext);
 	dest_styler(doc->styler);
 	free(doc->styler);
 	dest_free_doc_tree_node(doc->root, false);

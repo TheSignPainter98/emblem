@@ -3,6 +3,7 @@
 #include "argp.h"
 #include "data/list.h"
 #include "data/str.h"
+#include "ext/ext-env.h"
 #include "ext/ext-params.h"
 #include "location.h"
 #include "style/css-params.h"

@@ -2,127 +2,19 @@
 
 #include "logs/logs.h"
 #include "lua-ast-io.h"
-#include "lua-lib-load.h"
-#include "lua-pointers.h"
 #include "style.h"
 #include <lauxlib.h>
 #include <lualib.h>
 #include <string.h>
 
-#define EM_EVAL_NODE_FUNC_NAME	   "eval"
-#define EM_PUBLIC_TABLE			   "em"
-#define EM_AST_NODE_TYPE_FUNC_NAME "ast_type_name"
-#define EM_REQUIRE_RUNS_FUNC_NAME  "requires_reiter"
-#define EM_ITER_NUM_VAR_NAME	   "em_iter"
-#define EM_ENV_VAR_NAME			   "_em_env"
 
-static void set_globals(ExtensionEnv* e);
-static void load_em_std_functions(ExtensionState* s);
-static int load_libraries(ExtensionState* s, ExtParams* params);
-static void load_library_set(ExtensionState* s, luaL_Reg* lib);
 static bool is_callable(ExtensionState* s, int idx);
-static int ext_require_rerun(ExtensionState* s);
 
-static luaL_Reg lua_std_libs_universal[] = {
-	{ "", luaopen_base },
-	{ LUA_LOADLIBNAME, luaopen_package },
-	{ LUA_COLIBNAME, luaopen_coroutine },
-	{ LUA_UTF8LIBNAME, luaopen_utf8 },
-	{ LUA_TABLIBNAME, luaopen_table },
-	{ LUA_STRLIBNAME, luaopen_string },
-	{ LUA_MATHLIBNAME, luaopen_math },
-	{ LUA_DBLIBNAME, luaopen_debug },
-	{ NULL, NULL },
-};
-
-static luaL_Reg lua_std_libs_restriction_lvl_1[] = {
-	{ LUA_IOLIBNAME, luaopen_io },
-	{ NULL, NULL },
-};
-
-static luaL_Reg lua_std_libs_restriction_lvl_0[] = {
-	{ LUA_OSLIBNAME, luaopen_os },
-	{ NULL, NULL },
-};
-
-int make_doc_ext_state(Doc* doc, ExtParams* params)
+void inc_iter_num(Doc* doc)
 {
-	doc->ext					= malloc(sizeof(ExtensionEnv));
-	doc->ext->state				= luaL_newstate();
-	doc->ext->require_extra_run = true;
-	doc->ext->iter_num			= 0;
-	doc->ext->styler			= malloc(sizeof(LuaPointer));
-	make_lua_pointer(doc->ext->styler, STYLER, doc->styler);
-	provide_styler(doc->ext);
-
-	set_globals(doc->ext);
-
-	return load_libraries(doc->ext->state, params);
-}
-
-static void set_globals(ExtensionEnv* e)
-{
-	// Create the `em` table
-	lua_newtable(e->state);
-	lua_setglobal(e->state, EM_PUBLIC_TABLE);
-
-	// Allow the environment to access itself
-	e->selfp = malloc(sizeof(LuaPointer));
-	make_lua_pointer(e->selfp, EXT_ENV, e);
-	lua_pushlightuserdata(e->state, e->selfp);
-	lua_setglobal(e->state, EM_ENV_VAR_NAME);
-}
-
-#define LOAD_LIBRARY_SET(lvl, s, lib)                                                                                  \
-	if (params->sandbox_lvl <= (lvl))                                                                                  \
-	{                                                                                                                  \
-		load_library_set(s, lib);                                                                                      \
-	}
-
-static int load_libraries(ExtensionState* s, ExtParams* params)
-{
-	LOAD_LIBRARY_SET(2, s, lua_std_libs_universal);
-	LOAD_LIBRARY_SET(1, s, lua_std_libs_restriction_lvl_1);
-	LOAD_LIBRARY_SET(0, s, lua_std_libs_restriction_lvl_0);
-
-	load_em_std_functions(s);
-
-	return load_em_std_lib(s);
-}
-
-static void load_em_std_functions(ExtensionState* s)
-{
-	lua_register(s, EM_EVAL_NODE_FUNC_NAME, ext_eval_tree);
-	lua_register(s, EM_AST_NODE_TYPE_FUNC_NAME, get_ast_type_name);
-	lua_register(s, EM_IMPORT_STYLESHEET_FUNC_NAME, ext_import_stylesheet);
-	lua_register(s, EM_REQUIRE_RUNS_FUNC_NAME, ext_require_rerun);
-}
-
-static void load_library_set(ExtensionState* s, luaL_Reg* lib)
-{
-	while (lib->func)
-	{
-		luaL_requiref(s, lib->name, lib->func, 1);
-		lua_pop(s, 1); // remove lib
-		lib++;
-	}
-}
-
-void dest_doc_ext_state(Doc* doc)
-{
-	lua_close(doc->ext->state);
-	dest_lua_pointer(doc->ext->selfp, NULL);
-	free(doc->ext->selfp);
-	dest_lua_pointer(doc->ext->styler, NULL);
-	free(doc->ext->styler);
-	free(doc->ext);
-}
-
-void inc_iter_num(ExtensionEnv* e)
-{
-	e->iter_num++;
-	lua_pushinteger(e->state, e->iter_num);
-	lua_setglobal(e->state, EM_ITER_NUM_VAR_NAME);
+	doc->ext->iter_num++;
+	lua_pushinteger(doc->ext->state, doc->ext->iter_num);
+	lua_setglobal(doc->ext->state, EM_ITER_NUM_VAR_NAME);
 }
 
 int exec_lua_pass(Doc* doc) { return exec_lua_pass_on_node(doc->ext->state, doc->root); }
@@ -265,30 +157,4 @@ static bool is_callable(ExtensionState* s, int idx)
 	lua_pop(s, -1);
 
 	return callable;
-}
-
-static int ext_require_rerun(ExtensionState* s)
-{
-	if (lua_gettop(s) != 0)
-		if (log_warn("Arguments to %s are ignored", EM_REQUIRE_RUNS_FUNC_NAME))
-			luaL_error(s, "Warnings are fatal");
-
-	lua_getglobal(s, EM_ENV_VAR_NAME);
-	if (!lua_isuserdata(s, -1))
-		luaL_error(s,
-			"Environment variable %s is not a userdata object (it is a %s value). There is no reason to change its "
-			"value so please don't",
-			EM_ENV_VAR_NAME, luaL_typename(s, -1));
-
-	LuaPointer* lp = lua_touserdata(s, -1);
-	if (lp->type != EXT_ENV)
-		luaL_error(s,
-			"Environment variable %s has been changed and no longer represents an environment. THere is no reason to "
-			"change its value, so please don't",
-			EM_ENV_VAR_NAME);
-	lua_pop(s, -1);
-
-	ExtensionEnv* e		 = lp->data;
-	e->require_extra_run = true;
-	return 0;
 }
