@@ -68,7 +68,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 				{
 					node->content->call_params->result = node->content->call_params->args->fst->data;
 					lua_pop(s, -1); // Remove call function
-					return 0;
+					return exec_lua_pass_on_node(s, node->content->call_params->result);
 				}
 
 				log_debug("Putting args into lines node for result");
@@ -82,7 +82,8 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 					prepend_doc_tree_node_child(linesNode, linesNode->content->lines, currArg);
 				node->content->call_params->result = linesNode;
 				lua_pop(s, -1); // Remove call function
-				return 0;
+
+				return exec_lua_pass_on_node(s, node->content->call_params->result);
 			}
 			if (!is_callable(s, -1))
 			{
