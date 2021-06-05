@@ -2,6 +2,7 @@
 
 #include "logs/logs.h"
 #include <lauxlib.h>
+#include <lualib.h>
 
 #define ON_START_EVENT_NAME		 "on_start"
 #define ON_ITER_START_EVENT_NAME "on_iter_start"
@@ -9,26 +10,6 @@
 #define ON_END_EVENT_NAME		 "on_end"
 
 static int do_event(ExtensionState* s, const char* event_name);
-
-/*
- * #define HANDLE_LUA_EXTREMAL_EVENT(name, L) \
- *
- * // TODO: Remove this old way of handling reruns! Simplify!
- * #define HANDLE_LUA_ITER_EVENT(L, name, iter_num) \
- *     lua_getglobal(L, name); \
- *     int rc = lua_pcall(L, 0, 0, 0); \
- *     switch (rc) \
- *     { \
- *         case LUA_OK: \
- *             return 0; \
- *         case LUA_YIELD: \
- *             log_warn("Extension " name " function yielded instead of returned"); \
- *             return 1; \
- *         default: \
- *             log_err("Running " name " event failed with error: %s", lua_tostring(L, -1)); \
- *             return 1; \
- *     }
- */
 
 int do_lua_start_event(ExtensionState* s) { return do_event(s, ON_START_EVENT_NAME); }
 

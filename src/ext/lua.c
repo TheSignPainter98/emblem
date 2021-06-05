@@ -5,8 +5,8 @@
 #include "style.h"
 #include <lauxlib.h>
 #include <lualib.h>
+#include <stdbool.h>
 #include <string.h>
-
 
 static bool is_callable(ExtensionState* s, int idx);
 

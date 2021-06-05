@@ -4,6 +4,7 @@
 #include "lua.h"
 #include "pp/lambda.h"
 #include "style/css.h"
+#include <stdlib.h>
 #include <string.h>
 
 void make_doc(Doc* doc, DocTreeNode* root, Args* args)
