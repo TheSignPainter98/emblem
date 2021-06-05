@@ -31,9 +31,6 @@ int write_output(Str* fname, List* content)
 		Str* curr_str;
 		while (iter_list((void**)&curr_str, &cli))
 		{
-			/* log_debug("%p", (void*)(out_buf + curr_pos)); */
-			/* log_debug("%s", curr_str->str); */
-			/* log_debug("%ld", curr_str->len); */
 			strncat(out_buf + curr_pos, curr_str->str, curr_str->len);
 			curr_pos += curr_str->len;
 		}
