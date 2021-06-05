@@ -1,11 +1,11 @@
 #pragma once
 
-#include <lualib.h>
 #include "ext-params.h"
 #include "lua-pointers.h"
+#include <lualib.h>
 
-#define EM_PUBLIC_TABLE			   "em"
-#define EM_ITER_NUM_VAR_NAME	   "em_iter"
+#define EM_PUBLIC_TABLE		 "em"
+#define EM_ITER_NUM_VAR_NAME "em_iter"
 
 typedef lua_State ExtensionState;
 typedef struct

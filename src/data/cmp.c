@@ -4,7 +4,7 @@
 #include "pp/ignore_warning.h"
 #include <string.h>
 
-#define COMPARISON_BODY(type)                                                                                                \
+#define COMPARISON_BODY(type)                                                                                          \
 	{                                                                                                                  \
 		TYPE_PUN_DEREFERENCE(type p1 = *(type*)&v1);                                                                   \
 		TYPE_PUN_DEREFERENCE(type p2 = *(type*)&v2);                                                                   \

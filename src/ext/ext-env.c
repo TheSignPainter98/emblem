@@ -63,10 +63,7 @@ void dest_ext_env(ExtensionEnv* ext)
 	free(ext->styler);
 }
 
-void finalise_env_for_typesetting(ExtensionEnv* e)
-{
-	rescind_styler(e);
-}
+void finalise_env_for_typesetting(ExtensionEnv* e) { rescind_styler(e); }
 
 static void set_globals(ExtensionEnv* e)
 {

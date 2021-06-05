@@ -1,9 +1,9 @@
 #include "typesetter.h"
 
+#include "ext/ext-env.h"
 #include "ext/ext-params.h"
 #include "ext/lua-events.h"
 #include "ext/lua.h"
-#include "ext/ext-env.h"
 /* #include "ext/style.h" */
 #include "logs/logs.h"
 #include "style/css.h"

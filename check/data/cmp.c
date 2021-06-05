@@ -19,9 +19,12 @@
 	{                                                                                                                  \
 		type rv1 = v1;                                                                                                 \
 		type rv2 = v2;                                                                                                 \
-		TYPE_PUN_DEREFERENCE(ARRAY_BOUND_MISMATCH(cr_assert(cmp_##name##s(*(void**)&rv1, *(void**)&rv2) == CMP_LT, #name " '" fmt "' >= '" fmt "'", v1, v2)));                           \
-		TYPE_PUN_DEREFERENCE(ARRAY_BOUND_MISMATCH(cr_assert(cmp_##name##s(*(void**)&rv1, *(void**)&rv2) == CMP_EQ, #name " '" fmt "' != '" fmt "'", v2, v1)));                           \
-		TYPE_PUN_DEREFERENCE(ARRAY_BOUND_MISMATCH(cr_assert(cmp_##name##s(*(void**)&rv1, *(void**)&rv2) == CMP_GT, #name " '" fmt "' <= '" fmt "'", v2, v1)));                           \
+		TYPE_PUN_DEREFERENCE(ARRAY_BOUND_MISMATCH(cr_assert(                                                           \
+			cmp_##name##s(*(void**)&rv1, *(void**)&rv2) == CMP_LT, #name " '" fmt "' >= '" fmt "'", v1, v2)));         \
+		TYPE_PUN_DEREFERENCE(ARRAY_BOUND_MISMATCH(cr_assert(                                                           \
+			cmp_##name##s(*(void**)&rv1, *(void**)&rv2) == CMP_EQ, #name " '" fmt "' != '" fmt "'", v2, v1)));         \
+		TYPE_PUN_DEREFERENCE(ARRAY_BOUND_MISMATCH(cr_assert(                                                           \
+			cmp_##name##s(*(void**)&rv1, *(void**)&rv2) == CMP_GT, #name " '" fmt "' <= '" fmt "'", v2, v1)));         \
 	}
 
 // BEGIN_NOLINT
