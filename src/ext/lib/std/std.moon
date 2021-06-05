@@ -214,10 +214,9 @@ for i = 1,6
 	insert heading_counters, Counter!
 	if i > 1
 		heading_counters[i - 1]\add_sub_counter heading_counters[i]
-	em["h#{i}"] = ->
-		text = "Hello this is an h#{i} heading?"
+	em["h#{i}"] = (c) ->
 		ref = concat (extend [ c.val for c in *heading_counters[,i - 1] ], { heading_counters[i]\use! }), '.'
-		ret = ref .. " " .. text
+		ret = ref .. " " .. eval_string c
 		toc\add {ret, i}
 		ret
 
