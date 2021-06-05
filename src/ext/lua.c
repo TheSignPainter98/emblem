@@ -47,6 +47,10 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 			return 0;
 		case CALL:
 		{
+			// Remove old result if present
+			if (node->content->call_params->result)
+				dest_free_doc_tree_node(node->content->call_params->result, true);
+
 			lua_getglobal(s, EM_PUBLIC_TABLE);
 			lua_getfield(s, -1, node->name->str);
 			if (lua_isnoneornil(s, -1))
@@ -87,10 +91,6 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 				lua_pop(s, -1); // Remove call function
 				return -1;
 			}
-
-			// Remove old result of present
-			if (node->content->call_params->result)
-				dest_free_doc_tree_node(node->content->call_params->result, true);
 
 			// Prepare arguments
 			const int num_args = node->content->call_params->args->cnt;
