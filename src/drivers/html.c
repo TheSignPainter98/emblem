@@ -30,7 +30,7 @@ static Pair const html_special_functions[] = {
 static const size_t num_html_special_functions = sizeof(html_special_functions) / sizeof(*html_special_functions);
 
 static int driver_runner(Doc* doc, DriverParams* params);
-static int output_stylesheet(LinearFormatter* formatter, Str* time_str, List* css_snippets);
+static int output_stylesheet(LinearFormatter* css_formatter, Str* time_str);
 static int format_doc_as_html(LinearFormatter* formatter, Str* time_str, Doc* doc);
 static int format_node_as_html(LinearFormatter* formatter, DocTreeNode* node);
 static int format_node_list_as_html(LinearFormatter* formatter, List* node_list);
@@ -47,6 +47,7 @@ static int format_node_list_as_html(LinearFormatter* formatter, List* node_list)
 #define STYLESHEET_LINK				  "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\">"
 #define TITLE_DEF					  "<title>%s</title>"
 #define HTML_DOCUMENT_OUTPUT_NAME_FMT "%s.html"
+#define CSS_DOCUMENT_OUTPUT_NAME_FMT  "%s.css"
 
 int make_html_driver(InternalDriver* driver)
 {
@@ -70,8 +71,6 @@ static int driver_runner(Doc* doc, DriverParams* params)
 		&formatter, params, num_html_special_functions, html_special_functions, &document_output_name_fmt);
 	Str time_str;
 	get_time_str(&time_str);
-
-	log_info("Outputting document to '%s'", formatter.output_doc_name->str);
 
 	// Reformat the document and output it
 	rc = format_doc_as_html(&formatter, &time_str, doc);
@@ -193,9 +192,9 @@ static int format_node_list_as_html(LinearFormatter* formatter, List* node_list)
 	return rc;
 }
 
-static int output_stylesheet(LinearFormatter* formatter, Str* time_str, List* css_snippets)
+static int output_stylesheet(LinearFormatter* css_formatter, Str* time_str)
 {
-	log_info("Outputting stylesheet to '%s'", formatter->stylesheet_name->str);
+	log_info("Preparing stylesheet for output");
 
 	// Add the header to the css
 	ListNode* ln		 = malloc(sizeof(ListNode));
