@@ -29,13 +29,14 @@ typedef struct
 	DriverRunner run;
 } OutputDriver;
 
-#define TS_NONE			 0x0
-#define TS_BASIC_STYLING 0x1
-#define TS_COLOUR		 0x2
-#define TS_IMAGE		 0x4
-#define TS_PLACEMENT	 0x8
-#define TS_SVG			 0x10
 typedef int TypesettingSupport;
+extern const TypesettingSupport TS_NONE;
+extern const TypesettingSupport TS_BASIC_STYLING;
+extern const TypesettingSupport TS_COLOUR;
+extern const TypesettingSupport TS_IMAGE;
+extern const TypesettingSupport TS_TEXT_SIZE;
+extern const TypesettingSupport TS_PLACEMENT;
+extern const TypesettingSupport TS_SVG;
 
 typedef struct OutputDriverInf_s
 {
