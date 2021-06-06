@@ -102,7 +102,7 @@ static int format_doc_as_html(LinearFormatter* formatter, Str* time_str, Doc* do
 	append_linear_formatter_raw(formatter, "<html>");
 	append_linear_formatter_raw(formatter, "\n<head>\n");
 	append_linear_formatter_strf(formatter, STYLESHEET_LINK, formatter->stylesheet_name->str);
-	append_linear_formatter_strf(formatter, TITLE_DEF, formatter->output_doc_name->str);
+	append_linear_formatter_strf(formatter, TITLE_DEF, formatter->output_name_stem->str);
 	/* append_linear_formatter_raw(formatter, "<meta name=\"theme-color\" content=\"#2d2d2d\"/>"); */
 	append_linear_formatter_raw(formatter, "\n</head>");
 	append_linear_formatter_raw(formatter, "\n<body>\n");

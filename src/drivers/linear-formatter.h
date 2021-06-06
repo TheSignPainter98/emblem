@@ -10,13 +10,14 @@ typedef struct
 {
 	List* content;
 	List* formatter_content;
-	Str* output_doc_name;
+	Str* output_name_fmt;
+	Str* output_name_stem;
 	Str* stylesheet_name;
 	Map* call_name_map;
 } LinearFormatter;
 
 void make_linear_formatter(LinearFormatter* formatter, DriverParams* params, size_t num_special_functions,
-	const Pair special_functions[num_special_functions], Str* document_output_name_fmt);
+	const Pair special_functions[num_special_functions], Str* output_name_fmt);
 void dest_linear_formatter(LinearFormatter* formatter);
 
 void concat_linear_formatter_content(LinearFormatter* formatter, List* list);
