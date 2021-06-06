@@ -77,15 +77,22 @@ static int driver_runner(Doc* doc, DriverParams* params)
 	rc = format_doc_as_html(&formatter, &time_str, doc);
 	if (rc)
 		return rc;
-	rc = write_linear_formatter_output(&formatter);
+	rc = write_linear_formatter_output(&formatter, true);
 	if (rc)
 		return rc;
 
 	// Output the style file
-	rc = output_stylesheet(&formatter, &time_str, doc->styler->snippets);
+	Str stylesheet_output_name_fmt;
+	make_strv(&stylesheet_output_name_fmt, CSS_DOCUMENT_OUTPUT_NAME_FMT);
+	LinearFormatter css_formatter;
+	make_linear_formatter(&css_formatter, params, 0, NULL, &stylesheet_output_name_fmt);
+	concat_linear_formatter_content(&css_formatter, doc->styler->snippets);
+	rc = output_stylesheet(&css_formatter, &time_str);
 	if (rc)
 		return rc;
 
+	dest_linear_formatter(&css_formatter);
+	dest_str(&time_str);
 	dest_linear_formatter(&formatter);
 	return 0;
 }
@@ -198,7 +205,11 @@ static int output_stylesheet(LinearFormatter* formatter, Str* time_str, List* cs
 	Str* header_str = malloc(sizeof(Str));
 	make_strr(header_str, header_content);
 	make_list_node(ln, header_str);
-	prepend_list_node(css_snippets, ln);
+	prepend_list_node(css_formatter->content, ln);
+	ListNode* ln2 = malloc(sizeof(ListNode));
+	make_list_node(ln2, header_str);
+	make_list_node(ln2, header_str);
+	prepend_list_node(css_formatter->formatter_content, ln2);
 
-	return write_output(formatter->stylesheet_name, css_snippets);
+	return write_linear_formatter_output(css_formatter, false);
 }

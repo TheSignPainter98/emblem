@@ -4,15 +4,15 @@
 #include "write-out.h"
 #include <stdarg.h>
 
+static void compute_content_strf(Str* str, char* restrict format, va_list va);
+static void add_content(LinearFormatter* formatter, Str* to_add, bool append);
+
 void make_linear_formatter(LinearFormatter* formatter, DriverParams* params, size_t num_special_functions,
-	const Pair special_functions[num_special_functions], Str* document_output_name_fmt)
+	const Pair special_functions[num_special_functions], Str* output_name_fmt)
 {
 	// Compute the name of the outputted document
-	size_t output_doc_name_len = params->output_stem->len + document_output_name_fmt->len;
-	char* output_doc_name_raw  = malloc(output_doc_name_len);
-	snprintf(output_doc_name_raw, output_doc_name_len + 1, document_output_name_fmt->str, params->output_stem->str);
-	formatter->output_doc_name = malloc(sizeof(Str));
-	make_strr(formatter->output_doc_name, output_doc_name_raw);
+	formatter->output_name_fmt	= output_name_fmt;
+	formatter->output_name_stem = params->output_stem;
 
 	// Compute the name of the stylesheet file
 	size_t stylesheet_name_len = params->output_stem->len + sizeof(STYLESHEET_NAME_FMT);
@@ -48,11 +48,11 @@ void dest_linear_formatter(LinearFormatter* formatter)
 	free(formatter->formatter_content);
 	dest_list(formatter->content, true, NULL);
 	free(formatter->content);
-	dest_str(formatter->output_doc_name);
-	free(formatter->output_doc_name);
 	dest_str(formatter->stylesheet_name);
 	free(formatter->stylesheet_name);
 }
+
+void concat_linear_formatter_content(LinearFormatter* formatter, List* list) { cconcat_list(formatter->content, list); }
 
 void append_linear_formatter_raw(LinearFormatter* formatter, char* raw)
 {
@@ -71,28 +71,61 @@ void append_linear_formatter_str(LinearFormatter* formatter, Str* str)
 	append_list_node(formatter->formatter_content, ln2);
 }
 
-void append_linear_formatter_strf(LinearFormatter* formatter, char* restrict format, ...)
-{
+void prepend_linear_formatter_strf(LinearFormatter* formatter, char* restrict format, ...) {
 	va_list va;
-	va_list va2;
 	va_start(va, format);
-	va_copy(va2, va);
-	size_t maxlen = 1 + vsnprintf(NULL, 0, format, va); // NOLINT
-	Str* str	  = malloc(sizeof(Str));
-	char* raw	  = malloc(maxlen * sizeof(char));
-	vsnprintf(raw, maxlen, format, va2);
-	make_strr(str, raw);
-	ListNode* ln = malloc(sizeof(ListNode));
-	make_list_node(ln, str);
-	append_list_node(formatter->content, ln);
+	Str* str = malloc(sizeof(Str));
+	compute_content_strf(str, format, va);
+
+	add_content(formatter, str, false);
+
 	ListNode* ln2 = malloc(sizeof(ListNode));
 	make_list_node(ln2, str);
 	append_list_node(formatter->formatter_content, ln2);
-	va_end(va2);
+
 	va_end(va);
 }
 
-int write_linear_formatter_output(LinearFormatter* formatter)
+void append_linear_formatter_strf(LinearFormatter* formatter, char* restrict format, ...)
 {
-	return write_output(formatter->output_doc_name, formatter->content);
+	va_list va;
+	va_start(va, format);
+	Str* str = malloc(sizeof(Str));
+	compute_content_strf(str, format, va);
+
+	add_content(formatter, str, true);
+
+	ListNode* ln2 = malloc(sizeof(ListNode));
+	make_list_node(ln2, str);
+	append_list_node(formatter->formatter_content, ln2);
+
+	va_end(va);
+}
+
+static void compute_content_strf(Str* str, char* restrict format, va_list va)
+{
+	va_list va2;
+	va_copy(va2, va);
+
+	size_t maxlen = 1 + vsnprintf(NULL, 0, format, va);
+	char* raw	  = malloc(maxlen * sizeof(char));
+	vsnprintf(raw, maxlen, format, va2);
+	make_strr(str, raw);
+
+	va_end(va2);
+}
+
+static void add_content(LinearFormatter* formatter, Str* to_add, bool append)
+{
+	ListNode* ln = malloc(sizeof(ListNode));
+	make_list_node(ln, to_add);
+	if (append)
+		append_list_node(formatter->content, ln);
+	else
+		prepend_list_node(formatter->content, ln);
+}
+
+int write_linear_formatter_output(LinearFormatter* formatter, bool allow_stdout)
+{
+	return write_output(formatter->output_name_fmt, formatter->output_name_stem, allow_stdout, formatter->content);
 }

@@ -63,7 +63,7 @@ static int driver_runner(Doc* doc, DriverParams* params)
 	if (rc)
 		return rc;
 
-	rc = write_linear_formatter_output(&formatter);
+	rc = write_linear_formatter_output(&formatter, true);
 
 	dest_linear_formatter(&formatter);
 	return rc;
