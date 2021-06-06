@@ -31,7 +31,7 @@ int typeset_doc(Doc* doc, Args* args, OutputDriverInf* driver_inf)
 		if (rc)
 			return rc;
 
-		if (driver_inf->supports_typesetting)
+		if (driver_inf->support & TS_PLACEMENT)
 			log_debug("Executing typesetting pass %d", doc->ext->iter_num);
 
 		if (do_lua_iter_end_event(doc->ext->state))

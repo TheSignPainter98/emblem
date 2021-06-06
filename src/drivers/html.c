@@ -50,8 +50,8 @@ static int format_node_list_as_html(LinearFormatter* formatter, List* node_list)
 
 int make_html_driver(InternalDriver* driver)
 {
-	OutputDriverInf* driver_inf		 = malloc(sizeof(OutputDriverInf));
-	driver_inf->supports_typesetting = false,
+	OutputDriverInf* driver_inf = malloc(sizeof(OutputDriverInf));
+	driver_inf->support			= TS_BASIC_STYLING,
 
 	driver->name = "html";
 	driver->inf	 = driver_inf;

@@ -40,8 +40,8 @@ static int format_node_list_as_bbcode(LinearFormatter* formatter, List* node_lis
 
 int make_bbcode_driver(InternalDriver* driver)
 {
-	OutputDriverInf* driver_inf		 = malloc(sizeof(OutputDriverInf));
-	driver_inf->supports_typesetting = false;
+	OutputDriverInf* driver_inf = malloc(sizeof(OutputDriverInf));
+	driver_inf->support			= TS_BASIC_STYLING;
 
 	driver->name = "bbcode";
 	driver->inf	 = driver_inf;
