@@ -137,9 +137,12 @@ src/ext/lua-lib-loaders.c
 
 # Generated files
 *.1
-*.css
-*.html
 emdoc.*
 .clang-tidy
 clang-tidy-info.json
 lua-lib-load.c
+
+# Output files
+*.css
+*.html
+*.bb

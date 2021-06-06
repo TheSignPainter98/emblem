@@ -88,7 +88,7 @@ static const char valid_escape_chars[] = {
 
 static bool is_valid_escape_char(char c);
 static void compute_mark(SanitiserState* state, size_t word_len, char* word, size_t* pos);
-static bool matches_needle(Substitution* sub, size_t word_len, char* word, size_t pos);
+static bool matches_needle(Substitution* sub, size_t word_len, char const* word, size_t pos);
 
 static void init_word_sanitiser(void) __attribute__((constructor));
 static void init_word_sanitiser(void)
@@ -226,7 +226,7 @@ static void compute_mark(SanitiserState* state, size_t word_len, char* word, siz
 	state->seen_non_quote_mark = true;
 }
 
-static bool matches_needle(Substitution* sub, size_t word_len, char* word, size_t pos)
+static bool matches_needle(Substitution* sub, size_t word_len, char const* word, size_t pos)
 {
 	if (word_len < pos + sub->needle_len)
 		return false;
