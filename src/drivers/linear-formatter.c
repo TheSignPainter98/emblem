@@ -107,7 +107,7 @@ static void compute_content_strf(Str* str, char* restrict format, va_list va)
 	va_list va2;
 	va_copy(va2, va);
 
-	size_t maxlen = 1 + vsnprintf(NULL, 0, format, va);
+	size_t maxlen = 1 + vsnprintf(NULL, 0, format, va); // NOLINT
 	char* raw	  = malloc(maxlen * sizeof(char));
 	vsnprintf(raw, maxlen, format, va2);
 	make_strr(str, raw);

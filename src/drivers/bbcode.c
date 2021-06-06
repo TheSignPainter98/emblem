@@ -79,11 +79,13 @@ static int format_node_as_bbcode(LinearFormatter* formatter, DocTreeNode* node)
 	switch (node->content->type)
 	{
 		case WORD:
+		{
 			ListNode* ln = malloc(sizeof(ListNode));
 			make_list_node(ln, node->content->word);
 			append_list_node(formatter->content, ln);
 			append_linear_formatter_raw(formatter, " ");
 			return 0;
+		}
 		case CALL:
 		{
 			int rc = 0;
