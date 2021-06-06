@@ -11,6 +11,7 @@ Test(list, memory_life_cycle)
 	cr_assert_not(l.fst, "List first element has non-NULL value at initialisation");
 	cr_assert_not(l.lst, "List last element has non-NULL value at initialisation");
 	cr_assert_not(l.cnt, "List count is non-zero at initialisation");
+	cr_assert(l.own_mem, "New list does not own its own memory");
 	dest_list(&l, false, NULL);
 }
 
@@ -464,6 +465,7 @@ Test(list, concat)
 	cr_assert(lr.cnt == lns, "Concatenated list length incorrect, expected %ld but got %ld", lns, lr.cnt);
 	cr_assert(lr.fst->data == l1.fst->data, "Concatenated list had different first node");
 	cr_assert(lr.lst->data == l2.lst->data, "Concatenated list has incorrect last");
+	cr_assert(lr.own_mem, "Concatenated list does not claim its own memory");
 
 	ListNode* curr = lr.fst;
 	for (size_t i = 0; i < lns; i++)
@@ -488,4 +490,91 @@ Test(list, concat)
 	dest_list(&lr, true, NULL);
 	dest_list(&l1, true, NULL);
 	dest_list(&l2, true, NULL);
+}
+
+Test(list, cconcat)
+{
+	List l1;
+	List l2;
+	make_list(&l1);
+	make_list(&l2);
+	const size_t len = 104;
+	for (size_t i = 0; i < len; i++)
+	{
+		ListNode* ln1 = malloc(sizeof(ListNode));
+		make_list_node(ln1, (void*)i);
+		append_list_node(&l1, ln1);
+		ListNode* ln2 = malloc(sizeof(ListNode));
+		make_list_node(ln2, (void*)(len + i));
+		append_list_node(&l2, ln2);
+	}
+
+	ListNode* l1fst = l1.fst;
+	ListNode* l1lst = l1.lst;
+	ListNode* l2fst = l2.fst;
+	ListNode* l2lst = l2.lst;
+	cconcat_list(&l1, &l2);
+
+	cr_assert(l1.cnt == 2 * len, "Copy-concatenated list does not report the correct length");
+	cr_assert(l1.own_mem, "Copy-concatenated left list does not own its own memory");
+	cr_assert(l2.own_mem, "Copy-concatenated right list still owns its own memory");
+	cr_assert(l1.fst == l1fst, "Copy-concatenated list does not have the correct first element");
+	cr_assert(l1.lst->data == l2lst->data,
+		"Copy-concatenated list does not have the correct last element, expected %ld but got %ld", (size_t)l2lst->data,
+		(size_t)l1.lst->data);
+	cr_assert(l1lst->nxt->data == l2fst->data,
+		"Copy-concatenated list does not have its former last point to the correct next node");
+
+	ListIter li;
+	make_list_iter(&li, &l1);
+	size_t val;
+	size_t i = 0;
+	while ((iter_list((void**)&val, &li)))
+	{
+		cr_assert(val == i, "Unexpected value in copy-concatenated list, expected %ld but got %ld", i, val);
+		i++;
+	}
+	cr_assert(i == 2 * len,
+		"Iterating through the copy-concatenated list ended at the wrong time, expected %ld elements but got %ld",
+		2 * len, i);
+
+	dest_list(&l1, true, NULL);
+	dest_list(&l2, true, NULL);
+}
+
+Test(list, iconcat)
+{
+	List l1;
+	List l2;
+	make_list(&l1);
+	make_list(&l2);
+	const size_t len = 104;
+	for (size_t i = 0; i < len; i++)
+	{
+		ListNode* ln1 = malloc(sizeof(ListNode));
+		make_list_node(ln1, (void*)i);
+		append_list_node(&l1, ln1);
+		ListNode* ln2 = malloc(sizeof(ListNode));
+		make_list_node(ln2, (void*)(i * 2));
+		append_list_node(&l2, ln2);
+	}
+
+	ListNode* l1fst = l1.fst;
+	ListNode* l1lst = l1.lst;
+	ListNode* l2fst = l2.fst;
+	ListNode* l2lst = l2.lst;
+	iconcat_list(&l1, &l2);
+
+	cr_assert(l1.cnt == 2 * len,
+		"Impurely concatenated list does not report the correct length, expected %ld but got %ld", 2 * len, l1.cnt);
+	cr_assert(l1.own_mem, "Impurely concatenated left list does not own its own memory");
+	cr_assert_not(l2.own_mem, "Impurely concatenated right list still owns its own memory");
+	cr_assert(l1.fst == l1fst, "Impurely concatenated list does not have the correct first element");
+	cr_assert(l1.lst == l2lst, "Impurely concatenated list does not have the correct last element, %ld != %ld",
+		(size_t)l1.lst->data, (size_t)l2lst->data);
+	cr_assert(l1lst->nxt == l2fst, "Previous last of first list does not point to the new next");
+	cr_assert(l2fst->prv == l1lst, "Previous first of second list does not point to the new previous");
+
+	dest_list(&l1, true, NULL);
+	/* dest_list(&l2, true, NULL); */
 }

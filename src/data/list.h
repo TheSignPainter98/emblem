@@ -43,6 +43,10 @@ typedef struct
 	 * @brief The number of elements stored in the list
 	 */
 	size_t cnt;
+	/**
+	 * @brief Indicates whether this list owns the memory it references
+	 */
+	bool own_mem;
 } List;
 
 /**
@@ -216,6 +220,22 @@ void in_list_eq(Maybe* m, List* l, Comparator cmp, void* val);
  * @param l2 The second list to concatenate.
  */
 void concat_list(List* r, List* l1, List* l2);
+
+/**
+ * @brief Concatenate a list in place, affecting exactly one list (takes time linear in the length of the second list)
+ *
+ * @param r List to output
+ * @param l List to concatenate to `r`
+ */
+void cconcat_list(List* r, List* l);
+
+/**
+ * @brief Concatenate a pair of lists in place. Takes constant time and the second list is no longer valid and should be destroyed.
+ *
+ * @param l1 List to concatenate (left)
+ * @param l2 List to concatenate (right)
+ */
+void iconcat_list(List* r, List* l);
 
 /**
  * @brief Return whether all elements of a list of booleans are true

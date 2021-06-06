@@ -5,14 +5,15 @@
 
 void make_list(List* l)
 {
-	l->fst = NULL;
-	l->lst = NULL;
-	l->cnt = 0;
+	l->fst	   = NULL;
+	l->lst	   = NULL;
+	l->cnt	   = 0;
+	l->own_mem = true;
 }
 
 void dest_list(List* l, bool freeNodes, Destructor ed)
 {
-	if (freeNodes || ed)
+	if (l->own_mem && (freeNodes || ed))
 	{
 		ListNode* curr = l->fst;
 		while (curr)
@@ -169,8 +170,9 @@ void in_list_eq(Maybe* m, List* l, Comparator cmp, void* val)
 
 void concat_list(List* r, List* l1, List* l2)
 {
-	r->cnt = l1->cnt + l2->cnt;
-	r->fst = NULL;
+	r->own_mem = true;
+	r->cnt	   = l1->cnt + l2->cnt;
+	r->fst	   = NULL;
 	if (!r->cnt || (!l1->fst && !l2->fst))
 	{
 		r->lst = NULL;
@@ -201,6 +203,41 @@ void concat_list(List* r, List* l1, List* l2)
 	}
 	new_curr->nxt = NULL;
 	r->lst		  = new_curr;
+}
+
+void cconcat_list(List* r, List* l)
+{
+	r->cnt += l->cnt;
+
+	ListNode* curr	 = l->fst;
+	ListNode* app	 = r->lst;
+	ListNode* fst_ln = NULL;
+	while (curr)
+	{
+		ListNode* ln = malloc(sizeof(ListNode));
+		make_list_node(ln, curr->data);
+		if (app)
+			app->nxt = ln;
+		if (!fst_ln)
+			fst_ln = ln;
+		ln->prv = app;
+		app		= ln;
+		curr	= curr->nxt;
+	}
+	r->lst = app;
+	if (!r->fst)
+		r->fst = fst_ln;
+}
+
+void iconcat_list(List* r, List* l)
+{
+	l->own_mem = false;
+	r->cnt += l->cnt;
+	if (r->lst)
+		r->lst->nxt = l->fst;
+	if (l->fst)
+		l->fst->prv = r->lst;
+	r->lst = l->lst;
 }
 
 bool all_list(List* l)
