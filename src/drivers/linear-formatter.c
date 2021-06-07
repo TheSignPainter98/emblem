@@ -108,6 +108,11 @@ static void add_content(LinearFormatter* formatter, Str* to_add, bool append)
 		prepend_list(formatter->content, to_add);
 }
 
+void get_call_name_map(Maybe* mo, LinearFormatter* formatter, Str* name)
+{
+	get_map(mo, formatter->call_name_map, name);
+}
+
 void assign_ownership_to_formatter(LinearFormatter* formatter, Str* str)
 {
 	append_list(formatter->formatter_content, str);

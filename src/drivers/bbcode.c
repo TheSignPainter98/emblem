@@ -88,7 +88,7 @@ static int format_node_as_bbcode(LinearFormatter* formatter, DocTreeNode* node)
 		{
 			int rc = 0;
 			Maybe m;
-			get_map(&m, formatter->call_name_map, node->name);
+			get_call_name_map(&m, formatter, node->name);
 			if (node->content->call->result)
 			{
 				if (m.type == JUST)

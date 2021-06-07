@@ -2,6 +2,7 @@
 
 #include "data/list.h"
 #include "data/map.h"
+#include "data/maybe.h"
 #include "data/str.h"
 #include "driver-params.h"
 #include <stdbool.h>
@@ -26,6 +27,8 @@ void append_linear_formatter_str(LinearFormatter* formatter, Str* str);
 void append_linear_formatter_strf(LinearFormatter* formatter, char* restrict format, ...)
 	__attribute__((format(printf, 2, 3)));
 void prepend_linear_formatter_str(LinearFormatter* formatter, Str* str);
+
+void get_call_name_map(Maybe* mo, LinearFormatter* formatter, Str* name);
 
 void assign_ownership_to_formatter(LinearFormatter* formatter, Str* str);
 

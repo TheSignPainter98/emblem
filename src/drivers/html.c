@@ -128,7 +128,7 @@ static int format_node_as_html(LinearFormatter* formatter, DocTreeNode* node)
 		{
 			Str* html_node_name;
 			Maybe m;
-			get_map(&m, formatter->call_name_map, node->name);
+			get_call_name_map(&m, formatter, node->name);
 			switch (m.type)
 			{
 				case JUST:
