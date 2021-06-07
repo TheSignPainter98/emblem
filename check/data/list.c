@@ -26,6 +26,20 @@ Test(list, node_memory_life_cycle)
 	dest_list_node(&ln, NULL);
 }
 
+Test(list, set_sub)
+{
+	List l;
+	make_list(&l);
+
+	set_sublist(&l, true);
+	cr_assert_not(l.own_mem, "Sublist claims to own its own memory");
+
+	set_sublist(&l, false);
+	cr_assert(l.own_mem, "Non-sublist claims not to own its own memory");
+
+	dest_list(&l, true, NULL);
+}
+
 Test(list, append_one_node)
 {
 	List l;

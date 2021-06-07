@@ -29,6 +29,11 @@ void dest_list(List* l, bool freeNodes, Destructor ed)
 	}
 }
 
+void set_sublist(List* l, bool is_sublist)
+{
+	l->own_mem = !is_sublist;
+}
+
 void make_list_node(ListNode* ln, void* data)
 {
 	ln->nxt	 = NULL;

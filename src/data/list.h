@@ -88,6 +88,14 @@ void make_list(List* l);
 void dest_list(List* l, bool freeNodes, Destructor ed);
 
 /**
+ * @brief Declare whether all nodes of a list are now entirely contained within another, preventing double-frees
+ *
+ * @param l List to modify
+ * @param is_sublist Whether `l` is a sublist of another list
+ */
+void set_sublist(List* l, bool is_sublist);
+
+/**
  * @brief Initialise a list node
  *
  * @param ln Pointer to the memory to initialise
