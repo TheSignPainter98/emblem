@@ -71,7 +71,8 @@ void append_linear_formatter_str(LinearFormatter* formatter, Str* str)
 	append_list_node(formatter->formatter_content, ln2);
 }
 
-void prepend_linear_formatter_strf(LinearFormatter* formatter, char* restrict format, ...) {
+void prepend_linear_formatter_strf(LinearFormatter* formatter, char* restrict format, ...)
+{
 	va_list va;
 	va_start(va, format);
 	Str* str = malloc(sizeof(Str));

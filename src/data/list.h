@@ -230,7 +230,8 @@ void concat_list(List* r, List* l1, List* l2);
 void cconcat_list(List* r, List* l);
 
 /**
- * @brief Concatenate a pair of lists in place. Takes constant time and the second list is no longer valid and should be destroyed.
+ * @brief Concatenate a pair of lists in place. Takes constant time and the second list is no longer valid and should be
+ * destroyed.
  *
  * @param l1 List to concatenate (left)
  * @param l2 List to concatenate (right)
