@@ -124,11 +124,11 @@ docs/html/index.html: scripts/docgen $(em_SOURCES)
 ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./scripts/docgen:;
 
 format:
-	$(FORMATTER) $(FORMAT_FLAGS) $(shell find src/ -type f -regex '.*.[ch]') $(shell find check/ -type f -regex '.*.[ch]')
+	$(FORMATTER) $(FORMAT_FLAGS) S_FORMATTABLE_SRCS
 .PHONY: format
 
 format-check:
-	$(FORMAT_CHECKER) $(FORMAT_CHECKER_FLAGS) $(shell find src/ -type f -regex '.*.[ch]') $(shell find check/ -type f -regex '.*.[ch]')
+	$(FORMAT_CHECKER) $(FORMAT_CHECKER_FLAGS) S_FORMATTABLE_SRCS
 .PHONY: format-check
 
 %.Po: em %.$(OBJEXT)

@@ -2,10 +2,12 @@
 
 extension_lib_srcs=($(find src/ext/lib/ -name '*.moon'))
 extension_lib_built_srcs=($(find src/ext/lib/ -name '*.moon' | for f in $(</dev/stdin); do echo ${f%.*}.lc; done))
-built_srcs=(./src/argp.c ./src/argp.h ./src/pp/ignore_warning.h ./src/ext/lua-lib-load.c ${extension_lib_built_srcs[@]})
+built_srcs=(./config.h ./src/argp.c ./src/argp.h ./src/pp/ignore_warning.h ./src/ext/lua-lib-load.c ${extension_lib_built_srcs[@]})
 parser_srcs=(src/parser/emblem-lexer.l src/parser/emblem-parser.y)
-srcs=(${built_srcs[@]} ${parser_srcs[@]} $(find src -name '*.c' -or -name '*.h' | grep -v 'argp.c$' | grep -v 'argp.h$' | grep -Pv 'emblem-(lexer|parser).[ch]$' | grep -v 'src/pp/ignore_warning.h$'))
-tests=(${built_srcs[@]} ${parser_srcs[@]} $(find src -name '*.c' -or -name '*.h' | grep -v 'argp.c$' | grep -v 'argp.h$' | grep -Pv 'emblem-(lexer|parser).[ch]$' | grep -v 'em.c$' | grep -v 'em.h$') $(find check -name '*.c' -or -name '*.h'))
+hand_written_srcs=($(find src -name '*.c' -or -name '*.h' | grep -v 'argp\.[ch]$' | grep -Pv 'emblem-(lexer|parser)\.[ch]$' | grep -v 'src/pp/ignore_warning\.h$' | grep -v 'config\.h'))
+
+srcs=(${built_srcs[@]} ${parser_srcs[@]} ${hand_written_srcs[@]})
+tests=(${built_srcs[@]} ${parser_srcs[@]} $(echo ${hand_written_srcs[@]} | tr ' ' '\n' | grep -v 'em.[ch]$') $(find check -name '*.c' -or -name '*.h'))
 scripts=($(find scripts -type f | grep -v '.*\.swp'))
 dist_data=($(find share/emblem/ -type f))
 
@@ -30,6 +32,8 @@ function pofile()
 	fi
 }
 
+formattable_srcs=($(echo ${hand_written_srcs[@]} | tr ' ' '\n' | grep '^.*\.[ch]$'))
+
 extra_dist=(${scripts[@]} ${extension_lib_srcs[@]})
 source_dependency_files=($(for s in ${srcs[@]}; do [[ "${s##*.}" =~ ^[cly]$ ]] && pofile $s; done))
 extra_dist=(${scripts[@]} ${extension_lib_srcs[@]} ${source_dependency_files[@]})
@@ -43,6 +47,7 @@ m4_define(S_DEPS_LIBS, $deps_libs)m4_dnl
 m4_define(S_CHECK_DEPS_CFLAGS, $check_deps_cflags)m4_dnl
 m4_define(S_CHECK_DEPS_LIBS, $deps_libs $check_deps_libs)m4_dnl
 m4_define(S_DIST_DATA, ${dist_data[@]})m4_dnl
+m4_define(S_FORMATTABLE_SRCS, ${formattable_srcs[@]})m4_dnl
 m4_define(S_LINTABLE_SRCS, ${lintable_srcs[@]})m4_dnl
 m4_define(S_EXTRA_DIST, ${extra_dist[@]})m4_dnl
 EOF
