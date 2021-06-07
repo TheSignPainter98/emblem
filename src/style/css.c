@@ -73,8 +73,7 @@ void dest_styler(Styler* styler)
 {
 	dest_str(styler->default_typeface);
 	free(styler->default_typeface);
-	dest_list(styler->snippets, true, (Destructor)dest_free_str);
-	/* NON_ISO(dest_list(styler->snippets, true, (Destructor)dest_str)); */
+	dest_list(styler->snippets, (Destructor)dest_free_str);
 	free(styler->snippets);
 	dest_style_preprocessor_params(styler->prep_params);
 	free(styler->prep_params);
@@ -171,9 +170,7 @@ int append_style_sheet(Styler* styler, Str* sheet_loc)
 		return 1;
 	Str* preprocessed_stylesheet_content_str = malloc(sizeof(Str));
 	make_strr(preprocessed_stylesheet_content_str, preprocessed_stylesheet_content);
-	ListNode* ln = malloc(sizeof(ListNode));
-	make_list_node(ln, preprocessed_stylesheet_content_str);
-	append_list_node(styler->snippets, ln);
+	append_list(styler->snippets, preprocessed_stylesheet_content_str);
 
 	// Append style to sheet
 	css_error rc = css_stylesheet_append_data(styler->stylesheet,

@@ -24,6 +24,10 @@ typedef struct ListNode_s
 	 * @brief Pointer to the data stored at this node
 	 */
 	void* data;
+	/**
+	 * @brief Indicates whether this listnode is owned by any lists which contain it
+	 */
+	bool list_mem;
 } ListNode;
 
 /**
@@ -85,7 +89,7 @@ void make_list(List* l);
  * @param freeNodes Iff not false, frees the memory used by the contained ListNodes
  * @param ed Element destructor called on the data field of each ListNode or NULL
  */
-void dest_list(List* l, bool freeNodes, Destructor ed);
+void dest_list(List* l, Destructor ed);
 
 /**
  * @brief Declare whether all nodes of a list are now entirely contained within another, preventing double-frees
@@ -121,6 +125,16 @@ void dest_list_node(ListNode* ln, Destructor ed);
 bool is_empty_list(List* l);
 
 /**
+ * @brief Append a value to a list
+ *
+ * @param l Pointer to the list to affect
+ * @param v Pointer to the node to add
+ *
+ * @return true iff successful
+ */
+bool append_list(List* l, void* v);
+
+/**
  * @brief Append a list node to a list
  *
  * @param l Pointer to the list to affect
@@ -129,6 +143,16 @@ bool is_empty_list(List* l);
  * @return true iff successful
  */
 bool append_list_node(List* l, ListNode* ln);
+
+/**
+ * @brief Add a value to the head of a list
+ *
+ * @param l pointer to the list to change
+ * @param v Pointer to the value to prepend
+ *
+ * @return true iff successful
+ */
+bool prepend_list(List* l, void* v);
 
 /**
  * @brief Add a node to the front of a list

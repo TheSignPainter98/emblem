@@ -121,9 +121,7 @@ static int format_node_as_html(LinearFormatter* formatter, DocTreeNode* node)
 		case WORD:
 		{
 			append_linear_formatter_raw(formatter, " ");
-			ListNode* ln = malloc(sizeof(ListNode));
-			make_list_node(ln, node->content->word);
-			append_list_node(formatter->content, ln);
+			append_linear_formatter_raw(formatter, node->content->word->str);
 			return 0;
 		}
 		case CALL:
@@ -139,9 +137,7 @@ static int format_node_as_html(LinearFormatter* formatter, DocTreeNode* node)
 				case NOTHING:
 					html_node_name = malloc(sizeof(Str));
 					make_strv(html_node_name, "span");
-					ListNode* ln = malloc(sizeof(ListNode));
-					make_list_node(ln, html_node_name);
-					append_list_node(formatter->formatter_content, ln);
+					assign_ownership_to_formatter(formatter, html_node_name);
 					break;
 				default:
 					log_err("Maybe object has unknown data constructor: %d", m.type);
@@ -184,18 +180,12 @@ static int output_stylesheet(LinearFormatter* css_formatter, Str* time_str)
 	log_info("Preparing stylesheet for output");
 
 	// Add the header to the css
-	ListNode* ln		 = malloc(sizeof(ListNode));
 	size_t header_len	 = 1 + snprintf(NULL, 0, STYLESHEET_HEADER, time_str->str);
 	char* header_content = malloc(header_len);
 	snprintf(header_content, header_len, STYLESHEET_HEADER, time_str->str);
 	Str* header_str = malloc(sizeof(Str));
 	make_strr(header_str, header_content);
-	make_list_node(ln, header_str);
-	prepend_list_node(css_formatter->content, ln);
-	ListNode* ln2 = malloc(sizeof(ListNode));
-	make_list_node(ln2, header_str);
-	make_list_node(ln2, header_str);
-	prepend_list_node(css_formatter->formatter_content, ln2);
+	prepend_linear_formatter_str(css_formatter, header_str);
 
 	return write_linear_formatter_output(css_formatter, false);
 }

@@ -18,12 +18,10 @@ Test(map, make_from_list)
 	make_list(&l);
 	for (size_t i = 0; i < NUM_MAP_TEST_ENTRIES; i++)
 	{
-		ListNode* ln = malloc(sizeof(ListNode));
 		Pair* p		 = malloc(sizeof(Pair));
 		p->p0		 = (void*)i;
 		p->p1		 = (void*)(i * i);
-		make_list_node(ln, p);
-		append_list_node(&l, ln);
+		append_list(&l, p);
 	}
 
 	Map m;
@@ -43,7 +41,7 @@ Test(map, make_from_list)
 		m.curr_stored);
 
 	dest_map(&m, NULL);
-	dest_list(&l, true, free);
+	dest_list(&l, free);
 }
 
 Test(map, push_get_absent)

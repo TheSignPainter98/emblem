@@ -3,6 +3,8 @@
 #include "pp/unused.h"
 #include <stddef.h>
 
+static void make_internal_list_node(ListNode* ln, void* data);
+
 void make_list(List* l)
 {
 	l->fst	   = NULL;
@@ -11,9 +13,9 @@ void make_list(List* l)
 	l->own_mem = true;
 }
 
-void dest_list(List* l, bool freeNodes, Destructor ed)
+void dest_list(List* l, Destructor ed)
 {
-	if (l->own_mem && (freeNodes || ed))
+	if (l->own_mem)
 	{
 		ListNode* curr = l->fst;
 		while (curr)
@@ -21,7 +23,7 @@ void dest_list(List* l, bool freeNodes, Destructor ed)
 			ListNode* nxt = curr->nxt;
 			dest_list_node(curr, ed);
 
-			if (freeNodes)
+			if (curr->list_mem)
 				free(curr);
 
 			curr = nxt;
@@ -29,22 +31,35 @@ void dest_list(List* l, bool freeNodes, Destructor ed)
 	}
 }
 
-void set_sublist(List* l, bool is_sublist)
-{
-	l->own_mem = !is_sublist;
-}
+void set_sublist(List* l, bool is_sublist) { l->own_mem = !is_sublist; }
 
 void make_list_node(ListNode* ln, void* data)
 {
-	ln->nxt	 = NULL;
-	ln->prv	 = NULL;
-	ln->data = data;
+	ln->nxt		 = NULL;
+	ln->prv		 = NULL;
+	ln->data	 = data;
+	ln->list_mem = false;
+}
+
+static void make_internal_list_node(ListNode* ln, void* data)
+{
+	ln->nxt		 = NULL;
+	ln->prv		 = NULL;
+	ln->data	 = data;
+	ln->list_mem = true;
 }
 
 void dest_list_node(ListNode* ln, Destructor ed)
 {
 	if (ed)
 		ed(ln->data);
+}
+
+bool append_list(List* l, void* v)
+{
+	ListNode* ln = malloc(sizeof(ListNode));
+	make_internal_list_node(ln, v);
+	return append_list_node(l, ln);
 }
 
 bool append_list_node(List* l, ListNode* ln)
@@ -65,6 +80,13 @@ bool append_list_node(List* l, ListNode* ln)
 	l->cnt++;
 
 	return true;
+}
+
+bool prepend_list(List* l, void* v)
+{
+	ListNode* ln = malloc(sizeof(ListNode));
+	make_internal_list_node(ln, v);
+	return prepend_list_node(l, ln);
 }
 
 bool prepend_list_node(List* l, ListNode* ln)
@@ -193,8 +215,8 @@ void concat_list(List* r, List* l1, List* l2)
 		new_curr = malloc(sizeof(ListNode));
 		if (!r->fst)
 			r->fst = new_curr;
-		new_curr->data = curr->data;
-		new_curr->prv  = prv;
+		make_internal_list_node(new_curr, curr->data);
+		new_curr->prv	   = prv;
 		if (prv)
 			prv->nxt = new_curr;
 
@@ -220,7 +242,7 @@ void cconcat_list(List* r, List* l)
 	while (curr)
 	{
 		ListNode* ln = malloc(sizeof(ListNode));
-		make_list_node(ln, curr->data);
+		make_internal_list_node(ln, curr->data);
 		if (app)
 			app->nxt = ln;
 		if (!fst_ln)

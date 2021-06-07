@@ -68,7 +68,7 @@ void dest_map(Map* map, Destructor ved)
 	for (unsigned int i = 0; i < map->tbl_size; i++)
 		if (map->tbl[i])
 		{
-			dest_list(map->tbl[i], true, map->ked || ved ? dest_kv_pair : freel);
+			dest_list(map->tbl[i], map->ked || ved ? dest_kv_pair : freel);
 			free(map->tbl[i]);
 		}
 	free(map->tbl);
@@ -123,14 +123,10 @@ bool push_map(Maybe* oldval, Map* m, void* k, void* v)
 							return false; // NOLINT
 						make_list(ntbl[nhb]);
 					}
-					ListNode* nln = malloc(sizeof(ListNode));
-					if (!nln)
-						return false; // NOLINT
-					make_list_node(nln, kv);
-					append_list_node(ntbl[nhb], nln);
+					append_list(ntbl[nhb], kv);
 				}
 				dest_list_iter(&iter);
-				dest_list(m->tbl[i], true, NULL);
+				dest_list(m->tbl[i], NULL);
 				free(m->tbl[i]);
 			}
 		m->tbl_size = ntbl_size;
@@ -179,11 +175,7 @@ bool push_map(Maybe* oldval, Map* m, void* k, void* v)
 		return false;
 	kv->p0		 = k;
 	kv->p1		 = v;
-	ListNode* nn = malloc(sizeof(ListNode));
-	if (!nn)
-		return false; // NOLINT
-	make_list_node(nn, kv);
-	prepend_list_node(m->tbl[bh], nn);
+	prepend_list(m->tbl[bh], kv);
 
 	if (oldval->type == NOTHING)
 		m->curr_stored++;

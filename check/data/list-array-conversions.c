@@ -27,11 +27,11 @@ Test(list, make_from_array)
 		i++;
 	}
 
-	dest_list(&l, true, NULL);
+	dest_list(&l, NULL);
 	dest_arr(&arr, NULL);
 }
 
-Test(array, conversion_from_list)
+Test(array, make_from_list)
 {
 	const size_t llen = 100;
 	Array arr;
@@ -39,11 +39,7 @@ Test(array, conversion_from_list)
 	make_list(&list);
 
 	for (size_t i = 0; i < llen; i++)
-	{
-		ListNode* ln = malloc(sizeof(ListNode));
-		make_list_node(ln, (void*)i);
-		append_list_node(&list, ln);
-	}
+		append_list(&list, (void*)i);
 
 	make_arr_from_list(&arr, &list);
 
@@ -59,5 +55,5 @@ Test(array, conversion_from_list)
 	}
 
 	dest_arr(&arr, NULL);
-	dest_list(&list, true, NULL);
+	dest_list(&list, NULL);
 }

@@ -127,7 +127,7 @@ void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_res
 			free(content->call);
 			break;
 		case CONTENT:
-			dest_list(content->content, true, ed);
+			dest_list(content->content, ed);
 			free(content->content);
 			break;
 		default:
@@ -137,10 +137,7 @@ void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_res
 
 void prepend_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child)
 {
-	ListNode* ln = malloc(sizeof(ListNode));
-	make_list_node(ln, new_child);
-	prepend_list_node(child_list, ln);
-
+	prepend_list(child_list, new_child);
 	new_child->parent = parent;
 }
 
@@ -154,9 +151,7 @@ void make_call_io(CallIO* call)
 void prepend_call_io_arg(CallIO* call, DocTreeNode* arg)
 {
 	arg->flags |= IS_CALL_PARAM;
-	ListNode* ln = malloc(sizeof(ListNode));
-	make_list_node(ln, arg);
-	prepend_list_node(call->args, ln);
+	prepend_list(call->args, arg);
 }
 
 void dest_call_io(CallIO* call, bool processing_result)
@@ -164,6 +159,6 @@ void dest_call_io(CallIO* call, bool processing_result)
 	NON_ISO(Destructor ed = ilambda(void, (void* v), { dest_free_doc_tree_node((DocTreeNode*)v, processing_result); }));
 	if (call->result)
 		dest_free_doc_tree_node(call->result, true);
-	dest_list(call->args, true, ed);
+	dest_list(call->args, ed);
 	free(call->args);
 }

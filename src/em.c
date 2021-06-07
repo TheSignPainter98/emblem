@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 	log_debug("Cleaning up execution");
 	dest_driver_params(&driver_params);
 	dest_maybe(&mdoc, (Destructor)doc_destroyer);
-	dest_list(&namesList, true, (Destructor)str_destroyer);
+	dest_list(&namesList, (Destructor)str_destroyer);
 	dest_output_driver(&driver);
 	dest_args(&args);
 	return rc;

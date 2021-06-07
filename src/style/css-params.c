@@ -16,6 +16,6 @@ void make_style_preprocessor_params(StylePreprocessorParams* params, Args* args)
 
 void dest_style_preprocessor_params(StylePreprocessorParams* params)
 {
-	dest_list(params->include_path, true, (Destructor)dest_free_str);
+	dest_list(params->include_path, (Destructor)dest_free_str);
 	free(params->include_path);
 }

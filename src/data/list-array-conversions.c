@@ -9,6 +9,7 @@ void make_list_from_arr(List* l, Array* arr)
 	{
 		ListNode* ln = malloc(sizeof(ListNode));
 		make_list_node(ln, arr->data[i]);
+		ln->list_mem = true;
 
 		if (!i)
 			l->fst = ln;

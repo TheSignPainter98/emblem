@@ -281,9 +281,7 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 
 	log_debug("Opened file '%s'", fname);
 
-	ListNode* ln = malloc(sizeof(ListNode));
-	make_list_node(ln, ifn);
-	USE_LOCK(List* namesList, mtNamesList, append_list_node(namesList, ln));
+	USE_LOCK(List* namesList, mtNamesList, append_list(namesList, ifn));
 
 	int nerrs = 0;
 	LexerData ld = {

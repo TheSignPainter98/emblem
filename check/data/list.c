@@ -12,7 +12,7 @@ Test(list, memory_life_cycle)
 	cr_assert_not(l.lst, "List last element has non-NULL value at initialisation");
 	cr_assert_not(l.cnt, "List count is non-zero at initialisation");
 	cr_assert(l.own_mem, "New list does not own its own memory");
-	dest_list(&l, false, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, node_memory_life_cycle)
@@ -23,6 +23,7 @@ Test(list, node_memory_life_cycle)
 	cr_assert_not(ln.nxt, "List node has non-NULL next element at initialisation");
 	cr_assert_not(ln.prv, "List node has non-NULL previous element at initialisation");
 	cr_assert((long int)ln.data == data, "List node data not the same as that which was input");
+	cr_assert_not(ln.list_mem, "External list node claims the list owns its memory");
 	dest_list_node(&ln, NULL);
 }
 
@@ -37,7 +38,59 @@ Test(list, set_sub)
 	set_sublist(&l, false);
 	cr_assert(l.own_mem, "Non-sublist claims not to own its own memory");
 
-	dest_list(&l, true, NULL);
+	dest_list(&l, NULL);
+}
+
+Test(list, append_one)
+{
+	List l;
+	make_list(&l);
+	long int val = 104L;
+	append_list(&l, (void*)val);
+
+	cr_assert(l.fst->data == (void*)val, "List first node not does not point to the sole element");
+	cr_assert(l.lst->data == (void*)val, "List lst node not does not point to the sole element");
+	cr_assert(l.cnt == 1, "List of one item did not have unit length");
+	cr_assert((long int)l.fst->data == val, "List element value not preserved");
+
+	dest_list(&l, NULL);
+}
+
+Test(list, append_many)
+{
+	List l;
+	make_list(&l);
+	const size_t lns = 100;
+	for (size_t i = 0; i < lns; i++)
+	{
+		append_list(&l, (void*)(i * i));
+		cr_assert(l.lst->data == (void*)(i * i), "List node value incorrectly set");
+	}
+
+	cr_assert(l.cnt == lns,
+		"Length of list was not equal to the number of elements within it, expected %ld but got %ld", lns, l.cnt);
+	cr_assert(l.fst, "List first element was never set");
+	cr_assert(l.lst, "List last element was never set");
+
+	ListNode* ln = l.fst;
+	for (size_t i = 0; i < lns; i++)
+	{
+		cr_assert(ln, "List element %ld was NULL", i);
+		cr_assert((size_t)ln->data == i * i, "List element had incorrect value, expected %ld but got %ld", i * i,
+			(size_t)ln->data);
+		ln = ln->nxt;
+	}
+
+	ln = l.lst;
+	for (size_t i = 0; i < lns; i++)
+	{
+		cr_assert(ln, "List element %ld was NULL", i);
+		cr_assert((size_t)ln->data == (lns - i - 1) * (lns - i - 1),
+			"List element had incorrect value, expected %ld but got %ld", i * i, (size_t)ln->data);
+		ln = ln->prv;
+	}
+
+	dest_list(&l, NULL);
 }
 
 Test(list, append_one_node)
@@ -54,8 +107,7 @@ Test(list, append_one_node)
 	cr_assert(l.cnt == 1, "List of one item did not have unit length");
 	cr_assert((long int)l.fst->data == val, "List element value not preserved");
 
-	dest_list_node(&ln, NULL);
-	dest_list(&l, false, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, append_many_nodes)
@@ -95,7 +147,16 @@ Test(list, append_many_nodes)
 		ln = ln->prv;
 	}
 
-	dest_list(&l, true, NULL);
+	dest_list(&l, NULL);
+
+	ln = l.fst;
+	while (ln)
+	{
+		ListNode* lnn = ln->nxt;
+		dest_list_node(ln, NULL);
+		free(ln);
+		ln = lnn;
+	}
 }
 
 Test(list, append_remove_one_element)
@@ -110,8 +171,7 @@ Test(list, append_remove_one_element)
 	cr_assert_not(l.lst, "Empty list last element was not null");
 	cr_assert_not(l.cnt, "Empty list count was not zero");
 
-	dest_list_node(&ln, NULL);
-	dest_list(&l, false, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, append_remove_many_elements)
@@ -120,9 +180,10 @@ Test(list, append_remove_many_elements)
 	make_list(&l);
 	ListNode* ln;
 	const size_t lns = 100;
+	ListNode nodes[lns];
 	for (size_t i = 0; i < lns; i++)
 	{
-		ln = malloc(sizeof(ListNode));
+		ln = &nodes[i];
 		make_list_node(ln, (void*)(i * i));
 		append_list_node(&l, ln);
 		cr_assert(ln->data == (void*)(i * i), "List node value incorrectly set");
@@ -139,8 +200,6 @@ Test(list, append_remove_many_elements)
 		cr_assert_not(ln->nxt, "List node next element not NULL after removal");
 		cr_assert_not(ln->prv, "List node previous element not NULL after removal");
 
-		dest_list_node(ln, NULL);
-		free(ln);
 		ln = lnn;
 	}
 
@@ -148,7 +207,63 @@ Test(list, append_remove_many_elements)
 	cr_assert_not(l.fst, "List with all elements removed still had first element set");
 	cr_assert_not(l.lst, "List with all elements removed still had last element set");
 
-	dest_list(&l, true, NULL);
+	dest_list(&l, NULL);
+
+	for (size_t i = 0; i < lns; i++)
+		dest_list_node(&nodes[i], NULL);
+}
+
+Test(list, prepend_one)
+{
+	List l;
+	make_list(&l);
+	long int val = 104L;
+	prepend_list(&l, (void*)val);
+
+	cr_assert(l.fst->data == (void*)val, "List first node not does not point to the sole element");
+	cr_assert(l.lst->data == (void*)val, "List lst node not does not point to the sole element");
+	cr_assert(l.cnt == 1, "List of one item did not have unit length");
+	cr_assert((long int)l.fst->data == val, "List element value not preserved");
+
+	dest_list(&l, NULL);
+}
+
+Test(list, prepend_many)
+{
+	List l;
+	make_list(&l);
+	const size_t lns = 100;
+	for (size_t i = 0; i < lns; i++)
+	{
+		prepend_list(&l, (void*)(i * i));
+		cr_assert(l.fst->data == (void*)(i * i), "List node value incorrectly set");
+	}
+
+	cr_assert(l.cnt == lns,
+		"Length of list was not equal to the number of elements within it, expected %ld but got %ld", lns, l.cnt);
+	cr_assert(l.fst, "List first element was never set");
+	cr_assert(l.lst, "List last element was never set");
+
+	ListNode* ln = l.fst;
+	for (size_t i = 0; i < lns; i++)
+	{
+		cr_assert(ln, "List element %ld was NULL", i);
+		cr_assert((size_t)ln->data == (lns - i - 1) * (lns - i - 1),
+			"List element had incorrect value, expected %ld but got %ld", (lns - i - 1) * (lns - i - 1),
+			(size_t)ln->data);
+		ln = ln->nxt;
+	}
+
+	ln = l.lst;
+	for (size_t i = 0; i < lns; i++)
+	{
+		cr_assert(ln, "List element %ld was NULL", i);
+		cr_assert((size_t)ln->data == i * i, "List element had incorrect value, expected %ld but got %ld", i * i,
+			(size_t)ln->data);
+		ln = ln->prv;
+	}
+
+	dest_list(&l, NULL);
 }
 
 Test(list, prepend_one_node)
@@ -165,8 +280,7 @@ Test(list, prepend_one_node)
 	cr_assert(l.cnt == 1, "List of one item did not have unit length");
 	cr_assert((long int)l.fst->data == val, "List element value not preserved");
 
-	dest_list_node(&ln, NULL);
-	dest_list(&l, false, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, prepend_many_nodes)
@@ -192,6 +306,7 @@ Test(list, prepend_many_nodes)
 	for (size_t i = 0; i < lns; i++)
 	{
 		cr_assert(ln, "List element %ld was NULL", i);
+		cr_assert_not(ln->list_mem, "Prepended node indicates that the list owns its memory");
 		cr_assert((size_t)ln->data == (lns - i - 1) * (lns - i - 1),
 			"List element had incorrect value, expected %ld but got %ld", (lns - i - 1) * (lns - i - 1),
 			(size_t)ln->data);
@@ -207,15 +322,16 @@ Test(list, prepend_many_nodes)
 		ln = ln->prv;
 	}
 
+	dest_list(&l, NULL);
+
 	ln = l.fst;
 	while (ln)
 	{
 		ListNode* lnn = ln->nxt;
 		dest_list_node(ln, NULL);
+		free(ln);
 		ln = lnn;
 	}
-
-	dest_list(&l, true, NULL);
 }
 
 Test(list, prepend_remove_one_element)
@@ -230,8 +346,7 @@ Test(list, prepend_remove_one_element)
 	cr_assert_not(l.lst, "Empty list last element was not null");
 	cr_assert_not(l.cnt, "Empty list count was not zero");
 
-	dest_list_node(&ln, NULL);
-	dest_list(&l, false, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, prepend_remove_many_elements)
@@ -240,9 +355,10 @@ Test(list, prepend_remove_many_elements)
 	make_list(&l);
 	ListNode* ln;
 	const size_t lns = 100;
+	ListNode nodes[lns];
 	for (size_t i = 0; i < lns; i++)
 	{
-		ln = malloc(sizeof(ListNode));
+		ln = &nodes[i];
 		make_list_node(ln, (void*)(i * i));
 		prepend_list_node(&l, ln);
 		cr_assert(ln->data == (void*)(i * i), "List node value incorrectly set");
@@ -259,8 +375,6 @@ Test(list, prepend_remove_many_elements)
 		cr_assert_not(ln->nxt, "List node next element not NULL after removal");
 		cr_assert_not(ln->prv, "List node previous element not NULL after removal");
 
-		dest_list_node(ln, NULL);
-		free(ln);
 		ln = lnn;
 	}
 
@@ -268,7 +382,10 @@ Test(list, prepend_remove_many_elements)
 	cr_assert_not(l.fst, "List with all elements removed still had first element set");
 	cr_assert_not(l.lst, "List with all elements removed still had last element set");
 
-	dest_list(&l, true, NULL);
+	dest_list(&l, NULL);
+
+	for (size_t i = 0; i < lns; i++)
+		dest_list_node(&nodes[i], NULL);
 }
 
 Test(list, iter_memory_cycle)
@@ -278,7 +395,7 @@ Test(list, iter_memory_cycle)
 	ListIter i;
 	make_list_iter(&i, &l);
 	dest_list_iter(&i);
-	dest_list(&l, false, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, iter)
@@ -299,8 +416,7 @@ Test(list, iter)
 	cr_assert(i.nxt == NULL, "Iterator next element was not NULL at end of list");
 	cr_assert_not(iter_list((void**)&val, &i), "Iterator could iterate multuple times on unitary list");
 
-	dest_list_node(&ln, NULL);
-	dest_list(&l, false, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, reversed_iter_memory_cycle)
@@ -310,7 +426,7 @@ Test(list, reversed_iter_memory_cycle)
 	ReversedListIter i;
 	make_reversed_list_iter(&i, &l);
 	dest_reversed_list_iter(&i);
-	dest_list(&l, false, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, is_empty)
@@ -326,7 +442,7 @@ Test(list, is_empty)
 
 	cr_assert_not(is_empty_list(&l), "Singleton list is considered empty");
 
-	dest_list(&l, false, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, in)
@@ -335,13 +451,8 @@ Test(list, in)
 	List l;
 	make_list(&l);
 
-	ListNode* ln;
 	for (size_t i = 0; i < llen; i++)
-	{
-		ln = malloc(sizeof(ListNode));
-		make_list_node(ln, (void*)i);
-		append_list_node(&l, ln);
-	}
+		append_list(&l, (void*)i);
 
 	const size_t needle		   = 51;
 	const size_t missingNeedle = 2 * llen;
@@ -351,7 +462,7 @@ Test(list, in)
 	bool r2 = in_list(&l, (void*)missingNeedle);
 	cr_assert_not(r2, "Value %ld was present in list of the numbers 0..%ld", missingNeedle, llen - 1);
 
-	dest_list(&l, true, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, in_eq)
@@ -360,13 +471,8 @@ Test(list, in_eq)
 	List l;
 	make_list(&l);
 
-	ListNode* ln;
 	for (size_t i = 0; i < llen; i++)
-	{
-		ln = malloc(sizeof(ListNode));
-		make_list_node(ln, (void*)i);
-		append_list_node(&l, ln);
-	}
+		append_list(&l, (void*)i);
 
 	Maybe m1;
 	Maybe m2;
@@ -402,7 +508,7 @@ Test(list, in_eq)
 	dest_maybe(&m3, NULL);
 	dest_maybe(&m4, NULL);
 
-	dest_list(&l, true, NULL);
+	dest_list(&l, NULL);
 }
 
 Cmp weird_eq(void* v1, void* v2)
@@ -418,13 +524,8 @@ Test(list, all)
 	List l;
 	make_list(&l);
 
-	ListNode* ln;
 	for (size_t i = 0; i < llen; i++)
-	{
-		ln = malloc(sizeof(ListNode));
-		make_list_node(ln, (void*)true);
-		append_list_node(&l, ln);
-	}
+		append_list(&l, (void*)true);
 
 	cr_assert(all_list(&l), "List of all true values was not recognised as such");
 
@@ -432,7 +533,7 @@ Test(list, all)
 
 	cr_assert_not(all_list(&l), "List with false values was considered as all true");
 
-	dest_list(&l, true, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, any)
@@ -441,13 +542,8 @@ Test(list, any)
 	List l;
 	make_list(&l);
 
-	ListNode* ln;
 	for (size_t i = 0; i < llen; i++)
-	{
-		ln = malloc(sizeof(ListNode));
-		make_list_node(ln, (void*)false);
-		append_list_node(&l, ln);
-	}
+		append_list(&l, (void*)false);
 
 	cr_assert_not(any_list(&l), "List of all false values was not recognised as such");
 
@@ -455,7 +551,7 @@ Test(list, any)
 
 	cr_assert(any_list(&l), "List with true values was considered as all false");
 
-	dest_list(&l, true, NULL);
+	dest_list(&l, NULL);
 }
 
 Test(list, concat)
@@ -468,10 +564,8 @@ Test(list, concat)
 	make_list(&l2);
 	for (size_t i = 0; i < lns; i++)
 	{
-		ListNode* ln = malloc(sizeof(ListNode));
-		make_list_node(ln, (void*)i);
 		List* l = i < change_point ? &l1 : &l2;
-		append_list_node(l, ln);
+		append_list(l, (void*)i);
 	}
 
 	List lr;
@@ -501,9 +595,9 @@ Test(list, concat)
 		curr = curr->prv;
 	}
 
-	dest_list(&lr, true, NULL);
-	dest_list(&l1, true, NULL);
-	dest_list(&l2, true, NULL);
+	dest_list(&lr, NULL);
+	dest_list(&l2, NULL);
+	dest_list(&l1, NULL);
 }
 
 Test(list, cconcat)
@@ -515,12 +609,8 @@ Test(list, cconcat)
 	const size_t len = 104;
 	for (size_t i = 0; i < len; i++)
 	{
-		ListNode* ln1 = malloc(sizeof(ListNode));
-		make_list_node(ln1, (void*)i);
-		append_list_node(&l1, ln1);
-		ListNode* ln2 = malloc(sizeof(ListNode));
-		make_list_node(ln2, (void*)(len + i));
-		append_list_node(&l2, ln2);
+		append_list(&l1, (void*)i);
+		append_list(&l2, (void*)(len + i));
 	}
 
 	ListNode* l1fst = l1.fst;
@@ -531,7 +621,7 @@ Test(list, cconcat)
 
 	cr_assert(l1.cnt == 2 * len, "Copy-concatenated list does not report the correct length");
 	cr_assert(l1.own_mem, "Copy-concatenated left list does not own its own memory");
-	cr_assert(l2.own_mem, "Copy-concatenated right list still owns its own memory");
+	cr_assert(l2.own_mem, "Copy-concatenated right list does not own its own memory");
 	cr_assert(l1.fst == l1fst, "Copy-concatenated list does not have the correct first element");
 	cr_assert(l1.lst->data == l2lst->data,
 		"Copy-concatenated list does not have the correct last element, expected %ld but got %ld", (size_t)l2lst->data,
@@ -552,8 +642,8 @@ Test(list, cconcat)
 		"Iterating through the copy-concatenated list ended at the wrong time, expected %ld elements but got %ld",
 		2 * len, i);
 
-	dest_list(&l1, true, NULL);
-	dest_list(&l2, true, NULL);
+	dest_list(&l2, NULL);
+	dest_list(&l1, NULL);
 }
 
 Test(list, iconcat)
@@ -565,12 +655,8 @@ Test(list, iconcat)
 	const size_t len = 104;
 	for (size_t i = 0; i < len; i++)
 	{
-		ListNode* ln1 = malloc(sizeof(ListNode));
-		make_list_node(ln1, (void*)i);
-		append_list_node(&l1, ln1);
-		ListNode* ln2 = malloc(sizeof(ListNode));
-		make_list_node(ln2, (void*)(i * 2));
-		append_list_node(&l2, ln2);
+		append_list(&l1, (void*)i);
+		append_list(&l2, (void*)(i * 2));
 	}
 
 	ListNode* l1fst = l1.fst;
@@ -589,6 +675,6 @@ Test(list, iconcat)
 	cr_assert(l1lst->nxt == l2fst, "Previous last of first list does not point to the new next");
 	cr_assert(l2fst->prv == l1lst, "Previous first of second list does not point to the new previous");
 
-	dest_list(&l1, true, NULL);
-	/* dest_list(&l2, true, NULL); */
+	dest_list(&l2, NULL);
+	dest_list(&l1, NULL);
 }

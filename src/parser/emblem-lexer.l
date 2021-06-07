@@ -263,16 +263,14 @@ static void handle_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc, char* yt
 	char* fnameclosepos = strrchr(ytext, '"');
 	*fnameclosepos = '\0';
 
-	// Only record a new filename
-	if (strcmp(yextra->ifn->str, fname))
+	// Only record a new filename if it is not the same as the last (imperfect but checks quickly)
+	if (!streq(yextra->ifn->str, fname))
 	{
 		Str* nifn = malloc(sizeof(Str));
 		make_strc(nifn, fname);
 		yextra->ifn = nifn;
 
-		ListNode* ln = malloc(sizeof(ListNode));
-		make_list_node(ln, nifn);
-		USE_LOCK(List* namesList, yextra->mtNamesList, append_list_node(namesList, ln));
+		USE_LOCK(List* namesList, yextra->mtNamesList, append_list(namesList, nifn));
 	}
 
 	// Extract line and column number strings

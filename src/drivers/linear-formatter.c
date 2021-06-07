@@ -44,9 +44,9 @@ void dest_linear_formatter(LinearFormatter* formatter)
 {
 	dest_map(formatter->call_name_map, (Destructor)dest_free_str);
 	free(formatter->call_name_map);
-	dest_list(formatter->formatter_content, true, (Destructor)dest_free_str);
+	dest_list(formatter->formatter_content, (Destructor)dest_free_str);
 	free(formatter->formatter_content);
-	dest_list(formatter->content, true, NULL);
+	dest_list(formatter->content, NULL);
 	free(formatter->content);
 	dest_str(formatter->stylesheet_name);
 	free(formatter->stylesheet_name);
@@ -63,28 +63,14 @@ void append_linear_formatter_raw(LinearFormatter* formatter, char* raw)
 
 void append_linear_formatter_str(LinearFormatter* formatter, Str* str)
 {
-	ListNode* ln = malloc(sizeof(ListNode));
-	make_list_node(ln, str);
-	append_list_node(formatter->content, ln);
-	ListNode* ln2 = malloc(sizeof(ListNode));
-	make_list_node(ln2, str);
-	append_list_node(formatter->formatter_content, ln2);
+	append_list(formatter->content, str);
+	assign_ownership_to_formatter(formatter, str);
 }
 
-void prepend_linear_formatter_strf(LinearFormatter* formatter, char* restrict format, ...)
+void prepend_linear_formatter_str(LinearFormatter* formatter, Str* str)
 {
-	va_list va;
-	va_start(va, format);
-	Str* str = malloc(sizeof(Str));
-	compute_content_strf(str, format, va);
-
 	add_content(formatter, str, false);
-
-	ListNode* ln2 = malloc(sizeof(ListNode));
-	make_list_node(ln2, str);
-	append_list_node(formatter->formatter_content, ln2);
-
-	va_end(va);
+	assign_ownership_to_formatter(formatter, str);
 }
 
 void append_linear_formatter_strf(LinearFormatter* formatter, char* restrict format, ...)
@@ -96,9 +82,7 @@ void append_linear_formatter_strf(LinearFormatter* formatter, char* restrict for
 
 	add_content(formatter, str, true);
 
-	ListNode* ln2 = malloc(sizeof(ListNode));
-	make_list_node(ln2, str);
-	append_list_node(formatter->formatter_content, ln2);
+	assign_ownership_to_formatter(formatter, str);
 
 	va_end(va);
 }
@@ -118,12 +102,15 @@ static void compute_content_strf(Str* str, char* restrict format, va_list va)
 
 static void add_content(LinearFormatter* formatter, Str* to_add, bool append)
 {
-	ListNode* ln = malloc(sizeof(ListNode));
-	make_list_node(ln, to_add);
 	if (append)
-		append_list_node(formatter->content, ln);
+		append_list(formatter->content, to_add);
 	else
-		prepend_list_node(formatter->content, ln);
+		prepend_list(formatter->content, to_add);
+}
+
+void assign_ownership_to_formatter(LinearFormatter* formatter, Str* str)
+{
+	append_list(formatter->formatter_content, str);
 }
 
 int write_linear_formatter_output(LinearFormatter* formatter, bool allow_stdout)
