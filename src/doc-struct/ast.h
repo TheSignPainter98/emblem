@@ -14,7 +14,7 @@
 #define NODE_NAME_PARAGRAPH "p"
 #define NODE_NAME_CONTENT	"c"
 #define NODE_NAME_WORD		"w"
-#define NODE_NAME_DOC		"body"
+#define ROOT_NODE_NAME		"body"
 
 #define REQUIRES_RERUN		 (1 << 0)
 #define IS_GENERATED_NODE	 (1 << 1)
