@@ -91,36 +91,30 @@ static int format_node_as_bbcode(LinearFormatter* formatter, DocTreeNode* node)
 			int rc = 0;
 			Maybe m;
 			get_map(&m, formatter->call_name_map, node->name);
-			if (node->content->call_params->result)
+			if (node->content->call->result)
 			{
 				if (m.type == JUST)
 				{
 					Str* bbcode_node_header_content = m.just;
 					append_linear_formatter_strf(formatter, "[%s]", bbcode_node_header_content->str);
-					rc = format_node_as_bbcode(formatter, node->content->call_params->result);
+					rc = format_node_as_bbcode(formatter, node->content->call->result);
 					append_linear_formatter_strf(formatter, "[/%s]", ((Str*)m.just)->str);
 				}
 				else
-					rc = format_node_as_bbcode(formatter, node->content->call_params->result);
+				{
+					rc = format_node_as_bbcode(formatter, node->content->call->result);
+					if (streq(node->name->str, "p"))
+						append_linear_formatter_raw(formatter, "\n\n");
+				}
 			}
 			dest_maybe(&m, NULL);
 			return rc;
 		}
-		case LINE:
+		case CONTENT:
 		{
-			int rc = format_node_list_as_bbcode(formatter, node->content->line);
+			int rc = format_node_list_as_bbcode(formatter, node->content->content);
 			return rc;
 		}
-		case LINES:
-			return format_node_list_as_bbcode(formatter, node->content->lines);
-		case PAR:
-		{
-			int rc = format_node_list_as_bbcode(formatter, node->content->par);
-			append_linear_formatter_raw(formatter, "\n\n");
-			return rc;
-		}
-		case PARS:
-			return format_node_list_as_bbcode(formatter, node->content->pars);
 		default:
 			log_err("Unknown node content type: %d", node->content->type);
 			return 1;

@@ -30,23 +30,6 @@ int ext_eval_tree(ExtensionState* s)
 	return 1;
 }
 
-#define EVAL_TREE_CASE(L, NAME, name)                                                                                  \
-	case NAME:                                                                                                         \
-	{                                                                                                                  \
-		DocTreeNode* child;                                                                                            \
-		ListIter li;                                                                                                   \
-		make_list_iter(&li, node->content->name);                                                                      \
-		int idx = 1;                                                                                                   \
-		lua_newtable(L);                                                                                               \
-		while (iter_list((void**)&child, &li))                                                                         \
-		{                                                                                                              \
-			eval_tree(L, child);                                                                                       \
-			lua_seti(s, -2, idx++);                                                                                    \
-		}                                                                                                              \
-		lua_setfield(L, -2, "" #name);                                                                                 \
-		break;                                                                                                         \
-	}
-
 static int eval_tree(ExtensionState* s, DocTreeNode* node)
 {
 	lua_newtable(s);
@@ -65,12 +48,12 @@ static int eval_tree(ExtensionState* s, DocTreeNode* node)
 			if (log_warn("Packing node %p by executing its lua pass", (void*)node))
 				luaL_error(s, "Warnings are fatal");
 			int rc = exec_lua_pass_on_node(s, node);
-			if (!rc && node->content->call_params->result)
+			if (!rc && node->content->call->result)
 			{
-				log_debug("Packing %p!", (void*)node->content->call_params->result);
-				rc = eval_tree(s, node->content->call_params->result);
+				log_debug("Packing %p!", (void*)node->content->call->result);
+				rc = eval_tree(s, node->content->call->result);
 				dumpstack(s);
-				log_debug("Done packing %p!", (void*)node->content->call_params->result);
+				log_debug("Done packing %p!", (void*)node->content->call->result);
 			}
 			else
 				lua_pushnil(s);
@@ -79,33 +62,23 @@ static int eval_tree(ExtensionState* s, DocTreeNode* node)
 			lua_setfield(s, -2, "result");
 			log_debug("Set result!");
 			return rc;
+		case CONTENT:
+		{
+			DocTreeNode* child;
+			ListIter li;
+			make_list_iter(&li, node->content->content);
+			int idx = 1;
+			lua_newtable(s);
+			while (iter_list((void**)&child, &li))
+			{
+				eval_tree(s, child);
+				lua_seti(s, -2, idx++);
+			}
+			lua_setfield(s, -2, "content");
 			break;
-			EVAL_TREE_CASE(s, LINE, line);
-			EVAL_TREE_CASE(s, LINES, lines);
-			EVAL_TREE_CASE(s, PAR, par);
-			EVAL_TREE_CASE(s, PARS, pars);
+		}
 	}
 	return 0;
-}
-
-int get_ast_type_name(ExtensionState* s)
-{
-	luaL_argcheck(s, true, lua_gettop(s) == 1, "Expected exactly one argument to ast_type_name");
-	luaL_argcheck(s, true, lua_isinteger(s, -1), "Expected integer argument to ast_type_name");
-
-	int tn = lua_tointeger(s, -1);
-	log_debug("Looking at ast type id %d", tn);
-	luaL_argcheck(s, true, WORD <= tn && tn <= PARS, "Type index is not in the valid range");
-	const char* type_names[] = {
-		[WORD]	= "word",
-		[CALL]	= "call",
-		[LINE]	= "line",
-		[LINES] = "lines",
-		[PAR]	= "par",
-		[PARS]	= "pars",
-	};
-	lua_pushstring(s, type_names[tn]);
-	return 1;
 }
 
 int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* parentNode)

@@ -33,7 +33,6 @@ static int driver_runner(Doc* doc, DriverParams* params);
 static int output_stylesheet(LinearFormatter* css_formatter, Str* time_str);
 static int format_doc_as_html(LinearFormatter* formatter, Str* time_str, Doc* doc);
 static int format_node_as_html(LinearFormatter* formatter, DocTreeNode* node);
-static int format_node_list_as_html(LinearFormatter* formatter, List* node_list);
 
 #define HTML_HEADER                                                                                                    \
 	"<!DOCTYPE html>\n"                                                                                                \
@@ -149,47 +148,35 @@ static int format_node_as_html(LinearFormatter* formatter, DocTreeNode* node)
 					return 1;
 			}
 			int rc = 0;
-			if (node->content->call_params->result)
+			if (node->content->call->result)
 			{
 				append_linear_formatter_strf(formatter, "<%s class=\"%s\">", html_node_name->str, node->name->str);
-				rc = format_node_as_html(formatter, node->content->call_params->result);
+				rc = format_node_as_html(formatter, node->content->call->result);
 				append_linear_formatter_strf(formatter, "</%s>", html_node_name->str);
 			}
 			dest_maybe(&m, NULL);
 			return rc;
 		}
-		case LINE:
-			return format_node_list_as_html(formatter, node->content->line);
-		case LINES:
-			return format_node_list_as_html(formatter, node->content->lines);
-		case PAR:
-			append_linear_formatter_raw(formatter, "<p>");
-			int rc = format_node_list_as_html(formatter, node->content->par);
-			append_linear_formatter_raw(formatter, "</p>");
+		case CONTENT:
+		{
+			int rc = 0;
+
+			ListIter li;
+			make_list_iter(&li, node->content->content);
+			DocTreeNode* node;
+			while (iter_list((void**)&node, &li))
+			{
+				rc = format_node_as_html(formatter, node);
+				if (rc)
+					break;
+			}
+			dest_list_iter(&li);
 			return rc;
-		case PARS:
-			return format_node_list_as_html(formatter, node->content->pars);
+		}
 		default:
 			log_err("Unknown node content type: %d", node->content->type);
 			return 1;
 	}
-}
-
-static int format_node_list_as_html(LinearFormatter* formatter, List* node_list)
-{
-	int rc = 0;
-
-	ListIter li;
-	make_list_iter(&li, node_list);
-	DocTreeNode* node;
-	while (iter_list((void**)&node, &li))
-	{
-		rc = format_node_as_html(formatter, node);
-		if (rc)
-			break;
-	}
-	dest_list_iter(&li);
-	return rc;
 }
 
 static int output_stylesheet(LinearFormatter* css_formatter, Str* time_str)

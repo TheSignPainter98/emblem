@@ -122,13 +122,13 @@ doc : maybe_lines	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(da
 	;
 
 maybe_lines
-	: %empty									{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_lines($$, alloc_assign_loc(@$, data->ifn)); }
+	: %empty									{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); }
 	| lines
 	;
 
 lines
-	: line										{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_lines($$, alloc_assign_loc(@$, data->ifn)); prepend_doc_tree_node_child($$, $$->content->lines, $1); $1->parent = $$;}
-	| line lines								{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->lines, $1); }
+	: line										{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); prepend_doc_tree_node_child($$, $$->content->content, $1); $1->parent = $$;}
+	| line lines								{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
 	/* | T_INDENT maybe_lines T_DEDENT maybe_lines	{ $$ = $2; List* l = malloc(sizeof(List)); concat_list(l, $2->content->lines, $4->content->lines); dest_list($2->content->lines, true, NULL); dest_list($4->content->lines, true, NULL); $$->content->lines = l; free($2); free($4); } */
 	;
 
@@ -153,12 +153,12 @@ trailing_args
 	;
 
 line_content
-	: %empty			{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_line($$, alloc_assign_loc(@$, data->ifn)); }
+	: %empty			{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); }
 	| line_content_ne
 	;
 
 line_content_ne
-	: line_element line_content								{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->line, $1); }
+	: line_element line_content								{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
 	;
 
 line_element

@@ -12,8 +12,7 @@
 
 // Node names
 #define NODE_NAME_PARAGRAPH "p"
-#define NODE_NAME_LINE		"l"
-#define NODE_NAME_LINES		"ls"
+#define NODE_NAME_CONTENT	"c"
 #define NODE_NAME_WORD		"w"
 #define NODE_NAME_DOC		"body"
 
@@ -51,21 +50,18 @@ typedef struct DocTreeNodeContent_s
 	{
 		WORD,
 		CALL,
-		LINE,
-		LINES,
-		PAR,
-		PARS,
+		CONTENT,
 	} type;
 	union
 	{
 		Str* word;
-		struct CallIO_s* call_params;
-		List* line;
-		List* lines;
-		List* par;
-		List* pars;
+		struct CallIO_s* call;
+		List* content;
 	};
 } DocTreeNodeContent;
+
+extern const char* const node_tree_content_type_names[];
+extern const size_t node_tree_content_type_names_len;
 
 typedef struct CallIO_s
 {
@@ -87,17 +83,14 @@ void make_doc(Doc* doc, DocTreeNode* root, Args* args);
 void dest_doc(Doc* doc);
 
 void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc);
-void make_doc_tree_node_line(DocTreeNode* node, Location* src_loc);
-void make_doc_tree_node_lines(DocTreeNode* node, Location* src_loc);
-void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call_params, Location* src_loc);
-void make_doc_tree_node_par(DocTreeNode* node, List* par, Location* src_loc);
-void make_doc_tree_node_pars(DocTreeNode* node, List* pars, Location* src_loc);
+void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Location* src_loc);
+void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc);
 void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result);
 
 void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_result);
 
 void prepend_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child);
 
-void make_call_io(CallIO* call_params);
-void dest_call_io(CallIO* call_params, bool processing_result);
-void prepend_call_io_arg(CallIO* call_params, DocTreeNode* arg);
+void make_call_io(CallIO* call);
+void dest_call_io(CallIO* call, bool processing_result);
+void prepend_call_io_arg(CallIO* call, DocTreeNode* arg);
