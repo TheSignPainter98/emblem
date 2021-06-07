@@ -14,6 +14,7 @@
 #include <unistd.h>
 
 static Pair const html_special_functions[] = {
+	{ "p", "p" },
 	{ "h1", "h1" },
 	{ "h2", "h2" },
 	{ "h3", "h3" },
