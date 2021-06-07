@@ -134,7 +134,7 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 									}
 
 <INITIAL_WHITE>{LINE_DIRECTIVE}		{ handle_line_directive(yyextra, yylloc, yytext); }
-<INITIAL_WHITE>{WHITE_SPACE}*{LN}	;
+<INITIAL_WHITE>{WHITE_SPACE}*{LN}	{ if (!yyextra->indent_lvl) return T_PAR_BREAK; }
 <INITIAL_WHITE>{WHITE_SPACE}+		{
 										yyextra->opening_emph = true;
 										yyextra->indent_lvl_target = indent_len(yyextra->tab_size, yytext);

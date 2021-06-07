@@ -82,11 +82,14 @@ typedef struct
 %nterm <node>			line_element
 %nterm <node>			lines
 %nterm <node>			maybe_lines
+%nterm <node>			maybe_pars
+%nterm <node>			pars
 %token 					T_DEDENT			"dedent"
 %token 					T_GROUP_CLOSE		"}"
 %token 					T_GROUP_OPEN		"{"
 %token 					T_INDENT 			"indent"
 %token 					T_LN 				"newline"
+%token 					T_PAR_BREAK			"paragraph break"
 %token 		  			T_COLON				"colon"
 %token 		  			T_DOUBLE_COLON		"double-colon"
 %token <sugar>			T_UNDERSCORE_OPEN 	"opening underscore(s)"
@@ -118,7 +121,26 @@ static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode
 
 %%
 
-doc : maybe_lines	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(data->doc, $1, data->args); }
+doc : maybe_pars	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(data->doc, $1, data->args); }
+	;
+
+maybe_pars
+	: %empty { $$ = NULL; }
+	| pars
+	;
+
+pars
+	: lines 			{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); prepend_doc_tree_node_child($$, $$->content->content, $1); }
+	| lines par_toks pars { $$ = $3; prepend_doc_tree_node_child($$, $$->content->content, $1); }
+	;
+
+par_toks
+	: T_PAR_BREAK maybe_par_toks
+	;
+
+maybe_par_toks
+	: %empty
+	| T_PAR_BREAK maybe_par_toks
 	;
 
 maybe_lines
