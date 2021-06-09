@@ -35,6 +35,18 @@ XXXXX
 .streq{asdf}{asdf}
 .echo{asdf}: Hello, world!
 
+.flush-left:
+	Hello, this should be no different from the usual, please
+
+.flush-right:
+	Hello this should be looking unusual for a Latin-based piece of text.
+
+.justify:
+	jactation throwing; boasting tetrapolis group of four cities babirusa large wild pig of Indonesia tyromancy divination using cheese abdominous having a paunch or big belly dittography unintentional repetition of letters in print schematonics art of using gesture to express tones lorette courtesan seriema large crested Brazilian bird pachynsis thickening traductive transmitted nebbich colourless; inconsequential person exercitation putting into practice; exercise paracme decline; period following the zenith or acme roband piece of yarn used to fasten a sail to a spar procursive running forward malapropism misapplication of words without mispronunciation foumart polecat fromward leading away from crepuscular of, like or pertaining to twilight kylin Chinese mythical animal adaxial next to or towards the axis bouclé fabric of uneven looped yarn tinamou ground-dwelling South American bird causative indicating causation by mark placed over consonant in Slavic languages to indicate palatalization neoteric
+
+.centre:
+	This text should be centred in some fashion?
+
 .if{false}:
 	fdjakfdsa
 ::
