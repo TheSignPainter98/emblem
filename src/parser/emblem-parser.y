@@ -10,6 +10,7 @@ typedef struct
 	int comment_lvl;
 	int indent_lvl;
 	int indent_lvl_target;
+	bool par_break_required;
 	int tab_size;
 	bool opening_emph;
 	int* nerrs;
@@ -76,14 +77,15 @@ typedef struct
 %nterm <args>			args
 %nterm <args>			trailing_args
 %nterm <doc>  			doc
+%nterm <node>  			doc_content
+%nterm <node>			file_content
+%nterm <node>			file_contents
 %nterm <node>			line
 %nterm <node>			line_content
 %nterm <node>			line_content_ne
 %nterm <node>			line_element
 %nterm <node>			lines
-%nterm <node>			maybe_lines
-%nterm <node>			maybe_pars
-%nterm <node>			pars
+%nterm <node>			par
 %token 					T_DEDENT			"dedent"
 %token 					T_GROUP_CLOSE		"}"
 %token 					T_GROUP_OPEN		"{"
@@ -121,37 +123,38 @@ static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode
 
 %%
 
-doc : maybe_pars	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(data->doc, $1, data->args); }
+doc : doc_content	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(data->doc, $1, data->args); }
 	;
 
-maybe_pars
-	: %empty { $$ = NULL; }
-	| pars
+doc_content
+	: %empty								{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); }
+	| maybe_par_break_toks file_contents	{ $$ = $2; }
+
+file_contents
+	: file_content 			                    { $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); prepend_doc_tree_node_child($$, $$->content->content, $1); }
+	| file_content par_break_toks file_contents { $$ = $3; prepend_doc_tree_node_child($$, $$->content->content, $1); }
 	;
 
-pars
-	: lines 			{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); prepend_doc_tree_node_child($$, $$->content->content, $1); }
-	| lines par_toks pars { $$ = $3; prepend_doc_tree_node_child($$, $$->content->content, $1); }
+file_content
+	: par { $$ = $1; $$->flags |= PARAGRAPH_CANDIDATE; }
 	;
 
-par_toks
-	: T_PAR_BREAK maybe_par_toks
+par : lines
 	;
 
-maybe_par_toks
+par_break_toks
+	: T_PAR_BREAK maybe_par_break_toks
+	;
+
+maybe_par_break_toks
 	: %empty
-	| T_PAR_BREAK maybe_par_toks
-	;
-
-maybe_lines
-	: %empty									{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); }
-	| lines
+	| T_PAR_BREAK maybe_par_break_toks
 	;
 
 lines
 	: line										{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); prepend_doc_tree_node_child($$, $$->content->content, $1); $1->parent = $$;}
 	| line lines								{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
-	/* | T_INDENT maybe_lines T_DEDENT maybe_lines	{ $$ = $2; List* l = malloc(sizeof(List)); concat_list(l, $2->content->lines, $4->content->lines); dest_list($2->content->lines, true, NULL); dest_list($4->content->lines, true, NULL); $$->content->lines = l; free($2); free($4); } */
+	/* | T_INDENT lines T_DEDENT maybe_lines	{ $$ = $2; List* l = malloc(sizeof(List)); iconcat_list(l, $2->content->lines, $4->content->lines); dest_list($2->content->lines, true, NULL); dest_list($4->content->lines, true, NULL); $$->content->lines = l; free($2); free($4); } */
 	;
 
 line
@@ -164,14 +167,14 @@ line
 args
 	: %empty																{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
 	| T_COLON line_content_ne T_LN											{ $$ = malloc(sizeof(CallIO)); make_call_io($$); prepend_call_io_arg($$, $2); }
-	| T_COLON T_LN T_INDENT maybe_lines T_DEDENT trailing_args 				{ $$ = $6; prepend_call_io_arg($$, $4); }
+	| T_COLON T_LN T_INDENT file_contents T_DEDENT trailing_args 			{ $$ = $6; prepend_call_io_arg($$, $4); }
 	| T_GROUP_OPEN line_content T_GROUP_CLOSE args 							{ $$ = $4; prepend_call_io_arg($$, $2); }
-	| T_GROUP_OPEN T_LN T_INDENT line_content T_DEDENT T_GROUP_CLOSE args 	{ $$ = $7; prepend_call_io_arg($$, $4); }
+	| T_GROUP_OPEN T_LN T_INDENT file_contents T_DEDENT T_GROUP_CLOSE args 	{ $$ = $7; prepend_call_io_arg($$, $4); }
 	;
 
 trailing_args
 	: %empty 														{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
-	| T_DOUBLE_COLON T_LN T_INDENT maybe_lines T_DEDENT trailing_args	{ $$ = $6; prepend_call_io_arg($$, $4); }
+	| T_DOUBLE_COLON T_LN T_INDENT file_contents T_DEDENT trailing_args	{ $$ = $6; prepend_call_io_arg($$, $4); }
 	;
 
 line_content

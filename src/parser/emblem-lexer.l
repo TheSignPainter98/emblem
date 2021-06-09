@@ -78,7 +78,7 @@ BLOCK_COMMENT_CLOSE "*/"
 BLOCK_COMMENT_OPEN  "/*"
 COLON				":"
 DOUBLE_COLON		"::"
-COMMENT_LINE		{LINE_COMMENT_START}.*{LN}
+COMMENT_LINE		{WHITE_SPACE}*{LINE_COMMENT_START}.*{LN}
 DIRECTIVE			"."[^ \t\r\n:{}]+
 GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
@@ -114,6 +114,11 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 		yyextra->indent_lvl--;
 		return T_DEDENT;
 	}
+	else if (yyextra->par_break_required)
+	{
+		yyextra->par_break_required = false;
+		return T_PAR_BREAK;
+	}
 
 <COMMENT>{BLOCK_COMMENT_OPEN}		{ yyextra->comment_lvl++; }
 <COMMENT>{BLOCK_COMMENT_CLOSE}		{ yyextra->comment_lvl--; if (!yyextra->comment_lvl) { BEGIN(FILE_BODY); } }
@@ -133,14 +138,15 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 											return EM_EOF;
 									}
 
-<INITIAL_WHITE>{LINE_DIRECTIVE}		{ handle_line_directive(yyextra, yylloc, yytext); }
-<INITIAL_WHITE>{WHITE_SPACE}*{LN}	{ if (!yyextra->indent_lvl) return T_PAR_BREAK; }
+<INITIAL_WHITE>{COMMENT_LINE}		;
+<INITIAL_WHITE>{WHITE_SPACE}*{LN}	{ yyextra->par_break_required = true; }
 <INITIAL_WHITE>{WHITE_SPACE}+		{
 										yyextra->opening_emph = true;
 										yyextra->indent_lvl_target = indent_len(yyextra->tab_size, yytext);
 										BEGIN(INITIAL);
 										goto lex_start;
 									}
+<INITIAL_WHITE>{LINE_DIRECTIVE}		{ handle_line_directive(yyextra, yylloc, yytext); }
 <INITIAL_WHITE>.					{
 										yyextra->opening_emph = true;
 										yyless(0);
@@ -149,11 +155,11 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 										goto lex_start;
 									}
 <FILE_BODY>{WHITE_SPACE}+			{ yyextra->opening_emph = true; }
-<FILE_BODY>{COMMENT_LINE}			;
 <FILE_BODY>{EMPH_UNDERSCORE}		{ EMPHASIS(T_UNDERSCORE_OPEN, T_UNDERSCORE_CLOSE); }
 <FILE_BODY>{EMPH_ASTERISK}			{ EMPHASIS(T_ASTERISK_OPEN, T_ASTERISK_CLOSE); }
 <FILE_BODY>{EMPH_BACKTICK}			{ EMPHASIS(T_BACKTICK_OPEN, T_BACKTICK_CLOSE); }
 <FILE_BODY>{EMPH_EQUALS}			{ EMPHASIS(T_EQUALS_OPEN, T_EQUALS_CLOSE); }
+<FILE_BODY>{COMMENT_LINE}			{ BEGIN(INITIAL_WHITE); return T_LN; }
 <FILE_BODY>{LN}						{ BEGIN(INITIAL_WHITE); return T_LN; }
 <FILE_BODY>{DIRECTIVE}				{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
 <FILE_BODY>{DOUBLE_COLON}			{ yyextra->opening_emph = true; return T_DOUBLE_COLON; }
@@ -166,7 +172,7 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 <FILE_BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
 
 {SHEBANG}							;
-{LN}								{ BEGIN(FILE_BODY); }
+{LN}								{ BEGIN(INITIAL_WHITE); }
 . 									{ yyless(0); BEGIN(FILE_BODY); }
 
 %%
