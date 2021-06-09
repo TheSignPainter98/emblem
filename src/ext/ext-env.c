@@ -4,6 +4,7 @@
 #include "logs/logs.h"
 #include "lua-ast-io.h"
 #include "lua-lib-load.h"
+#include "ext-loader.h"
 #include "style.h"
 #include <lauxlib.h>
 
@@ -52,7 +53,11 @@ int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 
 	set_globals(ext);
 
-	return load_libraries(ext->state, params);
+	int rc = load_libraries(ext->state, params);
+	if (rc)
+		return rc;
+
+	return load_extensions(ext->state, params);
 }
 
 void dest_ext_env(ExtensionEnv* ext)

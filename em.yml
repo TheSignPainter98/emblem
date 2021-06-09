@@ -78,6 +78,18 @@ args:
       - 0
       - 1
     default: 0
+  - dest: extensions
+    short: -f
+    long: --framework
+    metaDest: extension
+    help: Specify an extension to load
+    type: List
+  - dest: extension_args
+    short: -a
+    long: --ext-arg
+    metaDest: extension.param=value
+    help: Pass parameter _param_ with value _value_ to extension _ext_
+    type: List
   - dest: driver
     short: -T
     long: --type

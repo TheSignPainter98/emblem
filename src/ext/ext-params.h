@@ -8,6 +8,8 @@
 typedef struct
 {
 	int sandbox_lvl;
+	List* exts;
+	List* ext_args;
 	Styler* styler;
 } ExtParams;
 

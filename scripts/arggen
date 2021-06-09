@@ -145,6 +145,8 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     header: str = '\n'.join([
         '#pragma once',
         '',
+        '#include "data/list.h"',
+        '',
         '/**',
         ' * @brief Container for parsed arguments',
         ' */',
@@ -177,6 +179,17 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         asignarg:str
         mandarg:[str] = []
         freearg:[str] = []
+        valChecker:'list -> list' = lambda h: h if arg['type'] != 'int' else [ 'if (isInt(optarg))', '{', h, '}', 'else', '{', [ f'fprintf(stderr, "%s: Invalid value \\"%s\\" for option {arg["short"]}\\n", argv[0], optarg);', 'showUsage = 1;' ], '}' ]
+
+        if arg['type'] == 'List':
+            return [
+                '{',
+                'Str* optstr = malloc(sizeof(Str));',
+                'make_strc(optstr, optarg);',
+                'append_list(&args->%s, optstr);' % arg['dest'],
+                '}'
+            ]
+
         if arg['type'] == 'help':
             asignand = 'showHelp'
         elif arg['type'] == 'version':
@@ -194,9 +207,8 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         if arg['mandatory']:
             mandarg = ['is_set__%s = 1;' % arg['dest']]
 
-        valChecker:'list -> list' = lambda h: h if arg['type'] != 'int' else [ 'if (isInt(optarg))', '{', h, '}', 'else', '{', [ f'fprintf(stderr, "%s: Invalid value \\"%s\\" for option {arg["short"]}\\n", argv[0], optarg);', 'showUsage = 1;' ], '}' ]
 
-        return valChecker(freearg + [ f'{asignand} = {asignarg};'] + mandarg) + ['break;']
+        return valChecker(freearg + [ f'{asignand} = {asignarg};'] + mandarg)
 
     opts_short:str = ''.join(list(map(lambda arg: arg['short'][1] + ('' if arg['type'] in ['flag', 'help', 'version'] else ':'), list(filter(lambda a: not a['positional'] and 'short' in a, args)))))
     opts_long:str = ', '.join(list(map(lambda a: '{ "%s", %d, NULL, \'%s\' }' %(a['long'][2:], 1 if a['type'] not in ['flag', 'help', 'version'] else 0, a['short'][1]), list(filter(lambda a: not a['positional'] and 'long' in a, args)))) + [ '{ NULL, 0, NULL, 0 }' ])
@@ -209,8 +221,13 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             return '1' if arg['default'] else '0'
         else:
             return str(arg['default'])
-    defaults:[str] = list(map(lambda arg: 'args->%s = %s;' %(arg['dest'], default_val(arg)), list(filter(lambda arg: arg['type'] not in ['help', 'version'], args + numGobbledDef))))
-    opt_handlers:list = list(reduce(lambda a,b: a+b, list(map(lambda a: ["case '%s':" % a['short'][1], assignment_handler(a)], list(filter(lambda a: not a['positional'], args))))))
+    def compute_default(arg:dict) -> str:
+        if arg['type'] == 'List':
+            return 'make_list(&args->%s);' % arg['dest']
+        else:
+            return 'args->%s = %s;' %(arg['dest'], default_val(arg))
+    defaults:[str] = list(map(compute_default, list(filter(lambda arg: arg['type'] not in ['help', 'version'], args + numGobbledDef))))
+    opt_handlers:list = list(reduce(lambda a,b: a+b, list(map(lambda a: ["case '%s':" % a['short'][1], assignment_handler(a) + ['break;']], list(filter(lambda a: not a['positional'], args))))))
 
     def arg_usage(arg:dict, isShort:bool) -> str:
         if not arg['positional'] and (isShort and 'short' not in arg or not isShort and 'long' not in arg):
@@ -311,11 +328,20 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
     validator:[str] = list(reduce(lambda a,b: a+b, list(filter(lambda v: v != [], list(map(validate_arg, args))))))
 
     gobblerDestructor:[str] = [ 'for (int i = 0; i < args->num_gobbled; i++)', '{', [ 'free(args->%s[i]);' % gobbler['dest'] ], '}', 'free(args->%s);' % gobbler['dest'] ] if gobblers != [] else []
-    destructor:[str] = list(map(lambda a: 'free(args->%s);' % a['dest'], list(filter(lambda a: not a['gobble'] and a['type'] == 'char*', args)))) + gobblerDestructor
+    def make_destructor(arg:dict) -> [str]:
+        destructor:[str] = []
+        if arg['type'] == 'List':
+            destructor += [ 'dest_list(&args->%s, (Destructor)dest_free_str);' % arg['dest'] ]
+        if arg['type'] == 'char*':
+            destructor += ['free(args->%s);' % arg['dest']]
+        return destructor
+    destructor:[str] = list(reduce(iconcat, filter(lambda l: l != [], map(make_destructor, list(filter(lambda a: not a['gobble'], args)))), [])) + gobblerDestructor
 
     parser_body: str = indent([
         '#include "%s"' % hdrfl_rel,
         '',
+        '#include "data/destructor.h"',
+        '#include "data/str.h"',
         '#include <getopt.h>',
         '#include <stdio.h>',
         '#include <stdlib.h>',
@@ -411,6 +437,10 @@ def indent(lst: list) -> str:
                 list(map(lambda e: _indent(e, lvl + 1, False), lst)))
 
     return _indent(lst, 0, True)
+
+def iconcat(a:list, b:list) -> list:
+    a.extend(b)
+    return a
 
 lic:str = '''
 %s %s - %s

@@ -81,7 +81,7 @@ typedef struct CallIO_s
 // List* items;
 // } ListContent;
 
-void make_doc(Doc* doc, DocTreeNode* root, Args* args);
+int make_doc(Doc* doc, DocTreeNode* root, Args* args);
 void dest_doc(Doc* doc);
 
 void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc);

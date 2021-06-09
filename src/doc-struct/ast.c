@@ -15,7 +15,7 @@ const char* const node_tree_content_type_names[] = {
 const size_t node_tree_content_type_names_len
 	= sizeof(node_tree_content_type_names) / sizeof(*node_tree_content_type_names);
 
-void make_doc(Doc* doc, DocTreeNode* root, Args* args)
+int make_doc(Doc* doc, DocTreeNode* root, Args* args)
 {
 	doc->root	= root;
 	doc->styler = malloc(sizeof(Styler));
@@ -24,7 +24,8 @@ void make_doc(Doc* doc, DocTreeNode* root, Args* args)
 	ExtParams ext_params;
 	init_ext_params(&ext_params, args, doc->styler);
 	doc->ext = malloc(sizeof(ExtensionEnv));
-	make_ext_env(doc->ext, &ext_params);
+
+	return make_ext_env(doc->ext, &ext_params);
 }
 
 void dest_doc(Doc* doc)
