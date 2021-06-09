@@ -215,6 +215,16 @@ void dest_reversed_list_iter(ReversedListIter* i);
 bool iter_list(void** v, ListIter* i);
 
 /**
+ * @brief Move the iterator to the next node in the list
+ *
+ * @param n A location where a pointer to the current node will be written
+ * @param i Pointer to the iterator to use
+ *
+ * @return false if there are no more elements to iterate, true otherwise
+ */
+bool iter_list_nodes(ListNode** n, ListIter* i);
+
+/**
  * @brief Move the iterator to the next element in the list (when iterated backwards)
  *
  * @param val A location where the value at the current point in the list will be written

@@ -141,16 +141,24 @@ void dest_list_iter(ListIter* i) { UNUSED(i); }
 
 void dest_reversed_list_iter(ReversedListIter* i) { UNUSED(i); }
 
-bool iter_list(void** val, ListIter* i)
+bool iter_list(void** val, ListIter* i) {
+	ListNode* ln;
+	bool succ = iter_list_nodes(&ln, i);
+	if (succ)
+		*val = ln->data;
+	return succ;
+}
+
+bool iter_list_nodes(ListNode** n, ListIter* i)
 {
 	bool succ = i->nxt;
 	if (succ)
 	{
-		*val   = i->nxt->data;
+		*n	   = i->nxt;
 		i->nxt = i->nxt->nxt;
 	}
 	else
-		*val = NULL;
+		*n = NULL;
 
 	return !!succ;
 }
@@ -216,7 +224,7 @@ void concat_list(List* r, List* l1, List* l2)
 		if (!r->fst)
 			r->fst = new_curr;
 		make_internal_list_node(new_curr, curr->data);
-		new_curr->prv	   = prv;
+		new_curr->prv = prv;
 		if (prv)
 			prv->nxt = new_curr;
 

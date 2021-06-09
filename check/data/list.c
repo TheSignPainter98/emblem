@@ -419,6 +419,27 @@ Test(list, iter)
 	dest_list(&l, NULL);
 }
 
+Test(list, iter_nodes)
+{
+	List l;
+	make_list(&l);
+	ListNode ln;
+	long int val = 104L;
+	make_list_node(&ln, (void*)val);
+	append_list_node(&l, &ln);
+
+	ListIter i;
+	make_list_iter(&i, &l);
+	cr_assert(i.nxt == l.fst, "List iterator initial current element was not equal to the first element of the list");
+	ListNode* rln;
+	cr_assert(iter_list_nodes(&rln, &i), "Failed to iterate over first element of unitary list");
+	cr_assert(rln == &ln, "Iterator returned node was not equal to the that input expected %p but got %p", (void*)&ln, (void*)rln);
+	cr_assert(i.nxt == NULL, "Iterator next element was not NULL at end of list");
+	cr_assert_not(iter_list_nodes(&rln, &i), "Iterator could iterate multuple times on unitary list");
+
+	dest_list(&l, NULL);
+}
+
 Test(list, reversed_iter_memory_cycle)
 {
 	List l;
