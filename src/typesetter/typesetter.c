@@ -4,6 +4,7 @@
 #include "ext/ext-params.h"
 #include "ext/lua-events.h"
 #include "ext/lua.h"
+#include "doc-struct/discern-pars.h"
 /* #include "ext/style.h" */
 #include "logs/logs.h"
 #include "style/css.h"
@@ -30,6 +31,7 @@ int typeset_doc(Doc* doc, Args* args, OutputDriverInf* driver_inf)
 		rc = exec_lua_pass(doc);
 		if (rc)
 			return rc;
+		discern_pars(doc);
 
 		if (driver_inf->support & TS_PLACEMENT)
 			log_debug("Executing typesetting pass %d", doc->ext->iter_num);

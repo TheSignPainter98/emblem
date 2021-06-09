@@ -16,11 +16,13 @@
 #define NODE_NAME_WORD		"w"
 #define ROOT_NODE_NAME		"body"
 
-#define REQUIRES_RERUN		 (1 << 0)
-#define IS_GENERATED_NODE	 (1 << 1)
-#define IS_CALL_PARAM		 (1 << 2)
-#define CALL_HAS_NO_EXT_FUNC (1 << 3)
-#define CALL_HAS_NO_STYLE	 (1 << 4)
+#define REQUIRES_RERUN		   (1 << 0)
+#define IS_GENERATED_NODE	   (1 << 1)
+#define IS_CALL_PARAM		   (1 << 2)
+#define CALL_HAS_NO_EXT_FUNC   (1 << 3)
+#define CALL_HAS_NO_STYLE	   (1 << 4)
+#define PARAGRAPH_CANDIDATE	   (1 << 5)
+#define DISQUALIFIED_PARAGRAPH (1 << 6)
 
 struct DocTreeNodeContent_s;
 struct DocTreeNode_s;
