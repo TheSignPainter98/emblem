@@ -1,5 +1,9 @@
 #!em -Thtml
 
+// This is a comment, it won't appear in the output.
+
+// Neither will this
+
 .title: Why CS Students Require Typesetters
 
 This is some _italic_ this is some _nested _strange_ italic._
@@ -20,7 +24,15 @@ This is some _**bold italic**_ and this is some `_**monospaced bold italic**_`
 This is an em---dash, and this is an en--dash and this is a hyphen-not-a-dash.
 This is an hyphen and en dash \--- and this is a pair of hyphens \-\-.
 
+	// fhjdksaf dsjal
+
 This is something `\\familiar@looking\{\}`, recognised but not accepted here.
+
+.it:
+	This is something which is in a long paragraph, but there's no reason to be frightened.
+
+	This is a separate but still-nested paragraph.
+	It contains more than one sentence.
 
 XXXXX
 .set-var{x}{fdhjfkldshafl}
@@ -264,3 +276,8 @@ antidisestablishmentarianism
 
 #* Bibliography
 .bib: example-bib.yml
+
+// This is a comment
+
+// This is another comment
+
