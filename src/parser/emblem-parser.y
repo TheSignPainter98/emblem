@@ -3,7 +3,7 @@
 #include "parser.h"
 #include "data/locked.h"
 #include "sugar.h"
-void parse_file(Maybe* eo, Locked* namesList, Args* args, char* fname);
+unsigned int parse_file(Maybe* eo, Locked* namesList, Args* args, char* fname);
 
 typedef struct
 {
@@ -17,12 +17,13 @@ typedef struct
 	FILE* ifp;
 	Str* ifn;
 	Locked* mtNamesList;
+	Args* args;
 } LexerData;
 
 typedef struct
 {
 	Args* args;
-	Doc* doc;
+	DocTreeNode* root;
 	Str* ifn;
 	int* nerrs;
 	void** scanner;
@@ -94,6 +95,7 @@ typedef struct
 %token 					T_PAR_BREAK			"paragraph break"
 %token 		  			T_COLON				"colon"
 %token 		  			T_DOUBLE_COLON		"double-colon"
+%token <node>			T_INCLUDED_FILE 	"file inclusion"
 %token <sugar>			T_UNDERSCORE_OPEN 	"opening underscore(s)"
 %token <sugar>			T_ASTERISK_OPEN		"opening asterisk(s)"
 %token <sugar>			T_BACKTICK_OPEN		"opening backtick"
@@ -123,7 +125,7 @@ static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode
 
 %%
 
-doc : doc_content	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(data->doc, $1, data->args); }
+doc : doc_content	{ make_unit(&$$); data->root = $1; }
 	;
 
 doc_content
@@ -159,6 +161,7 @@ lines
 
 line
 	: line_content T_LN
+	| T_INCLUDED_FILE
 	| T_HEADING line_content T_LN	{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_DIRECTIVE args 				{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| error 						{ alloc_malloc_error_word(&$$, @$, data->ifn); }
@@ -272,7 +275,7 @@ static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode
 	make_doc_tree_node_call(ret, sugar.call, callio, loc);
 }
 
-void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
+unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 {
 	log_info("Parsing file '%s'", fname);
 	bool use_stdin = !strcmp(fname, "-");
@@ -293,14 +296,14 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 			{
 				log_err("Failed to open file either '%s' or '%s'", fname, ifn->str);
 				make_maybe_nothing(mo);
-				return;
+				return 1;
 			}
 		}
 		else
 		{
 			log_err("Failed to open file '%s'", fname);
 			make_maybe_nothing(mo);
-			return;
+			return 1;
 		}
 	}
 
@@ -319,6 +322,7 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 		.ifn = ifn,
 		.ifp = fp,
 		.mtNamesList = mtNamesList,
+		.args = args,
 	};
 	yyscan_t scanner;
 	em_lex_init(&scanner);
@@ -326,7 +330,7 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 	em_set_in(fp, scanner);
 	ParserData pd = {
 		.args = args,
-		.doc = NULL,
+		.root = NULL,
 		.ifn = ifn,
 		.nerrs = &nerrs,
 		.scanner = scanner,
@@ -339,13 +343,12 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 		fclose(fp);
 
 
-	if (!nerrs && pd.doc)
-		make_maybe_just(mo, pd.doc);
+	if (!nerrs && pd.root)
+		make_maybe_just(mo, pd.root);
 	else
 	{
-		log_err("Parsing file '%s' failed with %d error%s.", ifn->str, nerrs, nerrs - 1 ? "s" : "");
-		dest_str(ifn);
-		free(ifn);
 		make_maybe_nothing(mo);
 	}
+
+	return nerrs;
 }

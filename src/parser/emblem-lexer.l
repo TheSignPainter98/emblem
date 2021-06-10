@@ -18,6 +18,7 @@
 #include "sanitise-word.h"
 #include "sugar.h"
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +36,7 @@ static void update_yylloc(EM_LTYPE* loc, char* text);
 static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng);
 static void make_emph_str(Sugar* emph, char* ytext, size_t yleng);
 static void handle_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc, char* ytext);
+static bool include_file(DocTreeNode** included_root, YY_EXTRA_TYPE yextra, char* ytext);
 
 #if __GNUC__
 #	pragma GCC diagnostic push
@@ -70,32 +72,33 @@ static int indent_len(int tab_size, char* inp);
 %option extra-type="LexerData*"
 %pointer
 
-EMPH_UNDERSCORE     "_""_"?
-EMPH_ASTERISK       "*""*"?
-EMPH_BACKTICK		"`"
-EMPH_EQUALS			"=""="?
 BLOCK_COMMENT_CLOSE "*/"
 BLOCK_COMMENT_OPEN  "/*"
 COLON				":"
-DOUBLE_COLON		"::"
 COMMENT_LINE		{WHITE_SPACE}*{LINE_COMMENT_START}.*{LN}
 DIRECTIVE			"."[^ \t\r\n:{}]+
+DOUBLE_COLON		"::"
+EMPH_ASTERISK       "*""*"?
+EMPH_BACKTICK		"`"
+EMPH_EQUALS			"=""="?
+EMPH_UNDERSCORE     "_""_"?
 GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
+INCLUDE_DIRECTIVE	":include \""("\\"[^\r\n]|[^\\"\r\n])+\"
 LINE_COMMENT_START	"//"
-LINE_DIRECTIVE		":line \""("\\"[^\r\n]|[^\\"])*"\" "[0-9]+" "[0-9]*{LN}
+LINE_DIRECTIVE		":line \""("\\"[^\r\n]|[^\\"\r\n])*"\" "[0-9]+" "[0-9]*{LN}
 LN					"\n"|"\r"|"\r\n"
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
-WORD_ESCAPE_CHAR	"\\"[^ \t\r\n]
-WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}])
-WORD_MID_CHAR 		({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}])
-WORD_EASY_END_CHAR  ({WORD_ESCAPE_CHAR}|[^\\_*`= \t\r\n{}])
-WORD_END_REGULAR 	{WORD_EASY_END_CHAR}{2}
-WORD_END_EMPH		[_*`=]({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}_*`=,.'":;])
-WORD_END 			({WORD_ESCAPE_CHAR}|{WORD_END_REGULAR}|{WORD_END_EMPH})
 WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
+WORD_EASY_END_CHAR  ({WORD_ESCAPE_CHAR}|[^\\_*`= \t\r\n{}])
+WORD_END 			({WORD_ESCAPE_CHAR}|{WORD_END_REGULAR}|{WORD_END_EMPH})
+WORD_END_EMPH		[_*`=]({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}_*`=,.'":;])
+WORD_END_REGULAR 	{WORD_EASY_END_CHAR}{2}
+WORD_ESCAPE_CHAR	"\\"[^ \t\r\n]
+WORD_MID_CHAR 		({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}])
+WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}])
 
 %x COMMENT
 %x INITIAL_WHITE
@@ -159,6 +162,7 @@ WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 <FILE_BODY>{EMPH_ASTERISK}			{ EMPHASIS(T_ASTERISK_OPEN, T_ASTERISK_CLOSE); }
 <FILE_BODY>{EMPH_BACKTICK}			{ EMPHASIS(T_BACKTICK_OPEN, T_BACKTICK_CLOSE); }
 <FILE_BODY>{EMPH_EQUALS}			{ EMPHASIS(T_EQUALS_OPEN, T_EQUALS_CLOSE); }
+<FILE_BODY>{INCLUDE_DIRECTIVE}		{ DocTreeNode* included_root; if (include_file(&included_root, yyextra, yytext)) { yylval->node = included_root; return T_INCLUDED_FILE; } BEGIN(INITIAL_WHITE); }
 <FILE_BODY>{COMMENT_LINE}			{ BEGIN(INITIAL_WHITE); return T_LN; }
 <FILE_BODY>{LN}						{ BEGIN(INITIAL_WHITE); return T_LN; }
 <FILE_BODY>{DIRECTIVE}				{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
@@ -290,6 +294,27 @@ static void handle_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc, char* yt
 	yloc->first_column = atoi(fcnums);
 	yloc->last_line = yloc->first_line;
 	yloc->last_column = yloc->first_column;
+}
+
+static bool include_file(DocTreeNode** included_root, YY_EXTRA_TYPE yextra, char* ytext)
+{
+	// Parse the file name
+	char* fname = 1 + strchr(ytext, '"');
+	char* fnameclosepos = strrchr(fname, '"');
+	*fnameclosepos = '\0';
+
+	Maybe m;
+	*yextra->nerrs += parse_file(&m, yextra->mtNamesList, yextra->args, strdup(fname));
+
+	if (m.type == NOTHING)
+	{
+		log_info("Error in file '%s' included from '%s'", fname, yextra->ifn->str);
+		return false;
+	}
+
+	*included_root = m.just;
+
+	return true;
 }
 
 #if __GNUC__
