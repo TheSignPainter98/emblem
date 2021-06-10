@@ -22,7 +22,7 @@ typedef struct
 typedef struct
 {
 	Args* args;
-	Doc* doc;
+	DocTreeNode* root;
 	Str* ifn;
 	int* nerrs;
 	void** scanner;
@@ -123,7 +123,7 @@ static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode
 
 %%
 
-doc : doc_content	{ make_unit(&$$); data->doc = malloc(sizeof(Doc)); make_doc(data->doc, $1, data->args); }
+doc : doc_content	{ make_unit(&$$); data->root = $1; }
 	;
 
 doc_content
@@ -326,7 +326,7 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 	em_set_in(fp, scanner);
 	ParserData pd = {
 		.args = args,
-		.doc = NULL,
+		.root = NULL,
 		.ifn = ifn,
 		.nerrs = &nerrs,
 		.scanner = scanner,
@@ -339,13 +339,11 @@ void parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 		fclose(fp);
 
 
-	if (!nerrs && pd.doc)
-		make_maybe_just(mo, pd.doc);
+	if (!nerrs && pd.root)
+		make_maybe_just(mo, pd.root);
 	else
 	{
 		log_err("Parsing file '%s' failed with %d error%s.", ifn->str, nerrs, nerrs - 1 ? "s" : "");
-		dest_str(ifn);
-		free(ifn);
 		make_maybe_nothing(mo);
 	}
 }
