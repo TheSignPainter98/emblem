@@ -342,7 +342,6 @@ unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 	if (!use_stdin)
 		fclose(fp);
 
-
 	if (!nerrs && pd.root)
 		make_maybe_just(mo, pd.root);
 	else

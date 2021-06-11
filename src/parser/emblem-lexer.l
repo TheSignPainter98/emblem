@@ -313,6 +313,7 @@ static bool include_file(DocTreeNode** included_root, YY_EXTRA_TYPE yextra, char
 	}
 
 	*included_root = m.just;
+	(*included_root)->flags |= INCLUDED_FILE_ROOT | PARAGRAPH_CANDIDATE;
 
 	return true;
 }

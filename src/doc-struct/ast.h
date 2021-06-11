@@ -23,6 +23,7 @@
 #define CALL_HAS_NO_STYLE	   (1 << 4)
 #define PARAGRAPH_CANDIDATE	   (1 << 5)
 #define DISQUALIFIED_PARAGRAPH (1 << 6)
+#define INCLUDED_FILE_ROOT	   (1 << 7)
 
 struct DocTreeNodeContent_s;
 struct DocTreeNode_s;
