@@ -27,7 +27,7 @@
 
 #define YY_USER_INIT do \
 	{\
-		BEGIN(INITIAL_WHITE);\
+		BEGIN(INITIAL);\
 	} while (0)
 
 #define YY_EXTRA_TYPE LexerData*
@@ -35,8 +35,10 @@
 static void update_yylloc(EM_LTYPE* loc, char* text);
 static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng);
 static void make_emph_str(Sugar* emph, char* ytext, size_t yleng);
-static void handle_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc, char* ytext);
-static bool include_file(DocTreeNode** included_root, YY_EXTRA_TYPE yextra, char* ytext);
+static void apply_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc);
+static bool handle_file_include(YY_EXTRA_TYPE yextra);
+static void extract_integer(int* out, char* ytext);
+static void extract_file_name(YY_EXTRA_TYPE yextra, char* ytext, size_t yleng);
 
 #if __GNUC__
 #	pragma GCC diagnostic push
@@ -82,13 +84,15 @@ EMPH_ASTERISK       "*""*"?
 EMPH_BACKTICK		"`"
 EMPH_EQUALS			"=""="?
 EMPH_UNDERSCORE     "_""_"?
+FILENAME			\"("\\"[^\r\n]|[^\\"\t\r\n])+\"
 GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
-INCLUDE_DIRECTIVE	":include \""("\\"[^\r\n]|[^\\"\r\n])+\"
 LINE_COMMENT_START	"//"
-LINE_DIRECTIVE		":line \""("\\"[^\r\n]|[^\\"\r\n])*"\" "[0-9]+" "[0-9]*{LN}
 LN					"\n"|"\r"|"\r\n"
+PRAGMA_NAME_LINE 	"line"
+PRAGMA_NAME_INCLUDE "include"
+INTEGER				[0-9]+
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
 WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
@@ -102,7 +106,14 @@ WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}])
 
 %x COMMENT
 %x INITIAL_WHITE
-%x FILE_BODY
+%x INITIAL_BODY
+%x BODY
+%x MAYBE_VARIABLE_ASSIGNMENT
+%x PRAGMA
+%x PRAGMA_LINE
+%x PRAGMA_LINE_NUM
+%x PRAGMA_LINE_COL
+%x PRAGMA_INCLUDE
 
 %%
 
@@ -117,67 +128,98 @@ WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}])
 		yyextra->indent_lvl--;
 		return T_DEDENT;
 	}
-	else if (yyextra->par_break_required)
+	else if (yyextra->post_dent_tok_required)
 	{
-		yyextra->par_break_required = false;
-		return T_PAR_BREAK;
+		yyextra->post_dent_tok_required = false;
+		return yyextra->post_dent_tok;
 	}
 
 <COMMENT>{BLOCK_COMMENT_OPEN}		{ yyextra->comment_lvl++; }
-<COMMENT>{BLOCK_COMMENT_CLOSE}		{ yyextra->comment_lvl--; if (!yyextra->comment_lvl) { BEGIN(FILE_BODY); } }
+<COMMENT>{BLOCK_COMMENT_CLOSE}		{ yyextra->comment_lvl--; if (!yyextra->comment_lvl) { BEGIN(BODY); } }
 <COMMENT>.|{LN}						;
 <COMMENT><<EOF>>					{ llerror("Unexpected EOF in multi-line comment"); return EM_error; }
 
-{BLOCK_COMMENT_OPEN}				{ yyextra->comment_lvl = 1; BEGIN(COMMENT); }
-{BLOCK_COMMENT_CLOSE}				{ llerror("No comment to close"); return EM_error; }
-
-<<EOF>>								{
-										if (yyextra->indent_lvl)
-										{
-											yyextra->indent_lvl_target = 0;
-											goto lex_start;
-										}
-										else
-											return EM_EOF;
-									}
-
 <INITIAL_WHITE>{COMMENT_LINE}		;
-<INITIAL_WHITE>{WHITE_SPACE}*{LN}	{ yyextra->par_break_required = true; }
-<INITIAL_WHITE>{WHITE_SPACE}+		{
-										yyextra->opening_emph = true;
+<INITIAL_WHITE>{WHITE_SPACE}*{LN}	{ yyextra->post_dent_tok_required = true; yyextra->post_dent_tok = T_PAR_BREAK; }
+<INITIAL_WHITE>{WHITE_SPACE}*		{
 										yyextra->indent_lvl_target = indent_len(yyextra->tab_size, yytext);
-										BEGIN(INITIAL);
+										yyextra->opening_emph = true;
+										BEGIN(INITIAL_BODY);
 										goto lex_start;
 									}
-<INITIAL_WHITE>{LINE_DIRECTIVE}		{ handle_line_directive(yyextra, yylloc, yytext); }
-<INITIAL_WHITE>.					{
-										yyextra->opening_emph = true;
+<INITIAL_WHITE>[^ \t]				{
 										yyless(0);
 										yyextra->indent_lvl_target = 0;
-										BEGIN(INITIAL);
+										yyextra->opening_emph = true;
+										BEGIN(INITIAL_BODY);
 										goto lex_start;
 									}
-<FILE_BODY>{WHITE_SPACE}+			{ yyextra->opening_emph = true; }
-<FILE_BODY>{EMPH_UNDERSCORE}		{ EMPHASIS(T_UNDERSCORE_OPEN, T_UNDERSCORE_CLOSE); }
-<FILE_BODY>{EMPH_ASTERISK}			{ EMPHASIS(T_ASTERISK_OPEN, T_ASTERISK_CLOSE); }
-<FILE_BODY>{EMPH_BACKTICK}			{ EMPHASIS(T_BACKTICK_OPEN, T_BACKTICK_CLOSE); }
-<FILE_BODY>{EMPH_EQUALS}			{ EMPHASIS(T_EQUALS_OPEN, T_EQUALS_CLOSE); }
-<FILE_BODY>{INCLUDE_DIRECTIVE}		{ DocTreeNode* included_root; if (include_file(&included_root, yyextra, yytext)) { yylval->node = included_root; return T_INCLUDED_FILE; } BEGIN(INITIAL_WHITE); }
-<FILE_BODY>{COMMENT_LINE}			{ BEGIN(INITIAL_WHITE); return T_LN; }
-<FILE_BODY>{LN}						{ BEGIN(INITIAL_WHITE); return T_LN; }
-<FILE_BODY>{DIRECTIVE}				{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
-<FILE_BODY>{DOUBLE_COLON}			{ yyextra->opening_emph = true; return T_DOUBLE_COLON; }
-<FILE_BODY>{COLON}					{ yyextra->opening_emph = true; return T_COLON; }
-<FILE_BODY>{GROUP_OPEN}				{ yyextra->opening_emph = true; return T_GROUP_OPEN; }
-<FILE_BODY>{GROUP_CLOSE}			{ yyextra->opening_emph = false; return T_GROUP_CLOSE; }
-<FILE_BODY>{HEADING}				{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
-<FILE_BODY>{WORD}					{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strr(yylval->str, sanitise_word(yylloc, yyextra->ifn, yytext, yyleng)); return T_WORD; }
 
-<FILE_BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
+<INITIAL_BODY>{BLOCK_COMMENT_OPEN}	{ yyextra->comment_lvl = 1; BEGIN(COMMENT); }
+<INITIAL_BODY>:						{ BEGIN(PRAGMA); }
+<INITIAL_BODY>::					{
+										BEGIN(BODY);
+										return T_DOUBLE_COLON;
+									}
+<INITIAL_BODY>([^:]|{LN})			{
+										yyless(0);
+										BEGIN(BODY);
+									}
 
-{SHEBANG}							;
-{LN}								{ BEGIN(INITIAL_WHITE); }
-. 									{ yyless(0); BEGIN(FILE_BODY); }
+<PRAGMA>{PRAGMA_NAME_LINE}		{ BEGIN(PRAGMA_LINE); }
+<PRAGMA>{PRAGMA_NAME_INCLUDE}	{ BEGIN(PRAGMA_INCLUDE); }
+<PRAGMA>{LN} 					{ llerror("Failed to parse empty pragma"); BEGIN(INITIAL_WHITE); }
+<PRAGMA>.						{ llerror("Failed to parse pragma, unexpected character '%s'", yytext); BEGIN(BODY); }
+
+<PRAGMA_LINE>{FILENAME}		{ extract_file_name(yyextra, yytext, yyleng); }
+<PRAGMA_LINE>{WHITE_SPACE}+ ;
+<PRAGMA_LINE>.				{ yyless(0); BEGIN(PRAGMA_LINE_NUM); }
+<PRAGMA_LINE>{LN}			{ llerror("Failed to parse line directive, expected line and column numbers"); BEGIN(INITIAL_WHITE); }
+<PRAGMA_LINE_NUM>{INTEGER}		{ extract_integer(&yyextra->preproc.line_num, yytext); BEGIN(PRAGMA_LINE_COL); }
+<PRAGMA_LINE_NUM>{WHITE_SPACE}+ ;
+<PRAGMA_LINE_NUM>(.|{LN}) 		{ llerror("Failed to parse line directive, missing line number, got '%s'", yytext); BEGIN(INITIAL_WHITE); }
+<PRAGMA_LINE_COL>{INTEGER}		{ extract_integer(&yyextra->preproc.line_col, yytext); }
+<PRAGMA_LINE_COL>{WHITE_SPACE}+ ;
+<PRAGMA_LINE_COL>{LN}			{ apply_line_directive(yyextra, yylloc); BEGIN(INITIAL_WHITE); }
+<PRAGMA_LINE_COL>. 				{ llerror("Failed to parse line directive, missing column number"); BEGIN(INITIAL_WHITE); }
+
+<PRAGMA_INCLUDE>{FILENAME}		{ extract_file_name(yyextra, yytext, yyleng); }
+<PRAGMA_INCLUDE>{WHITE_SPACE}+ 	;
+<PRAGMA_INCLUDE>{LN}			{ BEGIN(INITIAL_WHITE); if (handle_file_include(yyextra)) { yylval->node = yyextra->preproc.included_root; return T_INCLUDED_FILE; } }
+<PRAGMA_INCLUDE>. 				{ llerror("Failed to parse include directive, found extra text '%s'", yytext); BEGIN(INITIAL_WHITE); }
+
+<BODY>{WHITE_SPACE}+		{ yyextra->opening_emph = true; }
+<BODY>{EMPH_UNDERSCORE}		{ EMPHASIS(T_UNDERSCORE_OPEN, T_UNDERSCORE_CLOSE); }
+<BODY>{EMPH_ASTERISK}		{ EMPHASIS(T_ASTERISK_OPEN, T_ASTERISK_CLOSE); }
+<BODY>{EMPH_BACKTICK}		{ EMPHASIS(T_BACKTICK_OPEN, T_BACKTICK_CLOSE); }
+<BODY>{EMPH_EQUALS}			{ EMPHASIS(T_EQUALS_OPEN, T_EQUALS_CLOSE); }
+<BODY>{COMMENT_LINE}		{ BEGIN(INITIAL_WHITE); return T_LN; }
+<BODY>{LN}					{ BEGIN(INITIAL_WHITE); return T_LN; }
+<BODY>{DIRECTIVE}			{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
+<BODY>{DOUBLE_COLON}		{ yyextra->opening_emph = true; log_warn("DOUBLE COLON!"); return T_DOUBLE_COLON; }
+<BODY>{COLON}				{ yyextra->opening_emph = true; return T_COLON; }
+<BODY>{GROUP_OPEN}			{ yyextra->opening_emph = true; return T_GROUP_OPEN; }
+<BODY>{GROUP_CLOSE}			{ yyextra->opening_emph = false; return T_GROUP_CLOSE; }
+<BODY>{HEADING}				{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
+<BODY>{WORD}				{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strr(yylval->str, sanitise_word(yylloc, yyextra->ifn, yytext, yyleng)); return T_WORD; }
+
+<BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
+
+{BLOCK_COMMENT_OPEN}		{ yyextra->comment_lvl = 1; BEGIN(COMMENT); }
+{BLOCK_COMMENT_CLOSE}		{ llerror("No comment to close"); return EM_error; }
+<<EOF>>						{
+								if (yyextra->indent_lvl)
+								{
+									yyextra->indent_lvl_target = 0;
+									goto lex_start;
+								}
+								else
+									return EM_EOF;
+							}
+
+{SHEBANG}					;
+{LN}	 					{ BEGIN(INITIAL_WHITE); }
+. 		 					{ yyless(0); BEGIN(INITIAL_WHITE); }
 
 %%
 
@@ -266,56 +308,51 @@ static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng)
 	make_sugar(hdr, hdr_call, yleng);
 }
 
-static void handle_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc, char* ytext)
+static void apply_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc)
 {
-	// Extract file name
-	char* fname = 1 + strchr(ytext, '"');
-	char* fnameclosepos = strrchr(ytext, '"');
-	*fnameclosepos = '\0';
-
 	// Only record a new filename if it is not the same as the last (imperfect but checks quickly)
-	if (!streq(yextra->ifn->str, fname))
+	if (!streq(yextra->ifn->str, yextra->preproc.fname))
 	{
 		Str* nifn = malloc(sizeof(Str));
-		make_strc(nifn, fname);
+		make_strc(nifn, yextra->preproc.fname);
 		yextra->ifn = nifn;
 
 		USE_LOCK(List* namesList, yextra->mtNamesList, append_list(namesList, nifn));
 	}
 
-	// Extract line and column number strings
-	char* flnums = fnameclosepos + 2;
-	char* flcnumgap = strchr(flnums, ' ');
-	*flcnumgap = '\0';
-	char* fcnums = flcnumgap + 1;
-
 	// Assign locations
-	yloc->first_line = atoi(flnums);
-	yloc->first_column = atoi(fcnums);
-	yloc->last_line = yloc->first_line;
-	yloc->last_column = yloc->first_column;
+	yloc->first_line   = yextra->preproc.line_num;
+	yloc->first_column = yextra->preproc.line_col;
+	yloc->last_line    = yloc->first_line;
+	yloc->last_column  = yloc->first_column;
 }
 
-static bool include_file(DocTreeNode** included_root, YY_EXTRA_TYPE yextra, char* ytext)
+static bool handle_file_include(YY_EXTRA_TYPE yextra)
 {
-	// Parse the file name
-	char* fname = 1 + strchr(ytext, '"');
-	char* fnameclosepos = strrchr(fname, '"');
-	*fnameclosepos = '\0';
-
 	Maybe m;
-	*yextra->nerrs += parse_file(&m, yextra->mtNamesList, yextra->args, strdup(fname));
+	*yextra->nerrs += parse_file(&m, yextra->mtNamesList, yextra->args, yextra->preproc.fname);
 
 	if (m.type == NOTHING)
 	{
-		log_info("Error in file '%s' included from '%s'", fname, yextra->ifn->str);
+		log_info("Error in file '%s' included from '%s'", yextra->preproc.fname, yextra->ifn->str);
 		return false;
 	}
 
-	*included_root = m.just;
-	(*included_root)->flags |= INCLUDED_FILE_ROOT | PARAGRAPH_CANDIDATE;
+	yextra->preproc.included_root = m.just;
+	yextra->preproc.included_root->flags |= INCLUDED_FILE_ROOT | PARAGRAPH_CANDIDATE;
 
 	return true;
+}
+
+static void extract_integer(int* out, char* ytext)
+{
+	*out = atoi(ytext);
+}
+
+static void extract_file_name(YY_EXTRA_TYPE yextra, char* ytext, size_t yleng)
+{
+	yextra->preproc.fname = 1 + ytext;
+	yextra->preproc.fname[yleng - 2] = '\0';
 }
 
 #if __GNUC__

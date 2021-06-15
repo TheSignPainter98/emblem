@@ -7,10 +7,19 @@ unsigned int parse_file(Maybe* eo, Locked* namesList, Args* args, char* fname);
 
 typedef struct
 {
+	char* fname;
+	int line_num;
+	int line_col;
+	DocTreeNode* included_root;
+} PreProcessorData;
+
+typedef struct
+{
 	int comment_lvl;
 	int indent_lvl;
 	int indent_lvl_target;
-	bool par_break_required;
+	bool post_dent_tok_required;
+	int post_dent_tok;
 	int tab_size;
 	bool opening_emph;
 	int* nerrs;
@@ -18,13 +27,14 @@ typedef struct
 	Str* ifn;
 	Locked* mtNamesList;
 	Args* args;
+	PreProcessorData preproc;
 } LexerData;
 
 typedef struct
 {
 	Args* args;
 	DocTreeNode* root;
-	Str* ifn;
+	Str** ifn;
 	int* nerrs;
 	void** scanner;
 } ParserData;
@@ -118,9 +128,12 @@ typedef struct
 
 %{
 static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err);
-static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn) __attribute__((malloc));
-static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str* ifn);
+static Location* alloc_assign_loc(EM_LTYPE yyloc, Str** ifn) __attribute__((malloc));
+static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str** ifn);
 static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode* arg, Location* loc);
+static void dest_preprocessor_data(PreProcessorData* preproc);
+
+#include "pp/unused.h"
 %}
 
 %%
@@ -241,12 +254,12 @@ static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err)
 		.first_column = yyloc->first_column,
 		.last_line    = yyloc->last_line,
 		.last_column  = yyloc->last_column,
-		.src_file     = params->ifn,
+		.src_file     = *params->ifn,
 	};
 	log_err_at(&loc, "%s", err);
 }
 
-static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn)
+static Location* alloc_assign_loc(EM_LTYPE yyloc, Str** ifn)
 {
 	Location* ret = malloc(sizeof(Location));
 
@@ -254,12 +267,12 @@ static Location* alloc_assign_loc(EM_LTYPE yyloc, Str* ifn)
 	ret->first_column = yyloc.first_column;
 	ret->last_line = yyloc.last_line;
 	ret->last_column = yyloc.last_column;
-	ret->src_file = ifn;
+	ret->src_file = *ifn;
 
 	return ret;
 }
 
-static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str* ifn)
+static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str** ifn)
 {
 	*out = malloc(sizeof(DocTreeNode));
 	Str* erw = malloc(sizeof(Str));
@@ -273,6 +286,11 @@ static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode
 	make_call_io(callio);
 	prepend_call_io_arg(callio, arg);
 	make_doc_tree_node_call(ret, sugar.call, callio, loc);
+}
+
+static void dest_preprocessor_data(PreProcessorData* preproc)
+{
+	UNUSED(preproc);
 }
 
 unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
@@ -323,6 +341,7 @@ unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 		.ifp = fp,
 		.mtNamesList = mtNamesList,
 		.args = args,
+		.preproc = { 0 },
 	};
 	yyscan_t scanner;
 	em_lex_init(&scanner);
@@ -331,12 +350,12 @@ unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 	ParserData pd = {
 		.args = args,
 		.root = NULL,
-		.ifn = ifn,
+		.ifn = &ld.ifn,
 		.nerrs = &nerrs,
 		.scanner = scanner,
 	};
 
-	log_debug("Starting parser on file '%s'", pd.ifn->str);
+	log_debug("Starting parser on file '%s'", ifn->str);
 	em_parse(&pd);
 	em_lex_destroy(scanner);
 	if (!use_stdin)
@@ -348,6 +367,8 @@ unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 	{
 		make_maybe_nothing(mo);
 	}
+
+	dest_preprocessor_data(&ld.preproc);
 
 	return nerrs;
 }
