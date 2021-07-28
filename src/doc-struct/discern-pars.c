@@ -94,11 +94,13 @@ static ParNodeRequirement requires_par_node(DocTreeNode* node)
 				case 1:
 				{
 					DocTreeNode* sole_child = node->content->content->fst->data;
-					if (sole_child->content->type == CALL)
+					if (sole_child->content->type == CALL || sole_child->flags & INCLUDED_FILE_ROOT)
 						return MAYBE_CHILD_PAR_NODE;
 					return REQUIRES_PAR_NODE;
 				}
 				default:
+					if (node->flags & INCLUDED_FILE_ROOT)
+						return MAYBE_CHILD_PAR_NODE;
 					return REQUIRES_PAR_NODE;
 			}
 		default:

@@ -14,6 +14,8 @@ This is an ==alternative style as yet undefined,== but that's okay.
 
 You can also have escaped\{characters, more escaped\}characters \} \{ \: in the middle of words or even on their own \:.
 
+:include "included-file"
+
 This is an _italic word._
 This is a __bold one__.
 This is a word with an underscore_in_the_middle.
