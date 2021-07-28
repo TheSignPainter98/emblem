@@ -8,12 +8,16 @@
 #include <string.h>
 #include <unistd.h>
 
-#define POS_FMT		   "%s:%d:%d: "
+static const char* const pos_fmts[2] = {
+	[true]	= "\033[0m\033[1m%s:%d:%d:\033[0m ",
+	[false] = "%s:%d:%d: ",
+};
 #define POS_FILL(locp) locp->src_file->str, (locp)->first_line, (locp)->first_column
 #define PREPEND_LOC_TO_FORMAT(posstr, loc)                                                                             \
-	const size_t pos_fmt_len = 1 + snprintf(NULL, 0, POS_FMT, POS_FILL(loc));                                          \
+	const char* const pos_fmt = pos_fmts[colourise_output];                                                            \
+	const size_t pos_fmt_len  = 1 + snprintf(NULL, 0, pos_fmt, POS_FILL(loc));                                         \
 	char(posstr)[pos_fmt_len];                                                                                         \
-	snprintf(posstr, pos_fmt_len, POS_FMT, POS_FILL(loc));
+	snprintf(posstr, pos_fmt_len, pos_fmt, POS_FILL(loc));
 
 /**
  * @brief Verbosity level values
@@ -69,7 +73,7 @@ void init_logs(Args* args)
 	log_verbosity  = args->verbose;
 	fatal_warnings = args->fatal_warnings;
 	if (args->colourise_output)
-		colourise_output = args->colourise_output;
+		colourise_output = args->colourise_output > 0;
 	else
 	{
 		initscr();
