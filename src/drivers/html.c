@@ -105,10 +105,12 @@ static int format_doc_as_html(LinearFormatter* formatter, Str* time_str, Doc* do
 	append_linear_formatter_strf(formatter, TITLE_DEF, formatter->output_name_stem->str);
 	/* append_linear_formatter_raw(formatter, "<meta name=\"theme-color\" content=\"#2d2d2d\"/>"); */
 	append_linear_formatter_raw(formatter, "\n</head>");
-	append_linear_formatter_raw(formatter, "\n<body>\n");
+	append_linear_formatter_raw(formatter, "\n<body>");
+	append_linear_formatter_raw(formatter, "\n<span class=\"body\">\n");
 	int rc = format_node_as_html(formatter, doc->root);
 	if (rc)
 		return rc;
+	append_linear_formatter_raw(formatter, "\n</span>");
 	append_linear_formatter_raw(formatter, "\n</body>");
 	append_linear_formatter_raw(formatter, "\n</html>");
 

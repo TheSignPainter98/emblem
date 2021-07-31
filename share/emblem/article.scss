@@ -11,7 +11,7 @@ $mono-font-family: 'Ubuntu Mono', monospace;
 	@return ($min_size + ($num / $header_max) * ($max_size - $min_size)) * 1pt;
 }
 
-body {
+.body {
 	font-family: $main-font-family;
 	font-variant-ligatures: discretionary-ligatures;
 	font-variant-numeric: oldstyle-nums;
@@ -24,7 +24,7 @@ body {
 }
 
 @media only screen {
-	body {
+	.body {
 		margin-left: 33vw;
 		margin-right: 33vw;
 		margin-top: 16vh;
@@ -33,7 +33,7 @@ body {
 }
 
 @media only paper {
-	body {
+	.body {
 		text-align: justify;
 	}
 }
