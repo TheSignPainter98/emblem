@@ -11,7 +11,7 @@
 #define EM_EVAL_NODE_FUNC_NAME	  "eval"
 #define EM_REQUIRE_RUNS_FUNC_NAME "requires_reiter"
 #define EM_ENV_VAR_NAME			  "_em_env"
-#define EM_NODE_TYPES_TABLE		  "_node_types"
+#define EM_NODE_TYPES_TABLE		  "node_types"
 
 static luaL_Reg lua_std_libs_universal[] = {
 	{ "", luaopen_base },

@@ -150,11 +150,11 @@ eq = (a,b) ->
 
 node_string = (n) ->
 	switch n.type
-		when _node_types.word
+		when node_types.word
 			return n.word
-		when _node_types.call
+		when node_types.call
 			return node_string n.result
-		when _node_types.content
+		when node_types.content
 			return concat [ node_string w for w in *n.content ], ' '
 		else
 			error "Unrecognised node type '#{n.type}'"
