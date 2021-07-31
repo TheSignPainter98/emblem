@@ -3,8 +3,8 @@ import rep from string
 import open from io
 import load from require 'lyaml'
 
-export id = (x) -> x
-export do_nothing = (x) ->
+id = (x) -> x
+do_nothing = (x) ->
 
 components = {}
 class Component extends {}
@@ -25,7 +25,7 @@ for event in *events
 		for comp in *components
 			comp[event](comp, ...) if comp[event] != do_nothing
 
-export show = (v) ->
+show = (v) ->
 	switch type v
 		when 'boolean', 'nil', 'number', 'thread'
 			tostring(v)
@@ -40,7 +40,7 @@ export show = (v) ->
 			else
 				print 'Unknown type', type v
 
-export showp = (v) ->
+showp = (v) ->
 	_showp = (v, i) ->
 		switch type v
 			when 'string'
@@ -70,9 +70,9 @@ export is_list = (l) ->
 		maxk = k if maxk < k
 	return maxk == #l
 
-export keys = (t) ->
+keys = (t) ->
 	[ k for k,_ in pairs t ]
-export values = (t) ->
+values = (t) ->
 	[ v for _,v in pairs t ]
 
 
@@ -224,7 +224,7 @@ elem = (v, vs) ->
 			return true
 	false
 
-export sorted = (t, ...) ->
+sorted = (t, ...) ->
 	sort t, ...
 	t
 
@@ -322,14 +322,14 @@ em.cite = (ref) ->
 -- local cite_style
 	-- cite_style = 'numeric'
 
--- export cite_str = (key) ->
+-- cite_str = (key) ->
 	-- switch cite_style
 		-- when 'numeric'
 			-- "[123]"
 		-- else
 			-- 'ERROR'
 
--- export bib_str = (key) ->
+-- bib_str = (key) ->
 	-- switch cite_style
 		-- when 'numeric'
 			-- bib[key].author .. '.' .. bib[key].title .. ' in ' .. bib[key].date.year
@@ -340,10 +340,10 @@ em.cite = (ref) ->
 	-- used_bib[key] = BibItem(key) if not used_bib[key]
 	-- used_bib[key]\cite!
 
-export mkcall = (name) -> (...) ->
+mkcall = (name) -> (...) ->
 	{
 		type: 3
-		name: styler
+		name: name
 		args: {...}
 	}
 stylers = { 'it', 'bf', 'sc', 'af', 'tt' }
@@ -377,4 +377,4 @@ em.test_func = (...) ->
 	return false
 	-- return x
 
-{:Component, :Toc, :eval, :node_string, :eval_string}
+{ :Component, :SyncContainer, :SyncSet, :SyncList, :Toc, :eval, :node_string, :eval_string, :id, :do_nothing, :show, :showp, :keys, :values, :sorted, :mkcall, }
