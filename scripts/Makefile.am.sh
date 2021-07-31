@@ -2,7 +2,7 @@
 
 extension_lib_srcs=($(find src/ext/lib/ -name '*.moon'))
 extension_lib_built_srcs=($(find src/ext/lib/ -name '*.moon' | for f in $(</dev/stdin); do echo ${f%.*}.lc; done))
-built_srcs=(./config.h ./src/argp.c ./src/argp.h ./src/pp/ignore_warning.h ./src/ext/lua-lib-load.c ${extension_lib_built_srcs[@]})
+built_srcs=(./src/config.h ./src/argp.c ./src/argp.h ./src/pp/ignore_warning.h ./src/ext/lua-lib-load.c ${extension_lib_built_srcs[@]})
 parser_srcs=(src/parser/emblem-lexer.l src/parser/emblem-parser.y)
 hand_written_srcs=($(find src -name '*.c' -or -name '*.h' | grep -v 'argp\.[ch]$' | grep -Pv 'emblem-(lexer|parser)\.[ch]$' | grep -v 'src/pp/ignore_warning\.h$' | grep -v 'config\.h'))
 
