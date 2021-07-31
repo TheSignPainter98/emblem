@@ -1,5 +1,6 @@
 #include "logs.h"
 
+#include <curses.h>
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -66,8 +67,6 @@ static const char* const leaders[2][4] = {
  */
 static pthread_mutex_t log_lock;
 
-#include <curses.h>
-#include <errno.h>
 void init_logs(Args* args)
 {
 	log_verbosity  = args->verbose;
