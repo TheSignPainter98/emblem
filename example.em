@@ -49,6 +49,14 @@ XXXXX
 .streq{asdf}{asdf}
 .echo{asdf}: Hello, world!
 
+AAAAA
+!asdf <- hello
+BBBBB
+!asdf
+CCCCC
+!asdf2
+DDDDD
+
 .flush-left:
 	Hello, this should be no different from the usual, please
 
@@ -61,10 +69,45 @@ XXXXX
 .centre:
 	This text should be centred in some fashion?
 
-.if{false}:
+.ifelse{false}:
 	fdjakfdsa
 ::
 	fdss
+
+// !title <- =fhdjskal=
+!title <- ((something interesting))
+Hello, the title is !title and this is fine.
+
+.ifelse{true}:
+	this is the true branch
+::
+	and this is the false branch
+
+.case{2}:
+	ONE
+::
+	TWO
+::
+	SOMETHING ELSE
+
+.echo-on-pass{2}{fdsa}: Hello
+
+.ifelse{$var}:
+	fhjdksalfds
+	hfjdklfds
+	hello, world!
+	!title
+	!title
+::
+	fhdjsaklfhdsa
+	!title
+	!title
+
+// .ifelse{!example_var}{defined}{not_defined}
+// !example_var <- true
+// .ifelse{!example_var}{defined}{not_defined}
+// !example_var <- hfjdka
+// .ifelse{!example_var}{defined}{not_defined}
 
 //.while{false}:
 // 	hey?

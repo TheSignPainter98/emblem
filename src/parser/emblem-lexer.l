@@ -102,7 +102,9 @@ WORD_END_EMPH		[_*`=]({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}_*`=,.'":;])
 WORD_END_REGULAR 	{WORD_EASY_END_CHAR}{2}
 WORD_ESCAPE_CHAR	"\\"[^ \t\r\n]
 WORD_MID_CHAR 		({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}])
-WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}])
+WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}!])
+VARIABLE_REFERENCE  "!"[^ \t\r\n:{}]+
+VARIABLE_ASSIGNMENT "<-"
 
 %x COMMENT
 %x INITIAL_WHITE
@@ -166,6 +168,10 @@ WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}])
 										BEGIN(BODY);
 									}
 
+<MAYBE_VARIABLE_ASSIGNMENT>"<-"				{ return T_ASSIGNMENT; }
+<MAYBE_VARIABLE_ASSIGNMENT>{WHITE_SPACE}+ 	;
+<MAYBE_VARIABLE_ASSIGNMENT>(.|{LN})			{ yyless(0); BEGIN(BODY); }
+
 <PRAGMA>{PRAGMA_NAME_LINE}		{ BEGIN(PRAGMA_LINE); }
 <PRAGMA>{PRAGMA_NAME_INCLUDE}	{ BEGIN(PRAGMA_INCLUDE); }
 <PRAGMA>{LN} 					{ llerror("Failed to parse empty pragma"); BEGIN(INITIAL_WHITE); }
@@ -196,6 +202,7 @@ WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}])
 <BODY>{COMMENT_LINE}		{ BEGIN(INITIAL_WHITE); return T_LN; }
 <BODY>{LN}					{ BEGIN(INITIAL_WHITE); return T_LN; }
 <BODY>{DIRECTIVE}			{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
+<BODY>{VARIABLE_REFERENCE}	{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); BEGIN(MAYBE_VARIABLE_ASSIGNMENT); return T_VARIABLE_REF; }
 <BODY>{DOUBLE_COLON}		{ yyextra->opening_emph = true; log_warn("DOUBLE COLON!"); return T_DOUBLE_COLON; }
 <BODY>{COLON}				{ yyextra->opening_emph = true; return T_COLON; }
 <BODY>{GROUP_OPEN}			{ yyextra->opening_emph = true; return T_GROUP_OPEN; }
