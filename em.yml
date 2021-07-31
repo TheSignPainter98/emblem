@@ -82,7 +82,7 @@ args:
     short: -f
     long: --framework
     metaDest: extension
-    help: Specify an extension to load
+    help: Specify an extension to load. When used multiple times, the specified extensions are loaded in the order given.
     type: List
   - dest: extension_args
     short: -a
@@ -180,4 +180,6 @@ dist:
       - moonscript
     check-depends:
       - criterion
-    opt-depends: []
+    opt-depends:
+      - otf-bodoni
+      - otf-jost
