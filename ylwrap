@@ -29,6 +29,7 @@ prog=$1
 
 # Call required program
 $@ "$input"
+rc=$?
 
 # Move output to correct location
 desired_stem=${desired%.*}
@@ -47,3 +48,5 @@ else
 	echo "Unknown ylwrap program: $prog" >&2
 	exit 1
 fi
+
+exit $rc
