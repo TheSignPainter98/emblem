@@ -155,7 +155,8 @@ file_contents
 	;
 
 file_content
-	: par { $$ = $1; $$->flags |= PARAGRAPH_CANDIDATE; }
+	: par 								{ $$ = $1; $$->flags |= PARAGRAPH_CANDIDATE; }
+	| T_INDENT file_contents T_DEDENT 	{ $$ = $2; }
 	;
 
 par : lines
@@ -173,7 +174,7 @@ maybe_par_break_toks
 lines
 	: line										{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); prepend_doc_tree_node_child($$, $$->content->content, $1); $1->parent = $$;}
 	| line lines								{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
-	/* | T_INDENT lines T_DEDENT maybe_lines	{ $$ = $2; List* l = malloc(sizeof(List)); iconcat_list(l, $2->content->lines, $4->content->lines); dest_list($2->content->lines, true, NULL); dest_list($4->content->lines, true, NULL); $$->content->lines = l; free($2); free($4); } */
+	/* | T_INDENT file_contents T_LN T_DEDENT lines { $$ = $2; List* l = malloc(sizeof(List)); iconcat_list(l, $2->content->lines, $4->content->lines); dest_list($2->content->lines, true, NULL); dest_list($4->content->lines, true, NULL); $$->content->lines = l; free($2); free($4); } */
 	;
 
 line
