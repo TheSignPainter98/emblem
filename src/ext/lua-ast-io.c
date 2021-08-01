@@ -1,5 +1,6 @@
 #include "lua-ast-io.h"
 
+#include <luaconf.h>
 #include <lauxlib.h>
 
 #include "doc-struct/ast.h"
@@ -100,10 +101,21 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 		}
 		case LUA_TNUMBER:
 		{
-			const int num		= lua_tonumber(s, -1);
-			const size_t numlen = 1 + snprintf(NULL, 0, "%d", num);
-			char* numr			= malloc(numlen);
-			snprintf(numr, numlen, "%d", num);
+			char* numr;
+			if (lua_isinteger(s, -1))
+			{
+				lua_Integer num		= lua_tonumber(s, -1);
+				const size_t numlen = 1 + snprintf(NULL, 0, LUA_INTEGER_FMT, num);
+				numr			= malloc(numlen);
+				snprintf(numr, numlen, LUA_INTEGER_FMT, num);
+			}
+			else
+			{
+				lua_Number num = lua_tonumber(s, -1);
+				const size_t numlen = 1 + snprintf(NULL, 0, LUA_NUMBER_FMT, num);
+				numr = malloc(sizeof(numlen));
+				snprintf(numr, numlen, LUA_NUMBER_FMT, num);
+			}
 			Str* repr = malloc(sizeof(Str));
 			make_strr(repr, numr);
 			rc = unpack_single_value(result, repr, parentNode);
