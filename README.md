@@ -98,12 +98,12 @@ Programs you will need:
 - [`git`][git]
 - [`yq`][yq]
 - [GNU Autotools][gnu-autotools]
-- [Standard UNIX tools][unix-tools]
+- Standard UNIX tools
 - [gcc][gcc]
 
 To compile and run the `em`, you will need to install the following C-libraries:
 
-- [criterion][criterion]
+- [criterion](https://github.com/Snaipe/Criterion)
 - [glibc](https://www.gnu.org/software/libc/) (Comes with all good GNU/Linux distributions)
 - [libcss](https://www.netsurf-browser.org/projects/libcss/)
 - [libsass](https://sass-lang.com/libsass)
@@ -537,14 +537,12 @@ Some notes on the build process.
 - `make lint` can be used to run the linter
 
 [bodoni-star]: https://indestructibletype.com/Bodoni.html
-[criterion]: https://github.com/Snaipe/Criterion
 [css-ref]: https://www.w3schools.com/css/css_intro.asp
-[gcc]:
-[git]:
-[gnu-autotools]:
+[gcc]: https://gcc.gnu.org
+[git]: https://git-scm.com
+[gnu-autotools]: https://www.gnu.org/software/automake/manual/html_node/Autotools-Introduction.html
 [lua]: https://www.lua.org
 [moonscript]: https://moonscript.org
 [releases-page]: https://www.github.com/TheSignPainter98/emblem/releases
 [sass-scss-ref]: https://sass-lang.com
-[unix-tools]:
 [yq]: https://kislyuk.github.io/yq/
