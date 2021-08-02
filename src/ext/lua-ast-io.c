@@ -1,7 +1,7 @@
 #include "lua-ast-io.h"
 
-#include <luaconf.h>
 #include <lauxlib.h>
+#include <luaconf.h>
 
 #include "doc-struct/ast.h"
 #include "logs/logs.h"
@@ -10,7 +10,7 @@
 
 #include "debug.h"
 
-static int eval_tree(ExtensionState* s, DocTreeNode* node);
+static int pack_tree(ExtensionState* s, DocTreeNode* node);
 static int unpack_single_value(DocTreeNode** result, Str* repr, DocTreeNode* parentNode);
 
 int ext_eval_tree(ExtensionState* s)
@@ -24,15 +24,23 @@ int ext_eval_tree(ExtensionState* s)
 	if (ptr->type != AST_NODE)
 		luaL_error(s, "Expected AST node userdata (%d) but got userdata of type %d", AST_NODE, ptr->type);
 	DocTreeNode* node = ptr->data;
-	lua_pop(s, 1);
+	lua_pop(s, -1);
 	log_debug("Working on node %p", (void*)node);
 
-	eval_tree(s, node);
+	int erc = exec_lua_pass_on_node(s, node);
+	if (erc)
+		lua_pushnil(s);
+	pack_tree(s, node);
 	return 1;
 }
 
-static int eval_tree(ExtensionState* s, DocTreeNode* node)
+static int pack_tree(ExtensionState* s, DocTreeNode* node)
 {
+	int rc = 0;
+
+	log_debug("[");
+	log_debug("Evaluating tree at %p...", (void*)node);
+	dumpstack(s);
 	lua_newtable(s);
 	lua_pushinteger(s, node->content->type);
 	lua_setfield(s, -2, "type");
@@ -45,14 +53,11 @@ static int eval_tree(ExtensionState* s, DocTreeNode* node)
 		case CALL:
 			lua_pushstring(s, node->name->str);
 			lua_setfield(s, -2, "name");
-			/* TODO: does this work? */
-			if (log_warn("Packing node %p by executing its lua pass", (void*)node))
-				luaL_error(s, "Warnings are fatal");
-			int rc = exec_lua_pass_on_node(s, node);
-			if (!rc && node->content->call->result)
+			if (node->content->call->result)
 			{
-				log_debug("Packing %p!", (void*)node->content->call->result);
-				rc = eval_tree(s, node->content->call->result);
+				log_debug("Packing result of %p found at %p", (void*)node, (void*)node->content->call->result);
+				rc = pack_tree(s, node->content->call->result);
+				log_debug("Post-pack stack");
 				dumpstack(s);
 				log_debug("Done packing %p!", (void*)node->content->call->result);
 			}
@@ -62,7 +67,7 @@ static int eval_tree(ExtensionState* s, DocTreeNode* node)
 			log_debug("Setting result...");
 			lua_setfield(s, -2, "result");
 			log_debug("Set result!");
-			return rc;
+			break;
 		case CONTENT:
 		{
 			DocTreeNode* child;
@@ -72,14 +77,15 @@ static int eval_tree(ExtensionState* s, DocTreeNode* node)
 			lua_newtable(s);
 			while (iter_list((void**)&child, &li))
 			{
-				eval_tree(s, child);
+				pack_tree(s, child);
 				lua_seti(s, -2, idx++);
 			}
 			lua_setfield(s, -2, "content");
 			break;
 		}
 	}
-	return 0;
+	log_debug("]");
+	return rc;
 }
 
 int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* parentNode)
@@ -90,6 +96,7 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 	{
 		case LUA_TNIL:
 			*result = NULL;
+			lua_pop(s, -1);
 			return 0;
 		case LUA_TBOOLEAN:
 		{
@@ -106,14 +113,14 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 			{
 				lua_Integer num		= lua_tonumber(s, -1);
 				const size_t numlen = 1 + snprintf(NULL, 0, LUA_INTEGER_FMT, num);
-				numr			= malloc(numlen);
+				numr				= malloc(numlen);
 				snprintf(numr, numlen, LUA_INTEGER_FMT, num);
 			}
 			else
 			{
-				lua_Number num = lua_tonumber(s, -1);
+				lua_Number num		= lua_tonumber(s, -1);
 				const size_t numlen = 1 + snprintf(NULL, 0, LUA_NUMBER_FMT, num);
-				numr = malloc(sizeof(numlen));
+				numr				= malloc(sizeof(numlen));
 				snprintf(numr, numlen, LUA_NUMBER_FMT, num);
 			}
 			Str* repr = malloc(sizeof(Str));
@@ -128,6 +135,7 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 			make_strv(repr, (char*)lua_tostring(s, -1));
 			rc = unpack_single_value(result, repr, parentNode);
 			lua_pop(s, -1);
+			log_debug("Popped string '%s'", repr->str);
 			return rc;
 		}
 		case LUA_TLIGHTUSERDATA:

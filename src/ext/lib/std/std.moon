@@ -149,6 +149,10 @@ eq = (a,b) ->
 	true
 
 node_string = (n) ->
+	if n == nil
+		return nil
+	if 'table' != type n
+		return tostring n
 	switch n.type
 		when node_types.word
 			return n.word

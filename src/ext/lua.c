@@ -17,11 +17,17 @@ void inc_iter_num(Doc* doc)
 	lua_setglobal(doc->ext->state, EM_ITER_NUM_VAR_NAME);
 }
 
-int exec_lua_pass(Doc* doc) { return exec_lua_pass_on_node(doc->ext->state, doc->root); }
+int exec_lua_pass(Doc* doc)
+{
+	int rc = exec_lua_pass_on_node(doc->ext->state, doc->root);
+	lua_pop(doc->ext->state, lua_gettop(doc->ext->state));
+	return rc;
+}
 
 #include "debug.h"
 int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 {
+	// Takes a node at the top of the stack, replaces it with the result of executing a lua pass
 	switch (node->content->type)
 	{
 		case WORD:
@@ -36,19 +42,19 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 			lua_getfield(s, -1, node->name->str);
 			if (lua_isnoneornil(s, -1))
 			{
+				lua_pop(s, -2); // Remove nil value and public table
 				node->flags |= CALL_HAS_NO_EXT_FUNC;
 				if (is_empty_list(node->content->call->args))
 				{
 					int rc = log_warn_at(node->src_loc,
 						"Directive '.%s' is not an extension function and has no arguments (would style nothing)",
 						node->name->str);
-					lua_pop(s, -1); // Remove call function
 					return rc ? -1 : 0;
 				}
 				if (node->content->call->args->cnt == 1)
 				{
+					// Pass through non-extension calls with a single argument
 					node->content->call->result = node->content->call->args->fst->data;
-					lua_pop(s, -1); // Remove call function
 					return exec_lua_pass_on_node(s, node->content->call->result);
 				}
 
@@ -62,16 +68,15 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 				while (iter_list((void**)&currArg, &li))
 					prepend_doc_tree_node_child(resultNode, resultNode->content->content, currArg);
 				node->content->call->result = resultNode;
-				lua_pop(s, -1); // Remove call function
 
 				return exec_lua_pass_on_node(s, node->content->call->result);
 			}
 			if (!is_callable(s, -1))
 			{
+				lua_pop(s, -2); // Remove non-callable object and public table
 				log_err("Expected function or callable table at em.%s, but got a %s", node->name->str,
 					luaL_typename(s, -1));
 				node->flags |= CALL_HAS_NO_EXT_FUNC;
-				lua_pop(s, -1); // Remove call function
 				return -1;
 			}
 
@@ -89,24 +94,30 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 				i++;
 			}
 
-			log_debug("Stack:");
+			log_debug("Pre-call stack:");
 			dumpstack(s);
-			log_debug("Calling %s...", node->name->str);
 			log_debug("(Pcalling %s with %d arguments...)", node->name->str, num_args);
 			switch (lua_pcall(s, num_args, 1, 0))
 			{
 				case LUA_OK:
 					log_debug("returned: %s", luaL_typename(s, -1));
-					return unpack_lua_result(&node->content->call->result, s, node);
+					dumpstack(s);
+					int rc = unpack_lua_result(&node->content->call->result, s, node);
+					if (!rc)
+						lua_pop(s, -1); // Pop the public table
+					dumpstack(s);
+					return rc;
 				case LUA_YIELD:
 				{
 					int fw
 						= log_warn_at(node->src_loc, "Lua function em.%s yielded instead of returned", node->name->str);
+					lua_pop(s, -1); // Pop the public table
 					return fw ? -1 : 0;
 				}
 				default:
 					log_err_at(
 						node->src_loc, "Calling em.%s failed with error: %s", node->name->str, lua_tostring(s, -1));
+					lua_pop(s, -1); // Pop the public table
 					return -1;
 			}
 		}
@@ -142,7 +153,7 @@ static bool is_callable(ExtensionState* s, int idx)
 	if (!lua_getmetatable(s, idx))
 		return false;
 
-	lua_getfield(s, -1, "__call");
+	lua_getfield(s, idx, "__call");
 	bool callable = lua_isfunction(s, -1);
 	lua_pop(s, -1);
 
