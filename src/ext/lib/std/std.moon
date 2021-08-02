@@ -167,7 +167,7 @@ node_string = (n) ->
 eval_string = (d) ->
 	if 'userdata' == type d
 		return node_string eval d
-	d
+	tostring d
 
 class SyncContainer extends Component
 	new: =>
