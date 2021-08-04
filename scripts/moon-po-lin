@@ -1,0 +1,70 @@
+#!/usr/bin/moon
+
+import open, lines, stderr from io
+import exit from os
+
+rc = 0
+
+file_exists = (fname) ->
+	f = open fname
+	if f == nil
+		return false
+	f\close!
+	true
+
+get_deps = (fname) ->
+	if not file_exists fname
+		stderr\write "File '#{fname}' does not exist!\n"
+		rc = 1
+		return {}
+
+	dep_lines = [ l for l in lines fname when l\match "import.*require" ]
+	dep_modules = [ l\match "'(.*)'" for l in *dep_lines ]
+	raw_dep_files = [ 'src/ext/lib/' .. (m\gsub "%.", "/") .. '.moon' for m in *dep_modules ]
+	existant_dep_files = [ f for f in *raw_dep_files when file_exists f ]
+	existant_dep_files
+
+get_deps_po = (files) ->
+	po = {}
+	for f in *files
+		po[f] = get_deps f
+	return po
+
+elem = (e, es) ->
+	for e2 in *es
+		if e == e2
+			return true
+	false
+
+get_min_elem_idx = (po_list, po_list_len) ->
+	min = nil
+	for i = 1, po_list_len
+		continue if po_list[i] == nil
+		{f,fdeps} = po_list[i]
+		for j = 1, po_list_len
+			continue if po_list[j] == nil or i == j
+			{g,gdeps} = po_list[j]
+			if elem g, fdeps
+				f = g
+				fdeps = gdeps
+				i = j
+		min = i
+	min
+
+
+linearise_po = (po) ->
+	-- Bad cubic lineariser
+	po_list = [ {k,v} for k,v in pairs po ]
+	po_list_len = #po_list
+	lin = {}
+	for _ = 1, po_list_len
+		min_idx = get_min_elem_idx po_list, po_list_len
+		print po_list[min_idx][1]
+		po_list[min_idx] = nil
+	lin
+
+main = (...) ->
+	for f in *linearise_po get_deps_po {...} do print f
+
+main ...
+exit rc
