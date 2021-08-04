@@ -59,7 +59,7 @@ showp = (v) ->
 					show v
 	_showp v, 0
 
-export is_list = (l) ->
+is_list = (l) ->
 	type = type
 	if (type l) != 'table'
 		return false
@@ -148,6 +148,18 @@ eq = (a,b) ->
 			return false
 	true
 
+filter = (as, f=(a)->a!=nil) ->
+	bs = {}
+	for k,v in pairs as
+		bs[k] = v if f v
+	bs
+
+filter_list = (as, f=(a)->a!=nil) ->
+	bs = {}
+	for v in *as
+		insert bs, v if f v
+	bs
+
 node_string = (n) ->
 	if n == nil
 		return nil
@@ -159,7 +171,7 @@ node_string = (n) ->
 		when node_types.call
 			return node_string n.result
 		when node_types.content
-			return concat [ node_string w for w in *n.content ], ' '
+			return concat (filter_list [ node_string w for w in *n.content ]), ' '
 		else
 			error "Unrecognised node type '#{n.type}'"
 			return 1
@@ -356,29 +368,4 @@ for styler in *stylers
 
 -- stylesheet 'share/toc.scss'
 
-lvl = 0
-em.test_func = (...) ->
-	lvl += 1
-
-	-- things = {}
-	-- x = nil
-	-- for k,v in pairs{...}
-		-- print (rep '\t', lvl) .. k,v
-		-- insert things, eval v
-		-- print (rep '\t', lvl) .. '==='
-		-- x = v
-		-- -- print ast_type_name (things[k])
-		-- -- print '___'
-	-- -- print eval "ahfjkl"
-
-	-- -- print ast_type_name 0
-	-- -- for i in *{ 0, 1, 2, 3, 4, 5, 6 }
-		-- -- print i
-	-- -- print show {...}
-	-- print 'things:', show things
-	-- print x
-	lvl -= 1
-	return false
-	-- return x
-
-{ :Component, :SyncContainer, :SyncSet, :SyncList, :Toc, :eval, :node_string, :eval_string, :id, :do_nothing, :show, :showp, :keys, :values, :sorted, :mkcall, }
+{ :Component, :SyncContainer, :SyncSet, :SyncList, :Toc, :eval, :node_string, :eval_string, :id, :do_nothing, :show, :showp, :keys, :values, :sorted, :mkcall, :is_list}
