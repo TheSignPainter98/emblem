@@ -4,7 +4,7 @@ extension_lib_srcs=($(find src/ext/lib/ -name '*.moon'))
 extension_lib_built_srcs=($(find src/ext/lib/ -name '*.moon' | for f in $(</dev/stdin); do echo ${f%.*}.lc; done))
 built_srcs=(./src/config.h ./src/argp.c ./src/argp.h ./src/pp/ignore_warning.h ./src/ext/lua-lib-load.c ${extension_lib_built_srcs[@]})
 parser_srcs=(src/parser/emblem-lexer.l src/parser/emblem-parser.y)
-hand_written_srcs=($(find src -name '*.c' -or -name '*.h' | grep -v 'argp\.[ch]$' | grep -Pv 'emblem-(lexer|parser)\.[ch]$' | grep -v 'src/pp/ignore_warning\.h$' | grep -v 'config\.h'))
+hand_written_srcs=($(find src -name '*.c' -or -name '*.h' | grep -v 'argp\.[ch]$' | grep -Pv 'emblem-(lexer|parser)\.[ch]$' | grep -v 'src/pp/ignore_warning\.h$' | grep -v 'config\.h') $(find src/scripts/ -name '*.moon'))
 
 srcs=(${built_srcs[@]} ${parser_srcs[@]} ${hand_written_srcs[@]})
 tests=(${built_srcs[@]} ${parser_srcs[@]} $(echo ${hand_written_srcs[@]} | tr ' ' '\n' | grep -v 'em.[ch]$') $(find check -name '*.c' -or -name '*.h'))
