@@ -38,6 +38,7 @@
 em
 check_em
 !share/em/
+html2em
 
 # Debug files
 *.dSYM/
