@@ -1,26 +1,37 @@
-import lower from string
+import len, lower, match from string
 import concat, insert from table
-import eval_string from require 'std.std'
+import eval_string from require 'std.base'
 
-vars = {}
+vars = {{}}
+
+get_scope_widening = (vn) ->
+	w = len vn\match "^!*"
+	w += 1 if w
+	w
 
 get_var = (rn, d) ->
-	n = eval_string rn
-	if vars[n]
-		return vars[n]
-	return d
+	wn = eval_string rn
+	widen_by = get_scope_widening wn
+	n = wn\match "[^!]*$"
+	for i = #vars - widen_by, 1, -1
+		v = vars[i][n]
+		if v != nil
+			return v
+	d
 em['get-var'] = get_var
 
 set_var = (n, v) ->
-	vars[eval_string n] = eval_string v
+	vars[#vars - 1][eval_string n] = eval_string v
 em['set-var'] = set_var
 
-undef_var = (n) ->
-	vars[eval_string n] = nil
-em['undef-var'] = undef_var
+export open_var_scope = -> insert vars, {}
+export close_var_scope = -> vars[#vars] = nil
+
+em.def = (n, f) -> em[eval_string n] = f
+em['undef-dir'] = (n) -> em[eval_string n] = nil
 
 em.echo = (...) ->
-	print concat [ eval_string v for v in *{...} ], ' '
+	print concat [ eval_string v for v in *{...} when v != nil ], ' '
 
 em['echo-on-pass'] = (n, ...) ->
 	n = tonumber eval_string n
@@ -70,7 +81,7 @@ em.foreach = (n, vs, b) ->
 	for v in (eval_string vs)\gmatch('%S+')
 		set_var n, v
 		insert ret, eval b
-	vars[n] = prev_val
+	setvar n, prev_val
 	ret
 
 em.streq = (s, t) ->
@@ -81,5 +92,7 @@ em.defined = (v) ->
 
 em.exists = (f) ->
 	toint em[f] != nil
+
+em.include = (f) -> include_file eval_string f
 
 {:cond, :toint, :set_var, :get_var}

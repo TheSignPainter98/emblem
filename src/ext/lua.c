@@ -8,6 +8,10 @@
 #include <stdbool.h>
 #include <string.h>
 
+#define CLOSE_VAR_SCOPE_FUNC_NAME "close_var_scope"
+#define OPEN_VAR_SCOPE_FUNC_NAME  "open_var_scope"
+#define SET_VAR_FUNC_NAME		  "set-var"
+
 static bool is_callable(ExtensionState* s, int idx);
 
 void inc_iter_num(Doc* doc)
@@ -93,33 +97,93 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 				lua_pushlightuserdata(s, &argPtrs[i]);
 				i++;
 			}
+			dest_list_iter(&li);
 
+			// Open variable scope
+			lua_getglobal(s, OPEN_VAR_SCOPE_FUNC_NAME);
+			if (!is_callable(s, -1))
+			{
+				log_err("Variable " OPEN_VAR_SCOPE_FUNC_NAME " is not a callable. Something has changed this!");
+				return -1;
+			}
+			if (lua_pcall(s, 0, 0, 0) != LUA_OK)
+			{
+				log_err("Failed to open new variable scope");
+				return -1;
+			}
+
+			/* // Load the arguments */
+			/* dumpstack(s); */
+			/* lua_getglobal(s, EM_PUBLIC_TABLE); */
+			/* for (int i = 0; i < num_args; i++) */
+			/* { */
+				/* log_info("Pushing arg..."); */
+				/* lua_getfield(s, -1, SET_VAR_FUNC_NAME); */
+				/* lua_pushinteger(s, i + 1); */
+				/* lua_pushlightuserdata(s, &argPtrs[i]); */
+				/* dumpstack(s); */
+				/* switch (lua_pcall(s, 2, 0, 0)) */
+				/* { */
+					/* case LUA_OK: */
+						/* break; */
+					/* case LUA_YIELD: */
+						/* if (log_warn_at( */
+								/* node->src_loc, "Lua function " SET_VAR_FUNC_NAME " yielded instead of returned")) */
+							/* return -1; */
+						/* return 0; */
+					/* default: */
+						/* log_err_at( */
+							/* node->src_loc, "Calling " SET_VAR_FUNC_NAME " failed with error: %s", lua_tostring(s, -1)); */
+						/* return -1; */
+				/* } */
+			/* } */
+			/* lua_pop(s, -1); */
+			/* dumpstack(s); */
+
+			// Call function
 			log_debug("Pre-call stack:");
 			dumpstack(s);
 			log_debug("(Pcalling %s with %d arguments...)", node->name->str, num_args);
+			int rc;
 			switch (lua_pcall(s, num_args, 1, 0))
 			{
 				case LUA_OK:
 					log_debug("returned: %s", luaL_typename(s, -1));
 					dumpstack(s);
-					int rc = unpack_lua_result(&node->content->call->result, s, node);
+					rc = unpack_lua_result(&node->content->call->result, s, node);
 					if (!rc)
 						lua_pop(s, -1); // Pop the public table
 					dumpstack(s);
-					return rc;
+					break;
 				case LUA_YIELD:
 				{
 					int fw
 						= log_warn_at(node->src_loc, "Lua function em.%s yielded instead of returned", node->name->str);
 					lua_pop(s, -1); // Pop the public table
-					return fw ? -1 : 0;
+					rc = fw ? -1 : 0;
+					break;
 				}
 				default:
 					log_err_at(
 						node->src_loc, "Calling em.%s failed with error: %s", node->name->str, lua_tostring(s, -1));
 					lua_pop(s, -1); // Pop the public table
-					return -1;
+					rc = -1;
+					break;
 			}
+
+			// Close variable scope
+			lua_getglobal(s, CLOSE_VAR_SCOPE_FUNC_NAME);
+			if (!is_callable(s, -1))
+			{
+				log_err("Variable " CLOSE_VAR_SCOPE_FUNC_NAME " is not a callable. Something has changed this!");
+				return -1;
+			}
+			if (lua_pcall(s, 0, 0, 0) != LUA_OK)
+			{
+				log_err("Failed to open new variable scope");
+				return -1;
+			}
+			return rc;
 		}
 		case CONTENT:
 		{
