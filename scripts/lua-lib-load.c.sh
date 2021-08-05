@@ -12,8 +12,7 @@ cat << EOF
 
 int load_em_std_lib(ExtensionState* s)
 {
-	int rc = 0;
 $extension_lib_loaders
-	return rc;
+	return 0;
 }
 EOF

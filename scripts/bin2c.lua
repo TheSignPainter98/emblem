@@ -71,13 +71,13 @@ io.write(boilerplate[=[
 		if (%slua_pcall(s, 0, 0, 0))
 		{
 			log_err("Running lua buffer failed with error %%s", lua_tostring(s, -1));
-			rc = 1;
+			return 1;
 		}
 	}
 	else
 	{
 		log_err("Failed to load lua buffer");
-		rc = 1;
+		return 1;
 	}
 }
 ]=])
