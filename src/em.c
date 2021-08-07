@@ -76,7 +76,7 @@ int main(int argc, char** argv)
 	dest_ext_env(&ext);
 	dest_output_driver(&driver);
 	dest_locked(&mtNamesList, NULL);
-	dest_list(&namesList, dest_free_str);
+	dest_list(&namesList, (Destructor)dest_free_str);
 	dest_ext_params(&ext_params);
 	dest_styler(&styler);
 	dest_args(&args);
