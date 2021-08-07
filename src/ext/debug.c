@@ -28,7 +28,8 @@ void _dumpstack(lua_State* L)
 					log_debug("\033[1A\t\t\t\t\t\t\t%s", "");
 					break;
 				default:
-					log_debug("\033[1A\t\t\t\t\t\t%p", lua_topointer(L, i));
+					log_debug("\033[1A\t\t\t\t\t\t%s", luaL_tolstring(L, i, NULL));
+					lua_pop(L, 1);
 					break;
 			}
 		}
