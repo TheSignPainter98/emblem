@@ -173,11 +173,12 @@ dist:
       - libsass
       - lua
       - lua-argparse
+      - lua-htmlparser
       - lua-lyaml
+      - moonscript
       - ncurses
     make-depends:
       - gcc
-      - moonscript
     check-depends:
       - criterion
     opt-depends:
