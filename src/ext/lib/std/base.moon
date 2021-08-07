@@ -1,10 +1,9 @@
 import concat, insert, sort, unpack from table
+import do_nothing, is_list from require 'std.func'
 import rep from string
 import open from io
 import load from require 'lyaml'
 
-id = (x) -> x
-do_nothing = (x) ->
 
 components = {}
 class Component extends {}
@@ -59,27 +58,9 @@ showp = (v) ->
 					show v
 	_showp v, 0
 
-is_list = (l) ->
-	type = type
-	if (type l) != 'table'
-		return false
-	maxk = -1
-	for k,_ in pairs l
-		if (type k) != 'number'
-			return false
-		maxk = k if maxk < k
-	return maxk == #l
-
 class PublicTable
 	__tostring: show
 export em = PublicTable!
-
-keys = (t) ->
-	[ k for k,_ in pairs t ]
-values = (t) ->
-	[ v for _,v in pairs t ]
-
-
 
 -- class ExampleComponent extends Component
 -- new: =>
