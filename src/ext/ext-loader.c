@@ -173,10 +173,12 @@ static int load_extension_arguments(ExtensionState* s, Maybe* params)
 
 static int load_extension_code(ExtensionState* s, Str* ext_name)
 {
-	// TODO: Make the .lua optional
-	char ext_name_path[ext_name->len + 3];
+	char ext_name_path[ext_name->len + 4];
 	memcpy(ext_name_path, ext_name->str, ext_name->len);
-	strncpy(ext_name_path + ext_name->len, ".lua", 5);
+	if (!strrchr(ext_name->str, '.'))
+		strncpy(ext_name_path + ext_name->len, ".lua", 5);
+	else
+		ext_name_path[ext_name->len] = '\0';
 
 	int lrc = luaL_loadfile(s, ext_name_path);
 	if (lrc)
