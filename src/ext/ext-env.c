@@ -1,10 +1,11 @@
 #include "ext-env.h"
 
 #include "doc-struct/ast.h"
+#include "ext-loader.h"
 #include "logs/logs.h"
 #include "lua-ast-io.h"
+#include "lua-em-parser.h"
 #include "lua-lib-load.h"
-#include "ext-loader.h"
 #include "style.h"
 #include <lauxlib.h>
 
@@ -63,6 +64,10 @@ int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 void dest_ext_env(ExtensionEnv* ext)
 {
 	lua_close(ext->state);
+	dest_lua_pointer(ext->mt_names_list, NULL);
+	free(ext->mt_names_list);
+	dest_lua_pointer(ext->args, NULL);
+	free(ext->args);
 	dest_lua_pointer(ext->selfp, NULL);
 	free(ext->selfp);
 	dest_lua_pointer(ext->styler, NULL);
@@ -97,6 +102,18 @@ static void set_globals(ExtensionEnv* e, ExtParams* params)
 		lua_setfield(s, -2, node_tree_content_type_names[i]);
 	}
 	lua_setglobal(s, EM_NODE_TYPES_TABLE);
+
+	// Store the args in raw form
+	e->args = malloc(sizeof(LuaPointer));
+	make_lua_pointer(e->args, PARSED_ARGS, params->args);
+	lua_pushlightuserdata(s, e->args);
+	lua_setglobal(s, EM_ARGS_VAR_NAME);
+
+	// Store the names list
+	e->mt_names_list = malloc(sizeof(LuaPointer));
+	make_lua_pointer(e->mt_names_list, MT_NAMES_LIST, params->mt_names_list);
+	lua_pushlightuserdata(s, e->mt_names_list);
+	lua_setglobal(s, EM_MT_NAMES_LIST_VAR_NAME);
 }
 
 #define LOAD_LIBRARY_SET(lvl, s, lib)                                                                                  \
@@ -121,6 +138,7 @@ static void load_em_std_functions(ExtensionState* s)
 	lua_register(s, EM_EVAL_NODE_FUNC_NAME, ext_eval_tree);
 	lua_register(s, EM_IMPORT_STYLESHEET_FUNC_NAME, ext_import_stylesheet);
 	lua_register(s, EM_REQUIRE_RUNS_FUNC_NAME, ext_require_rerun);
+	lua_register(s, EM_INCLUDE_FILE_FUNC_NAME, ext_include_file);
 }
 
 static void load_library_set(ExtensionState* s, luaL_Reg* lib)

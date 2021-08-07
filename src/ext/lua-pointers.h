@@ -7,6 +7,8 @@ typedef enum
 	AST_NODE,
 	STYLER,
 	EXT_ENV,
+	MT_NAMES_LIST,
+	PARSED_ARGS,
 } LuaPointerType;
 
 typedef struct

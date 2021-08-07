@@ -1,6 +1,7 @@
+import stderr from io
 import len, lower, match from string
 import concat, insert from table
-import eval_string from require 'std.base'
+import eval_string, keys from require 'std.base'
 
 vars = {{}}
 
@@ -93,6 +94,17 @@ em.defined = (v) ->
 em.exists = (f) ->
 	toint em[f] != nil
 
-em.include = (f) -> include_file eval_string f
+known_languages =
+	em: include_file
+	roff: {}
+em.include = (f, language='em') ->
+	f = eval_string f
+	language = eval_string language
+	if parser = known_languages[language]
+		return parser f
+	known_languages_str = concat [ "- #{k}" for k in *keys known_languages ], '\n\t'
+	error "Unknown parsing language '#{language}', currently known languages:\n\t#{known_languages_str}\nPerhaps there's a typo or missing input driver import?"
+	nil
 
-{:cond, :toint, :set_var, :get_var}
+
+{:cond, :toint, :set_var, :get_var, :known_languages }

@@ -2,6 +2,7 @@
 #include "argp.h"
 #include "parser.h"
 #include "data/locked.h"
+#include "data/str.h"
 #include "sugar.h"
 unsigned int parse_file(Maybe* eo, Locked* namesList, Args* args, char* fname);
 

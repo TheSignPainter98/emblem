@@ -14,7 +14,10 @@ This is an ==alternative style as yet undefined,== but that's okay.
 
 You can also have escaped\{characters, more escaped\}characters \} \{ \: in the middle of words or even on their own \:.
 
+// This file is included when the file is parsed. This is more efficient but less flexible
 :include "included-file"
+// This file is included when extensions are evaluated. This is more flexible but less efficient as the file is re-read with every typesetting pass
+.include{included-file}
 
 This is an _italic word._
 This is a __bold one__.

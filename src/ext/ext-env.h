@@ -13,6 +13,8 @@ typedef struct
 	ExtensionState* state;
 	LuaPointer* styler;
 	LuaPointer* selfp;
+	LuaPointer* args;
+	LuaPointer* mt_names_list;
 	int iter_num;
 	bool require_extra_run;
 } ExtensionEnv;
