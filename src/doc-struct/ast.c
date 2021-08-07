@@ -3,7 +3,6 @@
 #include "logs/logs.h"
 #include "lua.h"
 #include "pp/lambda.h"
-#include "style/css.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -15,25 +14,15 @@ const char* const node_tree_content_type_names[] = {
 const size_t node_tree_content_type_names_len
 	= sizeof(node_tree_content_type_names) / sizeof(*node_tree_content_type_names);
 
-int make_doc(Doc* doc, DocTreeNode* root, Args* args)
+void make_doc(Doc* doc, DocTreeNode* root, Styler* styler, ExtensionEnv* ext)
 {
 	doc->root	= root;
-	doc->styler = malloc(sizeof(Styler));
-	make_styler(doc->styler, args);
-
-	ExtParams ext_params;
-	init_ext_params(&ext_params, args, doc->styler);
-	doc->ext = malloc(sizeof(ExtensionEnv));
-
-	return make_ext_env(doc->ext, &ext_params);
+	doc->styler = styler;
+	doc->ext	= ext;
 }
 
 void dest_doc(Doc* doc)
 {
-	dest_ext_env(doc->ext);
-	free(doc->ext);
-	dest_styler(doc->styler);
-	free(doc->styler);
 	dest_free_doc_tree_node(doc->root, false);
 }
 

@@ -4,9 +4,8 @@
 #include "data/list.h"
 #include "data/str.h"
 #include "ext/ext-env.h"
-#include "ext/ext-params.h"
 #include "location.h"
-#include "style/css-params.h"
+#include "style/css.h"
 #include <libcss/select.h>
 #include <stdbool.h>
 
@@ -82,7 +81,7 @@ typedef struct CallIO_s
 // List* items;
 // } ListContent;
 
-int make_doc(Doc* doc, DocTreeNode* root, Args* args);
+void make_doc(Doc* doc, DocTreeNode* root, Styler* styler, ExtensionEnv* ext);
 void dest_doc(Doc* doc);
 
 void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc);

@@ -35,7 +35,7 @@ static luaL_Reg lua_std_libs_restriction_lvl_0[] = {
 	{ NULL, NULL },
 };
 
-static void set_globals(ExtensionEnv* e);
+static void set_globals(ExtensionEnv* e, ExtParams* params);
 static void load_em_std_functions(ExtensionState* s);
 static int load_libraries(ExtensionState* s, ExtParams* params);
 static void load_library_set(ExtensionState* s, luaL_Reg* lib);
@@ -51,7 +51,7 @@ int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 	log_debug("Getting created ext state at %p in env %p", (void*)ext->state, (void*)ext);
 	provide_styler(ext);
 
-	set_globals(ext);
+	set_globals(ext, params);
 
 	int rc = load_libraries(ext->state, params);
 	if (rc)
@@ -71,7 +71,7 @@ void dest_ext_env(ExtensionEnv* ext)
 
 void finalise_env_for_typesetting(ExtensionEnv* e) { rescind_styler(e); }
 
-static void set_globals(ExtensionEnv* e)
+static void set_globals(ExtensionEnv* e, ExtParams* params)
 {
 	ExtensionState* s = e->state;
 
