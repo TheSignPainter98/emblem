@@ -70,6 +70,10 @@ is_list = (l) ->
 		maxk = k if maxk < k
 	return maxk == #l
 
+class PublicTable
+	__tostring: show
+export em = PublicTable!
+
 keys = (t) ->
 	[ k for k,_ in pairs t ]
 values = (t) ->
@@ -410,4 +414,4 @@ import bf from stylers
 
 -- stylesheet 'share/toc.scss'
 
-{ :Component, :SyncContainer, :SyncSet, :SyncList, :Toc, :eval, :node_string, :eval_string, :id, :do_nothing, :show, :showp, :keys, :values, :sorted, :mkcall, :is_list}
+{ :Component, :SyncContainer, :SyncSet, :SyncList, :Toc, :em, :eval, :node_string, :eval_string, :id, :do_nothing, :show, :showp, :keys, :values, :sorted, :mkcall, :is_list}

@@ -80,10 +80,6 @@ static void set_globals(ExtensionEnv* e, ExtParams* params)
 {
 	ExtensionState* s = e->state;
 
-	// Create the `em` table
-	lua_newtable(s);
-	lua_setglobal(s, EM_PUBLIC_TABLE);
-
 	// Store the iteration number
 	lua_pushinteger(s, 0);
 	lua_setglobal(s, EM_ITER_NUM_VAR_NAME);
