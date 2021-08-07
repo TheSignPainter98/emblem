@@ -101,7 +101,7 @@ Programs you will need:
 - Standard UNIX tools
 - [gcc][gcc]
 
-To compile and run the `em`, you will need to install the following C-libraries:
+To compile and run the `em`, you will need to install the following libraries:
 
 - [criterion](https://github.com/Snaipe/Criterion)
 - [glibc](https://www.gnu.org/software/libc/) (Comes with all good GNU/Linux distributions)
@@ -110,6 +110,7 @@ To compile and run the `em`, you will need to install the following C-libraries:
 - [lua](https://www.lua.org/download.html) 5.4
 - [lua-argparse](https://luarocks.org/modules/argparse/argparse)
 - [lua-lyaml](https://luarocks.org/modules/gvvaughan/lyaml)
+- [lua-htmlparser](https://github.com/msva/lua-htmlparser)
 - [moonscript](https://moonscript.org)
 - [ncurses](https://invisible-island.net/ncurses/)
 
