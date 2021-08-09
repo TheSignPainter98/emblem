@@ -6,17 +6,6 @@ func = {}
 func.do_nothing = ->
 func.id = (x) -> x
 
-func.is_list = (l) ->
-	type = type
-	if (type l) != 'table'
-		return false
-	maxk = -1
-	for k,_ in pairs l
-		if (type k) != 'number'
-			return false
-		maxk = k if maxk < k
-	maxk == #l
-
 func.key_list = (t) -> [ k for k,_ in pairs t ]
 func.value_list = (t) -> [ v for _,v in pairs t ]
 
