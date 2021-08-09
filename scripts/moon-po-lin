@@ -3,7 +3,7 @@
 import open, lines, stderr from io
 import exit from os
 import rep from string
-import concat, insert from table
+import concat, insert, remove from table
 
 rc = 0
 
@@ -98,17 +98,26 @@ linearise_po = (po) ->
 	src.deps = [ n for _,n in pairs nodes ]
 	nodes['nil'] = src
 
+	stack = {}
 	dfs = (node) ->
 		node.visited = true
+		insert stack, node
 		for child in *node.deps
 			if child.visited and not child.outputted
-				stderr\write "Dependency cycle detected, re-encountered #{child.name} while exploring #{node.name}\n"
+				visited_child_idx = 1
+				while child.name != stack[visited_child_idx].name
+					visited_child_idx += 1
+				cycle = [ f.name for f in *stack[visited_child_idx,#stack] ]
+
+				stderr\write "Dependency cycle detected: \n\t>- #{cycle[1]}\n\t-> #{concat [ f for f in *cycle[2,] ], '\n\t-> '}\n\t<>\n"
 				rc = 1
 			dfs child if not child.visited
+		remove stack, #stack
+
 		node.outputted = true
 		print node.name if node.name
 
-	dfs src, {}
+	dfs src
 
 main = (...) -> linearise_po get_deps_po {...}
 
