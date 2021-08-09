@@ -2,8 +2,57 @@
 
 import open, lines, stderr from io
 import exit from os
+import rep from string
+import concat, insert from table
 
 rc = 0
+
+is_list = (l) ->
+	type = type
+	if (type l) != 'table'
+		return false
+	maxk = -1
+	for k,_ in pairs l
+		if (type k) != 'number'
+			return false
+		maxk = k if maxk < k
+	maxk == #l
+
+
+show = (v) ->
+	switch type v
+		when 'boolean', 'nil', 'number', 'thread'
+			tostring(v)
+		when 'function', 'userdata'
+			"(#{tostring(v)})"
+		when 'string'
+			"'#{v}'"
+		when 'table'
+			if is_list v
+				return '[' .. (concat [ show e for e in *v ], ',') .. ']'
+			'{' .. (concat [ (show e) .. ':' .. show val for e,val in pairs v ], ',') .. '}'
+			else
+				print 'Unknown type', type v
+
+showp = (v) ->
+	next = next
+	_showp = (v, i) ->
+		switch type v
+			when 'string'
+				v
+			when 'table'
+				pref = rep '  ', i
+				if is_list v
+					itm_pref = '\n' .. pref .. '- '
+					return itm_pref .. (concat [ _showp e, i + 1 for e in *v ], itm_pref)
+				if (next v) == nil
+					return '{}'
+				else
+					return concat [ (tostring k) .. ': ' .. (_showp val, i + 1) for k,val in pairs v ], '\n' .. pref
+				else
+					show v
+	_showp v, 0
+
 
 file_exists = (fname) ->
 	f = open fname
@@ -36,35 +85,32 @@ elem = (e, es) ->
 			return true
 	false
 
-get_min_elem_idx = (po_list, po_list_len) ->
-	min = nil
-	for i = 1, po_list_len
-		continue if po_list[i] == nil
-		{f,fdeps} = po_list[i]
-		for j = 1, po_list_len
-			continue if po_list[j] == nil or i == j
-			{g,gdeps} = po_list[j]
-			if elem g, fdeps
-				f = g
-				fdeps = gdeps
-				i = j
-		min = i
-	min
-
+class File
+	new: (@name) =>
+		@deps = {}
 
 linearise_po = (po) ->
-	-- Bad cubic lineariser
-	po_list = [ {k,v} for k,v in pairs po ]
-	po_list_len = #po_list
-	lin = {}
-	for _ = 1, po_list_len
-		min_idx = get_min_elem_idx po_list, po_list_len
-		print po_list[min_idx][1]
-		po_list[min_idx] = nil
-	lin
+	nodes = { k, File k for k,_ in pairs po }
+	for f,node in pairs nodes
+		node.deps = [ nodes[d] for d in *po[f] ]
 
-main = (...) ->
-	for f in *linearise_po get_deps_po {...} do print f
+	src = File nil
+	src.deps = [ n for _,n in pairs nodes ]
+	nodes['nil'] = src
+
+	dfs = (node) ->
+		node.visited = true
+		for child in *node.deps
+			if child.visited and not child.outputted
+				stderr\write "Dependency cycle detected, re-encountered #{child.name} while exploring #{node.name}\n"
+				rc = 1
+			dfs child if not child.visited
+		node.outputted = true
+		print node.name if node.name
+
+	dfs src, {}
+
+main = (...) -> linearise_po get_deps_po {...}
 
 main ...
 exit rc
