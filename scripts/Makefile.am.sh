@@ -40,6 +40,7 @@ extra_dist=(${scripts[@]} ${extension_lib_srcs[@]} ${source_dependency_files[@]}
 
 m4 -PE - Makefile.am.in > Makefile.am << EOF
 m4_define(S_SRC_FILES, ${srcs[@]})m4_dnl
+m4_define(S_EXTENSION_LIB_SRC_FILES, ${extension_lib_built_srcs[@]})m4_dnl
 m4_define(S_TEST_FILES, ${tests[@]})m4_dnl
 m4_define(S_BUILT_SRCS, ${built_srcs[@]})m4_dnl
 m4_define(S_DEPS_CFLAGS, $deps_cflags)m4_dnl
