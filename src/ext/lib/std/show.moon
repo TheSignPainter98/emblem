@@ -1,4 +1,5 @@
-import is_list from require 'std.func'
+import is_list from require 'std.util'
+import rep from string
 import concat from table
 
 show = (v) ->

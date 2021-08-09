@@ -1,7 +1,9 @@
 import stderr from io
 import len, lower, match from string
 import concat, insert from table
-import eval_string, keys from require 'std.base'
+import Content from require 'std.ast'
+import keys from require 'std.func'
+import em, eval_string, include_file from require 'std.base'
 
 vars = {{}}
 
@@ -72,18 +74,18 @@ em.case = (n, ...) ->
 em.while = (c, b) ->
 	ret = {}
 	while cond c
-		insert ret, eval b
-	ret
+		insert ret, b
+	Content ret
 
 em.foreach = (n, vs, b) ->
 	ret = {}
 	n = eval_string n
-	prev_val = vars[n]
+	prev_val = get_var n
 	for v in (eval_string vs)\gmatch('%S+')
 		set_var n, v
 		insert ret, eval b
-	setvar n, prev_val
-	ret
+	set_var n, prev_val
+	Content ret
 
 em.streq = (s, t) ->
 	toint (eval_string s) == eval_string t
@@ -96,13 +98,13 @@ em.exists = (f) ->
 
 known_languages =
 	em: include_file
-	roff: {}
+
 em.include = (f, language='em') ->
 	f = eval_string f
 	language = eval_string language
 	if parser = known_languages[language]
 		return parser f
-	known_languages_str = concat [ "- #{k}" for k in *keys known_languages ], '\n\t'
+	known_languages_str = concat [ "- #{k}" for k in keys known_languages ], '\n\t'
 	error "Unknown parsing language '#{language}', currently known languages:\n\t#{known_languages_str}\nPerhaps there's a typo or missing input driver import?"
 	nil
 
