@@ -19,8 +19,15 @@ func.values = (t) ->
 		for _, v in pairs t
 			yield v
 
+func.kv_pairs = (t) ->
+	wrap ->
+		for k,v in pairs t
+			yield {k,v}
+
 func.filter = (p, es) ->
 	wrap -> yield v for v in es when p v
+
+func.filter_list = (p, es) -> [ e for e in *es when p e ]
 
 func.map = (f, es) ->
 	wrap -> yield f v for v in es
@@ -37,6 +44,12 @@ func.co_to_list = (c) ->
 	ret = {}
 	for v in c
 		insert ret, v
+	ret
+
+func.co_to_table = (c) ->
+	ret = {}
+	for {k,v} in c
+		ret[k] = v
 	ret
 
 func.seq = (first, last, step) ->
