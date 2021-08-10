@@ -6,7 +6,7 @@ import keys from require 'std.func'
 import em, eval_string, get_var, include_file, set_var, set_var_string from require 'std.base'
 
 em.def = (n, f) -> em[eval_string n] = f
-em['undef-dir'] = (n) -> em[eval_string n] = nil
+em.undef = (n) -> em[eval_string n] = nil
 
 em.echo = (...) ->
 	print concat [ eval_string v for v in *{...} when v != nil ], ' '
