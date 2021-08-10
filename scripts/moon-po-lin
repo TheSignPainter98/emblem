@@ -67,7 +67,7 @@ get_deps = (fname) ->
 		rc = 1
 		return {}
 
-	dep_lines = [ l for l in lines fname when l\match "import.*require" ]
+	dep_lines = [ l for l in lines fname when l\match "require '.*'" ]
 	dep_modules = [ l\match "'(.*)'" for l in *dep_lines ]
 	raw_dep_files = [ 'src/ext/lib/' .. (m\gsub "%.", "/") .. '.moon' for m in *dep_modules ]
 	existant_dep_files = [ f for f in *raw_dep_files when file_exists f ]
