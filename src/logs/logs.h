@@ -7,6 +7,8 @@
 
 /**
  * @brief Initialise logging
+ *
+ * @param args Parsed command-line arguments
  */
 void init_logs(Args* args);
 

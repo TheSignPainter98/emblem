@@ -1,34 +1,9 @@
 import stderr from io
-import len, lower, match from string
+import lower, match from string
 import concat, insert from table
 import Content from require 'std.ast'
 import keys from require 'std.func'
-import em, eval_string, include_file from require 'std.base'
-
-vars = {{}}
-
-get_scope_widening = (vn) ->
-	w = len vn\match "^!*"
-	w += 1 if w
-	w
-
-get_var = (rn, d) ->
-	wn = eval_string rn
-	widen_by = get_scope_widening wn
-	n = wn\match "[^!]*$"
-	for i = #vars - widen_by, 1, -1
-		v = vars[i][n]
-		if v != nil
-			return v
-	d
-em['get-var'] = get_var
-
-set_var = (n, v) ->
-	vars[#vars - 1][eval_string n] = eval_string v
-em['set-var'] = set_var
-
-export open_var_scope = -> insert vars, {}
-export close_var_scope = -> vars[#vars] = nil
+import em, eval_string, get_var, include_file, set_var, set_var_string from require 'std.base'
 
 em.def = (n, f) -> em[eval_string n] = f
 em['undef-dir'] = (n) -> em[eval_string n] = nil
@@ -82,7 +57,7 @@ em.foreach = (n, vs, b) ->
 	n = eval_string n
 	prev_val = get_var n
 	for v in (eval_string vs)\gmatch('%S+')
-		set_var n, v
+		set_var_string n, v
 		insert ret, eval b
 	set_var n, prev_val
 	Content ret
@@ -109,4 +84,4 @@ em.include = (f, language='em') ->
 	nil
 
 
-{:cond, :toint, :set_var, :get_var, :known_languages }
+{:cond, :toint, :known_languages }

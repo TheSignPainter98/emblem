@@ -9,6 +9,7 @@ typedef enum
 	EXT_ENV,
 	MT_NAMES_LIST,
 	PARSED_ARGS,
+	LOCATION,
 } LuaPointerType;
 
 typedef struct

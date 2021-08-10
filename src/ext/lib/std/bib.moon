@@ -3,6 +3,7 @@ import Call, Content, Word from require 'std.ast'
 import em, eq, eval_string from require 'std.base'
 import SyncBox, SyncSet from require 'std.events'
 import co_to_table, key_list, map from require 'std.func'
+import log_warn from require 'std.log'
 import stylers from require 'std.style'
 import eq, sorted from require 'std.util'
 import concat, sort from table
@@ -49,7 +50,7 @@ class Bib extends SyncSet
 	on_end: =>
 		super!
 		if not eq @unknown_citations, {}
-			print "The following citations were not known:\n\t" .. concat (sorted key_list @unknown_citations), '\n\t'
+			log_warn "The following citations were not known:\n\t" .. concat (sorted key_list @unknown_citations), '\n\t'
 	add: (c) =>
 		c = eval_string c
 		super c
@@ -83,7 +84,7 @@ class Bib extends SyncSet
 				attempts = ''
 				if #acceptible_srcs > 1
 					attempts = ", tried: #{concat [ "'#{f}'" for f in *acceptible_srcs ], ', '}"
-				error "Could not find bibliography file '#{src}'#{attempts}"
+				log_warn "Could not find bibliography file '#{src}'#{attempts}"
 
 			@load_bib load lines
 			@has_src = true

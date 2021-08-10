@@ -1,8 +1,9 @@
-import concat from table
+import len from string
+import concat, insert from table
 
 collectgarbage 'stop' -- TODO: remove the need for this!
 
-base = { :eval, :eval_string, :include_file, :node_types, :requires_reiter }
+base = { :eval, :include_file, :node_types, :requires_reiter, :_log_err, :_log_err_at, :_log_warn, :_log_warn_at, :_log_info, :_log_debug, :_em_loc }
 
 class PublicTable
 	__tostring: show
@@ -26,11 +27,44 @@ node_string = (n) ->
 			return 1
 base.node_string = node_string
 
-base.eval_string = (d) ->
+eval_string = (d) ->
 	if 'userdata' == type d
 		return node_string eval d
 	tostring d
+base.eval_string = eval_string
 
 base.iter_num = -> em_iter
+
+vars = {{}}
+base.vars = vars
+export open_var_scope = -> insert vars, {}
+export close_var_scope = -> vars[#vars] = nil
+
+get_scope_widening = (vn) ->
+	w = len vn\match "^!*"
+	w += 1 if w
+	w
+
+get_var = (rn, d) ->
+	wn = eval_string rn
+	widen_by = get_scope_widening wn
+	n = wn\match "[^!]*$"
+	for i = #vars - widen_by, 1, -1
+		v = vars[i][n]
+		if v != nil
+			return v
+	d
+base.get_var = get_var
+em['get-var'] = get_var
+
+set_var_string = (n, v) -> set_var n, eval_string v
+base.set_var_string = set_var_string
+em['set-var'] = set_var_string
+
+export set_var = (n, v) ->
+	vars[#vars - 1][eval_string n] = v
+base.set_var = set_var
+
+base.em_loc = -> get_var 'em_loc'
 
 base
