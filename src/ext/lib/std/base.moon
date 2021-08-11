@@ -13,7 +13,7 @@ base.em = em
 node_string = (n) ->
 	if n == nil
 		return nil
-	if 'table' != type n
+	if 'table' != type n or ('table' == type n and n.type == nil)
 		return tostring n
 	switch n.type
 		when node_types.word
@@ -24,7 +24,7 @@ node_string = (n) ->
 			return concat [ node_string w for w in *n.content when w != nil ], ' '
 		else
 			error "Unrecognised node type '#{n.type}'"
-			return 1
+			return nil
 base.node_string = node_string
 
 eval_string = (d) ->

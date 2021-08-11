@@ -12,10 +12,7 @@ em.undef = (n) -> em[eval_string n] = nil
 em.echo = (...) ->
 	print concat [ eval_string v for v in *{...} when v != nil ], ' '
 
-em['echo-on-pass'] = (n, ...) ->
-	n = tonumber eval_string n
-	if em_iter == n
-		em.echo ...
+em['echo-on'] = on_iter_wrap em.echo
 
 cond = (c) ->
 	if not c
