@@ -10,20 +10,29 @@ base = require 'std.base'
 log_funcs = { 'log_err', 'log_err_at', 'log_warn', 'log_warn_at', 'log_info', 'log_debug' }
 for log_func in *log_funcs
 	handle_log_args = (...) -> concat [ eval_string e for e in *{...} ], ' '
+
+	-- Handle exiting on error-logs
+	afterop = do_nothing
+	if log_func\match 'err'
+		afterop = -> error 'Fatal error'
+
 	if log_func\match '_at$'
-		afterop = do_nothing
-		if log_func\match 'err'
-			afterop = -> error 'Fatal error'
+		log_func_here_name = log_func\gsub '_at$', '_here'
+		log[log_func .. '_loc'] = (loc, ...) ->
+			base['_' .. log_func] loc, handle_log_args ...
+			afterop!
+		log[log_func_here_name] = (...) ->
+			log[log_func .. '_loc'] em_loc!, ...
+			afterop!
+		log[log_func .. '_on'] = on_iter_wrap log[log_func_here_name]
+	else
 		log[log_func] = (...) ->
-			base['_' .. log_func] em_loc!, handle_log_args ...
+			base['_' .. log_func] handle_log_args ...
 			afterop!
 		log[log_func .. '_on'] = on_iter_wrap log[log_func]
-	else
-		log[log_func] = (...) -> base['_' .. log_func] handle_log_args ...
-		log[log_func .. '_on'] = on_iter_wrap log[log_func]
 
-em.error = log.log_err_at
-em.warn = log.log_warn_at
+em.error = log.log_err_here
+em.warn = log.log_warn_here
 em['error-on'] = log.log_err_at_on
 em['warn-on'] = log.log_warn_at_on
 
