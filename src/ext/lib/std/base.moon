@@ -45,7 +45,7 @@ get_scope_widening = (vn) ->
 	w += 1 if w
 	w
 
-get_var = (rn, d) ->
+export get_var = (rn, d) ->
 	wn = eval_string rn
 	widen_by = get_scope_widening wn
 	n = wn\match "[^!]*$"
@@ -66,5 +66,6 @@ export set_var = (n, v) ->
 base.set_var = set_var
 
 base.em_loc = -> get_var 'em_loc'
+base.copy_loc = -> _copy_loc base.em_loc!
 
 base

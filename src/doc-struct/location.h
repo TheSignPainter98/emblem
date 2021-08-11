@@ -1,6 +1,7 @@
 #pragma once
 
 #include "data/str.h"
+#include "ext/ext-env.h"
 
 typedef struct
 {
@@ -12,3 +13,4 @@ typedef struct
 } Location;
 
 Location* dup_loc(Location* todup);
+void set_ext_location_globals(ExtensionState* s);

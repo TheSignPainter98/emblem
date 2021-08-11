@@ -1,6 +1,7 @@
 #include "ext-log.h"
 
 #include "ext/ext-env.h"
+#include "logs.h"
 #include <lauxlib.h>
 #include <lua.h>
 
@@ -35,18 +36,46 @@ void set_ext_logging_globals(ExtensionState* s)
 			return 0;                                                                                                  \
 		}                                                                                                              \
                                                                                                                        \
-		if (!lua_isuserdata(s, -2))                                                                                    \
-			luaL_error(s, "Location value is not a userdata pointer, it has been changed!");                           \
-                                                                                                                       \
-		LuaPointer* locp = lua_touserdata(s, -2);                                                                      \
-		if (locp->type != LOCATION)                                                                                    \
-			luaL_error(s, "Location pointer has been changed! Expected pointer of type %d but got one of type %d",     \
-				LOCATION, locp->type);                                                                                 \
-		Location* loc = locp->data;                                                                                    \
-                                                                                                                       \
 		char* msg = (char*)lua_tostring(s, -1);                                                                        \
+                                                                                                                       \
+		Location* loc;                                                                                                 \
+		bool pop_table_vals = false;                                                                                   \
+		if (lua_isuserdata(s, -2))                                                                                     \
+		{                                                                                                              \
+			LuaPointer* locp = lua_touserdata(s, -2);                                                                  \
+			if (locp->type != LOCATION)                                                                                \
+				luaL_error(s, "Location pointer has been changed! Expected pointer of type %d but got one of type %d", \
+					LOCATION, locp->type);                                                                             \
+			loc = locp->data;                                                                                          \
+		}                                                                                                              \
+		else if (lua_istable(s, -2))                                                                                   \
+		{                                                                                                              \
+			pop_table_vals = true;                                                                                     \
+			Location loc2;                                                                                             \
+			Str fname;                                                                                                 \
+			lua_getfield(s, -2, "first_line");                                                                         \
+			lua_getfield(s, -3, "first_column");                                                                       \
+			lua_getfield(s, -4, "last_line");                                                                          \
+			lua_getfield(s, -5, "last_column");                                                                        \
+			lua_getfield(s, -6, "src_file");                                                                           \
+			loc2.first_line	  = lua_tointeger(s, -5);                                                                  \
+			loc2.first_column = lua_tointeger(s, -4);                                                                  \
+			loc2.last_line	  = lua_tointeger(s, -3);                                                                  \
+			loc2.last_column  = lua_tointeger(s, -2);                                                                  \
+			loc2.src_file	  = &fname;                                                                                \
+			char* rawfname	  = (char*)lua_tostring(s, -1);                                                            \
+			make_strv(&fname, rawfname ? rawfname : "(UNSPECIFIED LOCATION)");                                         \
+			loc = &loc2;                                                                                               \
+		}                                                                                                              \
+		else                                                                                                           \
+		{                                                                                                              \
+			luaL_error(s, "Location value is not a userdata pointer or a table");                                      \
+			return 0; /* never happens */                                                                              \
+		}                                                                                                              \
 		err_handler(log_##lvl##_at(loc, "%s", msg));                                                                   \
                                                                                                                        \
+		if (pop_table_vals)                                                                                            \
+			lua_pop(s, 5);                                                                                             \
 		return 0;                                                                                                      \
 	}
 

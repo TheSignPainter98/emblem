@@ -10,7 +10,6 @@
 
 #define CLOSE_VAR_SCOPE_FUNC_NAME "close_var_scope"
 #define OPEN_VAR_SCOPE_FUNC_NAME  "open_var_scope"
-#define EM_LOC_NAME				  "em_loc"
 
 static bool is_callable(ExtensionState* s, int idx);
 
