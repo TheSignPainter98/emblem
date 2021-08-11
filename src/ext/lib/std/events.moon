@@ -1,3 +1,4 @@
+import requires_reiter from require 'std.base'
 import show, ShowTable from require 'std.show'
 import do_nothing, filter_list from require 'std.func'
 import eq, non_nil from require 'std.util'

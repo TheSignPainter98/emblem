@@ -100,7 +100,7 @@ class Bib extends SyncSet
 
 bib = Bib!
 em.bib = (src) ->
-	if em_iter == 1
+	if iter_num! == 1
 		bib\read src
 	bib\output!
 em.cite = (ref) -> bib\add ref

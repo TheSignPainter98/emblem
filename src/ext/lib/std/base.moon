@@ -57,13 +57,13 @@ export get_var = (rn, d) ->
 base.get_var = get_var
 em['get-var'] = get_var
 
-set_var_string = (n, v) -> set_var n, eval_string v
-base.set_var_string = set_var_string
-em['set-var'] = set_var_string
-
 export set_var = (n, v) ->
 	vars[#vars - 1][eval_string n] = v
 base.set_var = set_var
+
+set_var_string = (n, v) -> set_var n, eval_string v
+base.set_var_string = set_var_string
+em['set-var'] = set_var_string
 
 base.em_loc = -> get_var 'em_loc'
 base.copy_loc = -> _copy_loc base.em_loc!
