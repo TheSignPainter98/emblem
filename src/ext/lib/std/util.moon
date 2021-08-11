@@ -1,3 +1,4 @@
+import eval_string, iter_num from require 'std.base'
 import insert, sort from table
 
 util = {}
@@ -54,5 +55,12 @@ eq = (a,b) ->
 util.eq = eq
 
 util.non_nil = (v) -> v != nil
+
+util.on_iter_wrap = (f) ->
+	(n, ...) ->
+		if 'number' != type n
+			n = tonumber eval_string n
+		if iter_num! == n
+			f ...
 
 util

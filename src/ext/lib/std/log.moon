@@ -1,5 +1,6 @@
-import em, em_loc, eval_string from require 'std.base'
-import do_nothing from require 'std.func'
+import em, em_loc, eval_string, _log_err, _log_err_at, _log_warn, _log_warn_at, _log_info, _log_debug, iter_num from require 'std.base'
+import do_nothing, id from require 'std.func'
+import on_iter_wrap from require 'std.util'
 import format from string
 import concat from table
 
@@ -16,10 +17,14 @@ for log_func in *log_funcs
 		log[log_func] = (...) ->
 			base['_' .. log_func] em_loc!, handle_log_args ...
 			afterop!
+		log[log_func .. '_on'] = on_iter_wrap log[log_func]
 	else
 		log[log_func] = (...) -> base['_' .. log_func] handle_log_args ...
+		log[log_func .. '_on'] = on_iter_wrap log[log_func]
 
 em.error = log.log_err_at
 em.warn = log.log_warn_at
+em['error-on'] = log.log_err_at_on
+em['warn-on'] = log.log_warn_at_on
 
 log
