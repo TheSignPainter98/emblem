@@ -13,6 +13,8 @@ LINTER_FLAGS = --use-color --quiet --line-filter="$$(cat clang-tidy-info.json)"
 LINTER_COMPILE_FLAGS = $(CFLAGS_ALL) -Isrc/ -fblocks
 LINTER_APPLY_CHANGES_FLAGS = --fix --fix-errors
 LINTER_OUTPUT_FILTER = | (grep -v '^[0-9]* warnings*' || true)
+EXT_LINTER = moonc
+EXT_LINTER_FLAGS = -l
 ROFF = groff
 ROFF_FLAGS = -man -fN -Tpdf
 
@@ -117,12 +119,16 @@ doc-coverage: scripts/doxcov docs/html/index.html
 	./scripts/doxcov
 .PHONY: doc-coverage
 
-lint: .clang-tidy clang-tidy-info.json S_LINTABLE_SRCS
+define lint
 	@$(LINTER) $(LINTER_FLAGS) $(filter %.c,$^) -- $(LINTER_COMPILE_FLAGS) 2>&1 $(LINTER_OUTPUT_FILTER)
+	@$(EXT_LINTER) $(EXT_LINTER_FLAGS) $(filter %.moon,$^) 2>&1
+endef
+lint: .clang-tidy clang-tidy-info.json S_LINTABLE_SRCS
+	$(lint)
 .PHONY: lint
 
 lint-fix: .clang-tidy clang-tidy-info.json S_LINTABLE_SRCS
-	@$(LINTER) $(LINTER_FLAGS) $(LINTER_APPLY_CHANGES_FLAGS) $(filter %.c,$^) -- $(LINTER_COMPILE_FLAGS) 2>&1 $(LINTER_OUTPUT_FILTER)
+	$(lint)
 	@$(FORMATTER) $(FORMAT_FLAGS) $(filter %.c,$^)
 .PHONY: lint-fix
 
