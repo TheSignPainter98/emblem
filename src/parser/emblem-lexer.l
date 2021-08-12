@@ -39,6 +39,9 @@ static void apply_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc);
 static bool handle_file_include(YY_EXTRA_TYPE yextra);
 static void extract_integer(int* out, char* ytext);
 static void extract_file_name(YY_EXTRA_TYPE yextra, char* ytext, size_t yleng);
+static void extract_citation_sugar(SimpleSugar* ssugar, char* ytext, size_t yleng);
+static void extract_reference_sugar(SimpleSugar* ref_str, char* ytext);
+static void extract_label_sugar(SimpleSugar* ref_str, char* ytext);
 
 #if __GNUC__
 #	pragma GCC diagnostic push
@@ -76,6 +79,7 @@ static int indent_len(int tab_size, char* inp);
 
 BLOCK_COMMENT_CLOSE "*/"
 BLOCK_COMMENT_OPEN  "/*"
+CITATION			"["[^ \t\r\n\]]+"]"
 COLON				":"
 COMMENT_LINE		{WHITE_SPACE}*{LINE_COMMENT_START}.*{LN}
 DIRECTIVE			"."[^ \t\r\n:{}]+
@@ -88,11 +92,13 @@ FILENAME			\"("\\"[^\r\n]|[^\\"\t\r\n])+\"
 GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
+LABEL 				"@"[^ \t\r\n{}]+
 LINE_COMMENT_START	"//"
 LN					"\n"|"\r"|"\r\n"
 PRAGMA_NAME_LINE 	"line"
 PRAGMA_NAME_INCLUDE "include"
 INTEGER				[0-9]+
+REFERENCE			"#"[^ \t\r\n{}]+
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
 WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
@@ -163,6 +169,7 @@ VARIABLE_ASSIGNMENT "<-"
 										BEGIN(BODY);
 										return T_DOUBLE_COLON;
 									}
+<INITIAL_BODY>{HEADING}/[ \t]		{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
 <INITIAL_BODY>([^:]|{LN})			{
 										yyless(0);
 										BEGIN(BODY);
@@ -207,7 +214,9 @@ VARIABLE_ASSIGNMENT "<-"
 <BODY>{COLON}				{ yyextra->opening_emph = true; return T_COLON; }
 <BODY>{GROUP_OPEN}			{ yyextra->opening_emph = true; return T_GROUP_OPEN; }
 <BODY>{GROUP_CLOSE}			{ yyextra->opening_emph = false; return T_GROUP_CLOSE; }
-<BODY>{HEADING}				{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
+<BODY>{CITATION}			{ extract_citation_sugar(&yylval->simple_sugar, yytext, yyleng); return T_CITATION; }
+<BODY>{REFERENCE}|{HEADING}			{ extract_reference_sugar(&yylval->simple_sugar, yytext); return T_REFERENCE; }
+<BODY>{LABEL}				{ extract_label_sugar(&yylval->simple_sugar, yytext); return T_LABEL; }
 <BODY>{WORD}				{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strr(yylval->str, sanitise_word(yylloc, yyextra->ifn, yytext, yyleng)); return T_WORD; }
 
 <BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
@@ -360,6 +369,22 @@ static void extract_file_name(YY_EXTRA_TYPE yextra, char* ytext, size_t yleng)
 {
 	yextra->preproc.fname = 1 + ytext;
 	yextra->preproc.fname[yleng - 2] = '\0';
+}
+
+static void extract_citation_sugar(SimpleSugar* sugar, char* ytext, size_t yleng)
+{
+	ytext[yleng - 1] = '\0';
+	make_simple_sugarvc(sugar, "cite", 1 + ytext);
+}
+
+static void extract_label_sugar(SimpleSugar* sugar, char* ytext)
+{
+	make_simple_sugarvc(sugar, "label", 1 + ytext);
+}
+
+static void extract_reference_sugar(SimpleSugar* sugar, char* ytext)
+{
+	make_simple_sugarvc(sugar, "ref", 1 + ytext);
 }
 
 #if __GNUC__

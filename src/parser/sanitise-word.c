@@ -82,6 +82,10 @@ static const char valid_escape_chars[] = {
 	'"',
 	'.',
 	',',
+	'!',
+	'[',
+	'@',
+	'#',
 	'<',
 	'>',
 };
