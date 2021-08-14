@@ -1,7 +1,7 @@
 import requires_reiter from require 'std.base'
 import show, ShowTable from require 'std.show'
 import do_nothing, filter_list from require 'std.func'
-import eq, non_nil from require 'std.util'
+import elem, eq, non_nil from require 'std.util'
 import concat, insert from table
 
 components = {}
@@ -64,8 +64,6 @@ class SyncContainer extends Component
 			requires_reiter!
 	add: =>
 		error "Function not implemented"
-	output: =>
-		error "Function not implemented"
 
 class SyncBox extends SyncContainer
 	new: (@initial=0) => super @initial
@@ -73,11 +71,16 @@ class SyncBox extends SyncContainer
 	value: => @contents
 
 class SyncList extends SyncContainer
-	add: (c) =>
-		insert @new_contents, c
+	add: (c) => insert @new_contents, c
+	has: (c) => elem c, @new_contents
 
 class SyncSet extends SyncContainer
-	add: (c) =>
-		@new_contents[c] = true
+	add: (c) => @new_contents[c] = true
+	has: (c) => @new_contents[c]
 
-{ :Component, :SyncContainer, :SyncBox, :SyncList, :SyncSet, :Counter }
+class SyncMap extends SyncContainer
+	add: (k,v) => @new_contents[k] = v
+	has: (k) => @contents[k] != nil
+	get: (k) => @contents[k]
+
+{ :Component, :SyncContainer, :SyncBox, :SyncList, :SyncSet, :SyncMap, :Counter }
