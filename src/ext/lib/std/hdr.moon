@@ -1,5 +1,6 @@
 import em, eval_string from require 'std.base'
 import Counter, SyncList from require 'std.events'
+import set_label from require 'std.ref'
 import extend from require 'std.util'
 import concat, insert from table
 import rep from string
@@ -29,6 +30,7 @@ for i = 1,6
 		heading_counters[i - 1]\add_sub_counter heading_counters[i]
 	em["h#{i}"] = (c) ->
 		ref = concat (extend [ c.val for c in *heading_counters[,i - 1] ], { heading_counters[i]\use! }), '.'
+		set_label ref
 		ret = ref .. " " .. eval_string c
 		toc\add {ret, i}
 		ret
