@@ -58,7 +58,12 @@ base.get_var = get_var
 em['get-var'] = get_var
 
 export set_var = (n, v) ->
-	vars[#vars - 1][eval_string n] = v
+	local idx
+	if #vars > 1
+		idx = #vars - 1
+	else
+		idx = 1
+	vars[idx][eval_string n] = v
 base.set_var = set_var
 
 set_var_string = (n, v) -> set_var n, eval_string v
