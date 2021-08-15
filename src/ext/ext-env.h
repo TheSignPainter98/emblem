@@ -4,8 +4,11 @@
 #include "lua-pointers.h"
 #include <lualib.h>
 
-#define EM_PUBLIC_TABLE		 "em"
-#define EM_ITER_NUM_VAR_NAME "em_iter"
+#define EM_PUBLIC_TABLE			  "em"
+#define EM_ITER_NUM_VAR_NAME	  "em_iter"
+#define EM_ENV_VAR_NAME			  "_em_env"
+#define EM_ARGS_VAR_NAME		  "_em_args"
+#define EM_MT_NAMES_LIST_VAR_NAME "_em_mt_names_list"
 
 typedef lua_State ExtensionState;
 typedef struct

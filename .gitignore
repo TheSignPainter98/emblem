@@ -131,6 +131,7 @@ vgcore.*
 *-parser.[ch]
 *-lexer.[ch]
 *.output
+!lua-em-parser.[ch]
 
 # Generated extension files
 *.lc
