@@ -17,6 +17,7 @@ typedef struct
 } SimpleSugar;
 
 void make_sugar(Sugar* sugar, Str* call, size_t src_len);
+void make_sugarv(Sugar* sugar, char* call, size_t src_len);
 void dest_sugar(Sugar* sugar);
 
 void make_simple_sugar(SimpleSugar* ssugar, Str* call, Str* arg);

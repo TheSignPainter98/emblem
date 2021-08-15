@@ -91,7 +91,12 @@ typedef struct
 %nterm <args>			line_remainder_args
 %nterm <args>			multi_line_args
 %nterm <args>			trailing_args
+%nterm <args> 			bullet_list_lines_ne
+%nterm <args> 			bullet_list_lines
+%nterm <args> 			sequenced_list_lines_ne
+%nterm <args> 			sequenced_list_lines
 %nterm <doc>			doc
+%nterm <node> 			bulleted_list
 %nterm <node>			doc_content
 %nterm <node>			file_content
 %nterm <node>			file_contents
@@ -101,6 +106,7 @@ typedef struct
 %nterm <node>			line_element
 %nterm <node>			lines
 %nterm <node>			par
+%nterm <node> 			sequenced_list
 %token					T_DEDENT			"dedent"
 %token					T_GROUP_CLOSE		"}"
 %token					T_GROUP_OPEN		"{"
@@ -117,6 +123,8 @@ typedef struct
 %token <simple_sugar>	T_REFERENCE			"reference"
 %token <sugar>			T_ASTERISK_OPEN		"opening asterisk(s)"
 %token <sugar>			T_BACKTICK_OPEN		"opening backtick"
+%token <sugar>			T_BULLET_POINT		"bullet point"
+%token <sugar>			T_SEQ_POINT			"sequence point"
 %token <sugar>			T_EQUALS_OPEN		"opening equal(s)"
 %token <len>			T_UNDERSCORE_CLOSE	"closing underscore(s)"
 %token <len>			T_ASTERISK_CLOSE	"closing asterisk(s)"
@@ -165,10 +173,38 @@ file_contents
 
 file_content
 	: par								{ $$ = $1; $$->flags |= PARAGRAPH_CANDIDATE; }
+	| bulleted_list
+	| sequenced_list
 	| T_INDENT file_contents T_DEDENT	{ $$ = $2; }
 	;
 
 par : lines
+	;
+
+bulleted_list
+	: T_INDENT bullet_list_lines_ne T_DEDENT { $$ = malloc(sizeof(DocTreeNode)); Str* s = malloc(sizeof(Str)); make_strv(s, "ul"); make_doc_tree_node_call($$, s, $2, alloc_assign_loc(@$, data->ifn)); }
+	;
+
+bullet_list_lines_ne
+	: T_BULLET_POINT file_content bullet_list_lines { $$ = $3; DocTreeNode* call_node = malloc(sizeof(Str)); make_syntactic_sugar_call(call_node, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	;
+
+bullet_list_lines
+	: %empty				{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
+	| bullet_list_lines_ne
+	;
+
+sequenced_list
+	: T_INDENT sequenced_list_lines_ne T_DEDENT	{ $$ = malloc(sizeof(DocTreeNode)); Str* s = malloc(sizeof(Str)); make_strv(s, "ul"); make_doc_tree_node_call($$, s, $2, alloc_assign_loc(@$, data->ifn)); }
+	;
+
+sequenced_list_lines_ne
+	: T_SEQ_POINT file_content sequenced_list_lines	{ $$ = $3; DocTreeNode* call_node = malloc(sizeof(Str)); make_syntactic_sugar_call(call_node, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	;
+
+sequenced_list_lines
+	: %empty					{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
+	| sequenced_list_lines_ne
 	;
 
 par_break_toks

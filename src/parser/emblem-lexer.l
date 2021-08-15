@@ -77,40 +77,42 @@ static int indent_len(int tab_size, char* inp);
 %option extra-type="LexerData*"
 %pointer
 
-BLOCK_COMMENT_CLOSE "*/"
-BLOCK_COMMENT_OPEN  "/*"
-CITATION			"["[^ \t\r\n\]]+"]"
-COLON				":"
-COMMENT_LINE		{WHITE_SPACE}*{LINE_COMMENT_START}.*{LN}
-DIRECTIVE			"."[^ \t\r\n:{}]+
-DOUBLE_COLON		"::"
-EMPH_ASTERISK       "*""*"?
-EMPH_BACKTICK		"`"
-EMPH_EQUALS			"=""="?
-EMPH_UNDERSCORE     "_""_"?
-FILENAME			\"("\\"[^\r\n]|[^\\"\t\r\n])+\"
-GROUP_CLOSE			"}"
-GROUP_OPEN			"{"
-HEADING				"#"{1,6}\*?
-LABEL 				"@"[^ \t\r\n{}]+
-LINE_COMMENT_START	"//"
-LN					"\n"|"\r"|"\r\n"
-PRAGMA_NAME_LINE 	"line"
-PRAGMA_NAME_INCLUDE "include"
-INTEGER				[0-9]+
-REFERENCE			"#"[^ \t\r\n{}]+
-SHEBANG				"#!".*{LN}
-WHITE_SPACE			[ \t]
-WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
-WORD_EASY_END_CHAR  ({WORD_ESCAPE_CHAR}|[^\\_*`= \t\r\n{}])
-WORD_END 			({WORD_ESCAPE_CHAR}|{WORD_END_REGULAR}|{WORD_END_EMPH})
-WORD_END_EMPH		[_*`=]({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}_*`=,.'":;])
-WORD_END_REGULAR 	{WORD_EASY_END_CHAR}{2}
-WORD_ESCAPE_CHAR	"\\"[^ \t\r\n]
-WORD_MID_CHAR 		({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}])
-WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}!])
-VARIABLE_REFERENCE  "!"[^ \t\r\n:{}]+
-VARIABLE_ASSIGNMENT "<-"
+BLOCK_COMMENT_CLOSE 	"*/"
+BLOCK_COMMENT_OPEN  	"/*"
+CITATION				"["[^ \t\r\n\]]+"]"
+COLON					":"
+COMMENT_LINE			{WHITE_SPACE}*{LINE_COMMENT_START}.*{LN}
+DIRECTIVE				"."[^ \t\r\n:{}]+
+DOUBLE_COLON			"::"
+EMPH_ASTERISK       	"*""*"?
+EMPH_BACKTICK			"`"
+EMPH_EQUALS				"=""="?
+EMPH_UNDERSCORE     	"_""_"?
+FILENAME				\"("\\"[^\r\n]|[^\\"\t\r\n])+\"
+GROUP_CLOSE				"}"
+GROUP_OPEN				"{"
+HEADING					"#"{1,6}\*?
+LABEL 					"@"[^ \t\r\n{}]+
+LINE_COMMENT_START		"//"
+LIST_BULLET_INITIAL		[-*]
+LIST_SEQUENCE_INITIAL	[0-9]+"."
+LN						"\n"|"\r"|"\r\n"
+PRAGMA_NAME_LINE 		"line"
+PRAGMA_NAME_INCLUDE 	"include"
+INTEGER					[0-9]+
+REFERENCE				"#"[^ \t\r\n{}]+
+SHEBANG					"#!".*{LN}
+WHITE_SPACE				[ \t]
+WORD 					"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
+WORD_EASY_END_CHAR  	({WORD_ESCAPE_CHAR}|[^\\_*`= \t\r\n{}])
+WORD_END 				({WORD_ESCAPE_CHAR}|{WORD_END_REGULAR}|{WORD_END_EMPH})
+WORD_END_EMPH			[_*`=]({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}_*`=,.'":;])
+WORD_END_REGULAR 		{WORD_EASY_END_CHAR}{2}
+WORD_ESCAPE_CHAR		"\\"[^ \t\r\n]
+WORD_MID_CHAR 			({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}])
+WORD_START_CHAR			({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}!])
+VARIABLE_REFERENCE  	"!"[^ \t\r\n:{}]+
+VARIABLE_ASSIGNMENT 	"<-"
 
 %x COMMENT
 %x INITIAL_WHITE
@@ -163,17 +165,19 @@ VARIABLE_ASSIGNMENT "<-"
 										goto lex_start;
 									}
 
-<INITIAL_BODY>{BLOCK_COMMENT_OPEN}	{ yyextra->comment_lvl = 1; BEGIN(COMMENT); }
-<INITIAL_BODY>:						{ BEGIN(PRAGMA); }
-<INITIAL_BODY>::					{
-										BEGIN(BODY);
-										return T_DOUBLE_COLON;
-									}
-<INITIAL_BODY>{HEADING}/[ \t]		{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
-<INITIAL_BODY>([^:]|{LN})			{
-										yyless(0);
-										BEGIN(BODY);
-									}
+<INITIAL_BODY>{BLOCK_COMMENT_OPEN}					{ yyextra->comment_lvl = 1; BEGIN(COMMENT); }
+<INITIAL_BODY>:										{ BEGIN(PRAGMA); }
+<INITIAL_BODY>::									{
+														BEGIN(BODY);
+														return T_DOUBLE_COLON;
+													}
+<INITIAL_BODY>{HEADING}/[ \t]						{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
+<INITIAL_BODY>{LIST_SEQUENCE_INITIAL}/{WHITE_SPACE}	{ BEGIN(BODY); make_sugarv(&yylval->sugar, "li", 0); return T_SEQ_POINT; }
+<INITIAL_BODY>{LIST_BULLET_INITIAL}/{WHITE_SPACE}	{ BEGIN(BODY); make_sugarv(&yylval->sugar, "li", 0); return T_BULLET_POINT; }
+<INITIAL_BODY>([^:]|{LN})							{
+														yyless(0);
+														BEGIN(BODY);
+													}
 
 <MAYBE_VARIABLE_ASSIGNMENT>"<-"				{ return T_ASSIGNMENT; }
 <MAYBE_VARIABLE_ASSIGNMENT>{WHITE_SPACE}+ 	;
