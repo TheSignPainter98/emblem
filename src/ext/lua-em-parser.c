@@ -5,6 +5,7 @@
 #include "data/locked.h"
 #include "data/maybe.h"
 #include "data/str.h"
+#include "debug.h"
 #include "logs/logs.h"
 #include "lua-ast-io.h"
 #include "lua-pointers.h"
@@ -51,7 +52,7 @@ int ext_include_file(ExtensionState* s)
 		luaL_error(s, "Invalid internal value");
 	lua_pop(s, 1);
 
-	if(exec_lua_pass_on_node(s, included_root, env->iter_num))
+	if (exec_lua_pass_on_node(s, included_root, env->iter_num))
 		lua_pushnil(s);
 	else
 	{

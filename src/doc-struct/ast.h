@@ -47,14 +47,16 @@ typedef struct DocTreeNode_s
 	Location* src_loc;
 } DocTreeNode;
 
+typedef enum
+{
+	WORD,
+	CALL,
+	CONTENT,
+} DocTreeNodeContentType;
+
 typedef struct DocTreeNodeContent_s
 {
-	enum
-	{
-		WORD,
-		CALL,
-		CONTENT,
-	} type;
+	DocTreeNodeContentType type;
 	union
 	{
 		Str* word;
@@ -93,7 +95,9 @@ void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result);
 void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_result);
 
 void prepend_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child);
+void append_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child);
 
 void make_call_io(CallIO* call);
 void dest_call_io(CallIO* call, bool processing_result);
 void prepend_call_io_arg(CallIO* call, DocTreeNode* arg);
+void append_call_io_arg(CallIO* call, DocTreeNode* arg);

@@ -7,4 +7,5 @@
 int ext_eval_tree(ExtensionState* s);
 int get_ast_type_name(ExtensionState* s);
 
+int pack_tree(ExtensionState* s, DocTreeNode* node);
 int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* parentNode);

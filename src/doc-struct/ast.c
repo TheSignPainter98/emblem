@@ -134,6 +134,12 @@ void prepend_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeN
 	new_child->parent = parent;
 }
 
+void append_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child)
+{
+	append_list(child_list, new_child);
+	new_child->parent = parent;
+}
+
 void make_call_io(CallIO* call)
 {
 	call->result = NULL;
@@ -145,6 +151,12 @@ void prepend_call_io_arg(CallIO* call, DocTreeNode* arg)
 {
 	arg->flags |= IS_CALL_PARAM;
 	prepend_list(call->args, arg);
+}
+
+void append_call_io_arg(CallIO* call, DocTreeNode* arg)
+{
+	arg->flags |= IS_CALL_PARAM;
+	append_list(call->args, arg);
 }
 
 void dest_call_io(CallIO* call, bool processing_result)

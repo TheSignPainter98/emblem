@@ -51,7 +51,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 			lua_getfield(s, -1, node->name->str);
 			if (lua_isnoneornil(s, -1))
 			{
-				lua_pop(s, -2); // Remove nil value and public table
+				lua_pop(s, 2); // Remove nil value and public table
 				node->flags |= CALL_HAS_NO_EXT_FUNC;
 				if (is_empty_list(node->content->call->args))
 				{
@@ -82,7 +82,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 			}
 			if (!is_callable(s, -1))
 			{
-				lua_pop(s, -2); // Remove non-callable object and public table
+				lua_pop(s, 2); // Remove non-callable object and public table
 				log_err("Expected function or callable table at em.%s, but got a %s", node->name->str,
 					luaL_typename(s, -1));
 				node->flags |= CALL_HAS_NO_EXT_FUNC;
@@ -113,7 +113,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 			}
 			if (lua_pcall(s, 0, 0, 0) != LUA_OK)
 			{
-				log_err("Failed to open new variable scope");
+				log_err("Failed to open new variable scope: %s", lua_tostring(s, -1));
 				return -1;
 			}
 
@@ -142,7 +142,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 						/* return -1; */
 				/* } */
 			/* } */
-			/* lua_pop(s, -1); */
+			/* lua_pop(s, 1); */
 			/* dumpstack(s); */
 
 			// Call function
@@ -156,6 +156,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 					log_debug("returned: %s", luaL_typename(s, -1));
 					dumpstack(s);
 					rc = unpack_lua_result(&node->content->call->result, s, node);
+					log_debug("Unpacked result into %p", (void*)node->content->call->result);
 					if (!rc)
 						rc = exec_lua_pass_on_node(s, node->content->call->result, curr_iter);
 					if (!rc)
@@ -166,14 +167,14 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 				{
 					int fw
 						= log_warn_at(node->src_loc, "Lua function em.%s yielded instead of returned", node->name->str);
-					lua_pop(s, -1); // Pop the public table
+					lua_pop(s, 1); // Pop the public table
 					rc = fw ? -1 : 0;
 					break;
 				}
 				default:
 					log_err_at(
 						node->src_loc, "Calling em.%s failed with error: %s", node->name->str, lua_tostring(s, -1));
-					lua_pop(s, -1); // Pop the public table
+					lua_pop(s, 1); // Pop the public table
 					rc = -1;
 					break;
 			}
