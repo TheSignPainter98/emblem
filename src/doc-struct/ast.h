@@ -41,6 +41,7 @@ typedef struct DocTreeNode_s
 	int flags;
 	Str* name;
 	Style* style;
+	int last_eval;
 	struct DocTreeNodeContent_s* content;
 	struct DocTreeNode_s* parent;
 	Location* src_loc;

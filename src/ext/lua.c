@@ -23,15 +23,20 @@ void inc_iter_num(Doc* doc)
 
 int exec_lua_pass(Doc* doc)
 {
-	int rc = exec_lua_pass_on_node(doc->ext->state, doc->root);
-	lua_pop(doc->ext->state, lua_gettop(doc->ext->state));
+	int rc = exec_lua_pass_on_node(doc->ext->state, doc->root, doc->ext->iter_num);
+	lua_settop(doc->ext->state, 0);
 	return rc;
 }
 
 #include "debug.h"
-int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
+int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 {
 	// Takes a node at the top of the stack, replaces it with the result of executing a lua pass
+	if (!node)
+		return 0;
+	if (node->last_eval >= curr_iter)
+		return 0;
+	node->last_eval = curr_iter;
 	switch (node->content->type)
 	{
 		case WORD:
@@ -59,7 +64,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 				{
 					// Pass through non-extension calls with a single argument
 					node->content->call->result = node->content->call->args->fst->data;
-					return exec_lua_pass_on_node(s, node->content->call->result);
+					return exec_lua_pass_on_node(s, node->content->call->result, curr_iter);
 				}
 
 				log_debug("Putting args into lines node for result");
@@ -73,7 +78,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 					prepend_doc_tree_node_child(resultNode, resultNode->content->content, currArg);
 				node->content->call->result = resultNode;
 
-				return exec_lua_pass_on_node(s, node->content->call->result);
+				return exec_lua_pass_on_node(s, node->content->call->result, curr_iter);
 			}
 			if (!is_callable(s, -1))
 			{
@@ -152,7 +157,9 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 					dumpstack(s);
 					rc = unpack_lua_result(&node->content->call->result, s, node);
 					if (!rc)
-						lua_pop(s, -1); // Pop the public table
+						rc = exec_lua_pass_on_node(s, node->content->call->result, curr_iter);
+					if (!rc)
+						lua_pop(s, 1); // Pop the public table
 					dumpstack(s);
 					break;
 				case LUA_YIELD:
@@ -193,7 +200,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 			int rc = 0;
 			while (iter_list((void**)&subNode, &li))
 			{
-				rc |= exec_lua_pass_on_node(s, subNode);
+				rc |= exec_lua_pass_on_node(s, subNode, curr_iter);
 				if (rc)
 					return rc;
 			}
