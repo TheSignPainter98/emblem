@@ -3,6 +3,10 @@
 #include "logs/logs.h"
 #include <lauxlib.h>
 #include <stdio.h>
+#include <string.h>
+
+#define MAX_DEBUG_STR_LEN 60
+#define ELIPSES_STRING "..."
 
 void _dumpstack(lua_State* L)
 {
@@ -28,9 +32,18 @@ void _dumpstack(lua_State* L)
 					fprintf(stderr, "%s\n", "");
 					break;
 				default:
-					fprintf(stderr, "'%s'\n", luaL_tolstring(L, i, NULL));
+				{
+					size_t s_len;
+					char* s = strdup(luaL_tolstring(L, i, &s_len));
+					if (s_len >= MAX_DEBUG_STR_LEN)
+					{
+						strcpy(s + MAX_DEBUG_STR_LEN - strlen(ELIPSES_STRING), ELIPSES_STRING);
+					}
+					fprintf(stderr, "'%s'\n", s);
 					lua_pop(L, 1);
+					free(s);
 					break;
+				}
 			}
 		}
 }
