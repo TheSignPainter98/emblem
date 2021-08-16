@@ -154,21 +154,12 @@ static int ext_require_rerun(ExtensionState* s)
 			luaL_error(s, "Warnings are fatal");
 
 	lua_getglobal(s, EM_ENV_VAR_NAME);
-	if (!lua_isuserdata(s, -1))
-		luaL_error(s,
-			"Environment variable %s is not a userdata object (it is a %s value). There is no reason to change its "
-			"value so please don't",
-			EM_ENV_VAR_NAME, luaL_typename(s, -1));
+	ExtensionEnv* e;
+	int rc = to_userdata_pointer((void**)&e, s, -1, EXT_ENV);
+	lua_pop(s, 1);
+	if (rc)
+		luaL_error(s, "Invalid internal value");
 
-	LuaPointer* lp = lua_touserdata(s, -1);
-	if (lp->type != EXT_ENV)
-		luaL_error(s,
-			"Environment variable %s has been changed and no longer represents an environment. THere is no reason to "
-			"change its value, so please don't",
-			EM_ENV_VAR_NAME);
-	lua_pop(s, -1);
-
-	ExtensionEnv* e		 = lp->data;
 	e->require_extra_run = true;
 	return 0;
 }

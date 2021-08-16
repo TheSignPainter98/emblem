@@ -24,25 +24,16 @@ int ext_include_file(ExtensionState* s)
 
 	// Get the arguments and file names list
 	lua_getglobal(s, EM_ARGS_VAR_NAME);
-	if (!lua_islightuserdata(s, -1))
-		luaL_error(s, "Variable " EM_ARGS_VAR_NAME " has been changed illegally and can no longer be used");
-	LuaPointer* lpa = lua_touserdata(s, -1);
-	if (lpa->type != PARSED_ARGS)
-		luaL_error(s,
-			"Variable " EM_ARGS_VAR_NAME
-			" has been changed, expected pointer to object of type %d but got one to an object of type %d instead",
-			PARSED_ARGS, lpa->type);
-	Args* args = lpa->data;
+	Args* args;
+	int rc = to_userdata_pointer((void**)&args, s, -1, PARSED_ARGS);
+	if (rc)
+		luaL_error(s, "Invalid argument(s)");
 	lua_getglobal(s, EM_MT_NAMES_LIST_VAR_NAME);
-	if (!lua_islightuserdata(s, -1))
-		luaL_error(s, "Variable " EM_MT_NAMES_LIST_VAR_NAME " has been changed illegally and can no longer be used");
-	LuaPointer* lpmnl = lua_touserdata(s, -1);
-	if (lpmnl->type != MT_NAMES_LIST)
-		luaL_error(s,
-			"Variable " EM_MT_NAMES_LIST_VAR_NAME
-			" has been changed, expected a pointer to an object of type %d but got one to an object of type %d instead",
-			MT_NAMES_LIST, lpmnl->type);
-	Locked* mtNamesList = lpmnl->data;
+
+	Locked* mtNamesList;
+	rc = to_userdata_pointer((void**)&mtNamesList, s, -1, MT_NAMES_LIST);
+	if (rc)
+		luaL_error(s, "Invalid argument(s)");
 	lua_pop(s, 2);
 
 	// Parse the file
@@ -55,8 +46,9 @@ int ext_include_file(ExtensionState* s)
 
 	lua_getglobal(s, EM_ENV_VAR_NAME);
 	ExtensionEnv* env;
-	if (to_userdata_pointer((void**)&env, s, -1, EXT_ENV))
-		return 1;
+	rc = to_userdata_pointer((void**)&env, s, -1, EXT_ENV);
+	if (rc)
+		luaL_error(s, "Invalid internal value");
 	lua_pop(s, 1);
 
 	if(exec_lua_pass_on_node(s, included_root, env->iter_num))

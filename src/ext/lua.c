@@ -219,7 +219,24 @@ static bool is_callable(ExtensionState* s, int idx)
 
 	lua_getfield(s, idx, "__call");
 	bool callable = lua_isfunction(s, -1);
-	lua_pop(s, -1);
+	lua_pop(s, 1);
 
 	return callable;
+}
+
+int to_userdata_pointer(void** val, ExtensionState* s, int idx, LuaPointerType type)
+{
+	if (!lua_isuserdata(s, idx))
+	{
+		log_err("Expected userdata but got %s '%s'", luaL_typename(s, idx), luaL_tolstring(s, idx, NULL));
+		return 1;
+	}
+	LuaPointer* ptr = lua_touserdata(s, idx);
+	if (ptr->type != type)
+	{
+		log_err("Expected %s userdata (%d) but got %s userdata (%d)", lua_pointer_type_names[type], type, lua_pointer_type_names[ptr->type], ptr->type);
+		return 1;
+	}
+	*val = ptr->data;
+	return 0;
 }

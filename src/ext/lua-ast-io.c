@@ -18,16 +18,21 @@ int ext_eval_tree(ExtensionState* s)
 	if (lua_gettop(s) != 1)
 		return luaL_error(s, "Expected exactly 1 argument");
 
-	if (!lua_isuserdata(s, -1))
-		luaL_error(s, "Expected userdata but got %s '%s'", luaL_typename(s, -1), lua_tostring(s, -1));
-	LuaPointer* ptr = lua_touserdata(s, -1);
-	if (ptr->type != AST_NODE)
-		luaL_error(s, "Expected AST node userdata (%d) but got userdata of type %d", AST_NODE, ptr->type);
-	DocTreeNode* node = ptr->data;
-	lua_pop(s, -1);
+	DocTreeNode* node;
+	int rc = to_userdata_pointer((void**)&node, s, -1, AST_NODE);
+	if (rc)
+		luaL_error(s, "Invalid argument(s)");
+	lua_pop(s, 1);
 	log_debug("Working on node %p", (void*)node);
 
-	int erc = exec_lua_pass_on_node(s, node);
+	lua_getglobal(s, EM_ENV_VAR_NAME);
+	ExtensionEnv* env;
+	rc = to_userdata_pointer((void**)&env, s, -1, EXT_ENV);
+	if (rc)
+		luaL_error(s, "Invalid argument(s)");
+	lua_pop(s, 1);
+
+	int erc = exec_lua_pass_on_node(s, node, env->iter_num);
 	if (erc)
 		lua_pushnil(s);
 	pack_tree(s, node);
