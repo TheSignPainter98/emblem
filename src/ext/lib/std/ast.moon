@@ -52,16 +52,4 @@ class Call extends Node
 
 mkcall = (name) -> (args) -> Call name, args
 
--- w = Word 'heyo'
--- x = Word 'worldo'
--- cs = Content { 1, 2, 3, 4 }
--- ds = Content { 'a', 'b', 'c', 'd' }
--- em['test-func'] = -> Content { "hello,", "world", "this", "is", "a", "list!" }
--- em['test-func'] = -> Content { (Word "hello,"), Word "world" }
--- em['test-func'] = -> Content [ Word n for n in *{1, 2, 3, 4} ]
--- em['test-func'] = -> Call 'bf', "hello!"
--- em['test-func'] = -> (Word "Heyo,") .. "there!"
--- em['test-func'] = -> "hello" .. Word "world!"
--- em['test-func'] = -> 'hello' .. ((Call 'bf', "boldened") << "world!") .. 'and this comes afterwards'
-
 { :Call, :Content, :Word, :mkcall }
