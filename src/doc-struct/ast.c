@@ -21,10 +21,7 @@ void make_doc(Doc* doc, DocTreeNode* root, Styler* styler, ExtensionEnv* ext)
 	doc->ext	= ext;
 }
 
-void dest_doc(Doc* doc)
-{
-	dest_free_doc_tree_node(doc->root, false);
-}
+void dest_doc(Doc* doc) { dest_free_doc_tree_node(doc->root, false); }
 
 void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc)
 {
