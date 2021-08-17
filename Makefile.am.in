@@ -69,7 +69,7 @@ endef
 src/ext/lua-lib-load.c: scripts/lua-lib-load.c.sh
 	. $< > $@
 
-src/ext/lua-constants.c: scripts/lua-constants src/ext/lua-constants.c
+src/ext/lua-constants.c: scripts/lua-constants src/ext-constants.yml
 	./$< -c > $@
 
 %.lc: %.moon scripts/bin2c.lua scripts/module_name
