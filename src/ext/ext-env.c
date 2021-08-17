@@ -3,6 +3,7 @@
 #include "doc-struct/ast.h"
 #include "ext-loader.h"
 #include "logs/logs.h"
+#include "lua-constants.h"
 #include "lua-ast-io.h"
 #include "lua-em-parser.h"
 #include "lua-lib-load.h"
@@ -12,7 +13,6 @@
 
 #define EM_EVAL_NODE_FUNC_NAME	  "eval"
 #define EM_REQUIRE_RUNS_FUNC_NAME "requires_reiter"
-#define EM_NODE_TYPES_TABLE		  "node_types"
 
 static luaL_Reg lua_std_libs_universal[] = {
 	{ "", luaopen_base },
@@ -80,6 +80,8 @@ static void set_globals(ExtensionEnv* e, ExtParams* params)
 {
 	ExtensionState* s = e->state;
 
+	ext_set_global_constants(s);
+
 	// Store the iteration number
 	lua_pushinteger(s, 0);
 	lua_setglobal(s, EM_ITER_NUM_VAR_NAME);
@@ -89,15 +91,6 @@ static void set_globals(ExtensionEnv* e, ExtParams* params)
 	make_lua_pointer(e->selfp, EXT_ENV, e);
 	lua_pushlightuserdata(s, e->selfp);
 	lua_setglobal(s, EM_ENV_VAR_NAME);
-
-	// Allow pretty names for the node types
-	lua_newtable(s);
-	for (size_t i = 0; i < node_tree_content_type_names_len; i++)
-	{
-		lua_pushinteger(s, i);
-		lua_setfield(s, -2, node_tree_content_type_names[i]);
-	}
-	lua_setglobal(s, EM_NODE_TYPES_TABLE);
 
 	// Store the args in raw form
 	e->args = malloc(sizeof(LuaPointer));
