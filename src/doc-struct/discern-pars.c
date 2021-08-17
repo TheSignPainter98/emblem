@@ -85,8 +85,8 @@ static ParNodeRequirement requires_par_node(DocTreeNode* node)
 		case CALL:
 			return MAYBE_CHILD_PAR_NODE;
 		case CONTENT:
-			if (!(node->flags & PARAGRAPH_CANDIDATE))
-				return NO_PAR_NODE;
+			if (node->flags & INCLUDED_FILE_ROOT && node->content->content->cnt)
+				return MAYBE_CHILD_PAR_NODE;
 			switch (node->content->content->cnt)
 			{
 				case 0:
@@ -96,11 +96,16 @@ static ParNodeRequirement requires_par_node(DocTreeNode* node)
 					DocTreeNode* sole_child = node->content->content->fst->data;
 					if (sole_child->content->type == CALL || sole_child->flags & INCLUDED_FILE_ROOT)
 						return MAYBE_CHILD_PAR_NODE;
+					else if (sole_child->content->type == CONTENT && sole_child->content->content->cnt == 1)
+					{
+						// Case to handle .include directives with single-line directives, alone on a line
+						DocTreeNode* sole_child_sole_child = sole_child->content->content->fst->data;
+						if (sole_child_sole_child->content->type == CALL || sole_child_sole_child->flags & INCLUDED_FILE_ROOT)
+							return MAYBE_CHILD_PAR_NODE;
+					}
 					return REQUIRES_PAR_NODE;
 				}
 				default:
-					if (node->flags & INCLUDED_FILE_ROOT)
-						return MAYBE_CHILD_PAR_NODE;
 					return REQUIRES_PAR_NODE;
 			}
 		default:
