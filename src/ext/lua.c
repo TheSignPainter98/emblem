@@ -22,15 +22,21 @@ void inc_iter_num(Doc* doc)
 
 int exec_lua_pass(Doc* doc)
 {
-	int rc = exec_lua_pass_on_node(doc->ext->state, doc->root);
-	lua_pop(doc->ext->state, lua_gettop(doc->ext->state));
+	int rc = exec_lua_pass_on_node(doc->ext->state, doc->root, doc->ext->iter_num);
+	lua_settop(doc->ext->state, 0);
 	return rc;
 }
 
 #include "debug.h"
-int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
+int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 {
 	// Takes a node at the top of the stack, replaces it with the result of executing a lua pass
+	if (!node)
+		return 0;
+	if (node->last_eval >= curr_iter)
+		if (log_warn_at(node->src_loc, "Node being re-evaluated in same run"))
+			return 1;
+	node->last_eval = curr_iter;
 	switch (node->content->type)
 	{
 		case WORD:
@@ -45,7 +51,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 			lua_getfield(s, -1, node->name->str);
 			if (lua_isnoneornil(s, -1))
 			{
-				lua_pop(s, -2); // Remove nil value and public table
+				lua_pop(s, 2); // Remove nil value and public table
 				node->flags |= CALL_HAS_NO_EXT_FUNC;
 				if (is_empty_list(node->content->call->args))
 				{
@@ -58,7 +64,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 				{
 					// Pass through non-extension calls with a single argument
 					node->content->call->result = node->content->call->args->fst->data;
-					return exec_lua_pass_on_node(s, node->content->call->result);
+					return exec_lua_pass_on_node(s, node->content->call->result, curr_iter);
 				}
 
 				log_debug("Putting args into lines node for result");
@@ -72,11 +78,11 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 					prepend_doc_tree_node_child(resultNode, resultNode->content->content, currArg);
 				node->content->call->result = resultNode;
 
-				return exec_lua_pass_on_node(s, node->content->call->result);
+				return exec_lua_pass_on_node(s, node->content->call->result, curr_iter);
 			}
 			if (!is_callable(s, -1))
 			{
-				lua_pop(s, -2); // Remove non-callable object and public table
+				lua_pop(s, 2); // Remove non-callable object and public table
 				log_err("Expected function or callable table at em.%s, but got a %s", node->name->str,
 					luaL_typename(s, -1));
 				node->flags |= CALL_HAS_NO_EXT_FUNC;
@@ -84,7 +90,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 			}
 
 			// Prepare arguments
-			const int num_args = node->content->call->args->cnt;
+			const size_t num_args = node->content->call->args->cnt;
 			ListIter li;
 			make_list_iter(&li, node->content->call->args);
 			DocTreeNode* argNode;
@@ -107,7 +113,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 			}
 			if (lua_pcall(s, 0, 0, 0) != LUA_OK)
 			{
-				log_err("Failed to open new variable scope");
+				log_err("Failed to open new variable scope: %s", lua_tostring(s, -1));
 				return -1;
 			}
 
@@ -126,7 +132,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 			// Call function
 			log_debug("Pre-call stack:");
 			dumpstack(s);
-			log_debug("(Pcalling %s with %d arguments...)", node->name->str, num_args);
+			log_debug("(Pcalling %s with %ld arguments...)", node->name->str, num_args);
 			int rc;
 			switch (lua_pcall(s, num_args, 1, 0))
 			{
@@ -134,22 +140,25 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 					log_debug("returned: %s", luaL_typename(s, -1));
 					dumpstack(s);
 					rc = unpack_lua_result(&node->content->call->result, s, node);
+					log_debug("Unpacked result into %p", (void*)node->content->call->result);
 					if (!rc)
-						lua_pop(s, -1); // Pop the public table
+						rc = exec_lua_pass_on_node(s, node->content->call->result, curr_iter);
+					if (!rc)
+						lua_pop(s, 1); // Pop the public table
 					dumpstack(s);
 					break;
 				case LUA_YIELD:
 				{
 					int fw
 						= log_warn_at(node->src_loc, "Lua function em.%s yielded instead of returned", node->name->str);
-					lua_pop(s, -1); // Pop the public table
+					lua_pop(s, 1); // Pop the public table
 					rc = fw ? -1 : 0;
 					break;
 				}
 				default:
 					log_err_at(
 						node->src_loc, "Calling em.%s failed with error: %s", node->name->str, lua_tostring(s, -1));
-					lua_pop(s, -1); // Pop the public table
+					lua_pop(s, 1); // Pop the public table
 					rc = -1;
 					break;
 			}
@@ -158,12 +167,13 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 			lua_getglobal(s, CLOSE_VAR_SCOPE_FUNC_NAME);
 			if (!is_callable(s, -1))
 			{
-				log_err("Variable " CLOSE_VAR_SCOPE_FUNC_NAME " is not a callable. Something has changed this!");
+				log_err_at(node->src_loc, "Variable " CLOSE_VAR_SCOPE_FUNC_NAME " is not a callable. Something has changed this!");
+				lua_pop(s, 1);
 				return -1;
 			}
 			if (lua_pcall(s, 0, 0, 0) != LUA_OK)
 			{
-				log_err("Failed to open new variable scope");
+				log_err_at(node->src_loc, "Failed to open new variable scope");
 				return -1;
 			}
 			return rc;
@@ -176,7 +186,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 			int rc = 0;
 			while (iter_list((void**)&subNode, &li))
 			{
-				rc |= exec_lua_pass_on_node(s, subNode);
+				rc |= exec_lua_pass_on_node(s, subNode, curr_iter);
 				if (rc)
 					return rc;
 			}
@@ -184,7 +194,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node)
 			return rc;
 		}
 		default:
-			log_err("Failed to perform lua pass, encountered node of unknown type %d", node->content->type);
+			log_err_at(node->src_loc, "Failed to perform lua pass, encountered node of unknown type %d", node->content->type);
 			return -1;
 	}
 }
@@ -202,7 +212,24 @@ static bool is_callable(ExtensionState* s, int idx)
 
 	lua_getfield(s, idx, "__call");
 	bool callable = lua_isfunction(s, -1);
-	lua_pop(s, -1);
+	lua_pop(s, 1);
 
 	return callable;
+}
+
+int to_userdata_pointer(void** val, ExtensionState* s, int idx, LuaPointerType type)
+{
+	if (!lua_isuserdata(s, idx))
+	{
+		log_err("Expected userdata but got %s '%s'", luaL_typename(s, idx), luaL_tolstring(s, idx, NULL));
+		return 1;
+	}
+	LuaPointer* ptr = lua_touserdata(s, idx);
+	if (ptr->type != type)
+	{
+		log_err("Expected %s userdata (%d) but got %s userdata (%d)", lua_pointer_type_names[type], type, lua_pointer_type_names[ptr->type], ptr->type);
+		return 1;
+	}
+	*val = ptr->data;
+	return 0;
 }

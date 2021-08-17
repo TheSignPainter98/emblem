@@ -3,11 +3,7 @@ import show from require 'std.show'
 import is_list from require 'std.util'
 import insert from table
 
-{
-	word: word_type,
-	content: content_type,
-	call: call_type
-} = node_types
+import WORD, CALL, CONTENT from node_types
 
 class Node
 	new: (@type) =>
@@ -15,8 +11,8 @@ class Node
 
 sanitise_concat_input = (x) ->
 	return {} if x == nil
-	return {x} if ('table' != type x) or x.type == word_type or x.type == call_type
-	return x.content if x.type == content_type
+	return {x} if ('table' != type x) or x.type == WORD or x.type == CALL
+	return x.content if x.type == CONTENT
 	error "Unrecognised concatenation input: #{show x}"
 
 local Content
@@ -28,23 +24,23 @@ concat_ast_nodes = (as, bs) ->
 	Content newlist
 
 class Word extends Node
-	new: (@word) => super word_type
+	new: (@word) => super WORD
 	__concat: concat_ast_nodes
 
 class Content extends Node
-	new: (@content) => super content_type
+	new: (@content) => super CONTENT
 	__concat: concat_ast_nodes
 
 class Call extends Node
 	new: (@name, args) =>
-		super call_type
+		super CALL
 		if is_list args
 			@args = args
 		else
 			@args = {args}
 	__concat: concat_ast_nodes
 	__shl: (c, a) ->
-		if 'table' != type c or c.type != call_type
+		if 'table' != type c or c.type != CALL
 			error "Left operand to an argument-append must be a call, instead got #{show c}"
 		newargs = [ arg for arg in *c.args ]
 		insert newargs, a

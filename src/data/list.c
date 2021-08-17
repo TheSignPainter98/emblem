@@ -59,7 +59,7 @@ bool append_list(List* l, void* v)
 {
 	ListNode* ln = malloc(sizeof(ListNode));
 	make_internal_list_node(ln, v);
-	return append_list_node(l, ln);
+	return append_list_node(l, ln); // NOLINT
 }
 
 bool append_list_node(List* l, ListNode* ln)
@@ -86,7 +86,7 @@ bool prepend_list(List* l, void* v)
 {
 	ListNode* ln = malloc(sizeof(ListNode));
 	make_internal_list_node(ln, v);
-	return prepend_list_node(l, ln);
+	return prepend_list_node(l, ln); // NOLINT
 }
 
 bool prepend_list_node(List* l, ListNode* ln)

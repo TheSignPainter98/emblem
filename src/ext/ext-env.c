@@ -5,16 +5,16 @@
 #include "ext-loader.h"
 #include "logs/ext-log.h"
 #include "logs/logs.h"
+#include "lua-constants.h"
 #include "lua-ast-io.h"
 #include "lua-em-parser.h"
 #include "lua-lib-load.h"
+#include "lua.h"
 #include "style.h"
 #include <lauxlib.h>
 
 #define EM_EVAL_NODE_FUNC_NAME	  "eval"
 #define EM_REQUIRE_RUNS_FUNC_NAME "requires_reiter"
-#define EM_ENV_VAR_NAME			  "_em_env"
-#define EM_NODE_TYPES_TABLE		  "node_types"
 
 static luaL_Reg lua_std_libs_universal[] = {
 	{ "", luaopen_base },
@@ -82,6 +82,8 @@ static void set_globals(ExtensionEnv* e, ExtParams* params)
 {
 	ExtensionState* s = e->state;
 
+	ext_set_global_constants(s);
+
 	// Store the iteration number
 	lua_pushinteger(s, 0);
 	lua_setglobal(s, EM_ITER_NUM_VAR_NAME);
@@ -91,15 +93,6 @@ static void set_globals(ExtensionEnv* e, ExtParams* params)
 	make_lua_pointer(e->selfp, EXT_ENV, e);
 	lua_pushlightuserdata(s, e->selfp);
 	lua_setglobal(s, EM_ENV_VAR_NAME);
-
-	// Allow pretty names for the node types
-	lua_newtable(s);
-	for (size_t i = 0; i < node_tree_content_type_names_len; i++)
-	{
-		lua_pushinteger(s, i);
-		lua_setfield(s, -2, node_tree_content_type_names[i]);
-	}
-	lua_setglobal(s, EM_NODE_TYPES_TABLE);
 
 	// Store the args in raw form
 	e->args = malloc(sizeof(LuaPointer));
@@ -159,21 +152,12 @@ static int ext_require_rerun(ExtensionState* s)
 			luaL_error(s, "Warnings are fatal");
 
 	lua_getglobal(s, EM_ENV_VAR_NAME);
-	if (!lua_isuserdata(s, -1))
-		luaL_error(s,
-			"Environment variable %s is not a userdata object (it is a %s value). There is no reason to change its "
-			"value so please don't",
-			EM_ENV_VAR_NAME, luaL_typename(s, -1));
+	ExtensionEnv* e;
+	int rc = to_userdata_pointer((void**)&e, s, -1, EXT_ENV);
+	lua_pop(s, 1);
+	if (rc)
+		luaL_error(s, "Invalid internal value");
 
-	LuaPointer* lp = lua_touserdata(s, -1);
-	if (lp->type != EXT_ENV)
-		luaL_error(s,
-			"Environment variable %s has been changed and no longer represents an environment. THere is no reason to "
-			"change its value, so please don't",
-			EM_ENV_VAR_NAME);
-	lua_pop(s, -1);
-
-	ExtensionEnv* e		 = lp->data;
 	e->require_extra_run = true;
 	return 0;
 }

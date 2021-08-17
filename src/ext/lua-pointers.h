@@ -12,6 +12,8 @@ typedef enum
 	LOCATION,
 } LuaPointerType;
 
+extern const char* const lua_pointer_type_names[];
+
 typedef struct
 {
 	LuaPointerType type;

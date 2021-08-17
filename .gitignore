@@ -131,6 +131,7 @@ vgcore.*
 *-parser.[ch]
 *-lexer.[ch]
 *.output
+!lua-em-parser.[ch]
 
 # Generated extension files
 *.lc
@@ -142,6 +143,8 @@ emdoc.*
 .clang-tidy
 clang-tidy-info.json
 lua-lib-load.c
+constants.moon
+lua-constants.c
 
 # Output files
 *.css

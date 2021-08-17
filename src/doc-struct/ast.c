@@ -21,10 +21,7 @@ void make_doc(Doc* doc, DocTreeNode* root, Styler* styler, ExtensionEnv* ext)
 	doc->ext	= ext;
 }
 
-void dest_doc(Doc* doc)
-{
-	dest_free_doc_tree_node(doc->root, false);
-}
+void dest_doc(Doc* doc) { dest_free_doc_tree_node(doc->root, false); }
 
 void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc)
 {
@@ -33,12 +30,13 @@ void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc)
 	content->type = WORD;
 	content->word = word;
 
-	node->flags	  = 0;
-	node->name	  = malloc(sizeof(Str));
-	node->style	  = NULL;
-	node->content = content;
-	node->parent  = NULL;
-	node->src_loc = src_loc;
+	node->flags		= 0;
+	node->last_eval = -1;
+	node->name		= malloc(sizeof(Str));
+	node->style		= NULL;
+	node->content	= content;
+	node->parent	= NULL;
+	node->src_loc	= src_loc;
 
 	make_strc(node->name, NODE_NAME_WORD);
 }
@@ -50,12 +48,13 @@ void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc)
 	content->type	 = CONTENT;
 	content->content = malloc(sizeof(List));
 
-	node->flags	  = 0;
-	node->name	  = malloc(sizeof(Str));
-	node->style	  = NULL;
-	node->content = content;
-	node->parent  = NULL;
-	node->src_loc = src_loc;
+	node->flags		= 0;
+	node->last_eval = -1;
+	node->name		= malloc(sizeof(Str));
+	node->style		= NULL;
+	node->content	= content;
+	node->parent	= NULL;
+	node->src_loc	= src_loc;
 
 	make_list(content->content);
 	make_strc(node->name, NODE_NAME_CONTENT);
@@ -68,12 +67,13 @@ void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Locatio
 	content->type = CALL;
 	content->call = call;
 
-	node->flags	  = 0;
-	node->name	  = name;
-	node->style	  = NULL;
-	node->content = content;
-	node->parent  = NULL;
-	node->src_loc = src_loc;
+	node->flags		= 0;
+	node->last_eval = -1;
+	node->name		= name;
+	node->style		= NULL;
+	node->content	= content;
+	node->parent	= NULL;
+	node->src_loc	= src_loc;
 
 	if (call)
 	{
@@ -131,6 +131,12 @@ void prepend_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeN
 	new_child->parent = parent;
 }
 
+void append_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child)
+{
+	append_list(child_list, new_child);
+	new_child->parent = parent;
+}
+
 void make_call_io(CallIO* call)
 {
 	call->result = NULL;
@@ -142,6 +148,12 @@ void prepend_call_io_arg(CallIO* call, DocTreeNode* arg)
 {
 	arg->flags |= IS_CALL_PARAM;
 	prepend_list(call->args, arg);
+}
+
+void append_call_io_arg(CallIO* call, DocTreeNode* arg)
+{
+	arg->flags |= IS_CALL_PARAM;
+	append_list(call->args, arg);
 }
 
 void dest_call_io(CallIO* call, bool processing_result)

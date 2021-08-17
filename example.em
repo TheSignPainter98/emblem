@@ -21,7 +21,7 @@ You can also have escaped\{characters, more escaped\}characters \} \{ \: in the 
 
 This is an _italic word._
 This is a __bold one__.
-This is a word with an underscore_in_the_middle.
+This is a word with a underscores_in_the_middle.
 In some mathematical systems, 1=1 and 0!=1
 
 This is some _**bold italic**_ and this is some `_**monospaced bold italic**_`
@@ -95,7 +95,7 @@ Hello, the title is !title and this is fine.
 
 .echo-on-pass{2}{fdsa}: Hello
 
-.ifelse{$var}:
+.ifelse{!var}:
 	fhjdksalfds
 	hfjdklfds
 	hello, world!

@@ -64,6 +64,7 @@ int main(int argc, char** argv)
 	if (rc)
 		return rc;
 
+	log_info("Executing output driver");
 	DriverParams driver_params;
 	make_driver_params(&driver_params, &args);
 	rc = driver.run(&doc, &driver_params);

@@ -1,9 +1,14 @@
 import len from string
 import concat, insert from table
 
+constants = require 'std.constants'
+import WORD, CALL, CONTENT from constants.node_types
+
 collectgarbage 'stop' -- TODO: remove the need for this!
 
-base = { :eval, :include_file, :node_types, :requires_reiter, :_log_err, :_log_err_at, :_log_warn, :_log_warn_at, :_log_info, :_log_debug, :_em_loc }
+base = { :eval, :include_file, :requires_reiter, :_log_err, :_log_err_at, :_log_warn, :_log_warn_at, :_log_info, :_log_debug, :_em_loc, }
+for k,v in pairs constants
+	base[k] = v
 
 class PublicTable
 	__tostring: show
@@ -16,11 +21,11 @@ node_string = (n) ->
 	if 'table' != type n or ('table' == type n and n.type == nil)
 		return tostring n
 	switch n.type
-		when node_types.word
+		when WORD
 			return n.word
-		when node_types.call
+		when CALL
 			return node_string n.result
-		when node_types.content
+		when CONTENT
 			return concat [ node_string w for w in *n.content when w != nil ], ' '
 		else
 			error "Unrecognised node type '#{n.type}'"

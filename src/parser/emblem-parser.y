@@ -67,13 +67,13 @@ typedef struct
 #define DEFAULT_CONTENT_EXTENSION ".em"
 %}
 
-%define 		parse.trace true
-%define 		parse.error verbose
-%define 		api.pure    full
-%define 		api.prefix  {em_}
-%define 		lr.type 	ielr
-%parse-param 	            { ParserData* data }
-%lex-param 		            { yyscan_t YYLEX_PARAM_ }
+%define			parse.trace true
+%define			parse.error verbose
+%define			api.pure    full
+%define			api.prefix  {em_}
+%define			lr.type		ielr
+%parse-param				{ ParserData* data }
+%lex-param					{ yyscan_t YYLEX_PARAM_ }
 %locations
 %expect 0
 
@@ -83,13 +83,16 @@ typedef struct
 	CallIO* args;
 	Str* str;
 	Sugar sugar;
+	SimpleSugar simple_sugar;
 	size_t len;
 }
 
-%nterm <args>			args
+%nterm <args>			short_args
+%nterm <args>			line_remainder_args
+%nterm <args>			multi_line_args
 %nterm <args>			trailing_args
-%nterm <doc>  			doc
-%nterm <node>  			doc_content
+%nterm <doc>			doc
+%nterm <node>			doc_content
 %nterm <node>			file_content
 %nterm <node>			file_contents
 %nterm <node>			line
@@ -98,17 +101,20 @@ typedef struct
 %nterm <node>			line_element
 %nterm <node>			lines
 %nterm <node>			par
-%token 					T_DEDENT			"dedent"
-%token 					T_GROUP_CLOSE		"}"
-%token 					T_GROUP_OPEN		"{"
-%token 					T_INDENT 			"indent"
-%token 					T_LN 				"newline"
-%token 					T_PAR_BREAK			"paragraph break"
-%token 		  			T_COLON				"colon"
-%token 		  			T_DOUBLE_COLON		"double-colon"
-%token 					T_ASSIGNMENT 		"<-"
-%token <node>			T_INCLUDED_FILE 	"file inclusion"
-%token <sugar>			T_UNDERSCORE_OPEN 	"opening underscore(s)"
+%token					T_DEDENT			"dedent"
+%token					T_GROUP_CLOSE		"}"
+%token					T_GROUP_OPEN		"{"
+%token					T_INDENT			"indent"
+%token					T_LN				"newline"
+%token					T_PAR_BREAK			"paragraph break"
+%token					T_COLON				"colon"
+%token					T_DOUBLE_COLON		"double-colon"
+%token					T_ASSIGNMENT		"<-"
+%token <node>			T_INCLUDED_FILE		"file inclusion"
+%token <sugar>			T_UNDERSCORE_OPEN	"opening underscore(s)"
+%token <simple_sugar>	T_CITATION			"citation"
+%token <simple_sugar>	T_LABEL				"label"
+%token <simple_sugar>	T_REFERENCE			"reference"
 %token <sugar>			T_ASTERISK_OPEN		"opening asterisk(s)"
 %token <sugar>			T_BACKTICK_OPEN		"opening backtick"
 %token <sugar>			T_EQUALS_OPEN		"opening equal(s)"
@@ -116,16 +122,17 @@ typedef struct
 %token <len>			T_ASTERISK_CLOSE	"closing asterisk(s)"
 %token <len>			T_BACKTICK_CLOSE	"closing backtick"
 %token <len>			T_EQUALS_CLOSE		"closing equal(s)"
-%token <str> 			T_DIRECTIVE			"directive"
-%token <str> 			T_WORD 				"word"
-%token <str>			T_VARIABLE_REF 		"variable"
-%token <sugar> 			T_HEADING			"heading"
+%token <str>			T_DIRECTIVE			"directive"
+%token <str>			T_WORD				"word"
+%token <str>			T_VARIABLE_REF		"variable"
+%token <sugar>			T_HEADING			"heading"
 
 %destructor { dest_unit(&$$); } <doc>
 %destructor { if ($$) { dest_free_doc_tree_node($$, false); } } <node>
 %destructor { if ($$) { dest_str($$); free($$); } } <str>
 %destructor { if ($$) { dest_call_io($$, false), free($$); } } <args>
 %destructor { dest_sugar(&$$); } <sugar>
+%destructor { dest_simple_sugar(&$$); } <simple_sugar>
 
 %start doc
 
@@ -136,6 +143,7 @@ static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str** ifn);
 static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode* arg, Location* loc);
 static void make_variable_retrieval(DocTreeNode* node, Str* var, Location* loc);
 static void make_variable_assignment(DocTreeNode* node, Str* var, DocTreeNode* val, Location* loc);
+static void make_simple_syntactic_sugar_call(DocTreeNode* node, SimpleSugar ssugar, Location* loc);
 static void dest_preprocessor_data(PreProcessorData* preproc);
 
 #include "pp/unused.h"
@@ -143,7 +151,7 @@ static void dest_preprocessor_data(PreProcessorData* preproc);
 
 %%
 
-doc : doc_content	{ make_unit(&$$); data->root = $1; }
+doc : doc_content	{ make_unit(&$$); $1->flags |= INCLUDED_FILE_ROOT; data->root = $1; }
 	;
 
 doc_content
@@ -151,13 +159,13 @@ doc_content
 	| maybe_par_break_toks file_contents	{ $$ = $2; }
 
 file_contents
-	: file_content 			                    { $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); prepend_doc_tree_node_child($$, $$->content->content, $1); }
+	: file_content								{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); prepend_doc_tree_node_child($$, $$->content->content, $1); }
 	| file_content par_break_toks file_contents { $$ = $3; prepend_doc_tree_node_child($$, $$->content->content, $1); }
 	;
 
 file_content
-	: par 								{ $$ = $1; $$->flags |= PARAGRAPH_CANDIDATE; }
-	| T_INDENT file_contents T_DEDENT 	{ $$ = $2; }
+	: par								{ $$ = $1; $$->flags |= PARAGRAPH_CANDIDATE; }
+	| T_INDENT file_contents T_DEDENT	{ $$ = $2; }
 	;
 
 par : lines
@@ -181,76 +189,61 @@ lines
 line
 	: line_content T_LN
 	| T_INCLUDED_FILE
-	| T_HEADING line_content T_LN	{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
-	| T_DIRECTIVE args 				{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
-	| error 						{ alloc_malloc_error_word(&$$, @$, data->ifn); }
+	| T_VARIABLE_REF T_ASSIGNMENT line_content T_LN	{ $$ = malloc(sizeof(DocTreeNode)); make_variable_assignment($$, $1, $3, alloc_assign_loc(@$, data->ifn)); }
+	| T_HEADING line_content T_LN					{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_DIRECTIVE multi_line_args					{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| error											{ alloc_malloc_error_word(&$$, @$, data->ifn); }
 	;
 
-args
-	: %empty																{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
-	| T_COLON line_content_ne T_LN											{ $$ = malloc(sizeof(CallIO)); make_call_io($$); prepend_call_io_arg($$, $2); }
-	| T_COLON T_LN T_INDENT file_contents T_DEDENT trailing_args 			{ $$ = $6; prepend_call_io_arg($$, $4); }
-	| T_GROUP_OPEN line_content T_GROUP_CLOSE args 							{ $$ = $4; prepend_call_io_arg($$, $2); }
-	| T_GROUP_OPEN T_LN T_INDENT file_contents T_DEDENT T_GROUP_CLOSE args 	{ $$ = $7; prepend_call_io_arg($$, $4); }
+short_args
+	: %empty													{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
+	| T_GROUP_OPEN line_content T_GROUP_CLOSE short_args 		{ $$ = $4; prepend_call_io_arg($$, $2); }
+	;
+
+line_remainder_args
+	: T_GROUP_OPEN line_content T_GROUP_CLOSE line_remainder_args	{ $$ = $4; prepend_call_io_arg($$, $2); }
+	| T_COLON line_content_ne										{ $$ = malloc(sizeof(CallIO)); make_call_io($$); prepend_call_io_arg($$, $2); }
+	;
+
+multi_line_args
+	: T_GROUP_OPEN line_content T_GROUP_CLOSE multi_line_args							{ $$ = $4; prepend_call_io_arg($$, $2); }
+	| T_GROUP_OPEN T_LN T_INDENT file_contents T_DEDENT T_GROUP_CLOSE multi_line_args	{ $$ = $7; prepend_call_io_arg($$, $4); }
+	| T_COLON T_LN T_INDENT file_contents T_DEDENT trailing_args						{ $$ = $6; prepend_call_io_arg($$, $4); }
 	;
 
 trailing_args
-	: %empty 														{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
+	: %empty															{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
 	| T_DOUBLE_COLON T_LN T_INDENT file_contents T_DEDENT trailing_args	{ $$ = $6; prepend_call_io_arg($$, $4); }
 	;
 
 line_content
 	: %empty			{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn)); }
 	| line_content_ne
-	| T_VARIABLE_REF T_ASSIGNMENT line_content { $$ = malloc(sizeof(DocTreeNode)); make_variable_assignment($$, $1, $3, alloc_assign_loc(@$, data->ifn)); }
 	;
 
 line_content_ne
-	: line_element line_content								{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
+	: line_element line_content			{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
+	| T_DIRECTIVE line_remainder_args	{
+											$$ = malloc(sizeof(DocTreeNode));
+											make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn));
+											DocTreeNode* call_node = malloc(sizeof(DocTreeNode));
+											make_doc_tree_node_call(call_node, $1, $2, alloc_assign_loc(@$, data->ifn));
+											prepend_doc_tree_node_child($$, $$->content->content, call_node);
+										}
 	;
 
 line_element
 	: T_WORD												{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_word($$, $1, alloc_assign_loc(@$, data->ifn)); }
-	| T_VARIABLE_REF 										{ $$ = malloc(sizeof(DocTreeNode)); make_variable_retrieval($$, $1, alloc_assign_loc(@$, data->ifn)); }
+	| T_DIRECTIVE short_args								{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_CITATION											{ $$ = malloc(sizeof(DocTreeNode)); make_simple_syntactic_sugar_call($$, $1, alloc_assign_loc(@$, data->ifn)); }
+	| T_REFERENCE											{ $$ = malloc(sizeof(DocTreeNode)); make_simple_syntactic_sugar_call($$, $1, alloc_assign_loc(@$, data->ifn)); }
+	| T_LABEL												{ $$ = malloc(sizeof(DocTreeNode)); make_simple_syntactic_sugar_call($$, $1, alloc_assign_loc(@$, data->ifn)); }
+	| T_VARIABLE_REF										{ $$ = malloc(sizeof(DocTreeNode)); make_variable_retrieval($$, $1, alloc_assign_loc(@$, data->ifn)); }
 	| T_UNDERSCORE_OPEN line_content_ne T_UNDERSCORE_CLOSE	{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_ASTERISK_OPEN line_content_ne T_ASTERISK_CLOSE		{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_BACKTICK_OPEN line_content_ne T_BACKTICK_CLOSE		{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_EQUALS_OPEN line_content_ne T_EQUALS_CLOSE			{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	;
-
-
-/* doc */
-	/* : paragraphs T_LN 				{ log_debug("Document was full of paragraphs"); } */
-	/* | paragraph { log_warn("ONly paragraph"); } */
-	/* | error							{ log_warn("There was an error somewhere in the document"); } */
-	/* ; */
-
-/* paragraphs */
-	/* : paragraph						{ log_debug("Starting a par list"); } */
-	/* | paragraph T_LN T_LN paragraphs 	{ log_debug("Continuing a par list"); } */
-	/* ; */
-
-/* paragraph */
-	/* : %empty					{ log_debug("Paragraph  empty"); } */
-	/* | par_part 					{ log_debug("Starting a par"); } */
-	/* | par_part T_LN paragraph 	{ log_debug("Continuing a par"); } */
-	/* ; */
-
-/* par_part */
-	/* : sentence */
-	/* | T_DIRECTIVE T_COLON T_LN T_INDENT paragraphs T_LN T_DEDENT { log_debug("Got directive '%s'", $1->str); } */
-	/* ; */
-
-/* sentence */
-	/* : sentence_part				{ log_debug("Starting a sentence"); } */
-	/* | sentence_part sentence 	{ log_debug("Continuing a sentence"); } */
-	/* ; */
-
-/* sentence_part */
-	/* : T_WORD	  { log_debug("Got word '%s'", $1->str); $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_word($$, $1, alloc_assign_loc(@$, data->ifn)); } */
-	/* | T_COLON	  { log_debug("Got colon ':'"); $$ = malloc(sizeof(DocTreeNode)); Str* s = malloc(sizeof(Str)); make_strc(s, ":"); make_doc_tree_node_word($$, s, alloc_assign_loc(@$, data->ifn)); } */
-	/* | T_DIRECTIVE { log_debug("Got directive '%s'", $1->str); $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_word($$, $1, alloc_assign_loc(@$, data->ifn)); } */
-	/* ; */
 
 %%
 
@@ -319,6 +312,16 @@ static void make_variable_assignment(DocTreeNode* node, Str* var, DocTreeNode* v
 	prepend_call_io_arg(args, val);
 	prepend_call_io_arg(args, var_node);
 	make_doc_tree_node_call(node, set_call_name, args, dup_loc(loc));
+}
+
+static void make_simple_syntactic_sugar_call(DocTreeNode* node, SimpleSugar ssugar, Location* loc)
+{
+	CallIO* io = malloc(sizeof(CallIO));
+	make_call_io(io);
+	DocTreeNode* arg_node = malloc(sizeof(DocTreeNode));
+	make_doc_tree_node_word (arg_node, ssugar.arg, loc);
+	prepend_call_io_arg(io, arg_node);
+	make_doc_tree_node_call(node, ssugar.call, io, dup_loc(loc));
 }
 
 static void dest_preprocessor_data(PreProcessorData* preproc)
@@ -397,9 +400,7 @@ unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 	if (!nerrs && pd.root)
 		make_maybe_just(mo, pd.root);
 	else
-	{
 		make_maybe_nothing(mo);
-	}
 
 	dest_preprocessor_data(&ld.preproc);
 
