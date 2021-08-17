@@ -1,0 +1,17 @@
+node_flags:
+  doc-struct/ast.h:
+    integer:
+      - REQUIRES_RERUN
+      - IS_GENERATED_NODE
+      - IS_CALL_PARAM
+      - CALL_HAS_NO_EXT_FUNC
+      - CALL_HAS_NO_STYLE
+      - PARAGRAPH_CANDIDATE
+      - DISQUALIFIED_PARAGRAPH
+      - INCLUDED_FILE_ROOT
+node_types:
+  doc-struct/ast.h:
+    integer:
+      - WORD
+      - CALL
+      - CONTENT

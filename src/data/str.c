@@ -50,7 +50,7 @@ void str_to_arr(Array* arr, Str* str)
 	make_arr(arr, str->len);
 	for (size_t i = 0; i < str->len; i++)
 	{
-		INT_TO_POINTER_CAST(arr->data[i] = (void*)str->str[i]);
+		INT_TO_POINTER_CAST(arr->data[i] = (void*)str->str[i]); // NOLINT
 	}
 }
 

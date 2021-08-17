@@ -143,6 +143,8 @@ emdoc.*
 .clang-tidy
 clang-tidy-info.json
 lua-lib-load.c
+constants.moon
+lua-constants.c
 
 # Output files
 *.css

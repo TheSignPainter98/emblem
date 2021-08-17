@@ -55,7 +55,10 @@ dist_man_MANS = em.1 html2em.1
 html2em: src/scripts/html2em.moon
 	cp $< $@
 	chmod 700 $@
-%.moon:;
+%.moon: ;
+
+src/ext/lib/std/constants.moon: scripts/lua-constants src/ext-constants.yml
+	./$< -m >$@
 
 LEX = flex
 
@@ -65,6 +68,9 @@ endef
 
 src/ext/lua-lib-load.c: scripts/lua-lib-load.c.sh
 	. $< > $@
+
+src/ext/lua-constants.c: scripts/lua-constants src/ext-constants.yml
+	./$< -c > $@
 
 %.lc: %.moon scripts/bin2c.lua scripts/module_name
 	$(moon2c)

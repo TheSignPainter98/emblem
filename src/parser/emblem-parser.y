@@ -151,7 +151,7 @@ static void dest_preprocessor_data(PreProcessorData* preproc);
 
 %%
 
-doc : doc_content	{ make_unit(&$$); data->root = $1; }
+doc : doc_content	{ make_unit(&$$); $1->flags |= INCLUDED_FILE_ROOT; data->root = $1; }
 	;
 
 doc_content
@@ -400,9 +400,7 @@ unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 	if (!nerrs && pd.root)
 		make_maybe_just(mo, pd.root);
 	else
-	{
 		make_maybe_nothing(mo);
-	}
 
 	dest_preprocessor_data(&ld.preproc);
 

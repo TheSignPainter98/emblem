@@ -366,7 +366,7 @@ em.cite = (ref) ->
 	call: call_type
 } = node_types
 class Node
-	new: (@type) =>
+	new: (@type, @flags=0) =>
 	__tostring: => show @
 
 sanitise_concat_input = (x) ->
@@ -384,27 +384,24 @@ concat_ast_nodes = (as, bs) ->
 	Content newlist
 
 class Word extends Node
-	new: (@word) => super word_type
+	new: (@word, ...) => super word_type, ...
 	__concat: concat_ast_nodes
 
 class Content extends Node
-	new: (@content) => super content_type
+	new: (@content, ...) => super content_type, ...
 	__concat: concat_ast_nodes
 
 class Call extends Node
-	new: (@name, args) =>
-		super call_type
-		if is_list args
-			@args = args
-		else
-			@args = {args}
+	new: (@name, @args={}, ...) =>
+		super call_type, ...
+		@args = {@args} if not is_list @args
 	__concat: concat_ast_nodes
 	__shl: (c, a) ->
 		if 'table' != type c or c.type != call_type
 			error "Left operand to an argument-append must be a call, instead got #{show c}"
 		newargs = [ arg for arg in *c.args ]
 		insert newargs, a
-		Call c.name, newargs
+		Call c.name, newargs, c.flags
 
 mkcall = (name) -> (args) -> Call name, args
 

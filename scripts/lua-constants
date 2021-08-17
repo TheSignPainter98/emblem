@@ -1,0 +1,68 @@
+#!/usr/bin/moon
+
+import load from require 'lyaml'
+import open from io
+import concat, insert from table
+
+class Const
+	new: (@name, @type) =>
+
+constant_sources = {}
+constants = {}
+domains = {}
+
+local lines
+with open 'src/ext-constants.yml'
+	lines = \read '*all'
+	\close!
+raw_consts = load lines
+
+elem = (es, e) ->
+	for e2 in *es
+		if e == e2
+			return true
+	false
+
+insert_unique = (es, e) -> insert es, e if not elem es, e
+
+tab_len = (t) ->
+	l = 0
+	l += 1 for _ in pairs t
+	l
+
+for domain_name, domain in pairs raw_consts
+	insert domains, domain_name
+	for src_loc, consts_at_src in pairs domain
+		insert_unique constant_sources, src_loc
+		for type_name, consts in pairs consts_at_src
+			for const in *consts
+				if not constants[domain_name]
+					constants[domain_name] = {}
+				insert constants[domain_name], Const const, type_name
+
+if elem {...}, '-c'
+	formatted_const_sources = concat [ "#include \"#{src}\"" for src in *constant_sources ], '\n'
+
+	const_domain_fmt = (n, d) ->
+		create_tab_call = "\tlua_createtable(s, 0, #{tab_len d});"
+		decls = concat [ "\tlua_push#{c.type}(s, #{c.name});\n\tlua_setfield(s, -2, \"#{c.name}\");" for c in *d ], '\n'
+		set_tab_call = "\tlua_setglobal(s, \"#{n}\");"
+		concat { create_tab_call, decls, set_tab_call }, '\n'
+
+	formatted_constants = concat [ const_domain_fmt n, d for n,d in pairs constants ], '\n\n'
+
+	print "#include \"ext/lua-constants.h\"
+
+#{formatted_const_sources}
+
+void ext_set_global_constants(ExtensionState* s)
+{
+#{formatted_constants}
+}"
+elseif elem {...}, '-m'
+	print "{ #{concat [ ':' .. d for d in *domains ], ', '} }"
+else
+	import stderr from io
+	import exit from os
+	stderr\write "Please specify either '-m' for moonscript or '-c' for C\n"
+	exit 1
