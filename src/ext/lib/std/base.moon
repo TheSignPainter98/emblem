@@ -26,7 +26,11 @@ node_string = (n) ->
 		when CALL
 			return node_string n.result
 		when CONTENT
-			return concat [ node_string w for w in *n.content when w != nil ], ' '
+			ss = {}
+			for m in *n.content
+				if s = node_string m
+					insert ss, s
+			return concat ss, ' '
 		else
 			error "Unrecognised node type '#{n.type}'"
 			return nil
