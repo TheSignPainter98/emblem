@@ -71,7 +71,7 @@ int pack_tree(ExtensionState* s, DocTreeNode* node)
 			make_list_iter(&li, node->content->call->args);
 			DocTreeNode* curr_arg;
 			int arg_idx = 1;
-			lua_createtable(s, node->content->call->args->cnt, 0);
+			lua_createtable(s, node->content->call->args->cnt, 0); // NOLINT
 			while (iter_list((void**)&curr_arg, &li))
 			{
 				rc = pack_tree(s, curr_arg);
@@ -145,7 +145,7 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 			{
 				lua_Number num		= lua_tonumber(s, -1);
 				const size_t numlen = 1 + snprintf(NULL, 0, LUA_NUMBER_FMT, num);
-				numr				= malloc(sizeof(numlen));
+				numr				= malloc(numlen);
 				snprintf(numr, numlen, LUA_NUMBER_FMT, num);
 			}
 			Str* repr = malloc(sizeof(Str));
@@ -246,7 +246,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 				DocTreeNode* new_child;
 				int rc = unpack_lua_result(&new_child, s, *result);
 				if (rc)
-					return rc;
+					return rc; // NOLINT
 				append_doc_tree_node_child(*result, (*result)->content->content, new_child);
 			}
 			lua_pop(s, 1);
@@ -284,7 +284,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 				DocTreeNode* arg;
 				int rc = unpack_lua_result(&arg, s, *result);
 				if (rc)
-					return rc;
+					return rc; // NOLINT
 				append_call_io_arg(io, arg);
 			}
 

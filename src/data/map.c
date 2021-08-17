@@ -20,7 +20,7 @@
  *
  * @return The resize increase factor
  */
-#define MAP_SIZE_INCREASE_FACTOR 1.6
+#define MAP_SIZE_INCREASE_FACTOR 2
 /**
  * @brief Key comparator function between a kv pair and a specific key
  *
@@ -97,10 +97,10 @@ bool make_map_from_list(Map* map, List* list, Hasher hash, Comparator kcmp, Dest
 	return !!map->tbl;
 }
 
-bool push_map(Maybe* oldval, Map* m, void* k, void* v)
+bool push_map(Maybe* oldval, Map* m, void* k, void* v) // NOLINT
 {
 	// Increase table size of necessary
-	size_t resize_threshold = MAP_RESIZE_THRESHOLD * m->tbl_size;
+	size_t resize_threshold = MAP_RESIZE_THRESHOLD * m->tbl_size; // NOLINT
 	if (m->curr_stored >= resize_threshold)
 	{
 		size_t ntbl_size = MAP_SIZE_INCREASE_FACTOR * m->tbl_size;

@@ -71,7 +71,12 @@ static int read_arg_defs_into_map(Map* arg_list_map, List* ext_args)
 		int rc2			= parse_arg_def(argDef, ext_name, param_name, arg);
 		rc |= rc2;
 		if (rc2)
+		{
+			free(arg);
+			free(param_name);
+			free(ext_name);
 			continue;
+		}
 
 		List* arg_list;
 		Maybe m;
@@ -173,10 +178,11 @@ static int load_extension_arguments(ExtensionState* s, Maybe* params)
 
 static int load_extension_code(ExtensionState* s, Str* ext_name)
 {
-	char ext_name_path[ext_name->len + 4];
+	const char* const default_extension =  ".lua";
+	char ext_name_path[ext_name->len + strlen(default_extension)];
 	memcpy(ext_name_path, ext_name->str, ext_name->len);
 	if (!strrchr(ext_name->str, '.'))
-		strncpy(ext_name_path + ext_name->len, ".lua", 5);
+		strcpy(ext_name_path + ext_name->len, default_extension); // NOLINT
 	else
 		ext_name_path[ext_name->len] = '\0';
 

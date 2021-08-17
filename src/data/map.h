@@ -11,7 +11,7 @@
 typedef struct
 {
 	List** tbl;
-	unsigned int tbl_size;
+	size_t tbl_size;
 	size_t curr_stored;
 	Hasher hash;
 	Comparator kcmp;

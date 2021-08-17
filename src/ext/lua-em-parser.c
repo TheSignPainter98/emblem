@@ -39,7 +39,7 @@ int ext_include_file(ExtensionState* s)
 
 	// Parse the file
 	Maybe mpf;
-	int nerrs = parse_file(&mpf, mtNamesList, args, fname);
+	unsigned int nerrs = parse_file(&mpf, mtNamesList, args, fname);
 	if (mpf.type == NOTHING)
 		luaL_error(s, "Parsing %s failed with %d errors", fname, nerrs);
 	DocTreeNode* included_root = mpf.just;

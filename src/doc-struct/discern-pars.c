@@ -96,7 +96,7 @@ static ParNodeRequirement requires_par_node(DocTreeNode* node)
 					DocTreeNode* sole_child = node->content->content->fst->data;
 					if (sole_child->content->type == CALL || sole_child->flags & INCLUDED_FILE_ROOT)
 						return MAYBE_CHILD_PAR_NODE;
-					else if (sole_child->content->type == CONTENT && sole_child->content->content->cnt == 1)
+					if (sole_child->content->type == CONTENT && sole_child->content->content->cnt == 1)
 					{
 						// Case to handle .include directives with single-line directives, alone on a line
 						DocTreeNode* sole_child_sole_child = sole_child->content->content->fst->data;

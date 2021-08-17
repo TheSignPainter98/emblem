@@ -90,7 +90,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 			}
 
 			// Prepare arguments
-			const int num_args = node->content->call->args->cnt;
+			const size_t num_args = node->content->call->args->cnt;
 			ListIter li;
 			make_list_iter(&li, node->content->call->args);
 			DocTreeNode* argNode;
@@ -148,7 +148,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 			// Call function
 			log_debug("Pre-call stack:");
 			dumpstack(s);
-			log_debug("(Pcalling %s with %d arguments...)", node->name->str, num_args);
+			log_debug("(Pcalling %s with %ld arguments...)", node->name->str, num_args);
 			int rc;
 			switch (lua_pcall(s, num_args, 1, 0))
 			{

@@ -366,7 +366,7 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
         ' */',
         'static void make_args(Args* args)', '{', defaults, '}',
         '',
-        'int parse_args(Args* args, int argc, char** argv)', '{', mandatoryFlags + [
+        'int parse_args(Args* args, int argc, char** argv) // NOLINT', '{', mandatoryFlags + [
             'make_args(args);'
             'int optc;',
             'int showUsage = 0;',

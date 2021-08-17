@@ -36,9 +36,7 @@ void _dumpstack(lua_State* L)
 					size_t s_len;
 					char* s = strdup(luaL_tolstring(L, i, &s_len));
 					if (s_len >= MAX_DEBUG_STR_LEN)
-					{
-						strcpy(s + MAX_DEBUG_STR_LEN - strlen(ELIPSES_STRING), ELIPSES_STRING);
-					}
+						strcpy(s + MAX_DEBUG_STR_LEN - strlen(ELIPSES_STRING), ELIPSES_STRING); // NOLINT
 					fprintf(stderr, "'%s'\n", s);
 					lua_pop(L, 1);
 					free(s);
