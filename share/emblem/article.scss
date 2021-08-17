@@ -11,7 +11,7 @@ $mono-font-family: 'Ubuntu Mono', monospace;
 	@return ($min_size + ($num / $header_max) * ($max_size - $min_size)) * 1pt;
 }
 
-.body {
+body {
 	font-family: $main-font-family;
 	font-variant-ligatures: discretionary-ligatures;
 	font-variant-numeric: oldstyle-nums;
