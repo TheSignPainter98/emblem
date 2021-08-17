@@ -6,7 +6,7 @@ import insert from table
 import WORD, CALL, CONTENT from node_types
 
 class Node
-	new: (@type) =>
+	new: (@type, @flags=0) =>
 	__tostring: => show @
 
 sanitise_concat_input = (x) ->
@@ -17,23 +17,30 @@ sanitise_concat_input = (x) ->
 
 local Content
 concat_ast_nodes = (as, bs) ->
-	as = sanitise_concat_input as
-	bs = sanitise_concat_input bs
-	newlist = [ a for a in *as ]
-	insert newlist, b for b in *bs
-	Content newlist
+	as2 = sanitise_concat_input as
+	bs2 = sanitise_concat_input bs
+	newlist = [ a for a in *as2 ]
+	insert newlist, b for b in *bs2
+	flags = nil
+	if as.type == bs.type and bs.type == CONTENT
+		flags = as.flags
+		if flags == nil
+			flags = bs.flags
+		elseif bs.flags != nil
+			flags |= bs.flags
+	Content newlist, flags
 
 class Word extends Node
-	new: (@word) => super WORD
+	new: (@word, ...) => super WORD, ...
 	__concat: concat_ast_nodes
 
 class Content extends Node
-	new: (@content) => super CONTENT
+	new: (@content, ...) => super CONTENT, ...
 	__concat: concat_ast_nodes
 
 class Call extends Node
-	new: (@name, args) =>
-		super CALL
+	new: (@name, args, ...) =>
+		super CALL, ...
 		if is_list args
 			@args = args
 		else
@@ -44,7 +51,7 @@ class Call extends Node
 			error "Left operand to an argument-append must be a call, instead got #{show c}"
 		newargs = [ arg for arg in *c.args ]
 		insert newargs, a
-		Call c.name, newargs
+		Call c.name, newargs, c.flags
 
 mkcall = (name) -> (args) -> Call name, args
 
