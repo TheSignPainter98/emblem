@@ -24,8 +24,8 @@ cond = (c) ->
 		true
 
 toint = (b) ->
-	if b
-		1 else 0
+	return 0 if b == 0 or b == '' or not b
+	1
 
 em.if = (c, b) ->
 	if cond c
