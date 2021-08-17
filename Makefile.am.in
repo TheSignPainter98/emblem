@@ -13,6 +13,8 @@ LINTER_FLAGS = --use-color --quiet --line-filter="$$(cat clang-tidy-info.json)"
 LINTER_COMPILE_FLAGS = $(CFLAGS_ALL) -Isrc/ -fblocks
 LINTER_APPLY_CHANGES_FLAGS = --fix --fix-errors
 LINTER_OUTPUT_FILTER = | (grep -v '^[0-9]* warnings*' || true)
+EXT_LINTER = moonc
+EXT_LINTER_FLAGS = -l
 ROFF = groff
 ROFF_FLAGS = -man -fN -Tpdf
 
@@ -66,7 +68,7 @@ define moon2c
 	(awk -f scripts/moon-module-make.awk -v module_name="$(shell scripts/module_name $<)" | moonc -- | luac -o - - | ./scripts/bin2c.lua /dev/stdin $(shell scripts/module_name $<)) < $< > $@
 endef
 
-src/ext/lua-lib-load.c: scripts/lua-lib-load.c.sh
+src/ext/lua-lib-load.c: scripts/lua-lib-load.c.sh S_EXTENSION_LIB_SRC_FILES
 	. $< > $@
 
 src/ext/lua-constants.c: scripts/lua-constants src/ext-constants.yml
@@ -123,12 +125,16 @@ doc-coverage: scripts/doxcov docs/html/index.html
 	./scripts/doxcov
 .PHONY: doc-coverage
 
-lint: .clang-tidy clang-tidy-info.json S_LINTABLE_SRCS
+define lint
 	@$(LINTER) $(LINTER_FLAGS) $(filter %.c,$^) -- $(LINTER_COMPILE_FLAGS) 2>&1 $(LINTER_OUTPUT_FILTER)
+	@$(EXT_LINTER) $(EXT_LINTER_FLAGS) $(filter %.moon,$^) 2>&1
+endef
+lint: .clang-tidy clang-tidy-info.json S_LINTABLE_SRCS
+	$(lint)
 .PHONY: lint
 
 lint-fix: .clang-tidy clang-tidy-info.json S_LINTABLE_SRCS
-	@$(LINTER) $(LINTER_FLAGS) $(LINTER_APPLY_CHANGES_FLAGS) $(filter %.c,$^) -- $(LINTER_COMPILE_FLAGS) 2>&1 $(LINTER_OUTPUT_FILTER)
+	$(lint)
 	@$(FORMATTER) $(FORMAT_FLAGS) $(filter %.c,$^)
 .PHONY: lint-fix
 
@@ -155,4 +161,4 @@ format-check:
 
 dist_pkgdata_DATA = S_DIST_DATA
 EXTRA_DIST = ./em.yml ./src/pp/ignore_warning.h.m4 S_EXTRA_DIST
-CLEANFILES = html2em *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1 em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c emblem-*.tar.* PKGBUILD .clang-tidy clang-tidy-info.json command-line-manual.pdf $(BUILT_SOURCES)
+CLEANFILES = html2em *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1 em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c emblem-*.tar.* PKGBUILD .clang-tidy clang-tidy-info.json command-line-manual.pdf $(BUILT_SOURCES) src/ext/lib/std/*.lua

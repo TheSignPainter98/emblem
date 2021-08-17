@@ -9,6 +9,7 @@ typedef enum
 	EXT_ENV,
 	MT_NAMES_LIST,
 	PARSED_ARGS,
+	LOCATION,
 } LuaPointerType;
 
 extern const char* const lua_pointer_type_names[];

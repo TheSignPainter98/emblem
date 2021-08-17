@@ -3,7 +3,7 @@
 BEGIN {
 	if (!module_name)
 	{
-		print "fhdjskal" >"/dev/stderr"
+		print "Specify a module name!" >"/dev/stderr"
 		exit 1
 	}
 }
@@ -15,7 +15,7 @@ BEGIN {
 }
 
 END {
-	if (substr(str, 0, 1) == "{")
+	if (substr(str, 0, 1) == "{" || (str !~ /^--/ && str ~ /^[^ \t{}]*$/))
 		printf "package.preload['%s'] = -> %s\n", module_name, str
 	print str
 }

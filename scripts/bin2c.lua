@@ -59,7 +59,7 @@ io.write(boilerplate[=[
 	  if (%sluaL_loadfile(s, %q)%s == 0)
 		  %slua_pcall(s, 0, 0, 0);
 	*/
-	/* %s */
+	log_debug("Loading %s...");
 	static const unsigned char B1[]={
 		]=], dump(content), boilerplate[=[
 
@@ -67,7 +67,6 @@ io.write(boilerplate[=[
 
 	if (%sluaL_loadbuffer(s,(const char*)B1, sizeof(B1), %q)%s == 0)
 	{
-		log_debug("Executing lua buffer");
 		if (%slua_pcall(s, 0, 0, 0))
 		{
 			log_err("Running lua buffer failed with error %%s", lua_tostring(s, -1));
