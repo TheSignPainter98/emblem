@@ -35,7 +35,8 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 	if (!node)
 		return 0;
 	if (node->last_eval >= curr_iter)
-		return 0;
+		if (log_warn_at(node->src_loc, "Node being re-evaluated in same run"))
+			return 1;
 	node->last_eval = curr_iter;
 	switch (node->content->type)
 	{

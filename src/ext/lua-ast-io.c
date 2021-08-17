@@ -36,7 +36,7 @@ int ext_eval_tree(ExtensionState* s)
 
 	int erc = exec_lua_pass_on_node(s, node, env->iter_num);
 	if (erc)
-		lua_pushnil(s);
+		luaL_error(s, "Error while evaluating node");
 	else
 		pack_tree(s, node);
 	return 1;
