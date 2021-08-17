@@ -39,12 +39,9 @@ class Content extends Node
 	__concat: concat_ast_nodes
 
 class Call extends Node
-	new: (@name, args, ...) =>
+	new: (@name, @args, ...) =>
 		super CALL, ...
-		if is_list args
-			@args = args
-		else
-			@args = {args}
+		@args = {@args} if not is_list @args
 	__concat: concat_ast_nodes
 	__shl: (c, a) ->
 		if 'table' != type c or c.type != CALL
