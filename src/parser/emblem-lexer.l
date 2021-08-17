@@ -379,7 +379,7 @@ static void extract_citation_sugar(SimpleSugar* sugar, char* ytext, size_t yleng
 
 static void extract_label_sugar(SimpleSugar* sugar, char* ytext)
 {
-	make_simple_sugarvc(sugar, "label", 1 + ytext);
+	make_simple_sugarvc(sugar, "anchor", 1 + ytext);
 }
 
 static void extract_reference_sugar(SimpleSugar* sugar, char* ytext)
