@@ -43,7 +43,7 @@ class Call extends Node
 		super CALL, ...
 		@args = {@args} if not is_list @args
 	__concat: concat_ast_nodes
-	__shl: (c, a) ->
+	__mul: (c, a) ->
 		if 'table' != type c or c.type != CALL
 			error "Left operand to an argument-append must be a call, instead got #{show c}"
 		newargs = [ arg for arg in *c.args ]
