@@ -215,7 +215,7 @@ VARIABLE_ASSIGNMENT "<-"
 <BODY>{GROUP_OPEN}			{ yyextra->opening_emph = true; return T_GROUP_OPEN; }
 <BODY>{GROUP_CLOSE}			{ yyextra->opening_emph = false; return T_GROUP_CLOSE; }
 <BODY>{CITATION}			{ extract_citation_sugar(&yylval->simple_sugar, yytext, yyleng); return T_CITATION; }
-<BODY>{REFERENCE}|{HEADING}			{ extract_reference_sugar(&yylval->simple_sugar, yytext); return T_REFERENCE; }
+<BODY>{REFERENCE}			{ extract_reference_sugar(&yylval->simple_sugar, yytext); return T_REFERENCE; }
 <BODY>{LABEL}				{ extract_label_sugar(&yylval->simple_sugar, yytext); return T_LABEL; }
 <BODY>{WORD}				{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strr(yylval->str, sanitise_word(yylloc, yyextra->ifn, yytext, yyleng)); return T_WORD; }
 
