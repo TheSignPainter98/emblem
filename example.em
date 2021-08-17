@@ -95,7 +95,7 @@ Hello, the title is !title and this is fine.
 
 .echo-on-pass{2}{fdsa}: Hello
 
-.ifelse{$var}:
+.ifelse{!var}:
 	fhjdksalfds
 	hfjdklfds
 	hello, world!
