@@ -1,6 +1,7 @@
 #include "discern-pars.h"
 
 #include "logs/logs.h"
+#include <string.h>
 
 typedef enum
 {
@@ -12,6 +13,7 @@ typedef enum
 static void discern_pars_beneath_node(DocTreeNode* node);
 static void apply_par_node(ListNode* containingNode, DocTreeNode* node);
 static ParNodeRequirement requires_par_node(DocTreeNode* node);
+static bool has_non_null_content(DocTreeNode* node);
 
 void discern_pars(Doc* doc)
 {
@@ -106,9 +108,33 @@ static ParNodeRequirement requires_par_node(DocTreeNode* node)
 					return REQUIRES_PAR_NODE;
 				}
 				default:
-					return REQUIRES_PAR_NODE;
+					return has_non_null_content(node) ? REQUIRES_PAR_NODE : NO_PAR_NODE;
 			}
 		default:
 			return NO_PAR_NODE;
+	}
+}
+
+static bool has_non_null_content(DocTreeNode* node)
+{
+	if (!node)
+		return false;
+	switch (node->content->type)
+	{
+		case WORD:
+			return *node->content->word->str;
+		case CALL:
+			return has_non_null_content(node->content->call->result);
+		case CONTENT:
+			ListIter li;
+			make_list_iter(&li, node->content->content);
+			DocTreeNode* child;
+			while (iter_list((void**)&child, &li))
+				if (has_non_null_content(child))
+					return true;
+			return false;
+		default:
+			log_warn_at(node->src_loc, "Unknown content type %d", node->content->type);
+			return false;
 	}
 }
