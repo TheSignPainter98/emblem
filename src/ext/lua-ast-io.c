@@ -52,6 +52,10 @@ int pack_tree(ExtensionState* s, DocTreeNode* node)
 	lua_newtable(s);
 	lua_pushinteger(s, node->content->type);
 	lua_setfield(s, -2, "type");
+
+	lua_pushinteger(s, node->flags);
+	lua_setfield(s, -2, "flags");
+
 	switch (node->content->type)
 	{
 		case WORD:
@@ -202,6 +206,11 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 	int rc;
 	log_info("Unpacking table...");
 
+	// Get the flags
+	lua_getfield(s, -1, "flags");
+	int flags = IS_GENERATED_NODE | lua_tointeger(s, -1);
+	lua_pop(s, 1);
+
 	lua_getfield(s, -1, "type");
 	if (!lua_isinteger(s, -1))
 	{
@@ -220,12 +229,13 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			Str* wordstr = malloc(sizeof(Str));
 			make_strv(wordstr, word);
 			rc = unpack_single_value(result, wordstr, parentNode);
+			(*result)->flags = flags;
 			lua_pop(s, 1);
 			break;
 		case CONTENT:
 			*result = malloc(sizeof(DocTreeNode));
 			make_doc_tree_node_content(*result, dup_loc(parentNode->src_loc));
-			(*result)->flags |= IS_GENERATED_NODE;
+			(*result)->flags = flags;
 			// Iterate over the 'content' field list, unpacking at each level
 			lua_getfield(s, -1, "content");
 			lua_pushnil(s); /* first key */
@@ -244,7 +254,6 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			break;
 		case CALL:
 			*result = malloc(sizeof(DocTreeNode));
-			(*result)->flags |= IS_GENERATED_NODE;
 			CallIO* io = malloc(sizeof(CallIO));
 			make_call_io(io);
 
@@ -264,6 +273,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 				break;
 			}
 			make_doc_tree_node_call(*result, call_name, io, dup_loc(parentNode->src_loc));
+			(*result)->flags = flags;
 			dumpstack(s);
 			lua_len(s, -1);
 			int num_args = lua_tointeger(s, -1);
