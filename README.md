@@ -19,6 +19,7 @@ An elegant, extensible typesetter with a friendly interface and decent output.
 		* [Variables](#variables)
 		* [Functions](#functions)
 		* [Control flow](#control-flow)
+		* [Misc Standard directives](#misc-standard-directives)
 	* [Preprocessor Directives (‘Pragmas’)](#preprocessor-directives-pragmas)
 * [Styling Overview](#styling-overview)
 * [Extensions Overview](#extensions-overview)
@@ -26,9 +27,11 @@ An elegant, extensible typesetter with a friendly interface and decent output.
 		* [Emblem Public Table](#emblem-public-table)
 		* [Evaluation Order](#evaluation-order)
 		* [Useful Functions](#useful-functions)
+		* [Useful classes](#useful-classes)
 		* [Useful Values](#useful-values)
+		* [Useful Classes](#useful-classes-1)
 		* [Events](#events)
-		* [Useful Classes](#useful-classes)
+	* [Input Drivers](#input-drivers)
 	* [Output Drivers](#output-drivers)
 * [License and Author](#license-and-author)
 * [Contributions](#contributions)
@@ -284,7 +287,7 @@ These expand to calls to `.h1*` to `.h6*` respectively.
 ### Emblem Script
 
 Sometimes to can be convenient to affect the structure of the document in a small way without needing to write extension code.
-This can be achieved by using the scripting directives define in Emblem’s standard library, which create a small bash-like language.
+This can be achieved by using the scripting directives define in Emblem’s standard library, which create a small shell-like language.
 The scripting language contains a minimal set of directives to perform common programming language functionality.
 
 #### Variables
@@ -294,9 +297,6 @@ For example, `.set-var{x}{asdf}` will set variable `x` to the string `asdf`.
 
 The value of a variable can be retrieved with the `.get-var` function.
 After the above, `.get-var{x}` will now return `asdf`.
-
-If it is no longer required, a variable can be undefined by calling `.undef-var`.
-Any subsequent uses of the variable will return the empty string until it is redefined.
 
 #### Functions
 
@@ -330,6 +330,8 @@ The first input is evaluated as a condition and if it is true, then the second i
 The `.ifelse` directive is similar to `.if` except that it takes _three_ inputs.
 If the condition in the first input is evaluated to true the second input is returned, otherwise the third.
 
+The `.case` directive takes a number, _n_, and cases _cs_ (the rest of its inputs), and returns the _n_-th entry in _cs_ if it exists, otherwise the last.
+
 The `.while` directive represents an unbounded loop.
 It takes two inputs: a condition and a body.
 The `.while` loop evaluates the condition, and if it is true it evaluates the body.
@@ -341,6 +343,42 @@ It takes three inputs: the name of a variable, a sequence of values (such as a s
 The loop iterates once for each value in the sequence, assigning the named variable that value before evaluating the body.
 Like the `.while` loop, what is returned is the sequence of values which were returned when evaluating the body during iteration.
 If the iteration variable was already defined before the start of the loop, it retakes its previous value once the loop has ended.
+
+#### Misc Standard directives
+
+| Directive           | Description                                                                                                        |
+| ------------------- | ---                                                                                                                |
+| `.anchor`           | Set down a cross-reference anchor, subsequent references to this anchor will return the label value here.          |
+| `.bib`              | Output a bibliography here, optionally specify the source file of the references.                                  |
+| `.case`             | Control flow directive, see [above](#control-flow).                                                                |
+| `.cite`             | Place a citation marker down and have a corresponding entry appear in the bibliography.                            |
+| `.def`              | Define a custom directive.                                                                                         |
+| `.defined`          | Returns whether a given variable has been defined in the current scope.                                            |
+| `.echo`             | Write a string representation of its inputs `stdout`.                                                              |
+| `.echo-on`          | Same as `.echo`, but its first input is a number _n_, and output is only performed on the _n_-th typesetting pass. |
+| `.error`            | Output an error and quit.                                                                                          |
+| `.error-on`         | Same as `.error` but its first input is a number _n_, and output is only performed on the _n_-th typesetting pass  |
+| `.exists`           | Returns whether a directive would execute extension code.                                                          |
+| `.foreach`          | Control flow directive, see [above](#control-flow).                                                                |
+| `.get-var`          | Returns the value of a given variable in the current context.                                                      |
+| `.h1`               | Constructs a level 1 header.                                                                                       |
+| `.h2`               | Constructs a level 2 header.                                                                                       |
+| `.h3`               | Constructs a level 3 header.                                                                                       |
+| `.h4`               | Constructs a level 4 header.                                                                                       |
+| `.h5`               | Constructs a level 5 header.                                                                                       |
+| `.h6`               | Constructs a level 6 header.                                                                                       |
+| `.if`               | Control flow directive, see [above](#control-flow).                                                                |
+| `.ifelse`           | Control flow directive, see [above](#control-flow).                                                                |
+| `.include`          | Read and include a given file here. Can optionally specify a language to use, or rely on emblem’s detection of the file extension |
+| `.known_directives` | Output a list of known directives.                                                                                                                  |
+| `.ref`              | Takes a key and returns the label value where an anchor with the same the same key was set down.
+| `.set-var`          | Set a variable with a given string value in the current context.                                                                                                                  |
+| `.streq`            | Returns whether the text extracted from two inputs is the same.                                                                                                                    |
+| `.toc`              | Outputs a table of contents.                                                                                                                   |
+| `.undef`            | Undefines a directive.                                                                                                                   |
+| `.warn`             | Same as `.error` but outputs a warning instead.                                                                                                                   |
+| `.warn-on`          | Same as `.error-on` but outputs a warning instead.                                                                                                                   |
+| `.while`            | Control flow directive, see [above](#control-flow).                                                                |
 
 ### Preprocessor Directives (‘Pragmas’)
 
@@ -401,10 +439,11 @@ As these are imported before the user’s one, default styles can be overridden 
 ## Extensions Overview
 
 Emblem is hackable, that is, arbitrary functionality may be added by its users.
-This is done in one of two ways:
+This is done in one of three ways:
 
-1. In code executed as the document goes through its typesetting cycle (‘extensions’), or
-2. ~~In code executed to convert to a given output format (‘output drivers’).~~ _Not yet implemented_
+1. In code executed as the document goes through its typesetting cycle (‘extensions’)
+2. In code executed to convert a given input format to Emblem’s internal structures (‘input drivers’)
+3. ~~In code executed to convert to a given output format (‘output drivers’).~~ _Not yet fully implemented_
 
 ### Typesetting-time extensions
 
@@ -452,34 +491,110 @@ Here, although input `c` is never present in what is returned, by calling `eval_
 
 The following functions are defined in Emblem’s standard library and are likely useful to extension writers.
 
-| Package     | Function          | Description                                                                                                                                        |
-| ----------  | ---------         | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `std.base`  | `is_list`         | Takes a table and outputs true if it represents a list (its keys form a sequence of consecutive integers from 1 to the number of items stored)     |
-| `std.base`  | `show`            | Takes an value and generates a string which represents it and its contents                                                                         |
-| `std.base`  | `showp`           | Same as `std.base.show` but the string representation is slightly prettier                                                                         |
-| `std.base`  | `keys`            | Extracts the set of keys from a table                                                                                                              |
-| `std.base`  | `values`          | Extracts the set of values from a table                                                                                                            |
-| `std.base`  | `node_string`     | Takes a table which represents a node in the document structure and extracts all its words into a string                                           |
-| `std.base`  | `eval_string`     | Takes a reference to a node, evaluates it and calls `std.base.node_string` upon it                                                                 |
-| `std.base`  | `elem`            | Takes a value `v` and a list `vs` and returns whether `v` is in `vs`                                                                               |
-| `std.base`  | `mkcall`          | Takes a string `s` and returns a function which can be used to construct a document node which represents a call to a directive named `s`          |
-| `std.lingo` | `cond`            | Takes a node, evaluates it and returns ‘false’ if its string value is the empty string, `0` or `false` (case-insensitive), otherwise ‘true.’       |
-| `std.lingo` | `toint`           | Converts a value to either `1` or `0` depending on its truth                                                                                       |
-| `std.lingo` | `get_var`         | Takes a string and returns the value stored within that variable or `nil` if it has not been defined                                               |
-| `std.lingo` | `set_var`         | Takes two strings: the name of a variable and a value to assign to it                                                                              |
-| `std.lingo` | `undef_var`       | Removes the definition for a given variable                                                                                                        |
-| (global)    | `eval`            | Evaluates a node in the document tree and returns a table which represents the result, used force (early) evaluation                               |
-| (global)    | `requires_reiter` | Set a flag which marks the document as in need of another typesetting pass                                                                         |
+| Package         | Function          | Description                                                                                                                                                                                                        |
+| --------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `std.ast`       | `mkcall`          | Takes a name of a directive, returns a function which constructs a Call node with that name and the rest of its arguments                                                                                          |
+| `std.base`      | `copy_loc`        | Copy a location pointer into a table, allows storage of a location after it has been destroyed.                                                                                                                    |
+| `std.base`      | `em_loc`          | Return the location in the source which corresponds to the directive which is currently being evaluated.                                                                                                           |
+| `std.base`      | `eval_string`     | Evaluate a node tree and extract a                                                                                                                                                                                 |
+| `std.base`      | `eval`            | Evaluates a node in the document tree and returns a table which represents the result, used to force (early) evaluation                                                                                            |
+| `std.base`      | `get_var`         | Get the value of a given variable in the current context.                                                                                                                                                          |
+| `std.base`      | `include_file`    | Runs the core emblem file parser on a given location and returns the result                                                                                                                                        |
+| `std.base`      | `iter_num`        | Return the current iteration number.                                                                                                                                                                               |
+| `std.base`      | `node_string`     | Extract the text represented by a document tree (must have been evaluated)                                                                                                                                         |
+| `std.base`      | `requires_reiter` | Set a flag which marks the document as in-need of another typesetting pass                                                                                                                                         |
+| `std.base`      | `set_var_string`  | Set the value of a variable in the current scope, calling `eval_string` to obtain the value.                                                                                                                       |
+| `std.base`      | `set_var`         | Set the value of a variable in the current scope to a given value.                                                                                                                                                 |
+| `std.bib`       | `cite_styles`     | Table of known citation styles, values are functions which take a reference and outputs the text to go in a citation’s square brackets                                                                             |
+| `std.bib`       | `get_cite_style`  | Returns the name of the current citation style                                                                                                                                                                     |
+| `std.bib`       | `set_cite_style`  | Sets the current citation style                                                                                                                                                                                    |
+| `std.func`      | `co_to_list`      | Evaluates a coroutine’s yielded values to a list.                                                                                                                                                                  |
+| `std.func`      | `co_to_map`       | Evaluates a coroutine’s returned `{key,value}` pairs to a table.                                                                                                                                                   |
+| `std.func`      | `do_nothing`      | A function which does nothing.                                                                                                                                                                                     |
+| `std.func`      | `filter_list`     | Takes a predicate and a list, returns a list of inputted elements which satisfy the predicate.                                                                                                                     |
+| `std.func`      | `filter`          | Takes a predicate and a coroutine, yielding yielded values which satisfy the predicate.                                                                                                                            |
+| `std.func`      | `id`              | A function which returns its input.                                                                                                                                                                                |
+| `std.func`      | `int`             | A coroutine which yields integers in a non-repeating sequence.                                                                                                                                                     |
+| `std.func`      | `key_list`        | Returns a list of keys in a given table.                                                                                                                                                                           |
+| `std.func`      | `keys`            | Yields keys yielded by a given coroutine.                                                                                                                                                                          |
+| `std.func`      | `kv_pairs`        | Yields the key-value pairs of a table.                                                                                                                                                                             |
+| `std.func`      | `map`             | Takes a function and a coroutine, yields the value of the function applied to yielded elements of the coroutine.                                                                                                   |
+| `std.func`      | `nat`             | Yields the natural numbers in a non-repeating sequence.                                                                                                                                                            |
+| `std.func`      | `seq`             | Yields the integers in a sequence, takes input of `first`, `last` and `step` exactly as a Lua for-loop does (`for i=first,last,step do ... end`)                                                                   |
+| `std.func`      | `take`            | Takes a predicate and a coroutine, yields from the coroutine until the predicate no longer holds.                                                                                                                  |
+| `std.func`      | `value_list`      | Returns a list of values in a given table                                                                                                                                                                          |
+| `std.func`      | `whole`           | Yields the whole numbers in a non-repeating sequence                                                                                                                                                               |
+| `std.lingo`     | `cond`            | Evaluates its input, returns `false` if the input if `nil`, `false`, `‘’`, `0` or `‘false’` (case-insensitive), otherwise returns `true`                                                                           |
+| `std.lingo`     | `toint`           | Returns a concise representation of a condition.                                                                                                                                                                   |
+| `std.log`       | `log_debug_on`    | Take an input _n_ and call the rest of the inputs `...`, calls `std.log.log_debug(...)` only on typesetting iteration _n_.                                                                                         |
+| `std.log`       | `log_debug`       | Output a given debugging message if the output verbosity is great enough.                                                                                                                                          |
+| `std.log`       | `log_err_at_loc`  | Output a given error message at a specified location.                                                                                                                                                              |
+| `std.log`       | `log_err_at_on`   | Call `std.log.log_err_at_loc` but only on a specified typesetting iteration.
+| `std.log`       | `log_err_here`    | Output an error message which includes the location of the current directive being evaluated.                                                                                                                      |
+| `std.log`       | `log_err_on`      | Take an input _n_ and call the rest of the inputs `...`, calls `std.log.log_err(...)` only on typesetting iteration _n_.                                                                                           |
+| `std.log`       | `log_err`         | Output a given error message if the output verbosity is great enough. Then, unconditionally exit.                                                                                                                  |
+| `std.log`       | `log_info_on`     | Take an input _n_ and call the rest of the inputs `...`, calls `std.log.log_info(...)` only on typesetting iteration _n_.                                                                                          |
+| `std.log`       | `log_info`        | Output a given informational message if the output verbosity is great enough.                                                                                                                                      |
+| `std.log`       | `log_warn_at_loc` | Output a given warning message at a specified location.                                                                                                                                                            |
+| `std.log`       | `log_warn_at_on`  | Call `std.log.log_warn_at_loc` but only on a specified typesetting iteration.                                                                                                                                      |
+| `std.log`       | `log_warn_here`   | Output a warning message which includes the location of the current directive being evaluated.                                                                                                                     |
+| `std.log`       | `log_warn_on`     | Take an input _n_ and call the rest of the inputs `...`, calls `std.log.log_warn(...)` only on typesetting iteration _n_.                                                                                          |
+| `std.log`       | `log_warn`        | Output a given warning message if the output verbosity is great enough.                                                                                                                                            |
+| `std.ref`       | `get_label`       | Return the current label value.                                                                                                                                                                                    |
+| `std.ref`       | `set_label`       | Set the current label value (the value returned by a ref to an anchor which was set down after the current call to `get_label` but before the next one, or the end of the current scope).                          |
+| `std.util`      | `elem`            | Takes a value `v` and a list of values `vs`, returns true iff `v` is a value in `vs`.                                                                                                                              |
+| `std.util`      | `eq`              | Compare the equality of two values (recursively if necessary, respecting the `__eq` metamethod)                                                                                                                    |
+| `std.util`      | `extend`          | Takes input of two lists and returns their concatenation (pure)                                                                                                                                                    |
+| `std.util`      | `is_list`         | Returns whether a given value represents a list, that is, it is a table whose indices are all numeric and which range from one to the length of the table.                                                         |
+| `std.util`      | `non_nil`         | Returns whether its input is not `nil`.                                                                                                                                                                            |
+| `std.util`      | `on_iter_wrap`    | Takes a function `f` and returns a function which takes input of a value `n` and a list of arguments `...`, and only calls `f(...)` if the current iteration is equal to the number evaluated from `n`.
+| `std.util`      | `sorted`          | Sorts a list in-place and returns it.                                                                                                                                                                              |
+
+#### Useful classes
+
+The following classes are defined in Emblem’s standard library and are likely useful to extension writers.
+
+| Package         | Function          | Description                                                                                                                                                                                                        |
+| --------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `std.ast`       | `Call`            | Represents a document directive-call node.                                                                                                                                                                         |
+| `std.ast`       | `Content`         | Represents a document content node.                                                                                                                                                                                |
+| `std.ast`       | `Word`            | Represents a document word node                                                                                                                                                                                    |
+| `std.bib`       | `Bib`             | Constructs a bibliography object, optionally takes the name of the header to use.                                                                                                                                  |
+| `std.events`    | `Component`       | Represents an object which responds to the events: `on_start`, `on_iter_start`, `on_iter_end` and `on_end`.                                                                                                        |
+| `std.events`    | `Counter`         | Represents an integer which is incremented with each use and is reset at the start of each iteration, or when another counter which lists it as a sub-counter is incremented.                                      |
+| `std.events`    | `SyncBox`         | A container for a single value, requests a typesetting loop re-run if value at the end of the current iteration is different from that at the end of the previous. Can be passed an initial value, default `0`.    |
+| `std.events`    | `SyncContainer`   | A container for a compound value, requests a typesetting loop re-run if value at the end of the current iteration is different from that at the end of the previous. Can be passed an initial value, default `{}`. |
+| `std.events`    | `SyncList`        | A `SyncContainer` which represents a list.                                                                                                                                                                         |
+| `std.events`    | `SyncMap`         | A `SyncContainer` which represents a mapping.                                                                                                                                                                      |
+| `std.events`    | `SyncSet`         | A `SyncContainer` which represents a set.                                                                                                                                                                          |
+| `std.hdr`       | `Toc`             | Constructs a table of contents object                                                                                                                                                                              |
 
 #### Useful Values
 
 The following variables are created by Emblem’s core and are likely useful to extension writers.
 
-| Variable     | Description                                                                                                                                                                  |
-| --------     | -----------                                                                                                                                                                  |
-| `em`         | Emblem’s public table. Contains a mapping from directive names to functions, checked every time a directive is evaluated to determine whether any extension code must be run |
-| `em_iter`    | Holds the current typesetting loop iteration number, starting at 1                                                                                                           |
-| `node_types` | Table of node type-names and their associated emblem-core IDs                                                                                                                |
+| Package         | Variable                | Description                                                                                                                                                                                                        |
+| --------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `std.base`      | `em`                    | Emblem public table, a map of callables used when evaluating a directive. Checked every time a directive is evaluated to determine whether any extension code must be run.                                         |
+| `std.base`      | `vars`                  | List of contexts containing the values of variables.                                                                                                                                                               |
+| `std.constants` | `node_flags`            | Flags which may be bitwise-or’d together, and are accepted by the core.                                                                                                                                            |
+| `std.constants` | `node_types`            | IDs of the types of nodes recognised when the core unpacks table-representations of syntax trees. The classes in `std.ast` construct the such objects.                                                             |
+| `std.lingo`     | `known_languages`       | Map of languages to their respective interpreters for use with `.include` directives.                                                                                                                              |
+| `std.lingo`     | `known_file_extensions` | Map of file extensions to their respective languages for use with `.include` directives.                                                                                                                           |
+| `std.style`     | `stylers`               | A map of common styling functions such as italic and bold                                                                                                                                                          |
+
+#### Useful Classes
+
+The Emblem standard library is written in [Moonscript][moonscript], which compiles to [Lua][lua].
+The following concepts are easily described in terms of classes and objects.
+
+| Class           | Subclass of     | Description                                                                                                                                                                                            |
+| --------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Component`     | none            | Describes a part of the document which reacts to events, registers itself for updates                                                                                                                  |
+| `Counter`       | `Component`     | Represents a number which has its value reset at the start of each typesetting run. Can be incremented, can also automatically be reset in response to another counter being incremented               |
+| `SyncContainer` | `Component`     | Represents a container of arbitrary an arbitrary value which, if the value at the end of the current iteration is different to that at the end of the previous, requests another typesetting iteration |
+| `SyncList`      | `SyncContainer` | Represents a sync container which holds a list (items ordered, not necessarily unique)                                                                                                                 |
+| `SyncSet`       | `SyncContainer` | Represents a sync container which holds a set (items unordered, unique)                                                                                                                                |
 
 #### Events
 
@@ -498,18 +613,12 @@ A re-iteration can be requested by calling the `requires_reiter` function in [Lu
 This will cause the typesetting loop to be run again, unless the (user-configurable) number of maximum iterations has been reached.
 The number of the current iteration (starting from 1) is accessible through the `em_iter` variable.
 
-#### Useful Classes
+### Input Drivers
 
-The Emblem standard library is written in [Moonscript][moonscript], which compiles to [Lua][lua].
-The following concepts are easily described in terms of classes and objects.
-
-| Class           | Subclass of     | Description                                                                                                                                                                                            |
-| --------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Component`     | none            | Describes a part of the document which reacts to events, registers itself for updates                                                                                                                  |
-| `Counter`       | `Component`     | Represents a number which has its value reset at the start of each typesetting run. Can be incremented, can also automatically be reset in response to another counter being incremented               |
-| `SyncContainer` | `Component`     | Represents a container of arbitrary an arbitrary value which, if the value at the end of the current iteration is different to that at the end of the previous, requests another typesetting iteration |
-| `SyncList`      | `SyncContainer` | Represents a sync container which holds a list (items ordered, not necessarily unique)                                                                                                                 |
-| `SyncSet`       | `SyncContainer` | Represents a sync container which holds a set (items unordered, unique)                                                                                                                                |
+Emblem can take input of any format for which it has an input driver.
+When Emblem inputs a file through the `.include` directive, a language can optionally be specified in the second parameter to determine the parser to use.
+This language is used to look up the parser to use in the `std.lingo.known_languages` table.
+An input driver is simply a parser function which has been added into this table (possibly by some extension).
 
 ### Output Drivers
 
