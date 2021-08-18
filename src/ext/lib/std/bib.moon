@@ -45,7 +45,7 @@ class UnknownCitation
 	__tostring: => @ref
 
 class Bib extends SyncSet
-	new: =>
+	new: (@bib_name='Bibliography') =>
 		super!
 		@bib = {}
 		@unknown_citations = {}
@@ -96,7 +96,7 @@ class Bib extends SyncSet
 		itm\set_bib_idx i for i,itm in pairs included_bib
 
 		bib_table = Content [ (Word itm\cite!) .. itm.author .. (it itm.title) .. itm.year for itm in *included_bib ]
-		(Call 'h1*', 'Bibliography') .. bib_table
+		(Call 'h1*', @bib_name) .. bib_table
 
 bib = Bib!
 em.bib = (src) ->
