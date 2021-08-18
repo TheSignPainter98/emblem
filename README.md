@@ -284,6 +284,26 @@ If this is not desired, there are starred versions of the functions available.
 
 These expand to calls to `.h1*` to `.h6*` respectively.
 
+Syntactic sugar is also available for the cross-referencing and bibliography systems.
+
+```emblem
+An anchor can be set down with @name, and makes not of the current label value at this location
+This can then be referenced with #name.
+```
+
+Headers and other items may set the current label, allowing the user to mark the location of a cross-reference they want, safe in the knowledge that their cross-references handled for them.
+The call `@name` expands to `.anchor{name}` and `#name` responds to `.ref{name}`.
+
+Citations can be marked down in a similar manner, as text inside square brackets without any spaces.
+
+```emblem
+This is a sentence I’d like to atrribute to someone else by citing [that_someone]
+
+So their name will also appear later in the
+
+.bib
+```
+
 ### Emblem Script
 
 Sometimes to can be convenient to affect the structure of the document in a small way without needing to write extension code.
