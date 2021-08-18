@@ -22,7 +22,7 @@ concat_ast_nodes = (as, bs) ->
 	newlist = [ a for a in *as2 ]
 	insert newlist, b for b in *bs2
 	flags = nil
-	if as.type == bs.type and bs.type == CONTENT
+	if ('table' == type as) and ('table' == type bs) and as.type == bs.type and bs.type == CONTENT
 		flags = as.flags
 		if flags == nil
 			flags = bs.flags
