@@ -4,6 +4,7 @@ import concat, insert from table
 import Content from require 'std.ast'
 import em, eval, eval_string, get_var, include_file, set_var, set_var_string, vars from require 'std.base'
 import keys, key_list from require 'std.func'
+import log_err_here from require 'std.log'
 import on_iter_wrap, sorted from require 'std.util'
 
 em.known_directives = -> concat (sorted key_list em), ' '
@@ -74,14 +75,26 @@ em.exists = (f) ->
 known_languages =
 	em: include_file
 
-em.include = (f, language='em') ->
+known_file_extensions =
+	em: 'em'
+
+em.include = (f, language) ->
 	f = eval_string f
-	language = eval_string language
+	if f == nil or f == ''
+		log_err_here "Nil or empty file name given"
+	if language != nil
+		language = eval_string language
+	elseif extension = f\match '.*%.(.*)'
+		language = known_file_extensions[extension]
+		if language == nil
+			known_file_extensions_str = concat [ "- .#{k}" for k in keys known_file_extensions ], '\n\t'
+			log_err_here "Unknown file extension '.#{extension}', currently known file extensions: \n\t#{known_file_extensions_str}"
+	else
+		language = 'em'
 	if parser = known_languages[language]
 		return parser f
+
 	known_languages_str = concat [ "- #{k}" for k in keys known_languages ], '\n\t'
-	error "Unknown parsing language '#{language}', currently known languages:\n\t#{known_languages_str}\nPerhaps there's a typo or missing input driver import?"
-	nil
+	log_err_here "Unknown parsing language '#{language}', currently known languages:\n\t#{known_languages_str}\nPerhaps there's a typo or missing input driver import?"
 
-
-{:cond, :toint, :known_languages }
+{:cond, :toint, :known_languages, :known_file_extensions }
