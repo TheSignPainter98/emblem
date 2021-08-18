@@ -29,7 +29,6 @@ An elegant, extensible typesetter with a friendly interface and decent output.
 		* [Useful Functions](#useful-functions)
 		* [Useful classes](#useful-classes)
 		* [Useful Values](#useful-values)
-		* [Useful Classes](#useful-classes-1)
 		* [Events](#events)
 	* [Input Drivers](#input-drivers)
 	* [Output Drivers](#output-drivers)
@@ -567,27 +566,28 @@ The following functions are defined in Emblem’s standard library and are likel
 | `std.util`      | `extend`          | Takes input of two lists and returns their concatenation (pure)                                                                                                                                                    |
 | `std.util`      | `is_list`         | Returns whether a given value represents a list, that is, it is a table whose indices are all numeric and which range from one to the length of the table.                                                         |
 | `std.util`      | `non_nil`         | Returns whether its input is not `nil`.                                                                                                                                                                            |
-| `std.util`      | `on_iter_wrap`    | Takes a function `f` and returns a function which takes input of a value `n` and a list of arguments `...`, and only calls `f(...)` if the current iteration is equal to the number evaluated from `n`.
+| `std.util`      | `on_iter_wrap`    | Takes a function `f` and returns a function which takes input of a value `n` and a list of arguments `...`, and only calls `f(...)` if the current iteration is equal to the number evaluated from `n`.            |
 | `std.util`      | `sorted`          | Sorts a list in-place and returns it.                                                                                                                                                                              |
 
 #### Useful classes
 
-The following classes are defined in Emblem’s standard library and are likely useful to extension writers.
+The Emblem standard library is written in [Moonscript][moonscript], which compiles to [Lua][lua].
+The following concepts are easily described in terms of classes and objects.
 
-| Package         | Function          | Description                                                                                                                                                                                                        |
-| --------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `std.ast`       | `Call`            | Represents a document directive-call node.                                                                                                                                                                         |
-| `std.ast`       | `Content`         | Represents a document content node.                                                                                                                                                                                |
-| `std.ast`       | `Word`            | Represents a document word node                                                                                                                                                                                    |
-| `std.bib`       | `Bib`             | Constructs a bibliography object, optionally takes the name of the header to use.                                                                                                                                  |
-| `std.events`    | `Component`       | Represents an object which responds to the events: `on_start`, `on_iter_start`, `on_iter_end` and `on_end`.                                                                                                        |
-| `std.events`    | `Counter`         | Represents an integer which is incremented with each use and is reset at the start of each iteration, or when another counter which lists it as a sub-counter is incremented.                                      |
-| `std.events`    | `SyncBox`         | A container for a single value, requests a typesetting loop re-run if value at the end of the current iteration is different from that at the end of the previous. Can be passed an initial value, default `0`.    |
-| `std.events`    | `SyncContainer`   | A container for a compound value, requests a typesetting loop re-run if value at the end of the current iteration is different from that at the end of the previous. Can be passed an initial value, default `{}`. |
-| `std.events`    | `SyncList`        | A `SyncContainer` which represents a list.                                                                                                                                                                         |
-| `std.events`    | `SyncMap`         | A `SyncContainer` which represents a mapping.                                                                                                                                                                      |
-| `std.events`    | `SyncSet`         | A `SyncContainer` which represents a set.                                                                                                                                                                          |
-| `std.hdr`       | `Toc`             | Constructs a table of contents object                                                                                                                                                                              |
+| Package         | Function          | Subclass of | Description                                                                                                                                                                                                        |
+| --------------- | ----------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `std.ast`       | `Call`            | `Node`      | Represents a document directive-call node.                                                                                                                                                                         |
+| `std.ast`       | `Content`         | `Node`      | Represents a document content node.                                                                                                                                                                                |
+| `std.ast`       | `Word`            | `Node`      | Represents a document word node                                                                                                                                                                                    |
+| `std.bib`       | `Bib`             | `SyncSet`   | Constructs a bibliography object, optionally takes the name of the header to use.                                                                                                                                  |
+| `std.events`    | `Component`       | N/A         | Represents an object which responds to the events: `on_start`, `on_iter_start`, `on_iter_end` and `on_end`.                                                                                                        |
+| `std.events`    | `Counter`         | `Component` | Represents an integer which is incremented with each use and is reset at the start of each iteration, or when another counter which lists it as a sub-counter is incremented.                                      |
+| `std.events`    | `SyncBox`         | `Component` | A container for a single value, requests a typesetting loop re-run if value at the end of the current iteration is different from that at the end of the previous. Can be passed an initial value, default `0`.    |
+| `std.events`    | `SyncContainer`   | `Component` | A container for a compound value, requests a typesetting loop re-run if value at the end of the current iteration is different from that at the end of the previous. Can be passed an initial value, default `{}`. |
+| `std.events`    | `SyncList`        | `Component` | A `SyncContainer` which represents a list (ordered elements)                                                                                                                                                       |
+| `std.events`    | `SyncMap`         | `Component` | A `SyncContainer` which represents a mapping (indexable key-value pairs).                                                                                                                                          |
+| `std.events`    | `SyncSet`         | `Component` | A `SyncContainer` which represents a set (unique elements).                                                                                                                                                        |
+| `std.hdr`       | `Toc`             | `SyncList`  | Constructs a table of contents object                                                                                                                                                                              |
 
 #### Useful Values
 
@@ -602,19 +602,6 @@ The following variables are created by Emblem’s core and are likely useful to 
 | `std.lingo`     | `known_languages`       | Map of languages to their respective interpreters for use with `.include` directives.                                                                                                                              |
 | `std.lingo`     | `known_file_extensions` | Map of file extensions to their respective languages for use with `.include` directives.                                                                                                                           |
 | `std.style`     | `stylers`               | A map of common styling functions such as italic and bold                                                                                                                                                          |
-
-#### Useful Classes
-
-The Emblem standard library is written in [Moonscript][moonscript], which compiles to [Lua][lua].
-The following concepts are easily described in terms of classes and objects.
-
-| Class           | Subclass of     | Description                                                                                                                                                                                            |
-| --------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Component`     | none            | Describes a part of the document which reacts to events, registers itself for updates                                                                                                                  |
-| `Counter`       | `Component`     | Represents a number which has its value reset at the start of each typesetting run. Can be incremented, can also automatically be reset in response to another counter being incremented               |
-| `SyncContainer` | `Component`     | Represents a container of arbitrary an arbitrary value which, if the value at the end of the current iteration is different to that at the end of the previous, requests another typesetting iteration |
-| `SyncList`      | `SyncContainer` | Represents a sync container which holds a list (items ordered, not necessarily unique)                                                                                                                 |
-| `SyncSet`       | `SyncContainer` | Represents a sync container which holds a set (items unordered, unique)                                                                                                                                |
 
 #### Events
 
