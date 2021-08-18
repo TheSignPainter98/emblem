@@ -3,8 +3,10 @@ import lower, match from string
 import concat, insert from table
 import Content from require 'std.ast'
 import em, eval, eval_string, get_var, include_file, set_var, set_var_string, vars from require 'std.base'
-import keys from require 'std.func'
-import on_iter_wrap from require 'std.util'
+import keys, key_list from require 'std.func'
+import on_iter_wrap, sorted from require 'std.util'
+
+em.known_directives = -> concat (sorted key_list em), ' '
 
 em.def = (n, f) -> em[eval_string n] = f
 em.undef = (n) -> em[eval_string n] = nil
