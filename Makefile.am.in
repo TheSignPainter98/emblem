@@ -1,5 +1,7 @@
 #!/usr/bin/automake
 
+SHELL = bash
+
 .DEFAULT_GOAL = all-am
 
 MKDIR_P = mkdir -m 755 -p
@@ -64,18 +66,14 @@ src/ext/lib/std/constants.moon: scripts/lua-constants src/ext-constants.yml
 
 LEX = flex
 
-define moon2c
-	(awk -f scripts/moon-module-make.awk -v module_name="$(shell scripts/module_name $<)" | moonc -- | luac -o - - | ./scripts/bin2c.lua /dev/stdin $(shell scripts/module_name $<)) < $< > $@
-endef
-
 src/ext/lua-lib-load.c: scripts/lua-lib-load.c.sh S_EXTENSION_LIB_SRC_FILES
 	. $< > $@
 
 src/ext/lua-constants.c: scripts/lua-constants src/ext-constants.yml
 	./$< -c > $@
 
-%.lc: %.moon scripts/bin2c.lua scripts/module_name
-	$(moon2c)
+%.lc: %.moon scripts/moon2c scripts/bin2c.lua scripts/module_name
+	./scripts/moon2c $< $@
 
 src/argp.h: src/argp.c
 src/argp.h src/argp.c: em.yml ./scripts/arggen
@@ -161,4 +159,4 @@ format-check:
 
 dist_pkgdata_DATA = S_DIST_DATA
 EXTRA_DIST = ./em.yml ./src/pp/ignore_warning.h.m4 S_EXTRA_DIST
-CLEANFILES = html2em *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1 em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c emblem-*.tar.* PKGBUILD .clang-tidy clang-tidy-info.json command-line-manual.pdf $(BUILT_SOURCES) src/ext/lib/std/*.lua
+CLEANFILES = html2em *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1 em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c emblem-*.tar.* PKGBUILD .clang-tidy clang-tidy-info.json command-line-manual.pdf $(BUILT_SOURCES) src/ext/lib/std/*.loc src/ext/lib/std/*.lua src/ext/lib/std/*__mod.moon

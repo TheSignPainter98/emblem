@@ -1,6 +1,6 @@
 #!/bin/bash
 
-libs=($(find src/ext/lib/ -type f -name '*.moon' | xargs ./scripts/moon-po-lin | sed 's/.moon$/.lc/'))
+libs=($(find src/ext/lib/ -type f -name '*.moon' | grep -v '__mod' | xargs ./scripts/moon-po-lin | sed 's/.moon$/.lc/'))
 extension_lib_loaders=$(for f in ${libs[@]}; do echo "#include \"${f#src/ext/}\""; done)
 
 cat << EOF
