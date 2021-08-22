@@ -21,8 +21,8 @@ deps:
     # func_check: _NSConcreteGlobalBlock
     # minver: UNKNOWN
 description: A minimalist, format-agnostic typesetter
-version: 0.0.1
-date: 05 Jun 2020
+version: S_PKGVER
+date: S_PKGDATE
 bugs: Please file any bugs or issues at <github.com/TheSignPainter98/emblem/issues>
 bug_report_address: https://github.com/TheSignPainter98/emblem/issues
 seeAlso:

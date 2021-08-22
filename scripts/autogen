@@ -22,8 +22,16 @@ rm -rf $(grep -v '^$' .gitignore | grep -v '^#')
 
 [[ "$c" -eq "0" ]] || exit 0
 
+pkg_version=$(git describe --tags --abbrev=0 | sed 's/^v//')
+pkg_date=$(date '+%d %b %Y')
+
+m4 -PE - em.yml.in > em.yml << EOF
+m4_changequote([, ])m4_dnl
+m4_define(S_PKGVER, $pkg_version)m4_dnl
+m4_define(S_PKGDATE, $pkg_date)m4_dnl
+EOF
+
 pkg_name=$(yq -y .name em.yml | head -n 1)
-pkg_version=$(yq -y .version em.yml | head -n 1)
 pkg_bug_report_address=$(yq -y .bug_report_address em.yml | head -n 1)
 
 # Generate the new autotools files

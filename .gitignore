@@ -138,6 +138,7 @@ vgcore.*
 src/ext/lua-lib-loaders.c
 
 # Generated files
+em.yml
 *.1
 emdoc.*
 .clang-tidy
