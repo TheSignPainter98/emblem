@@ -388,7 +388,8 @@ If the iteration variable was already defined before the start of the loop, it r
 | `.h6`               | Constructs a level 6 header.                                                                                       |
 | `.if`               | Control flow directive, see [above](#control-flow).                                                                |
 | `.ifelse`           | Control flow directive, see [above](#control-flow).                                                                |
-| `.include`          | Read and include a given file here. Can optionally specify a language to use, or rely on emblem’s detection of the file extension |
+| `.include`          | Read and include a given file here. Can optionally specify a language to use, or rely on emblem’s detection of the file extension. Caches result by file-name to avoid re-running parsers. |
+| `.include*`         | Read and include a given file here. Can optionally specify a language to use, or rely on emblem’s detection of the file extension. Always runs the relevant parser. |
 | `.known_directives` | Output a list of known directives.                                                                                                                  |
 | `.ref`              | Takes a key and returns the label value where an anchor with the same the same key was set down.
 | `.set-var`          | Set a variable with a given string value in the current context.                                                                                                                  |

@@ -78,7 +78,7 @@ known_languages =
 known_file_extensions =
 	em: 'em'
 
-em.include = (f, language) ->
+parse_file = (f, language) ->
 	f = eval_string f
 	if f == nil or f == ''
 		log_err_here "Nil or empty file name given"
@@ -96,5 +96,15 @@ em.include = (f, language) ->
 
 	known_languages_str = concat [ "- #{k}" for k in keys known_languages ], '\n\t'
 	log_err_here "Unknown parsing language '#{language}', currently known languages:\n\t#{known_languages_str}\nPerhaps there's a typo or missing input driver import?"
+
+parse_results = {}
+em.include = (f, ...) ->
+	f = eval_string f
+	local ret
+	unless ret = parse_results[f]
+		ret = parse_file f, ...
+		parse_results[f] = ret
+	ret
+em['include*'] = parse_file
 
 {:cond, :toint, :known_languages, :known_file_extensions }
