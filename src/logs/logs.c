@@ -134,7 +134,10 @@ int log_warn_at(Location* loc, const char* restrict format, ...)
 int vlog_warn_at(Location* loc, const char* restrict format, va_list va)
 {
 	PREPEND_LOC_TO_FORMAT(locstr, loc);
-	log_x(VERBOSITY_WARN, locstr, format, va);
+	if (fatal_warnings)
+		log_x(VERBOSITY_ERR, locstr, format, va);
+	else
+		log_x(VERBOSITY_WARN, locstr, format, va);
 	return fatal_warnings;
 }
 
