@@ -10,8 +10,37 @@ base = { :eval, :include_file, :requires_reiter, :_log_err, :_log_err_at, :_log_
 for k,v in pairs constants
 	base[k] = v
 
+base.wrap_index = =>
+	mt = getmetatable @
+
+	-- Handle __index
+	old_index = mt.__index
+	new_index = mt.__get
+	call_index = (idx, cls, k) ->
+		if 'function' == type idx
+			idx cls, k
+		else
+			idx[k]
+	if new_index
+		mt.__index = (k) =>
+			if ret = call_index new_index, @, k
+				ret
+			else
+				call_index old_index, @, k
+
+	-- Handle __newindex
+	mt.__newindex = mt.__set if mt.__set
+
 class PublicTable
+	new: => base.wrap_index @
 	__tostring: show
+	sanitise_key: (k) -> k\gsub '_', '-'
+	__get: (k) =>
+		k = (rawget (getmetatable @), 'sanitise_key') k
+		rawget @, k
+	__newindex: (k, v) =>
+		k = (rawget (getmetatable @), 'sanitise_key') k
+		rawset @, k, v
 export em = PublicTable!
 base.em = em
 
