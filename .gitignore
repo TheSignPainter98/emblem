@@ -149,6 +149,7 @@ lua-constants.c
 *.lua
 *__mod.moon
 *.loc
+.em-store.yml
 
 # Output files
 *.css
