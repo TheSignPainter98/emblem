@@ -68,12 +68,12 @@ For example, the output could be changed to bbcode:
 em example -Tbb
 ```
 
-Emblem also supports extensions which can be added to the document-environment by the `-f[ext]` option.
+Emblem also supports extensions which can be added to the document-environment by the `-x[ext]` option.
 Extensions can also be passed text values using the `-a[ext].[param]=[val]` option.
 For example, `example.em` could be compiled into bbcode using the `asdf` extension with its argument `fdsa` being set to `qwer`:
 
 ```bash
-em example -Tbb -fasdf -aasdf.fdsa=qwer
+em example -Tbb -xasdf -aasdf.fdsa=qwer
 ```
 
 The order of options passed is not significant, except in the case that the same parameter to the same extension is set multiple times, in which case the rightmost value is taken.
@@ -481,7 +481,7 @@ em.cpu_time_used = function()
 end
 ```
 
-If this code is written in a file called `cpu-time.lua`, it can be imported by adding the flag `-fcpu-time` when `em` is run (note the file extension is optional).
+If this code is written in a file called `cpu-time.lua`, it can be imported by adding the flag `-xcpu-time` when `em` is run (note the file extension is optional).
 Now, when the directive `.cpu_time_used` is seen in the document, the above code will be executed, it will be replaced with the message.
 
 #### Evaluation Order
