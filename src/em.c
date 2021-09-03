@@ -6,6 +6,7 @@
 #include "data/locked.h"
 #include "data/maybe.h"
 #include "doc-struct/ast.h"
+#include "drivers/drivers.h"
 #include "ext/ext-env.h"
 #include "ext/ext-params.h"
 #include "logs/logs.h"
@@ -46,7 +47,7 @@ int main(int argc, char** argv)
 
 	// Get the output driver
 	OutputDriver driver;
-	rc = get_output_driver(&driver, &args);
+	rc = get_output_driver(&driver, &args, &ext);
 	if (rc)
 		return rc;
 
@@ -60,19 +61,17 @@ int main(int argc, char** argv)
 	DocTreeNode* root = maybe_ast_root.just;
 	Doc doc;
 	make_doc(&doc, root, &styler, &ext);
-	rc		 = typeset_doc(&doc, &args, driver.inf);
+	rc = typeset_doc(&doc, &args, driver.support);
 	if (rc)
 		return rc;
 
 	log_info("Executing output driver");
-	DriverParams driver_params;
-	make_driver_params(&driver_params, &args);
-	rc = driver.run(&doc, &driver_params);
+	log_err("Executing output driver");
+	rc = run_output_driver(&driver, &doc, &ext);
 	if (rc)
 		return rc;
 
 	log_debug("Cleaning up execution");
-	dest_driver_params(&driver_params);
 	dest_doc(&doc);
 	dest_ext_env(&ext);
 	dest_output_driver(&driver);

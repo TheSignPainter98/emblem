@@ -2,11 +2,8 @@
 
 #include "argp.h"
 #include "driver-params.h"
+#include "ext/ext-env.h"
 
-typedef int (*DriverInfGetter)(OutputDriverInf* inf);
-
-int get_output_driver(OutputDriver* driver, Args* args);
+int get_output_driver(OutputDriver* driver, Args* args, ExtensionEnv* ext);
 void dest_output_driver(OutputDriver* driver);
-
-void make_driver_params(DriverParams* params, Args* args);
-void dest_driver_params(DriverParams* params);
+int run_output_driver(OutputDriver* driver, Doc* doc, ExtensionEnv* ext);

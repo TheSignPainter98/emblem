@@ -156,3 +156,5 @@ libtool
 *.css
 *.html
 *.bb
+*.tex
+*.md

@@ -15,3 +15,13 @@ node_types:
       - WORD
       - CALL
       - CONTENT
+driver_capabilities:
+  drivers/driver-params.h:
+    integer:
+      - TS_NONE
+      - TS_BASIC_STYLING
+      - TS_COLOUR
+      - TS_IMAGE
+      - TS_TEXT_SIZE
+      - TS_PLACEMENT
+      - TS_SVG

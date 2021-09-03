@@ -2,50 +2,35 @@
 
 #include "data/str.h"
 #include "doc-struct/ast.h"
+#include "ext/ext-env.h"
 #include <stdbool.h>
 
-typedef struct
-{
-	Str* output_stem;
-} DriverParams;
+struct OutputDriver_s;
 
-typedef int (*DriverRunner)(Doc* doc, DriverParams* params);
-
-struct OutputDriverInf_s;
-
-typedef enum
-{
-	INTERNAL,
-	EXTERNAL,
-} DriverType;
-
-typedef struct
-{
-	DriverType type;
-	struct OutputDriverInf_s* inf;
-	void* lib_handle;
-	Str* driver_name;
-	Str* driver_lib_name;
-	DriverRunner run;
-} OutputDriver;
+typedef int (*DriverRunner)(struct OutputDriver_s* driver, Doc* doc, ExtensionEnv* ext, Str* time_str);
 
 typedef int TypesettingSupport;
-extern const TypesettingSupport TS_NONE;
-extern const TypesettingSupport TS_BASIC_STYLING;
-extern const TypesettingSupport TS_COLOUR;
-extern const TypesettingSupport TS_IMAGE;
-extern const TypesettingSupport TS_TEXT_SIZE;
-extern const TypesettingSupport TS_PLACEMENT;
-extern const TypesettingSupport TS_SVG;
+#define TS_NONE			 (1 << 0)
+#define TS_BASIC_STYLING (1 << 1)
+#define TS_COLOUR		 (1 << 2)
+#define TS_IMAGE		 (1 << 3)
+#define TS_TEXT_SIZE	 (1 << 4)
+#define TS_PLACEMENT	 (1 << 5)
+#define TS_SVG			 (1 << 6)
 
-typedef struct OutputDriverInf_s
+typedef struct OutputDriver_s
 {
 	TypesettingSupport support;
-} OutputDriverInf;
+	bool use_stdout;
+	Str* output_stem;
+	bool requires_stylesheet;
+	DriverRunner run;
+} OutputDriver;
 
 typedef struct
 {
 	char* name;
-	OutputDriverInf* inf;
+	TypesettingSupport support;
+	bool requires_stylesheet;
 	DriverRunner run;
 } InternalDriver;
