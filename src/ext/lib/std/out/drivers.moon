@@ -1,4 +1,5 @@
 import driver_capabilities, node_types from require 'std.constants'
+import unknown_x_msg from require 'std.edit'
 import key_list from require 'std.func'
 import em, SanitisedKeyTable from require 'std.base'
 import log_err, log_warn from require 'std.log'
@@ -98,6 +99,6 @@ set_output_driver = (dname) ->
 	if curr_output_driver != nil
 		log_err "The output driver cannot be set more than once"
 	unless curr_output_driver = output_drivers[dname]
-		log_err "Unknown output driver '#{dname}', known drivers:" .. concat [ "\n\t#{d}" for d in *sorted key_list output_drivers ]
+		log_err unknown_x_msg 'output driver', dname, key_list output_drivers
 
 { :get_output_driver, :set_output_driver, :ContextFreeOutputDriver, :TextualMarkupOutputDriver, :output_drivers }

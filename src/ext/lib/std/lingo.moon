@@ -3,6 +3,7 @@ import lower, match from string
 import concat, insert from table
 import Content from require 'std.ast'
 import em, eval, eval_string, get_var, include_file, set_var, set_var_string, vars from require 'std.base'
+import unknown_x_msg from require 'std.edit'
 import keys, key_list from require 'std.func'
 import log_err_here from require 'std.log'
 import on_iter_wrap, sorted from require 'std.util'
@@ -87,15 +88,13 @@ parse_file = (f, language) ->
 	elseif extension = f\match '.*%.(.*)'
 		language = known_file_extensions[extension]
 		if language == nil
-			known_file_extensions_str = concat [ "- .#{k}" for k in keys known_file_extensions ], '\n\t'
-			log_err_here "Unknown file extension '.#{extension}', currently known file extensions: \n\t#{known_file_extensions_str}"
+			log_err_here unknown_x_msg 'file extension', extension, key_list known_file_extensions
 	else
 		language = 'em'
 	if parser = known_languages[language]
 		return parser f
 
-	known_languages_str = concat [ "- #{k}" for k in keys known_languages ], '\n\t'
-	log_err_here "Unknown parsing language '#{language}', currently known languages:\n\t#{known_languages_str}\nPerhaps there's a typo or missing input driver import?"
+	log_err_here unknown_x_msg 'parsing language', language, key_list known_languages
 
 parse_results = {}
 em.include = (f, ...) ->
