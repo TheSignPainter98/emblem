@@ -18,7 +18,7 @@ deploy:
     edge: true
     cleanup: false
     github-token: $GITHUB_TOKEN
-    local-dir: docs/book # In case of custom book path: path/to/mybook/book
+    local-dir: docs/book
     keep-history: false
     # on:
       # branch: master
