@@ -1,6 +1,34 @@
+sudo: required
 language: rust
 os: linux
-dist: trusty
+services:
+  - docker
+archlinux:
+  # repos:
+  # - papyros=http://dash.papyros.io/repos/$repo/$arch
+  packages:
+    # - papyros-shell
+    - criterion
+    - gcc
+    - glibc
+    - libcss
+    - libsass
+    - lua
+    - lua-argparse
+    - lua-htmlparser
+    - lua-lyaml
+    - moonscript
+    - ncurses
+    - python
+    - rust
+    - yq
+  mount:
+    - ~/.pkg-cache:/var/cache/pacman/pkg
+  # before_install:
+    # - "sudo ln -s /dev/null /etc/pacman.d/hooks/package-cleanup.hook"
+  script:
+    - make doc
+    - mdbook build && mdbook test
 cache:
   - cargo
 rust:
@@ -9,16 +37,10 @@ before_script:
   - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
   - (test -x $HOME/.cargo/bin/mdbook || cargo install --vers "^0.3" mdbook)
   - cargo install-update -a
-  - pip3 install yq
-  - 'export PATH=$PATH:~/.local/bin'
-  - luarocks install moonscript
 script:
-  - ls
-  - pwd
-  - make doc
-  - mdbook build && mdbook test
+  - "curl -s https://raw.githubusercontent.com/mikkeloscar/arch-travis/master/arch-travis.sh | bash"
 deploy:
-  - provider: pages # Generate documentation
+  - provider: pages # Deploy documentation
     strategy: git
     edge: true
     cleanup: false
