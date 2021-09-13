@@ -49,6 +49,7 @@ args:
     help: Display version and license information and exit
   - dest: input_file
     metaDest: file
+    type: char*
     doc: Input file
     default: '-'
     help: File to typeset or `-` to read from stdin.

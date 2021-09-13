@@ -20,7 +20,7 @@ EXT_LINTER_FLAGS = -l
 ROFF = groff
 ROFF_FLAGS = -man -fN -Tpdf
 
-SUFFIXES = .moon .lc .Po
+SUFFIXES = .moon .lc .Po .c.md .h.md .moon.md .em.md
 
 # libtool flags
 ACLOCAL_AMFLAGS = -I m4
@@ -116,12 +116,12 @@ check_em_LDADD = $(LDADD_ALL) S_CHECK_DEPS_LIBS
 check_em_LFLAGS = $(LFLAGS_ALL)
 check_em_YFLAGS = $(YFLAGS_ALL)
 
-doc: docs/html/index.html
+doc: docs/book/index.html
 .PHONY: doc
 
-doc-coverage: scripts/doxcov docs/html/index.html
-	./scripts/doxcov
-.PHONY: doc-coverage
+.doc-serve: doc
+	mdbook serve docs/
+.PHONY: doc-serve
 
 define lint
 	@$(LINTER) $(LINTER_FLAGS) $(filter %.c,$^) -- $(LINTER_COMPILE_FLAGS) 2>&1 $(LINTER_OUTPUT_FILTER)
@@ -142,8 +142,15 @@ clang-tidy-info.json: ./scripts/clang-tidy-info.sh ./scripts/linting-line-filter
 .clang-tidy: ./scripts/clang-tidy.sh .clang-tidy.in
 	. $<
 
-docs/html/index.html: scripts/docgen $(em_SOURCES)
-	./scripts/docgen
+docs/book/index.html: scripts/docs/code-to-md-doc scripts/docs/docgen S_DOC_SOURCES
+	./$< $(filter %.c %.h %.moon,$^) -o docs/src/generated
+	mdbook build docs/
+
+docs/src/generated/command-line-args.md: scripts/docs/cli-api-gen
+	./$< >$@
+
+docs/src/SUMMARY.md: scripts/docs/SUMMARY docs/src/SUMMARY.md.in
+	./$<
 
 ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./scripts/docgen:;
 

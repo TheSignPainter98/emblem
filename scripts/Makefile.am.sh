@@ -38,6 +38,20 @@ extra_dist=(${scripts[@]} ${extension_lib_srcs[@]})
 source_dependency_files=($(for s in ${srcs[@]}; do [[ "${s##*.}" =~ ^[cly]$ ]] && pofile $s; done))
 extra_dist=(${scripts[@]} ${extension_lib_srcs[@]} ${source_dependency_files[@]})
 
+# function src_docs()
+# {
+	# for f in ${srcs[@]}; do
+		# case $f in
+			# *.c | *.h)
+				# echo docs/src/generated/${f#./}.md
+				# ;;
+		# esac
+	# done
+# }
+# src_docs=($(src_docs))
+# extension_docs=()
+doc_sources=(docs/src/SUMMARY.md docs/src/generated/command-line-args.md ${srcs[@]} ${extension_lib_srcs[@]})
+
 m4 -PE - Makefile.am.in > Makefile.am << EOF
 m4_define(S_SRC_FILES, ${srcs[@]})m4_dnl
 m4_define(S_EXTENSION_LIB_SRC_FILES, ${extension_lib_built_srcs[@]})m4_dnl
@@ -51,4 +65,5 @@ m4_define(S_DIST_DATA, ${dist_data[@]})m4_dnl
 m4_define(S_FORMATTABLE_SRCS, ${formattable_srcs[@]})m4_dnl
 m4_define(S_LINTABLE_SRCS, ${lintable_srcs[@]})m4_dnl
 m4_define(S_EXTRA_DIST, ${extra_dist[@]})m4_dnl
+m4_define(S_DOC_SOURCES, ${doc_sources[@]})m4_dnl
 EOF

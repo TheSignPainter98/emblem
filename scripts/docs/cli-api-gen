@@ -1,0 +1,90 @@
+#!/usr/bin/moon
+
+import open, stderr from io
+import load from require 'lyaml'
+import exit from os
+import lower, upper from string
+import sort from table
+
+SPEC_FILE = 'em.yml'
+
+local spec
+f = open SPEC_FILE, 'r'
+if not f
+	stderr\write "File #{SPEC_FILE} does not exist"
+	exit 1
+with f
+	spec = load \read '*all'
+	\close!
+
+print "# Command-line API"
+print ""
+print spec.longDescription
+
+print "## Examples"
+print ""
+print "```bash"
+for example in *spec.examples
+	print example.input
+print "```"
+print ""
+
+arg_title = (arg) ->
+	if arg.short and arg.long
+		meta_dest_str = ''
+		if arg.metaDest
+			meta_dest_str = " #{arg.metaDest}"
+		"`#{arg.short}#{meta_dest_str}`, `#{arg.long}#{meta_dest_str}`"
+	else
+		"`#{arg.metaDest}`"
+
+for arg in *spec.args
+	arg.title = arg_title arg
+
+sanitised_arg_type = (arg) ->
+	if arg.type == 'char*'
+		return 'string'
+	arg.type
+
+sanitised_arg_default = (arg) ->
+	return "'#{arg.default}'" if 'string' == type arg.default
+	arg.default
+
+sanitised_arg_help = (arg) ->
+	content = arg.help
+	first = arg.help\sub 1, 1
+	content = (upper first) .. content\sub 2 if 'a' <= first and first <= 'z'
+	return content .. '.' unless arg.help\match '[.!?][*_]?$'
+	content
+
+print_arg_doc = (arg) ->
+	print "### #{arg.title}"
+	print ""
+	print sanitised_arg_help arg
+	print ""
+	print "- **type**: #{sanitised_arg_type arg}"
+	print "- **default**: #{sanitised_arg_default arg}" if arg.default
+	print ""
+
+mandatory_args = [ arg for arg in *spec.args when not arg.short ]
+optional_args = [ arg for arg in *spec.args when arg.short ]
+
+arg_sort = (args) ->
+	sort args, (a, b) -> (lower a.title) < lower b.title
+	args
+
+print "## Positional arguments"
+print ""
+print "The following arguments are written anywhere in the call to `em` (after the program name itself)."
+print ""
+arg_sort mandatory_args
+for arg in *mandatory_args
+	print_arg_doc arg
+
+arg_sort optional_args
+print "## Optional arguments"
+print ""
+print "The following are used to modify the behaviour of Emblem, to suit a user's preferences."
+print ""
+for arg in *optional_args
+	print_arg_doc arg
