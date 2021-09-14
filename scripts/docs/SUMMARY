@@ -1,0 +1,71 @@
+#!/bin/bash
+
+function doc-links()
+{
+	local -n args=$1
+	min=${2:-0}
+	prev_mod=''
+	for f in ${args[@]}; do
+		case $f in
+			*.moon)
+				fname=$(echo $f | ./scripts/module_name)
+				;;
+			*)
+				fname=${f##*/}
+				;;
+		esac
+		link="generated/${f#src/}.md"
+		case $f in
+			src/ext/lib/*)
+				san_file=${f#src/ext/lib/}
+				;;
+			*)
+				san_file=${f#src/}
+				;;
+		esac
+		mod=$(echo $san_file | grep -o '.*/')
+		reps=$(($min - 1 + $(echo "$mod" | sed 's/[^\/]//g' | wc -m)))
+		mod=${mod%/}
+		if [[ $mod != '' ]] && [[ $mod != 'std' ]] && [[ $mod != $prev_mod ]]; then
+			mod_indents=$(rep '\t' $(($reps - 1)))
+			mod_name=$(echo $mod | tr / .)
+			case $f in
+				*/lib/*) mod_type=moon ;;
+				*.c) mod_type=c ;;
+				*.h) mod_type=h ;;
+			esac
+			mod_link="modules/$mod_type/$mod_name.md"
+			echo -e "$mod_indents- [\`$mod_name/\`]($mod_link)"
+		fi
+		indents=$(rep '\t' $reps)
+		echo -e "$indents- [\`$fname\`]($link)"
+		prev_mod=$mod
+	done
+}
+
+function rep()
+{
+	for _ in $(seq 1 $2); do
+		echo -n $1
+	done
+	echo
+}
+
+C_INTERNAL_API=($(find src/ -name '*.c' | sed 's/^src\///' | sort))
+C_EXTERNAL_API=($(find src/ -name '*.h' | sed 's/^src\///' | sort))
+# DIRECTIVE_API=()
+MOONSCRIPT_API=($(find src/ext/lib/ -name '*.moon' ! -name '*__mod.moon' | sort))
+
+C_API_INTERNAL_DOC_LINKS=$(doc-links C_INTERNAL_API 3)
+C_API_EXTERNAL_DOC_LINKS=$(doc-links C_EXTERNAL_API 3)
+# DIRECTIVE_API_DOC_LINKS=$(doc-links DIRECTIVE_API 1)
+MOONSCRIPT_EXTENSION_API_DOC_LINKS=$(doc-links MOONSCRIPT_API 1)
+
+# m4 -PE - docs/src/SUMMARY.md.in << EOF
+m4 -PE - docs/src/SUMMARY.md.in > docs/src/SUMMARY.md << EOF
+m4_changequote({,})m4_dnl
+m4_define(_C_API_INTERNAL_DOC_LINKS_, {$C_API_INTERNAL_DOC_LINKS})m4_dnl
+m4_define(_C_API_EXTERNAL_DOC_LINKS_, {$C_API_EXTERNAL_DOC_LINKS})m4_dnl
+m4_dnl m4_define(_DIRECTIVE_API_DOC_LINKS_, {$DIRECTIVE_API_DOC_LINKS})m4_dnl
+m4_define(_MOONSCRIPT_EXTENSION_API_DOC_LINKS_, {$MOONSCRIPT_EXTENSION_API_DOC_LINKS})m4_dnl
+EOF

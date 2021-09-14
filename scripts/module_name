@@ -2,8 +2,16 @@
 
 set -e
 
-(echo $1 \
-| sed 's/src\/ext\/lib\///' \
-| sed 's/.moon$//' \
-| sed 's/\//./'
-) < /dev/stdin
+function module-name()
+{
+	( sed 's/src\/ext\/lib\///' \
+	| sed 's/.moon$//' \
+	| sed 's/\//./g'
+	) < /dev/stdin
+}
+
+if [[ $# -ge 1 ]]; then
+	echo $@ | module-name
+else
+	module-name
+fi
