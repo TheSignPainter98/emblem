@@ -90,7 +90,7 @@ doc_types = {}
 doc_type_names = {}
 class Doc
 	@takes_doc: (doc, sig) -> false
-	new: (@src, @sig, language, @sig_lingo=language) =>
+	new: (@src, @sig, @sig_lingo, @fsrc, @lnum) =>
 		for k,v in pairs @src
 			@[k] = v
 		@parse_sig!
@@ -135,6 +135,8 @@ class FileHeaderDoc extends HeaderDoc
 		insert string_parts, "- **Author**: #{@author}" if @author
 		insert string_parts, "- **Date**: #{@date}" if @date
 		insert string_parts, ""
+		insert string_parts, "[Source file](https://github.com/TheSignPainter98/emblem/blob/master/#{@fsrc})"
+		insert string_parts, ""
 		concat string_parts, '\n'
 
 class ModuleHeaderDoc extends HeaderDoc
@@ -176,7 +178,7 @@ class FuncDoc extends Doc
 				exit 1
 	__tostring: =>
 		string_parts = {}
-		insert string_parts, "## `#{@name}`"
+		insert string_parts, "## `#{@name}`" -- (https://github.com/TheSignPainter98/emblem/blob/master/#{@file}##{@lnum})"
 		insert string_parts, @brief if @brief
 		if @param
 			insert string_parts, concat [ tostring p for p in *@param ], '\n'
@@ -213,7 +215,7 @@ class DirectiveDoc extends Doc
 			tostring n_args
 
 class FileDoc
-	new: (@fname, docs) =>
+	new: (@fsrc, docs) =>
 		fst = 0
 		@header_doc = nil
 		if is_instance HeaderDoc, docs[1]
@@ -221,7 +223,7 @@ class FileDoc
 			@header_doc = docs[1]
 		@body_docs = [ d for d in *docs[fst,] when d and d.name ]
 		sort @body_docs, (d,e) -> d.name < e.name
-		@file_pretty_name = @fname\match '([^/]*)$'
+		@file_pretty_name = @fsrc\match '([^/]*)$'
 
 		seen_uniques = {}
 		for doc in *docs
@@ -236,8 +238,11 @@ class FileDoc
 		if @header_doc
 			insert ret_parts, tostring @header_doc
 		else
-			insert ret_parts, "# `#{@file_pretty_name}`\nThis module lacks a documentation header.\n"
-			stderr\write "Warning: #{@fname} does not have a file doc header\n"
+			insert ret_parts, "# `#{@file_pretty_name}`"
+			insert ret_parts, "This module lacks a documentation header."
+			insert ret_parts, ""
+			insert ret_parts, "[Source file](https://github.com/TheSignPainter98/emblem/blob/master/#{@fsrc})"
+			stderr\write "Warning: #{@fsrc} does not have a file doc header\n"
 
 		if #@body_docs != 0
 			insert ret_parts, tostring body_doc for body_doc in *@body_docs
@@ -252,9 +257,9 @@ trim_doc_line = =>
 	m, _ = m\gsub '^%s*', ''
 	m
 
-try_parse_doc_type = (doc_type, parsed_doc, curr_signature, language) ->
+try_parse_doc_type = (doc_type, parsed_doc, curr_signature, language, file, lnum) ->
 	return nil unless doc_type.takes_doc parsed_doc, curr_signature, language
-	doc_type parsed_doc, curr_signature, language
+	doc_type parsed_doc, curr_signature, language, file, lnum
 
 file_ext_languages = {
 	c: 'c'
@@ -278,7 +283,9 @@ for file in *args.input_files
 	curr_doc_src = nil
 	ext = file\match '%.(.*)$'
 	language = file_ext_languages[ext]
+	lnum = 0
 	for line in *read_file file
+		lnum += 1
 		if line\match '^%s*$'
 			curr_doc_str = nil
 		elseif (line\match '^%s*/%*%*') or line\match '^%s*%-%-%-'
@@ -291,7 +298,7 @@ for file in *args.input_files
 				curr_signature = trim line
 				parsed_doc = parse_doc_src curr_doc_src
 				for doc_type in *doc_types
-					if doc = try_parse_doc_type doc_type, parsed_doc, curr_signature, language
+					if doc = try_parse_doc_type doc_type, parsed_doc, curr_signature, language, file, lnum
 						insert docs, doc
 						break
 				curr_doc_src = nil
