@@ -2,3 +2,4 @@ book
 *.swp
 generated/
 !*.css
+SUMMARY.md
