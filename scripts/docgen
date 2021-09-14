@@ -2,10 +2,12 @@
 
 set -e
 
+[[ $1 == '-v' ]] && set -v
+
 core_srcs=($(find src/ -name '*.c' -or -name '*.h'))
 lib_srcs=($(find src/ext/lib -name '*.moon' | grep -v '__mod'))
 
-mkdir docs/src/generated/
+[[ ! -d docs/src/generated/ ]] && mkdir docs/src/generated/
 
 ./scripts/docs/SUMMARY
 moon ./scripts/docs/cli-api-gen > docs/src/generated/command-line-args.md
