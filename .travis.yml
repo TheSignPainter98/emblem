@@ -84,6 +84,6 @@ deploy:
     github_token: $GITHUB_TOKEN
     local_dir: docs/book
     keep_history: false
-    # on:
-      # branch: master
+    on:
+      branch: master
     target_branch: gh-pages
