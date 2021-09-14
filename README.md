@@ -2,7 +2,7 @@
 
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/releases/latest)
 [![Travis (.org)](https://img.shields.io/travis/TheSignPainter98/emblem)](https://app.travis-ci.com/github/TheSignPainter98/emblem)
-<!-- [![GitHub stars](https://img.shields.io/github/stars/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/stargazers) -->
+[![GitHub stars](https://img.shields.io/github/stars/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/issues)
 [![GitHub license](https://img.shields.io/github/license/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/blob/master/LICENSE)
 
