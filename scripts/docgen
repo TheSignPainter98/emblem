@@ -2,10 +2,13 @@
 
 set -e
 
-mkdir -p ./docs/man/man1
-(./scripts/mangen | gzip - -) < em.yml > ./docs/man/man1/$(yq -y .program em.yml | head -n 1).1.gz
+core_srcs=($(find src/ -name '*.c' -or -name '*.h'))
+lib_srcs=($(find src/ext/lib -name '*.moon' | grep -v '__mod'))
 
-doxygen ./docs/Doxyfile
-breathe-apidoc -fq -p emblem -o ./docs/rst/ ./docs/xml/
-sassc < ./docs/_static/css/style.scss > ./docs/_static/css/style.css
-sphinx-build -WqaEn --keep-going -c ./docs/ ./docs/ ./docs/html/
+mkdir docs/src/generated/
+
+./scripts/docs/SUMMARY
+moon ./scripts/docs/cli-api-gen > docs/src/generated/command-line-args.md
+moon ./scripts/docs/code-to-md-doc ${core_srcs[@]} ${lib_srcs[@]}
+
+mdbook build docs/

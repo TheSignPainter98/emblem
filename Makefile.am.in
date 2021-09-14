@@ -142,14 +142,7 @@ clang-tidy-info.json: ./scripts/clang-tidy-info.sh ./scripts/linting-line-filter
 .clang-tidy: ./scripts/clang-tidy.sh .clang-tidy.in
 	. $<
 
-docs/book/index.html: scripts/docs/code-to-md-doc scripts/docs/docgen S_DOC_SOURCES
-	./$< $(filter %.c %.h %.moon,$^) -o docs/src/generated
-	mdbook build docs/
-
-docs/src/generated/command-line-args.md: scripts/docs/cli-api-gen
-	./$< >$@
-
-docs/src/SUMMARY.md: scripts/docs/SUMMARY docs/src/SUMMARY.md.in
+docs/book/index.html: scripts/docgen scripts/docs/code-to-md-doc S_DOC_SOURCES scripts/docs/cli-api-gen scripts/docs/SUMMARY docs/src/SUMMARY.md.in
 	./$<
 
 ./scripts/arggen ./scripts/changelog.sh ./scripts/mangen ./scripts/docgen:;

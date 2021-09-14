@@ -3,6 +3,7 @@
 -- Assumes code is formatted
 
 import open, lines, stderr from io
+import mkdir from require 'lfs'
 import exit from os
 import concat, insert, sort from table
 import format from string
@@ -218,7 +219,7 @@ class FileDoc
 		if is_instance HeaderDoc, docs[1]
 			fst = 2
 			@header_doc = docs[1]
-		@body_docs = [ d for d in *docs[fst,] when d ]
+		@body_docs = [ d for d in *docs[fst,] when d and d.name ]
 		sort @body_docs, (d,e) -> d.name < e.name
 		@file_pretty_name = @fname\match '([^/]*)$'
 
@@ -235,7 +236,7 @@ class FileDoc
 		if @header_doc
 			insert ret_parts, tostring @header_doc
 		else
-			insert ret_parts, "# #{@file_pretty_name}\nThis module lacks a documentation header.\n"
+			insert ret_parts, "# `#{@file_pretty_name}`\nThis module lacks a documentation header.\n"
 			stderr\write "Warning: #{@fname} does not have a file doc header\n"
 
 		if #@body_docs != 0
@@ -260,6 +261,16 @@ file_ext_languages = {
 	h: 'c'
 	moon: 'moon'
 }
+
+make_dirs = (dname) ->
+	curr_dir = ''
+	for ds in dname\gmatch '([^/\\]+)[/\\]'
+		curr_dir ..= "#{ds}/"
+		d = open curr_dir, 'r'
+		unless d
+			mkdir curr_dir
+		else
+			d\close!
 
 for file in *args.input_files
 	docs = {}
@@ -287,7 +298,12 @@ for file in *args.input_files
 
 	out_str = tostring FileDoc file, docs
 	out_file = "#{args.output}/#{file\match '^src/(.*)'}.md"
-	with open out_file, 'w+'
+	make_dirs out_file\match '.*[/\\]'
+	f = open out_file, 'w+'
+	unless f
+		print "Error: Could not output to file #{out_file}"
+		continue
+	with f
 		\write out_str
 		\close!
 -- TODO: record the source, add links to the original!
