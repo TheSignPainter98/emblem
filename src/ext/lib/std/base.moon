@@ -1,4 +1,4 @@
-import len from string
+import len, lower from string
 import concat, insert from table
 
 constants = require 'std.constants'
@@ -10,23 +10,28 @@ base = { :eval, :include_file, :requires_reiter, :_log_err, :_log_err_at, :_log_
 for k,v in pairs constants
 	base[k] = v
 
-base.wrap_index = =>
+-- Calling wrap_indices @ in a constructor before the end seems to be able to cause a memory leak.
+base.wrap_indices = =>
 	mt = getmetatable @
 
 	-- Handle __index
 	old_index = mt.__index
 	new_index = mt.__get
-	call_index = (idx, cls, k) ->
+	call__index = (idx, cls, k) ->
 		if 'function' == type idx
 			idx cls, k
 		else
 			idx[k]
 	if new_index
-		mt.__index = (k) =>
-			if ret = call_index new_index, @, k
-				ret
-			else
-				call_index old_index, @, k
+		if old_index
+			mt.__index = (k) =>
+				ret = call__index old_index, @, k
+				if ret != nil
+					ret
+				else
+					call__index new_index, @, k
+		else
+			mt.__index = new_index
 
 	-- Handle __newindex
 	mt.__newindex = mt.__set if mt.__set
