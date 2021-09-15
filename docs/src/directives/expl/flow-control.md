@@ -8,7 +8,6 @@ Over the following sections, we will explore directives for:
 - Branching
 	[`.case`][case]
 	[`.if`][if]
-	[`.ifelse`][ifelse]
 - Looping
 	[`.foreach`][foreach]
 - Handling directives
@@ -29,7 +28,6 @@ Over the following sections, we will explore directives for:
 [foreach]: ../foreach.md
 [get-var]: ../get-var.md
 [if]: ../if.md
-[ifelse]: ../ifelse.md
 [set-var]: ../set-var.md
 [undef]: ../undef.md
 [while]: ../while.md

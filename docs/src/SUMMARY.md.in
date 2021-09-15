@@ -27,7 +27,7 @@
 		- [`.exists`](./directives/exists.md)
 		- [`.foreach`](./directives/foreach.md)
 		- [`.get-var`](./directives/get-var.md)
-		- [`.if`](./directives/if.md) - [`.ifelse`](./directives/ifelse.md)
+		- [`.if`](./directives/if.md)
 		- [`.set-var`](./directives/set-var.md)
 		- [`.undef`](./directives/undef.md)
 		- [`.while`](./directives/while.md)

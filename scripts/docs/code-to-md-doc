@@ -60,11 +60,16 @@ read_file = => with {:insert} \insert line for line in lines @
 
 list_tags = { 'param', 'example' }
 
+sanitise_links = (txt) ->
+	txt = txt\gsub '(%[[^%]]+%][^([])', '\\%1'
+	txt = txt\gsub '(%[[^%]]+%])$', '\\%1'
+	txt
+
 class Param
 	new: (src) =>
 		@param,@desc = src\match '([^%s]*)%s*(.*)'
 	__tostring: =>
-		"- **Param** `#{@param}`: #{@desc}"
+		"- **Param** `#{@param}`: #{sanitise_links @desc}"
 
 sanitise_content = (tag, content) ->
 	content_constructors = { param: Param }
@@ -132,8 +137,8 @@ class FileHeaderDoc extends HeaderDoc
 		insert string_parts, ""
 		insert string_parts, @brief if @brief
 		insert string_parts, ""
-		insert string_parts, "- **Author**: #{@author}" if @author
-		insert string_parts, "- **Date**: #{@date}" if @date
+		insert string_parts, "- **Author**: #{sanitise_links @author}" if @author
+		insert string_parts, "- **Date**: #{sanitise_links @date}" if @date
 		insert string_parts, ""
 		insert string_parts, "[Source file](https://github.com/TheSignPainter98/emblem/blob/master/#{@fsrc})"
 		insert string_parts, ""
@@ -148,8 +153,8 @@ class ModuleHeaderDoc extends HeaderDoc
 		insert string_parts, ""
 		insert string_parts, @brief if @brief
 		insert string_parts, ""
-		insert string_parts, "- **Author**: #{@author}" if @author
-		insert string_parts, "- **Date**: #{@date}" if @date
+		insert string_parts, "- **Author**: #{sanitise_links @author}" if @author
+		insert string_parts, "- **Date**: #{sanitise_links @date}" if @date
 		insert string_parts, ""
 		concat string_parts, '\n'
 
@@ -179,11 +184,11 @@ class FuncDoc extends Doc
 	__tostring: =>
 		string_parts = {}
 		insert string_parts, "## `#{@name}`" -- (https://github.com/TheSignPainter98/emblem/blob/master/#{@file}##{@lnum})"
-		insert string_parts, @brief if @brief
+		insert string_parts, sanitise_links @brief if @brief
 		if @param
 			insert string_parts, concat [ tostring p for p in *@param ], '\n'
 		if @['return']
-			insert string_parts, "**Returns**: #{@['return']}"
+			insert string_parts, "**Returns**: #{sanitise_links @['return']}"
 		else
 			unsert_string_parts, "**Returns**: _none_"
 		insert string_parts, "```#{@sig_lingo}\n#{@sanitised_sig}\n```\n"
@@ -194,13 +199,13 @@ class DirectiveDoc extends Doc
 	__tostring: =>
 		string_parts = {}
 		insert string_parts, "## `.#{@name}`"
-		insert string_parts, @brief if @brief
+		insert string_parts, sanitise_links @brief if @brief
 		insert string_parts, "**Mandatory args**: #{@n_args_string @nmand_args}"
 		insert string_parts, "**Optional args**: #{@n_args_string @nopt_args}"
 		if @param
 			insert string_parts, concat [ tostring p for p in *@param ], '\n'
 		if @['return']
-			insert string_parts, "**Returns**: #{@['return']}"
+			insert string_parts, "**Returns**: #{sanitise_links @['return']}"
 		else
 			unsert_string_parts, "**Returns**: _none_"
 		insert string_parts, "```moon\n#{@sanitised_sig}\n```\n"

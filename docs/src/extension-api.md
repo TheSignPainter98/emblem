@@ -13,19 +13,19 @@ In this section, we will explore the Emblem standard library, `std.*`:
 - [`std.base`](generated/ext/lib/std/base.moon.md)
 - [`std.bib`](generated/ext/lib/std/bib.moon.md)
 - [`std.constants`](generated/ext/lib/std/constants.moon.md)
-- [`std.edit`](generated/ext/lib/std/edit.moon.md)
 - [`std.events`](generated/ext/lib/std/events.moon.md)
 - [`std.func`](generated/ext/lib/std/func.moon.md)
 - [`std.hdr`](generated/ext/lib/std/hdr.moon.md)
-- [`std.in.*`](generated/ext/lib/std/in/_mod_set.moon.md)
+- [`std.in.*`](modules/moon/std.in.md)
 - [`std.lingo`](generated/ext/lib/std/lingo.moon.md)
 - [`std.log`](generated/ext/lib/std/log.moon.md)
-- [`std.out.drivers`](generated/ext/lib/std/out/_mod_set.moon.md)
+- [`std.out.*`](modules/moon/std.out.md)
 - [`std.ref`](generated/ext/lib/std/ref.moon.md)
 - [`std.show`](generated/ext/lib/std/show.moon.md)
 - [`std.store`](generated/ext/lib/std/store.moon.md)
 - [`std.style`](generated/ext/lib/std/style.moon.md)
 - [`std.util`](generated/ext/lib/std/util.moon.md)
+<!-- - [`std.edit`](generated/ext/lib/std/edit.moon.md) -->
 
 ---
 
@@ -102,3 +102,5 @@ Emblem is capable of outputting to any format for which it has an output driver.
 The binary itself contains some output drivers, but it is also possible to import ones from other sources as desired.
 In analogy with [input drivers](#input-drivers), there exists a table, `std.out.drivers.output_drivers`, which is used when looking up the language into which the document will be output.
 An output driver is simply module which adds at least one outputting function into this table.
+
+[lua]: https://www.lua.org
