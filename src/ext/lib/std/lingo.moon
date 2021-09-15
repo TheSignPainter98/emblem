@@ -1,21 +1,21 @@
 import stderr from io
 import lower, match from string
 import concat, insert from table
-import Content from require 'std.ast'
-import em, eval, eval_string, get_var, include_file, set_var, set_var_string, vars from require 'std.base'
-import keys, key_list from require 'std.func'
-import log_err_here from require 'std.log'
-import on_iter_wrap, sorted from require 'std.util'
+import Call, Content from require 'std.ast'
+import close_var_scope, Directive, em, eval, eval_string, get_var, open_var_scope, set_var, set_var_string, vars from require 'std.base'
+import node_flags from require 'std.constants'
+import key_list from require 'std.func'
+import log_err_here, log_warn_here from require 'std.log'
+import eq, on_iter_wrap, sorted from require 'std.util'
 
-em.known_directives = -> concat (sorted key_list em), ' '
+em.known_directives = Directive 0, 0, "Return a list of known directives", -> concat (sorted key_list em), ' '
 
-em.def = (n, f) -> em[eval_string n] = f
-em.undef = (n) -> em[eval_string n] = nil
+em.undef = Directive 1, 0, "Undefine a directive", (n) -> em[eval_string n] = nil
 
-em.echo = (...) ->
+em.echo = Directive 0, -1, "Output text to stdout", (...) ->
 	print concat [ eval_string v for v in *{...} when v != nil ], ' '
 
-em['echo-on'] = on_iter_wrap em.echo
+em['echo-on'] = Directive 1, -1, "Output text to stdout on a given iteration", on_iter_wrap em.echo
 
 cond = (c) ->
 	if not c
@@ -34,26 +34,26 @@ em.if = (c, b) ->
 	if cond c
 		b
 
-em.ifelse = (c, b, e) ->
+em.if = Directive 3, 0, "Return one of two branches depending on the value of a condition", (c, b, e) ->
 	if cond c
 		b
 	else
 		e
 
-em.case = (n, ...) ->
+em.case = Directive 2, -1, "Takes a number, n, and a list of branches and returns the nth branch if there is one, otherwise the last", (n, ...) ->
 	n = tonumber eval_string n
 	if 1 <= n and n <= #{...}
 		select n, ...
 	else
 		select (select '#', ...), ...
 
-em.while = (c, b) ->
+em.while = Directive 2, 0, "Takes a condition and a body, repeats the body until the condition no longer holds", (c, b) ->
 	ret = {}
 	while cond c
 		insert ret, b
 	Content ret
 
-em.foreach = (n, vs, b) ->
+em.foreach = Directive 3, 0, "Takes a variable name, a list of values and a body, repeats the body with the variable taking each value specified, in the order given", (n, vs, b) ->
 	ret = {}
 	n = eval_string n
 	prev_val = get_var n
@@ -63,13 +63,10 @@ em.foreach = (n, vs, b) ->
 	set_var n, prev_val
 	Content ret
 
-em.streq = (s, t) ->
-	toint (eval_string s) == eval_string t
-
-em.defined = (v) ->
+em.defined = Directive 1, 0, "Checks whether a given variable is defined", (v) ->
 	toint vars[v] != nil
 
-em.exists = (f) ->
+em.exists = Directive 1, 0, "Checks whether a given directive exists", (f) ->
 	toint em[f] != nil
 
 known_languages =

@@ -1,4 +1,4 @@
-import em, em_loc, eval_string, _log_err, _log_err_at, _log_warn, _log_warn_at, _log_info, _log_debug, iter_num from require 'std.base'
+import Directive, em, em_loc, eval_string, _log_err, _log_err_at, _log_warn, _log_warn_at, _log_info, _log_debug, iter_num from require 'std.base'
 import do_nothing, id from require 'std.func'
 import on_iter_wrap from require 'std.util'
 import format from string
@@ -31,9 +31,9 @@ for log_func in *log_funcs
 			afterop!
 		log[log_func .. '_on'] = on_iter_wrap log[log_func]
 
-em.error = log.log_err_here
-em.warn = log.log_warn_here
-em['error-on'] = log.log_err_at_on
-em['warn-on'] = log.log_warn_at_on
+em.error = Directive 0, -1, "Exit with an error", log.log_err_here
+em.warn = Directive 0, -1, "Log a warning", log.log_warn_here
+em.error_on = Directive 1, -1, "Exit with an error, but only on a given typesetting iteration", log.log_err_at_on
+em.warn_on = Directive 1, -1, "Log a warning but only on a given typesetting iteration", log.log_warn_at_on
 
 log

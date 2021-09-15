@@ -45,7 +45,7 @@ class Store extends Component
 store = Store!
 
 curr_version_num = nil
-em.curr_version = ->
+em.curr_version = Directive 0, 0, "Return the number of times this document has been compiled", ->
 	if not curr_version_num
 		curr_version_num = 1 + (store['comp-num'] or 0)
 		store['comp-num'] = curr_version_num
