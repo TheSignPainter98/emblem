@@ -1,4 +1,4 @@
-import em, eval_string from require 'std.base'
+import Directive, em, eval_string from require 'std.base'
 import Counter, SyncList from require 'std.events'
 import set_label from require 'std.ref'
 import extend from require 'std.util'
@@ -21,14 +21,14 @@ class Toc extends SyncList
 
 
 toc = Toc!
-em.toc = toc\output
+em.toc = Directive 0, 0, "Create a table of contents", toc\output
 
 heading_counters = {}
 for i = 1,6
 	insert heading_counters, Counter!
 	if i > 1
 		heading_counters[i - 1]\add_sub_counter heading_counters[i]
-	em["h#{i}"] = (c) ->
+	em["h#{i}"] = Directive 1, 0, "Create a level #{i} header", (c) ->
 		ref = concat (extend [ c.val for c in *heading_counters[,i - 1] ], { heading_counters[i]\use! }), '.'
 		set_label ref
 		ret = ref .. " " .. eval_string c

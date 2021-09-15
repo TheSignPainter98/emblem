@@ -36,4 +36,6 @@ showp = (v) ->
 					show v
 	_showp v, 0
 
+import Directive, em, vars from require 'std.base'
+em.vars = Directive 0, 0, "show variable scopes", -> show vars
 { :show, :showp }

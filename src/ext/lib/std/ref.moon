@@ -1,4 +1,4 @@
-import em, eval_string, get_var, set_var from require 'std.base'
+import Directive, em, eval_string, get_var, set_var from require 'std.base'
 import SyncMap from require 'std.events'
 import log_warn_here from require 'std.log'
 
@@ -14,13 +14,13 @@ get_label = -> get_var CURR_LABEL_VAR_NAME
 
 set_label INITIAL_LABEL_VALUE
 
-em.anchor = (key) ->
+em.anchor = Directive 1, 0, "Set down an anchor with the given key", (key) ->
 	key = eval_string key
 	if references\has key
 		log_warn_here "Duplicate anchor '#{key}'"
 	references\add key, get_label!
 
-em.ref = (key) ->
+em.ref = Directive 1, 0, "Reference an anchor with a given key", (key) ->
 	key = eval_string key
 	if not references\has key
 		log_warn_here "Unknown anchor '#{key}'"
