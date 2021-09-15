@@ -5,7 +5,7 @@ input-404 = "404.md"
 language = "en"
 multilingual = false
 src = "src"
-title = "Emblem v1.2.3 Documentation"
+title = "S_NAME S_VERSION Documentation"
 cname = "emblem.kcza.net"
 
 [output.html]

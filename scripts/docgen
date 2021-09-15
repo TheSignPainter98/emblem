@@ -9,8 +9,13 @@ lib_srcs=($(find src/ext/lib -name '*.moon' | grep -v '__mod'))
 
 [[ ! -d docs/src/generated/ ]] && mkdir docs/src/generated/
 
+# Generate metadata
+./scripts/docs/book.toml.sh
+
+# Generate auto-concent
 ./scripts/docs/SUMMARY
 moon ./scripts/docs/cli-api-gen > docs/src/generated/command-line-args.md
 moon ./scripts/docs/code-to-md-doc ${core_srcs[@]} ${lib_srcs[@]}
 
+# Generate book from source
 mdbook build docs/
