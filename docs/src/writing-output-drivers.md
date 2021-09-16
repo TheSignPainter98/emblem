@@ -1,4 +1,4 @@
-# Writing a Driver
+# Writing Output Drivers
 
 Emblem is not tied to a single output format, rather, it performs typesetting in a generic fashion, before handing the generated document to a driver.
 It is then the job of the driver to translate the positioning of item into the appropriate format.

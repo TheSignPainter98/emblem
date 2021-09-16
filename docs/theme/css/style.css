@@ -11,6 +11,41 @@
 html, p, .content, .content p {
 	font-family: 'Jost', sans-serif;
 	line-height: 3.55ex;
+	margin-bottom: 0px;
+}
+
+p + * {
+	margin-top: 3.55ex;
+	margin-bottom: 3.55ex;
+}
+
+p + p {
+	margin-block-start: 0px;
+	text-indent: 2em;
+}
+
+@media screen and (min-width: 500px) {
+	ul, ol {
+		padding-left: 0em;
+	}
+	ul ul, ol ol {
+		padding-left: 2em;
+	}
+}
+@media screen and (max-width: 500px) {
+	ul, ol {
+		padding-left: 2em;
+	}
+	ul ul, ol ol {
+		padding-left: 2em;
+	}
+}
+
+.footnote-definition {
+	border: 0px;
+	border-top: 1px;
+	border-style: solid;
+	border-color: --fg;
 }
 
 code, :not(pre) > .hljs {

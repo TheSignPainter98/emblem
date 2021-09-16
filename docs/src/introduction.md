@@ -1,3 +1,7 @@
+<center>
+	<img src="favicon.svg" alt="Emblem logo" width="40%">
+</center>
+
 # Introduction
 
 When writing documentation, there are generally two choices: good looking source, and good looking output.
