@@ -32,4 +32,4 @@ woff = true
 [output.html.playground]
 editable = true
 
-[output.linkcheck]
+# [output.linkcheck]
