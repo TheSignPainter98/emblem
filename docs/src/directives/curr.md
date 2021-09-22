@@ -1,1 +1,0 @@
-# .curr-version

@@ -8,8 +8,6 @@ As the document is processed, they are used to enact not only styling changes bu
 
 All syntactic sugars (such as surrounding a word in underscores to make it italic) are simple translations to directive calls.
 
-<div class='example'>
-
 ## Example - Styling part of a sentence
 
 The following lines will all yield the same result---an entire or part of a sentence emboldened by use of the `.bf` directive.
@@ -19,7 +17,6 @@ The following lines will all yield the same result---an entire or part of a sent
 This sentence is only has .bf{two bold} words.
 Hello **rather obnoxious** world!
 ```
-</div>
 
 ## Example - Cross-referencing
 

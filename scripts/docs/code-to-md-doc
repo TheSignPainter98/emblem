@@ -99,6 +99,7 @@ class Doc
 		for k,v in pairs @src
 			@[k] = v
 		@parse_sig!
+		@sanitise_brief! if @brief
 	unique: false
 	__inherited: (cls) =>
 		unless doc_type_names[cls.__name]
@@ -125,6 +126,7 @@ class Doc
 			else
 				stderr\write "Unknown language #{@sig_lingo}\n"
 				exit 1
+	sanitise_brief: => @brief ..= '.' unless @brief\match '[.?!_*]$'
 
 class HeaderDoc extends Doc
 
@@ -252,7 +254,7 @@ class FileDoc
 		if #@body_docs != 0
 			insert ret_parts, tostring body_doc for body_doc in *@body_docs
 		else
-			insert ret_parts, "This module does not contain any documented interface items."
+			insert ret_parts, "<center><i>This module does not contain any documented interface items.</i></center>"
 		concat ret_parts, '\n'
 
 trim = => @match '^%s*(.*)%s*$'
