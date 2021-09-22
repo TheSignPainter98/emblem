@@ -56,6 +56,7 @@ code, :not(pre) > .hljs {
 	white-space: pre-wrap;
 	text-indent: 3em hanging each-line;
 	word-break: keep-all;
+	tab-size: 4;
 }
 :not(pre):not(a) > .hljs {
 	color: unset;
