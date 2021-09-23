@@ -1,3 +1,9 @@
+/**
+ * @file not_implemented.h
+ * @brief Preprocessor definitions for function-stubs to stymie compiler errors
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include <stdio.h>

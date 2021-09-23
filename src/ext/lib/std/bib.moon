@@ -1,6 +1,11 @@
-import open from io
+---
+-- @file std.bib
+-- @brief Provides bibliographies and citations
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import Call, Content, Word from require 'std.ast'
-import copy_loc, em, eval_string, iter_num from require 'std.base'
+import copy_loc, Directive, em, eval_string, iter_num from require 'std.base'
 import SyncBox, SyncSet from require 'std.events'
 import map, value_list from require 'std.func'
 import log_warn_here, log_warn_at_loc from require 'std.log'
@@ -99,10 +104,10 @@ class Bib extends SyncSet
 		(Call 'h1*', @bib_name) .. bib_table
 
 bib = Bib!
-em.bib = (src) ->
+em.bib = Directive 1, 0, "Create the main bibliography using the given source file", (src) ->
 	if iter_num! == 1
 		bib\read src
 	bib\output!
-em.cite = (ref) -> bib\add ref
+em.cite = Directive 1, 0, "Cite a given reference", (ref) -> bib\add ref
 
 { :Bib, :get_cite_style, :set_cite_style, :cite_styles }

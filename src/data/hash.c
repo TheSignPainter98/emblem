@@ -1,3 +1,9 @@
+/**
+ * @file hash.c
+ * @brief Provides hash functions for standard data types
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "hash.h"
 
 #include "pp/assert.h"

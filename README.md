@@ -1,5 +1,11 @@
 # Emblem
 
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/releases/latest)
+[![Travis (.org)](https://img.shields.io/travis/TheSignPainter98/emblem)](https://app.travis-ci.com/github/TheSignPainter98/emblem)
+[![GitHub stars](https://img.shields.io/github/stars/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/issues)
+[![GitHub license](https://img.shields.io/github/license/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/blob/master/LICENSE)
+
 An elegant, extensible typesetter with a friendly interface and decent output.
 
 ## Table of Contents
@@ -68,12 +74,12 @@ For example, the output could be changed to bbcode:
 em example -Tbb
 ```
 
-Emblem also supports extensions which can be added to the document-environment by the `-f[ext]` option.
+Emblem also supports extensions which can be added to the document-environment by the `-x[ext]` option.
 Extensions can also be passed text values using the `-a[ext].[param]=[val]` option.
 For example, `example.em` could be compiled into bbcode using the `asdf` extension with its argument `fdsa` being set to `qwer`:
 
 ```bash
-em example -Tbb -fasdf -aasdf.fdsa=qwer
+em example -Tbb -xasdf -aasdf.fdsa=qwer
 ```
 
 The order of options passed is not significant, except in the case that the same parameter to the same extension is set multiple times, in which case the rightmost value is taken.
@@ -481,7 +487,7 @@ em.cpu_time_used = function()
 end
 ```
 
-If this code is written in a file called `cpu-time.lua`, it can be imported by adding the flag `-fcpu-time` when `em` is run (note the file extension is optional).
+If this code is written in a file called `cpu-time.lua`, it can be imported by adding the flag `-xcpu-time` when `em` is run (note the file extension is optional).
 Now, when the directive `.cpu_time_used` is seen in the document, the above code will be executed, it will be replaced with the message.
 
 #### Evaluation Order
@@ -497,10 +503,10 @@ Evaluation order is manipulated in the definition of the `.if` directive, which 
 ```lua
 em.if = function(c, b)
 	cs = eval_string(c)
-	if cs == '' or cs == '0' or cs == 'false' then
-		return b
-	else
+	if cs == '' or cs == '0' or string.lower(cs) == 'false' then
 		return nil
+	else
+		return b
 	end
 end
 ```
@@ -607,7 +613,7 @@ The following variables are created by Emblem’s core and are likely useful to 
 #### Events
 
 To help extensions react to how the document is being processed, there are several events which are triggered.
-These are triggered on objects which extend the `Component` class defined in the `std.std` module and are as follows.
+These are triggered on objects which extend the `Component` class defined in the `std.base` module and are as follows.
 
 1. `on_start`, executed once after all extensions are loaded
 2. `on_iter_start`, executed at the start of each iteration
@@ -625,16 +631,15 @@ The number of the current iteration (starting from 1) is accessible through the 
 
 Emblem can take input of any format for which it has an input driver.
 When Emblem inputs a file through the `.include` directive, a language can optionally be specified in the second parameter to determine the parser to use.
-This language is used to look up the parser to use in the `std.lingo.known_languages` table.
-An input driver is simply a parser function which has been added into this table (possibly by some extension).
+This language is used to look up the parser to use in the `std.in.drivers.known_languages` table.
+An input driver is simply a module which adds at least one parser function into this table.
 
 ### Output Drivers
 
 Emblem is capable of outputting to any format for which it has an output driver.
 The binary itself contains some output drivers, but it is also possible to import ones from other sources as desired.
-
-This is currently done through dynamically-linked C libraries.
-Due to the logistics of needing to compile these for multiple operating systems, this section of the program will be replaced with a [Lua][lua]-based one in future.
+In analogy with [input drivers](#input-drivers), there exists a table, `std.out.drivers.output_drivers`, which is used when looking up the language into which the document will be output.
+An output driver is simply module which adds at least one outputting function into this table.
 
 ## License and Author
 

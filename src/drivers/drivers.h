@@ -1,3 +1,9 @@
+/**
+ * @file drivers.h
+ * @brief Exposes functions for handling output drivers
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "argp.h"

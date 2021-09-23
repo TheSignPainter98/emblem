@@ -1,3 +1,9 @@
+/**
+ * @file preprocess-css.c
+ * @brief Provides an implementation for a CSS preprocessor using SCSS/SASS
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "preprocess-css.h"
 
 #include "data/list.h"

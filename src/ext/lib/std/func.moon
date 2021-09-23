@@ -1,3 +1,9 @@
+---
+-- @file std.func
+-- @brief Profides functional abstractions
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import create, resume, wrap, yield from coroutine
 import insert from table
 

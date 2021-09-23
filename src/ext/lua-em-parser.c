@@ -1,3 +1,9 @@
+/**
+ * @file lua-em-parser.c
+ * @brief Provides interface between core Emblem parser and extension-space
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "lua-em-parser.h"
 
 #include "argp.h"

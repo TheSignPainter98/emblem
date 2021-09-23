@@ -1,3 +1,9 @@
+---
+-- @file std.show
+-- @brief Provides functions to show the values of lua-tables in more human-readible formats
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import is_list from require 'std.util'
 import rep from string
 import concat from table
@@ -36,4 +42,6 @@ showp = (v) ->
 					show v
 	_showp v, 0
 
+import Directive, em, vars from require 'std.base'
+em.vars = Directive 0, 0, "show variable scopes", -> show vars
 { :show, :showp }

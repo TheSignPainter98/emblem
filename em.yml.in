@@ -49,6 +49,7 @@ args:
     help: Display version and license information and exit
   - dest: input_file
     metaDest: file
+    type: char*
     doc: Input file
     default: '-'
     help: File to typeset or `-` to read from stdin.
@@ -79,8 +80,8 @@ args:
       - 1
     default: 0
   - dest: extensions
-    short: -f
-    long: --framework
+    short: -x
+    long: --extension
     metaDest: extension
     help: Specify an extension to load. When used multiple times, the specified extensions are loaded in the order given.
     type: List
@@ -92,12 +93,20 @@ args:
     type: List
   - dest: driver
     short: -T
-    long: --type
+    long: --to
     metaDest: driver
     help: Set the output driver, default is _html_
     doc: The specified output driver
     type: char*
     default: html
+  - dest: input_driver
+    short: -F
+    long: --from
+    metaDest: driver
+    help: Set the input driver, if none is specified, the emblem parser is used
+    doc: The specified input driver
+    type: char*
+    default: ''
   - dest: style
     short: -c
     long: --class
@@ -107,7 +116,7 @@ args:
     help: Set the output class
     doc: Holds the root style
   - dest: default_typeface
-    short: -F
+    short: -f
     long: --font-family
     metaDest: family
     type: char*

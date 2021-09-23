@@ -1,3 +1,9 @@
+/**
+ * @file unused.h
+ * @brief Provides preprocessor definitions to declare variables as unused to stymie compiler warnings
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 /**

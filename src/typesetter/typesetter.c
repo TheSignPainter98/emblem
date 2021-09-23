@@ -1,3 +1,9 @@
+/**
+ * @file typesetter.c
+ * @brief Implements the typesetting loop
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "typesetter.h"
 
 #include "ext/ext-env.h"

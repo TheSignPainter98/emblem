@@ -1,3 +1,9 @@
+/**
+ * @file logs.c
+ * @brief Implements logging functions
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "logs.h"
 
 #include <curses.h>

@@ -1,3 +1,9 @@
+/**
+ * @file list-array-conversions.c
+ * @brief Provides conversoin functions between arrays and lists
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "list-array-conversions.h"
 
 void make_list_from_arr(List* l, Array* arr)

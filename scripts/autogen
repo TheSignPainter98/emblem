@@ -18,7 +18,7 @@ done
 
 # Clean the existing directories
 [[ -f Makefile ]] && make -s clean
-rm -rf $(grep -v '^$' .gitignore | grep -v '^#')
+# rm -rf $(grep -v '^$' .gitignore | grep -v '^#')
 
 [[ "$c" -eq "0" ]] || exit 0
 

@@ -1,3 +1,9 @@
+/**
+ * @file maybe.h
+ * @brief Exposes functions to handle the maybe data-type, which can represent either a value or nothing
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "config.h"

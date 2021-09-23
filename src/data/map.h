@@ -1,3 +1,9 @@
+/**
+ * @file map.h
+ * @brief Exposes functions to handle the Map data structure
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "cmp.h"

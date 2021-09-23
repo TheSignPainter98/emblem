@@ -1,3 +1,9 @@
+/**
+ * @file css-params.c
+ * @brief Implements functions to handle CSS-environment parameters
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "css-params.h"
 
 #include "data/dest-free.h"

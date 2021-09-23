@@ -1,3 +1,9 @@
+/**
+ * @file map.c
+ * @brief Implements the map data structure
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "map.h"
 
 #include "pp/not_implemented.h"

@@ -1,3 +1,9 @@
+/**
+ * @file lua.c
+ * @brief Provides functions for executing evaluation-passes on document trees
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "lua.h"
 
 #include "logs/logs.h"

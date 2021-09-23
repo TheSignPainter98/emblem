@@ -31,8 +31,8 @@
 	} while (0)
 
 #define YY_EXTRA_TYPE LexerData*
-#define YY_USER_ACTION update_yylloc(yylloc, yytext);
-static void update_yylloc(EM_LTYPE* loc, char* text);
+#define YY_USER_ACTION update_yylloc(yylloc, yytext, yyextra->tab_size);
+static void update_yylloc(EM_LTYPE* loc, char* text, int tab_size);
 static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng);
 static void make_emph_str(Sugar* emph, char* ytext, size_t yleng);
 static void apply_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc);
@@ -101,14 +101,14 @@ INTEGER				[0-9]+
 REFERENCE			"#"[^ \t\r\n{}]+
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
-WORD 				"."|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
+WORD 				"."|"!"|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 WORD_EASY_END_CHAR  ({WORD_ESCAPE_CHAR}|[^\\_*`= \t\r\n{}])
 WORD_END 			({WORD_ESCAPE_CHAR}|{WORD_END_REGULAR}|{WORD_END_EMPH})
 WORD_END_EMPH		[_*`=]({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}_*`=,.'":;])
 WORD_END_REGULAR 	{WORD_EASY_END_CHAR}{2}
 WORD_ESCAPE_CHAR	"\\"[^ \t\r\n]
 WORD_MID_CHAR 		({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}])
-WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=. \t\r\n{}!])
+WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=.: \t\r\n{}!])
 VARIABLE_REFERENCE  "!"[^ \t\r\n:{}]+
 VARIABLE_ASSIGNMENT "<-"
 
@@ -267,7 +267,7 @@ static int indent_len(int tab_size, char* inp)
 	return ceil(ret / tab_size);
 }
 
-static void update_yylloc(EM_LTYPE* loc, char* text)
+static void update_yylloc(EM_LTYPE* loc, char* text, int tab_size)
 {
 	loc->first_line = loc->last_line;
 	loc->first_column = loc->last_column;
@@ -279,6 +279,8 @@ static void update_yylloc(EM_LTYPE* loc, char* text)
 			loc->last_line++;
 			loc->last_column = 0;
 		}
+		else if (text[i] == '\t')
+			loc->last_column += tab_size;
 		else
 			loc->last_column++;
 	}

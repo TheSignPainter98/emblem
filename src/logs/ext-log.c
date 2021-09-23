@@ -1,3 +1,9 @@
+/**
+ * @file ext-log.c
+ * @brief Implements the C-side interface between extension-space and logging functions
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "ext-log.h"
 
 #include "ext/ext-env.h"

@@ -1,3 +1,9 @@
+/**
+ * @file array.h
+ * @brief Exposes functions for handling arrays, fixed-length composite data-structures, with elements accessible by index
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "maybe.h"

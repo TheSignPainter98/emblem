@@ -51,7 +51,13 @@ if elem {...}, '-c'
 
 	formatted_constants = concat [ const_domain_fmt n, d for n,d in pairs constants ], '\n\n'
 
-	print "#include \"ext/lua-constants.h\"
+	print " /**
+* @file lua-constants
+* @brief Provides function for setting-up interface constants in the extension environment
+* @author Edward Jones
+* @date 2021-09-17
+*/
+#include \"ext/lua-constants.h\"
 
 #{formatted_const_sources}
 
@@ -60,6 +66,12 @@ void ext_set_global_constants(ExtensionState* s)
 #{formatted_constants}
 }"
 elseif elem {...}, '-m'
+	print "---"
+	print "-- @file std.constants"
+	print "-- @brief Provides the constants recognised by the core"
+	print "-- @author scripts/lua-constants"
+	print "-- @date 2021-09-17"
+	print ""
 	print "{ #{concat [ ':' .. d for d in *domains ], ', '} }"
 else
 	import stderr from io

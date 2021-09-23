@@ -1,3 +1,9 @@
+---
+-- @file std.util
+-- @brief Provides miscellaneous utility functions
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import eval_string, iter_num from require 'std.base'
 import insert, sort from table
 

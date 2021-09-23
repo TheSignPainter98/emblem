@@ -1,3 +1,9 @@
+/**
+ * @file sugar.c
+ * @brief Implements functions to construct syntactic sugar functions
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "sugar.h"
 
 #include "doc-struct/ast.h"

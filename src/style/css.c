@@ -1,3 +1,9 @@
+/**
+ * @file css.c
+ * @brief Manages resolution of styles and the handling of stylesheets
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "css.h"
 
 #include "argp.h"

@@ -1,3 +1,9 @@
+/**
+ * @file lua-ast-io.c
+ * @brief Provides functions for translating from Lua tables to docuemnt-trees and vice-versa
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "lua-ast-io.h"
 
 #include <lauxlib.h>

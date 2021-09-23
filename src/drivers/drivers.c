@@ -1,3 +1,9 @@
+/**
+ * @file drivers.c
+ * @brief Handles the execution of output drivers both from the core and in extensions
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "drivers.h"
 
 #include "data/cmp.h"

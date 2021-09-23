@@ -1,3 +1,9 @@
+/**
+ * @file location.h
+ * @brief Exposes functions to handle the Location structure for keeping track of places in the document source
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "data/str.h"

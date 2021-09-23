@@ -1,3 +1,9 @@
+/**
+ * @file logs.h
+ * @brief Exposes logging functions
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "argp.h"

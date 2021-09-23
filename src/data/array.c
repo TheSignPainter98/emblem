@@ -1,3 +1,9 @@
+/**
+ * @file array.c
+ * @brief Implement fixed-length arrays structures
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "array.h"
 
 #include "pp/ignore_warning.h"

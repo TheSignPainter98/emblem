@@ -1,3 +1,9 @@
+/**
+ * @file driver-params.h
+ * @brief Exposes functionality to handle output drivers parameters
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "data/str.h"

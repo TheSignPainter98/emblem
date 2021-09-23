@@ -1,0 +1,35 @@
+[book]
+authors = ["Ed Jones"]
+description = "Documentation for the Emblem typesetter"
+input-404 = "404.md"
+language = "en"
+multilingual = false
+src = "src"
+title = "S_NAME S_VERSION Documentation"
+cname = "emblem.kcza.net"
+
+[output.html]
+additional-css = ['theme/fonts/fonts.css', 'theme/css/style.css']
+copy-fonts = true
+curly-quotes = true
+default-theme = 'ayu'
+edit-url-template = "https://github.com/TheSignPainter98/emblem/edit/master/docs/{path}"
+git-repository-url = "https://github.com/TheSignPainter98/emblem"
+git-repository-icon = "fa-github"
+mathjax-support = true
+theme = 'theme'
+
+[output.html.fold]
+enable = true
+
+[output.html.font]
+enable = true
+ttc = true
+ttf = true
+truetype = true
+woff = true
+
+[output.html.playground]
+editable = true
+
+# [output.linkcheck]

@@ -1,4 +1,9 @@
-import open from io
+---
+-- @file std.store
+-- @brief Allows values to be stored between executions of Emblem
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import dump, load from require 'lyaml'
 import Component from require 'std.events'
 import log_err from require 'std.log'
@@ -45,7 +50,7 @@ class Store extends Component
 store = Store!
 
 curr_version_num = nil
-em.curr_version = ->
+em.curr_version = Directive 0, 0, "Return the number of times this document has been compiled", ->
 	if not curr_version_num
 		curr_version_num = 1 + (store['comp-num'] or 0)
 		store['comp-num'] = curr_version_num

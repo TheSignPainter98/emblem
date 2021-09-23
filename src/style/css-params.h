@@ -1,3 +1,9 @@
+/**
+ * @file css-params.h
+ * @brief Exposes functions to handle CSS-environment parameters
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "argp.h"

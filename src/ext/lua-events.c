@@ -1,3 +1,9 @@
+/**
+ * @file lua-events.c
+ * @brief Implements callers for typesetting events for extension-space
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "lua-events.h"
 
 #include "logs/logs.h"
