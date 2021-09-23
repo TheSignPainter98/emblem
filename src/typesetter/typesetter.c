@@ -15,7 +15,7 @@
 #include "logs/logs.h"
 #include "style/css.h"
 
-int typeset_doc(Doc* doc, Args* args, OutputDriverInf* driver_inf)
+int typeset_doc(Doc* doc, Args* args, TypesettingSupport support)
 {
 	int rc;
 
@@ -39,8 +39,8 @@ int typeset_doc(Doc* doc, Args* args, OutputDriverInf* driver_inf)
 			return rc;
 		discern_pars(doc);
 
-		if (driver_inf->support & TS_PLACEMENT)
-			log_debug("Executing typesetting pass %d", doc->ext->iter_num);
+		if (support & TS_PLACEMENT)
+			log_info("Executing typesetting pass %d", doc->ext->iter_num);
 
 		if (do_lua_iter_end_event(doc->ext->state))
 			return 1;
