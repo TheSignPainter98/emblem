@@ -9,6 +9,10 @@ import Component from require 'std.events'
 import log_err from require 'std.log'
 import em, wrap_index from require 'std.base'
 
+local open
+if not io.module_unavailable
+	import open from io
+
 EM_STORE_FILE_DEFAULT = '.em-store.yml'
 
 class Store extends Component
@@ -17,7 +21,10 @@ class Store extends Component
 		wrap_index @
 		@curr_store = nil
 	ensure_has_store: =>
-		if not rawget @, 'curr_store'
+		if not open
+			log_warn "Store unavailable due to sandbox level"
+			rawset @, 'curr_store', {}
+		elseif not rawget @, 'curr_store'
 			f = open (rawget @, 'store_loc'), 'r'
 			if not f
 				rawset @, 'curr_store', {}

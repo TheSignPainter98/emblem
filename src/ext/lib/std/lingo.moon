@@ -13,6 +13,10 @@ import key_list from require 'std.func'
 import log_err_here, log_warn_here from require 'std.log'
 import eq, on_iter_wrap, sorted from require 'std.util'
 
+local getenv, popen
+unless os.module_unavailable
+	import getenv, popen from os
+
 em.known_directives = Directive 0, 0, "Return a list of known directives", -> concat (sorted key_list em), ' '
 
 em.def = Directive 2, 0, "Takes a name and a section of document and creates a directive of the same name", (n, f) -> em[eval_string n] = Directive 0, -1, (...) ->

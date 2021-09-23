@@ -14,6 +14,10 @@ import eq, sorted from require 'std.util'
 import concat, insert, sort from table
 import load from require 'lyaml'
 
+local open
+if not io.module_unavailable
+	import open from io
+
 import it from stylers
 
 -- stylesheet 'share/bib.scss'
@@ -70,6 +74,9 @@ class Bib extends SyncSet
 		else
 			@bib[c]\cite!
 	get_file: (fname) =>
+		if not open
+			log_warn_here "Cannot open files at this sandbox level"
+			return false, {}
 		f = open fname, 'r'
 		if not f
 			return false, {}
