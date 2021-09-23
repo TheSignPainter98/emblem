@@ -14,6 +14,7 @@
 #include "style/css.h"
 #include <libcss/select.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 // Node names
 #define NODE_NAME_PARAGRAPH "p"
@@ -29,6 +30,7 @@
 #define PARAGRAPH_CANDIDATE	   (1 << 5)
 #define DISQUALIFIED_PARAGRAPH (1 << 6)
 #define INCLUDED_FILE_ROOT	   (1 << 7)
+#define NO_FURTHER_EVAL  (1 << 12)
 
 struct DocTreeNodeContent_s;
 struct DocTreeNode_s;
@@ -44,7 +46,7 @@ typedef struct
 
 typedef struct DocTreeNode_s
 {
-	int flags;
+	int_least16_t flags;
 	Str* name;
 	Style* style;
 	int last_eval;

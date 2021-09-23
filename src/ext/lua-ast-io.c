@@ -59,7 +59,7 @@ int pack_tree(ExtensionState* s, DocTreeNode* node)
 	lua_pushinteger(s, node->content->type);
 	lua_setfield(s, -2, "type");
 
-	lua_pushinteger(s, node->flags);
+	lua_pushinteger(s, node->flags & ACCEPTABLE_EXTENSION_FLAG_MASK);
 	lua_setfield(s, -2, "flags");
 
 	switch (node->content->type)
@@ -214,7 +214,14 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 
 	// Get the flags
 	lua_getfield(s, -1, "flags");
-	int flags = IS_GENERATED_NODE | lua_tointeger(s, -1);
+	int in_flags = lua_tointeger(s, -1);
+	{
+		int bad_flags = in_flags & ~ACCEPTABLE_EXTENSION_FLAG_MASK;
+		if (bad_flags)
+			if (log_warn_at(parentNode->src_loc, "Ignoring invalid flags when unpacking table-representation of a node: %x", bad_flags))
+				return 1;
+	}
+	int flags = IS_GENERATED_NODE | (ACCEPTABLE_EXTENSION_FLAG_MASK & lua_tointeger(s, -1));
 	lua_pop(s, 1);
 
 	lua_getfield(s, -1, "type");

@@ -39,9 +39,8 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 	// Takes a node at the top of the stack, replaces it with the result of executing a lua pass
 	if (!node)
 		return 0;
-	if (node->last_eval >= curr_iter)
-		if (log_warn_at(node->src_loc, "Node being re-evaluated in same run"))
-			return 1;
+	if (node->flags & NO_FURTHER_EVAL)
+		return 0;
 	node->last_eval = curr_iter;
 	switch (node->content->type)
 	{
