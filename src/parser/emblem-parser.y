@@ -49,6 +49,7 @@ typedef struct
 #include "emblem-parser.h"
 #include "logs/logs.h"
 #include "emblem-lexer.h"
+#include <sys/stat.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -145,6 +146,7 @@ static void make_variable_retrieval(DocTreeNode* node, Str* var, Location* loc);
 static void make_variable_assignment(DocTreeNode* node, Str* var, DocTreeNode* val, Location* loc);
 static void make_simple_syntactic_sugar_call(DocTreeNode* node, SimpleSugar ssugar, Location* loc);
 static void dest_preprocessor_data(PreProcessorData* preproc);
+static FILE* open_file(char* fname, char* mode);
 
 #include "pp/unused.h"
 %}
@@ -329,28 +331,59 @@ static void dest_preprocessor_data(PreProcessorData* preproc)
 	UNUSED(preproc);
 }
 
+static FILE* open_file(char* fname, char* mode)
+{
+	struct stat fstat;
+	stat(fname, &fstat);
+	if (!S_ISREG(fstat.st_mode))
+		return NULL;
+	return fopen(fname, mode);
+}
+
 unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 {
 	log_info("Parsing file '%s'", fname);
+	size_t fname_len = strlen(fname);
+	if (fname_len > 1 && fname[fname_len - 1] == '/')
+		fname[fname_len - 1] = '\0';
 	bool use_stdin = !strcmp(fname, "-");
 	Str* ifn = malloc(sizeof(Str));
 	make_strv(ifn, use_stdin ? "(stdin)" : fname);
-	FILE* fp = use_stdin ? stdin : fopen(ifn->str, "r");
+	const size_t ifn_len = ifn->len;
+	FILE* fp = use_stdin ? stdin : open_file(ifn->str, "r");
 	if (!fp)
 	{
 		if (!strrchr(ifn->str, '.'))
 		{
-			char* fname_with_extension = malloc(1 + ifn->len + sizeof(DEFAULT_CONTENT_EXTENSION));
+			char* fname_with_extension = malloc(1 + ifn_len + sizeof(DEFAULT_CONTENT_EXTENSION));
 			strcpy(fname_with_extension, ifn->str);
-			strcpy(fname_with_extension + ifn->len, DEFAULT_CONTENT_EXTENSION);
+			strcpy(fname_with_extension + ifn_len, DEFAULT_CONTENT_EXTENSION);
 			dest_str(ifn);
 			make_strr(ifn, fname_with_extension);
 
-			if (!(fp = fopen(ifn->str, "r")))
+			if (!(fp = open_file(ifn->str, "r")))
 			{
-				log_err("Failed to open file either '%s' or '%s'", fname, ifn->str);
-				make_maybe_nothing(mo);
-				return 1;
+				// Try /path/to/file/file.em (duplicate the name as the directory which contains it)
+				const char* sub_tree_fmt = "%s/%s.em";
+				const size_t sub_tree_fmt_len = strlen(sub_tree_fmt);
+				char* subdir = strrchr(fname, '/'); // This only works on UNIX systems
+				if (!subdir)
+					subdir = fname;
+				else
+					subdir++;
+				size_t subdir_len = strlen(subdir);
+				size_t fsubtree_name_with_extension_len = 1 + sub_tree_fmt_len + ifn_len + subdir_len;
+				char* fsubtree_name_with_extension = malloc(fsubtree_name_with_extension_len);
+
+				snprintf(fsubtree_name_with_extension, fsubtree_name_with_extension_len, sub_tree_fmt, fname, subdir);
+				dest_str(ifn);
+				make_strr(ifn, fsubtree_name_with_extension);
+				if (!(fp = open_file(ifn->str, "r")))
+				{
+					log_err("Failed to open file either '%s' or '%s.em' or '%s'", fname, fname, fsubtree_name_with_extension);
+					make_maybe_nothing(mo);
+					return 1;
+				}
 			}
 		}
 		else
