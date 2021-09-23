@@ -161,7 +161,9 @@ base.iter_num = -> em_iter
 vars = {{}}
 base.vars = vars
 export open_var_scope = -> insert vars, {}
+base.open_var_scope = open_var_scope
 export close_var_scope = -> vars[#vars] = nil
+base.close_var_scope = close_var_scope
 
 get_scope_widening = (vn) ->
 	w = len vn\match "^!*"

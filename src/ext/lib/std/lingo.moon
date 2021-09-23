@@ -7,7 +7,7 @@
 import lower, match from string
 import concat, insert from table
 import Call, Content from require 'std.ast'
-import Directive, em, eval, eval_string, get_var, set_var, set_var_string, vars from require 'std.base'
+import close_var_scope, Directive, em, eval, eval_string, get_var, open_var_scope, set_var, set_var_string, vars from require 'std.base'
 import node_flags from require 'std.constants'
 import key_list from require 'std.func'
 import log_err_here, log_warn_here from require 'std.log'
@@ -156,17 +156,19 @@ em.pow = Directive 2, 0, "Take the modulo of two numbers", (a, b) -> (safe_tonum
 em.while = Directive 2, 0, "Takes a condition and a body, repeats the body until the condition no longer holds", (c, b) ->
 	ret = {}
 	while cond c
+		open_var_scope!
 		insert ret, eval b
+		close_var_scope!
 	Content ret, NO_FURTHER_EVAL
 
 em.foreach = Directive 3, 0, "Takes a variable name, a list of values and a body, repeats the body with the variable taking each value specified, in the order given", (n, vs, b) ->
 	ret = {}
 	n = eval_string n
-	prev_val = get_var n
-	for v in (eval_string vs)\gmatch('%S+')
+	for v in (eval_string vs)\gmatch '%S+'
+		open_var_scope!
 		set_var_string n, v
 		insert ret, eval b
-	set_var n, prev_val
+		close_var_scope!
 	Content ret, NO_FURTHER_EVAL
 
 em.defined = Directive 1, 0, "Checks whether a given variable is defined", (v) ->
