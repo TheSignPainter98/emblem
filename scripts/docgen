@@ -18,4 +18,4 @@ moon ./scripts/docs/cli-api-gen > docs/src/generated/command-line-args.md
 moon ./scripts/docs/code-to-md-doc ${core_srcs[@]} ${lib_srcs[@]}
 
 # Generate book from source
-mdbook build docs/
+mdbook build docs/ # && mdbook test docs/

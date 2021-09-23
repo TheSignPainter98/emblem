@@ -67,7 +67,6 @@ script:
   # - ./configure
   # - make
   - ./scripts/docgen -v
-  - mdbook build docs/ # && mdbook test docs/
 deploy:
   # - provider: releases # Deploy to latest release
     # api_key: ...
