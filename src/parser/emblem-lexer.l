@@ -31,8 +31,8 @@
 	} while (0)
 
 #define YY_EXTRA_TYPE LexerData*
-#define YY_USER_ACTION update_yylloc(yylloc, yytext);
-static void update_yylloc(EM_LTYPE* loc, char* text);
+#define YY_USER_ACTION update_yylloc(yylloc, yytext, yyextra->tab_size);
+static void update_yylloc(EM_LTYPE* loc, char* text, int tab_size);
 static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng);
 static void make_emph_str(Sugar* emph, char* ytext, size_t yleng);
 static void apply_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc);
@@ -267,7 +267,7 @@ static int indent_len(int tab_size, char* inp)
 	return ceil(ret / tab_size);
 }
 
-static void update_yylloc(EM_LTYPE* loc, char* text)
+static void update_yylloc(EM_LTYPE* loc, char* text, int tab_size)
 {
 	loc->first_line = loc->last_line;
 	loc->first_column = loc->last_column;
@@ -279,6 +279,8 @@ static void update_yylloc(EM_LTYPE* loc, char* text)
 			loc->last_line++;
 			loc->last_column = 0;
 		}
+		else if (text[i] == '\t')
+			loc->last_column += tab_size;
 		else
 			loc->last_column++;
 	}
