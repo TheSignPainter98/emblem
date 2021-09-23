@@ -73,37 +73,4 @@ em.defined = (v) ->
 em.exists = (f) ->
 	toint em[f] != nil
 
-known_languages =
-	em: include_file
-
-known_file_extensions =
-	em: 'em'
-
-parse_file = (f, language) ->
-	f = eval_string f
-	if f == nil or f == ''
-		log_err_here "Nil or empty file name given"
-	if language != nil
-		language = eval_string language
-	elseif extension = f\match '.*%.(.*)'
-		language = known_file_extensions[extension]
-		if language == nil
-			log_err_here unknown_x_msg 'file extension', extension, key_list known_file_extensions
-	else
-		language = 'em'
-	if parser = known_languages[language]
-		return parser f
-
-	log_err_here unknown_x_msg 'parsing language', language, key_list known_languages
-
-parse_results = {}
-em.include = (f, ...) ->
-	f = eval_string f
-	local ret
-	unless ret = parse_results[f]
-		ret = parse_file f, ...
-		parse_results[f] = ret
-	ret
-em['include*'] = parse_file
-
-{:cond, :toint, :known_languages, :known_file_extensions }
+{:cond, :toint }
