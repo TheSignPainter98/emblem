@@ -6,8 +6,8 @@
 
 import dump, load from require 'lyaml'
 import Component from require 'std.events'
-import log_err from require 'std.log'
-import em, wrap_index from require 'std.base'
+import log_err, log_warn from require 'std.log'
+import Directive, em, wrap_indices from require 'std.base'
 
 local open
 if not io.module_unavailable
