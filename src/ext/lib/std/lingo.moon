@@ -7,11 +7,15 @@
 import lower, match from string
 import concat, insert from table
 import Call, Content from require 'std.ast'
-import close_var_scope, Directive, em, eval, eval_string, get_var, open_var_scope, set_var, set_var_string, vars from require 'std.base'
+import Directive, em, eval, eval_string, get_var, set_var, set_var_string, vars from require 'std.base'
 import node_flags from require 'std.constants'
 import key_list from require 'std.func'
 import log_err_here, log_warn_here from require 'std.log'
 import eq, on_iter_wrap, sorted from require 'std.util'
+
+local getenv, popen
+unless os.module_unavailable
+	import getenv, popen from os
 
 em.known_directives = Directive 0, 0, "Return a list of known directives", -> concat (sorted key_list em), ' '
 
@@ -169,39 +173,4 @@ em.defined = Directive 1, 0, "Checks whether a given variable is defined", (v) -
 em.exists = Directive 1, 0, "Checks whether a given directive exists", (f) ->
 	toint em[f] != nil
 
-known_languages =
-	em: include_file
-
-known_file_extensions =
-	em: 'em'
-
-parse_file = (f, language) ->
-	f = eval_string f
-	if f == nil or f == ''
-		log_err_here "Nil or empty file name given"
-	if language != nil
-		language = eval_string language
-	elseif extension = f\match '.*%.(.*)'
-		language = known_file_extensions[extension]
-		if language == nil
-			known_file_extensions_str = concat [ "- .#{k}" for k in keys known_file_extensions ], '\n\t'
-			log_err_here "Unknown file extension '.#{extension}', currently known file extensions: \n\t#{known_file_extensions_str}"
-	else
-		language = 'em'
-	if parser = known_languages[language]
-		return parser f
-
-	known_languages_str = concat [ "- #{k}" for k in keys known_languages ], '\n\t'
-	log_err_here "Unknown parsing language '#{language}', currently known languages:\n\t#{known_languages_str}\nPerhaps there's a typo or missing input driver import?"
-
-parse_results = {}
-em.include = (f, ...) ->
-	f = eval_string f
-	local ret
-	unless ret = parse_results[f]
-		ret = parse_file f, ...
-		parse_results[f] = ret
-	ret
-em['include*'] = parse_file
-
-{:cond, :toint, :known_languages, :known_file_extensions }
+{:cond, :toint }
