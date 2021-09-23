@@ -165,33 +165,45 @@ base.open_var_scope = open_var_scope
 export close_var_scope = -> vars[#vars] = nil
 base.close_var_scope = close_var_scope
 
-get_scope_widening = (vn) ->
-	w = len vn\match "^!*"
-	w += 1 if w
-	w
+get_scope_widening = (n) -> len n\match '^!*'
 
 export get_var = (rn, d) ->
 	wn = eval_string rn
 	widen_by = get_scope_widening wn
-	n = wn\match "[^!]*$"
-	for i = #vars - widen_by, 1, -1
+	n = wn\sub 1 + widen_by
+	for i = #vars, 1, -1
 		v = vars[i][n]
 		if v != nil
-			return v
+			if widen_by == 0
+				return v
+			widen_by -= 1
 	d
 base.get_var = get_var
 em.get_var = Directive 1, 0, "Get the value of a variable in the current scope", get_var
 
-export set_var = (n, v) ->
-	local idx
-	if #vars > 1
-		idx = #vars - 1
-	else
-		idx = 1
-	vars[idx][eval_string n] = v
-base.set_var = set_var
+export set_var = (n, v, surrounding_scope=false) ->
+	-- If widening, search for parent scopes
+	wn = eval_string n
+	name_widen = get_scope_widening wn
+	n = wn\sub 1 + name_widen
+	extra_widen = surrounding_scope and 1 or 0
 
-set_var_string = (n, v) -> set_var n, eval_string v
+	if name_widen != 0
+		widen_by = name_widen + extra_widen
+		for i = #vars, 1, -1
+			ve = vars[i][n]
+			if ve != nil
+				if widen_by == 0
+					vars[i][n] = v
+					return
+				widen_by -= 1
+		vars[1][n] = v
+	else
+		idx = #vars > 1 and #vars - extra_widen or 1
+		vars[idx][n] = v
+
+base.set_var = set_var
+set_var_string = (n, v, w) -> set_var n, (eval_string v), w
 base.set_var_string = set_var_string
 em.set_var = Directive 2, 0, "Set the value of a variable in the current scope", (n, v) -> set_var_string n, v, true
 
