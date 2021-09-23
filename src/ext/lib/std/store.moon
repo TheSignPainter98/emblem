@@ -18,8 +18,8 @@ EM_STORE_FILE_DEFAULT = '.em-store.yml'
 class Store extends Component
 	new: (@store_loc=EM_STORE_FILE_DEFAULT) =>
 		super!
-		wrap_index @
 		@curr_store = nil
+		wrap_indices @
 	ensure_has_store: =>
 		if not open
 			log_warn "Store unavailable due to sandbox level"
