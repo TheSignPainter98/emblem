@@ -1,3 +1,9 @@
+/**
+ * @file locked.c
+ * @brief Provides a locking structure for accessing data-structures, designed to prevent race conditions
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "locked.h"
 
 #include "logs/logs.h"

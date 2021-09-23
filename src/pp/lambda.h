@@ -1,3 +1,9 @@
+/**
+ * @file lambda.h
+ * @brief Provides functions and preprocessor definitions for lambdas (anonymous functions)
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "ignore_warning.h"

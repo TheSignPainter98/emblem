@@ -1,3 +1,9 @@
+---
+-- @file std.hdr
+-- @brief Provides headings and tables of contents
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import Directive, em, eval_string from require 'std.base'
 import Counter, SyncList from require 'std.events'
 import set_label from require 'std.ref'

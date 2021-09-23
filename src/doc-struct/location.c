@@ -1,3 +1,9 @@
+/**
+ * @file location.c
+ * @brief Implements the Location data-structure and useful functions for keeping track of locations in the document source
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "location.h"
 
 #include "ext/debug.h"

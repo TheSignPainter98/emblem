@@ -1,3 +1,9 @@
+/**
+ * @file em.c
+ * @brief Insertion point for the 'em' binary, invokes all functionality used for typeestting documents
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include <stdio.h>
 
 #include "argp.h"
@@ -19,7 +25,7 @@
  * @param argc Number of command-line arguments
  * @param argv Command-line argument array
  *
- * @return
+ * @return Program exit code
  */
 int main(int argc, char** argv)
 {

@@ -1,3 +1,9 @@
+---
+-- @file std.show
+-- @brief Provides functions to show the values of lua-tables in more human-readible formats
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import is_list from require 'std.util'
 import rep from string
 import concat from table

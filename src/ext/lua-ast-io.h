@@ -1,3 +1,9 @@
+/**
+ * @file lua-ast-io.h
+ * @brief Exposes functions for translating between Lua tables and document trees
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "data/list.h"

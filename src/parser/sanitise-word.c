@@ -1,3 +1,9 @@
+/**
+ * @file sanitise-word.c
+ * @brief Implements the word-sanitiser function for the Emblem parser
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "sanitise-word.h"
 
 #include "logs/logs.h"

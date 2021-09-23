@@ -1,3 +1,9 @@
+/**
+ * @file parser.h
+ * @brief Exposes document parser at the topmost level
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "argp.h"

@@ -1,3 +1,9 @@
+/**
+ * @file ext-params.h
+ * @brief Exposes functions to handle extension-environment parameters
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "argp.h"

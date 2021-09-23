@@ -1,3 +1,9 @@
+/**
+ * @file ext-env.h
+ * @brief Exposes functions for handling the Lua extension environment
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "ext-params.h"

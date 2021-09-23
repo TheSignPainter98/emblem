@@ -1,3 +1,9 @@
+/**
+ * @file ext-env.c
+ * @brief Implements the Lua extension environment, loading libraries, extensions and pointers
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "ext-env.h"
 
 #include "doc-struct/ast.h"

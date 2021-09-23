@@ -1,3 +1,9 @@
+---
+-- @file std.log
+-- @brief Provides logging functions
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import Directive, em, em_loc, eval_string, _log_err, _log_err_at, _log_warn, _log_warn_at, _log_info, _log_debug, iter_num from require 'std.base'
 import do_nothing, id from require 'std.func'
 import on_iter_wrap from require 'std.util'

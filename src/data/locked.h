@@ -1,3 +1,9 @@
+/**
+ * @file locked.h
+ * @brief Exposes functions for data-structure locking, designed to reduce the possibility of race conditions
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "destructor.h"

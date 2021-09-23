@@ -1,3 +1,9 @@
+---
+-- @file std.ref
+-- @brief Implements the label-anchor-reference system for cross-referencing within documents
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import Directive, em, eval_string, get_var, set_var from require 'std.base'
 import SyncMap from require 'std.events'
 import log_warn_here from require 'std.log'

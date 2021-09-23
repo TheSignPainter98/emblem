@@ -1,4 +1,9 @@
-import open from io
+---
+-- @file std.bib
+-- @brief Provides bibliographies and citations
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import Call, Content, Word from require 'std.ast'
 import copy_loc, Directive, em, eval_string, iter_num from require 'std.base'
 import SyncBox, SyncSet from require 'std.events'

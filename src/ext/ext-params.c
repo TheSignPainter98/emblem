@@ -1,3 +1,9 @@
+/**
+ * @file ext-params.c
+ * @brief Implements functions to handle extension-environment parameters
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "ext-params.h"
 
 #include "pp/unused.h"

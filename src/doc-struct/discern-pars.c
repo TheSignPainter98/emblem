@@ -1,3 +1,9 @@
+/**
+ * @file discern-pars.c
+ * @brief Implements functions to automatically place paragraph nodes in a document
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "discern-pars.h"
 
 #include "logs/logs.h"

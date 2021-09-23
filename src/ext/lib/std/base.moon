@@ -1,3 +1,9 @@
+---
+-- @file std.base
+-- @brief Provides the base library for use with extensions
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import len, lower from string
 import concat, insert from table
 

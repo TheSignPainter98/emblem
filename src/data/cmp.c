@@ -1,3 +1,9 @@
+/**
+ * @file cmp.c
+ * @brief Implements comparator functions
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "cmp.h"
 
 #include "data/str.h"

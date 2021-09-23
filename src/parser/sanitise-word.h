@@ -1,3 +1,9 @@
+/**
+ * @file sanitise-word.h
+ * @brief Exposes word-sanitiser for the Emblem parser
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "data/str.h"

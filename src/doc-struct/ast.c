@@ -1,3 +1,9 @@
+/**
+ * @file ast.c
+ * @brief Implements the document structure data types
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "ast.h"
 
 #include "logs/logs.h"

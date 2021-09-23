@@ -1,3 +1,9 @@
+/**
+ * @file either.c
+ * @brief Provices an implementation of the Either data-type, which can encode values of two types
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "either.h"
 
 #include "pp/not_implemented.h"

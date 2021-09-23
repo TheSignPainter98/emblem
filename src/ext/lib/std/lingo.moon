@@ -1,3 +1,9 @@
+---
+-- @file std.lingo
+-- @brief Provides a rudamentary scripting language for use in documents
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import lower, match from string
 import concat, insert from table
 import Call, Content from require 'std.ast'

@@ -1,3 +1,9 @@
+/**
+ * @file parser.c
+ * @brief Implements the parser at the top-level (entire-document)
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "parser.h"
 
 #include "data/cmp.h"

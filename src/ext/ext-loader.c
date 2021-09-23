@@ -1,3 +1,9 @@
+/**
+ * @file ext-loader.c
+ * @brief Implements the extension-loader
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "ext-loader.h"
 
 #include "data/list.h"

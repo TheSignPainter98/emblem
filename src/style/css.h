@@ -1,3 +1,9 @@
+/**
+ * @file css.h
+ * @brief Exposes functions to handle styling and stylesheets
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "css-params.h"

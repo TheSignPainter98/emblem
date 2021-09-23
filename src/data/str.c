@@ -1,3 +1,9 @@
+/**
+ * @file str.c
+ * @brief Implements the string data-structure
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "str.h"
 
 #include <string.h>

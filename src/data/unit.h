@@ -1,3 +1,9 @@
+/**
+ * @file unit.h
+ * @brief Exposes functions to handle the Unit data type, which cannot represent any information
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 /**

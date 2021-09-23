@@ -1,3 +1,9 @@
+/**
+ * @file maybe.c
+ * @brief Implements the Maybe data-structure, which can represent either a value or nothing
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "maybe.h"
 
 #include "pp/not_implemented.h"

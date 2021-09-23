@@ -1,3 +1,9 @@
+/**
+ * @file debug.c
+ * @brief Implements basic functionality for debugging involving the Lua stack
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "debug.h"
 
 #include "logs/logs.h"

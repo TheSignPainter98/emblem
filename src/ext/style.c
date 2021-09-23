@@ -1,3 +1,9 @@
+/**
+ * @file style.c
+ * @brief Implements function for loading stylesheets from extension-space
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "style.h"
 
 #include "data/str.h"

@@ -1,3 +1,9 @@
+/**
+ * @file list.c
+ * @brief Implements the list data-structure, a deque
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #include "list.h"
 
 #include "pp/unused.h"

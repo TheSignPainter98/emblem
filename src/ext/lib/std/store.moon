@@ -1,4 +1,9 @@
-import open from io
+---
+-- @file std.store
+-- @brief Allows values to be stored between executions of Emblem
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import dump, load from require 'lyaml'
 import Component from require 'std.events'
 import log_err from require 'std.log'

@@ -1,3 +1,9 @@
+/**
+ * @file cmp.h
+ * @brief Exposes comparator functions
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "pp/lambda.h"

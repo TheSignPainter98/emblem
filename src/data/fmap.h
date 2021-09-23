@@ -1,3 +1,9 @@
+/**
+ * @file fmap.h
+ * @brief Provides type definition for fmap functions, which allow computations on data _within_ structures
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 /**

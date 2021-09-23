@@ -1,3 +1,9 @@
+/**
+ * @file ast.h
+ * @brief Exposes functions to handle Emblem document structures
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "argp.h"

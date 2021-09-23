@@ -1,3 +1,9 @@
+/**
+ * @file sugar.h
+ * @brief Exposes functions to construct syntactic sugar calls
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "data/str.h"

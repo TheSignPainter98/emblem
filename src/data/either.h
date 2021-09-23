@@ -1,3 +1,9 @@
+/**
+ * @file either.h
+ * @brief Exposes functions for processing Either objects, which can represent values of two types
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "config.h"

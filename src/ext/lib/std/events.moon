@@ -1,3 +1,9 @@
+---
+-- @file std.events
+-- @brief Prpvides functionality for responding to typesetting events
+-- @author Edward Jones
+-- @date 2021-09-17
+
 import requires_reiter from require 'std.base'
 import show, ShowTable from require 'std.show'
 import do_nothing, filter_list from require 'std.func'

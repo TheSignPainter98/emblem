@@ -1,3 +1,9 @@
+/**
+ * @file list-array-conversions.h
+ * @brief Exposes conversion functiosn between arrays and lists
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "array.h"

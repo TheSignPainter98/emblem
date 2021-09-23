@@ -1,3 +1,9 @@
+/**
+ * @file str.h
+ * @brief Exposes functions to hendle the string data-type
+ * @author Edward Jones
+ * @date 2021-09-17
+ */
 #pragma once
 
 #include "array.h"
