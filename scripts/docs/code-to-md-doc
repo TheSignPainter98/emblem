@@ -91,6 +91,12 @@ parse_doc_src = (src) ->
 				ret[new_tag] = content
 	ret
 
+co_to_list = (c) ->
+	ret = {}
+	for v in c
+		insert ret, v
+	ret
+
 doc_types = {}
 doc_type_names = {}
 class Doc
@@ -111,12 +117,9 @@ class Doc
 				@name = @sig\match '%*?([^%s()]+)%)?%('
 				@sanitised_sig = @sig
 			when 'moon'
-				if @sig\match '[^%s]*%.'
-					@name = @sig\match '^[^%s.]+%.([^%s.]+)'
-					@sanitised_sig = (tostring @sig\match '^[^%s.]+%.([^>]+>)') .. " ..."
-				else
-					@name = @sig\match '^%s*([^%s]+)'
-					@sanitised_sig = (tostring @sig\match '^([^>]+>)') .. " ..."
+				san_name = @sig\gsub '^[^%s]*%.', ''
+				@name = san_name\match '^%s*([^%s]+)'
+				@sanitised_sig = (san_name\match '[^.(]+') .. (concat (co_to_list @sig\gmatch '(%b()[^>]+>)'), ' ') .. ' ...'
 			when 'em'
 				@name = @sig\match '^em%.([^%s.]+)'
 				dname = @sig\match '^em%.([^=]+) ='
@@ -177,7 +180,7 @@ class FuncDoc extends Doc
 	@takes_doc: (doc, sig, language) ->
 		switch language
 			when 'c', 'moon'
-				sig\match '%('
+				(sig\match '%(') or (sig\match '=>') or sig\match '->'
 			when 'em'
 				false
 			else
