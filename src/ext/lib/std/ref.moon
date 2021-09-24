@@ -11,7 +11,7 @@ import log_warn_here from require 'std.log'
 references = SyncMap!
 
 CURR_LABEL_VAR_NAME = 'curr_label'
-INITIAL_LABEL_VALUE = 'asdf'
+INITIAL_LABEL_VALUE = '??'
 
 set_label = (c) ->
 	c = eval_string c
