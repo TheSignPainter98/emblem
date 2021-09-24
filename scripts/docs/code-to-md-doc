@@ -118,8 +118,22 @@ class Doc
 				@sanitised_sig = @sig
 			when 'moon'
 				san_name = @sig\gsub '^[^%s]*%.', ''
-				@name = san_name\match '^%s*([^%s]+)'
-				@sanitised_sig = (san_name\match '[^.(]+') .. (concat (co_to_list @sig\gmatch '(%b()[^>]+>)'), ' ') .. ' ...'
+				san_name = san_name\gsub '^export ', ''
+				@name = san_name\match '^%s*([^ \t]+)'
+				import wrap, yield from coroutine
+				sig = (s) ->
+					PARAMETRIC_SIG_PAT = '(%b()[^>]+>)'
+					if s\match PARAMETRIC_SIG_PAT
+						s\gmatch PARAMETRIC_SIG_PAT
+					else
+						import wrap, yield from coroutine
+						wrap -> yield s\match '[-=]>'
+				if equals_idx = @sig\find '='
+					sig_body = @sig\sub equals_idx
+					signature = (concat (co_to_list sig @sig), ' ')
+					@sanitised_sig = "#{@name} = #{signature} ..."
+				else
+					@sanitised_sig = @sig
 			when 'em'
 				@name = @sig\match '^em%.([^%s.]+)'
 				dname = @sig\match '^em%.([^=]+) ='
