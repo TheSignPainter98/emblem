@@ -37,15 +37,12 @@ class Store extends Component
 				rawset @, 'curr_store', curr_store or {}
 	__get: (k, d) =>
 		(rawget (getmetatable @), 'ensure_has_store') @
-		if ret = (rawget @, 'curr_store')[k]
-			ret
-		else
-			d
+		(rawget (rawget @, 'curr_store'), k) or d
 	__set: (k, v) =>
 		(rawget (getmetatable @), 'ensure_has_store') @
 		(rawget @, 'curr_store')[k] = v
 	on_end: =>
-		if @curr_store
+		if @curr_store and open
 			curr_store_rep = dump {@curr_store}
 			f = open @store_loc, 'w'
 			if not f
