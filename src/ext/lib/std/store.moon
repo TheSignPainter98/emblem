@@ -15,6 +15,8 @@ if not io.module_unavailable
 
 EM_STORE_FILE_DEFAULT = '.em-store.yml'
 
+---
+-- @brief Represents store of values to transfer between separate runs of the program
 class Store extends Component
 	new: (@store_loc=EM_STORE_FILE_DEFAULT) =>
 		super!
@@ -51,6 +53,8 @@ class Store extends Component
 				\write curr_store_rep
 				\close!
 
+---
+-- @brief The current score
 store = Store!
 
 curr_version_num = nil

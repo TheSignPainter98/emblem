@@ -23,8 +23,19 @@ import it from stylers
 -- stylesheet 'share/bib.scss'
 
 cite_style = 'numeric'
+
+---
+-- @brief Set the current citation style to a given style
+-- @param style The new current citation style
 set_cite_style = (style) -> cite_style = style
+
+---
+-- @brief Get the current citation style
+-- @return The current citation style
 get_cite_style = -> cite_style
+
+---
+-- @brief Stores the current known citation styles
 cite_styles =
 	numeric: (itm) -> itm.bib_idx
 get_cite_str = (...) -> cite_styles[cite_style](...)
@@ -53,6 +64,8 @@ class UnknownCitation
 	__lt: (u, v) -> u.ref < v.ref
 	__tostring: => @ref
 
+---
+-- @brief Represents a bibliography store
 class Bib extends SyncSet
 	new: (@bib_name='Bibliography') =>
 		super!

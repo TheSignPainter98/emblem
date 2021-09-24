@@ -1,9 +1,17 @@
+---
+-- @file std.out.html
+-- @brief Provides an output driver for [HTML](https://developer.mozilla.org/en-US/docs/Web/HTML)
+-- @author Edward Jones
+-- @date 2021-09-24
+
 import driver_capabilities from require 'std.constants'
 import ContextFreeOutputDriver, output_drivers from require 'std.out.drivers'
 import concat from table
 
 import TS_BASIC_STYLING, TS_COLOUR, TS_IMAGE, TS_TEXT_SIZE, TS_SVG from driver_capabilities
 
+---
+-- @brief Represents an output driver for bbcode
 class HtmlOutputDriver extends ContextFreeOutputDriver
 	new: (do_wrap_root) =>
 		support = TS_BASIC_STYLING | TS_COLOUR | TS_IMAGE | TS_TEXT_SIZE | TS_SVG

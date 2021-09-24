@@ -36,14 +36,20 @@ concat_ast_nodes = (as, bs) ->
 			flags |= bs.flags
 	Content newlist, flags
 
+---
+-- @brief Represents a word node
 class Word extends Node
 	new: (@word, ...) => super WORD, ...
 	__concat: concat_ast_nodes
 
+---
+-- @brief Represents a content node (which has no content itself but rather stores other nodes beneath it)
 class Content extends Node
 	new: (@content, ...) => super CONTENT, ...
 	__concat: concat_ast_nodes
 
+---
+-- @brief Represents a call to a directive
 class Call extends Node
 	new: (@name, @args, ...) =>
 		super CALL, ...
@@ -56,6 +62,10 @@ class Call extends Node
 		insert newargs, a
 		Call c.name, newargs, c.flags
 
+---
+-- @brief Make a function which constructs a call to a given directive
+-- @param Name of the directive to call
+-- @return A function which takes arguments and returns a call upon those arguments
 mkcall = (name) -> (args) -> Call name, args
 
 { :Call, :Content, :Word, :mkcall }

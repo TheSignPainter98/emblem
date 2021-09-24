@@ -38,6 +38,10 @@ em['echo-on'] = Directive 1, -1, "Output text to stdout on a given iteration", o
 em.call = Directive 1, -1, "Takes a directive and constructs a call to it with the remainder of the given arguments", (d, ...) ->
 	Call (eval_string d), {...}
 
+---
+-- @brief Takes input of value and evaluates it as a condition
+-- @param c Lua value or core pointer to evaluate as a condition
+-- @return false if `c` is `false` or is the empty string, '0' or 'false' (case-insensitive), otherwise true
 cond = (c) ->
 	if not c
 		return false
@@ -47,6 +51,10 @@ cond = (c) ->
 	else
 		true
 
+---
+-- @brief Converts a value to a condition integer (for a more compact representation
+-- @param b A value to check
+-- @return 0 if b is 0, the empty string, false or nil, otherwise 1
 toint = (b) ->
 	return 0 if b == 0 or b == '' or not b
 	1

@@ -8,6 +8,10 @@ import is_list from require 'std.util'
 import rep from string
 import concat from table
 
+---
+-- @brief Construct a string-representation of an object
+-- @param v Value for which to construct a string-representation
+-- @return A string representation of `v`
 show = (v) ->
 	switch type v
 		when 'boolean', 'nil', 'number', 'thread'
@@ -23,6 +27,10 @@ show = (v) ->
 			else
 				print 'Unknown type', type v
 
+---
+-- @brief Construct a prettier string-representation of an object
+-- @param v Value for which to construct a string-representation
+-- @return A string representation of `v` which is slightly prettier than that of `show`.
 showp = (v) ->
 	next = next
 	_showp = (v, i) ->

@@ -1,3 +1,9 @@
+---
+-- @file std.edit
+-- @brief Provides functions to compute and interpret edit distance
+-- @author Edward Jones
+-- @date 2021-09-24
+
 import Directive, em from require 'std.base'
 import min from math
 import len from string
@@ -16,6 +22,11 @@ show_mat = (u, v, ul, vl, minmat) ->
 	insert ret, "#{char_at r - 1, u}\t" .. concat [ minmat[r][c] or '_' for c=1,vl ], '\t' for r=1,ul
 	concat ret, '\n'
 
+---
+-- @brief Compute the edit distance between two strings
+-- @param u A string
+-- @param v Another string
+-- @return The edit distance between `u` and `v`
 edit_distance = (u, v) ->
 	ul = 1 + len u
 	vl = 1 + len v
@@ -28,11 +39,23 @@ edit_distance = (u, v) ->
 			minmat[i][j] = min sub, ins, del
 	minmat[ul][vl]
 
+---
+-- @brief Find the closest string to a given one from a list of strings
+-- @param s A source string
+-- @param ts A list of strings
+-- @return The _t_ in `ts` which is closest to `s`
 closest = (s, ts) ->
 	f = (t) -> edit_distance s, t
 	argmin f, ts
 
 SUGGESTION_THRESHOLD = 2
+
+---
+-- @brief Create a suggestion message when an incorrect value was supplied which should have been in a list of options
+-- @param x The name of the type of `v`
+-- @param v The incorrect value given
+-- @param vs The list of valid values of which `v` should have been a member
+-- @return A user-friendly message which suggests the `u` in `vs` which is closest to `v` if it is not too distant
 unknown_x_msg = (x, v, vs) ->
 	c,d = closest v, vs
 	suggestion = '.'

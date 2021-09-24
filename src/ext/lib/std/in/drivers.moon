@@ -9,9 +9,13 @@ import unknown_x_msg from require 'std.edit'
 import key_list from require 'std.func'
 import log_err_here from require 'std.log'
 
+---
+-- @brief Holds a map of known languages to input & parser functions
 known_languages =
 	em: include_file
 
+---
+-- @brief Holds a map of known file extensions to input languages
 known_file_extensions =
 	em: 'em'
 

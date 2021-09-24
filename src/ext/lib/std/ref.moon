@@ -13,9 +13,16 @@ references = SyncMap!
 CURR_LABEL_VAR_NAME = 'curr_label'
 INITIAL_LABEL_VALUE = '??'
 
+---
+-- @brief Set the current label
+-- @param c The new label
 set_label = (c) ->
 	c = eval_string c
 	set_var CURR_LABEL_VAR_NAME, c
+
+---
+-- @brief Get the label in the current context
+-- @return The value of the label in the current context
 get_label = -> get_var CURR_LABEL_VAR_NAME
 
 set_label INITIAL_LABEL_VALUE

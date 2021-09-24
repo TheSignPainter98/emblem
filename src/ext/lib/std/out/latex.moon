@@ -1,3 +1,9 @@
+---
+-- @file std.out.latex
+-- @brief Provides an output driver for [LaTeX](https://www.latex-project.org)
+-- @author Edward Jones
+-- @date 2021-09-24
+
 import driver_capabilities from require 'std.constants'
 import TextualMarkupOutputDriver, output_drivers from require 'std.out.drivers'
 import eq, is_list from require 'std.util'
@@ -23,6 +29,8 @@ class LaTeXLib
 					opt_string = "[#{concat [ "#{k}=#{v}" for k,v in ipairs @opts ], ','}]"
 		"\\usepackage#{opt_string}{#{@name}}"
 
+---
+-- @brief Represents an output driver for LaTeX
 class LaTeXOutputDriver extends TextualMarkupOutputDriver
 	new: (do_wrap_root) =>
 		support = TS_BASIC_STYLING | TS_COLOUR | TS_TEXT_SIZE

@@ -11,6 +11,8 @@ import elem, eq, non_nil from require 'std.util'
 import concat, insert from table
 
 components = {}
+---
+-- @brief Represents a component of a document which can respond to typesetting events
 class Component
 	new: => insert components, @
 	on_start: do_nothing
@@ -29,6 +31,8 @@ for event in *events
 		for comp in *components
 			comp[event](comp, ...) if comp[event] != do_nothing
 
+---
+-- @brief Represents a counter component. Resets at the start of each typesetting pass. Can have sub-counters which also cause it to reset.
 class Counter extends Component
 	new: =>
 		super!
@@ -55,6 +59,8 @@ class Counter extends Component
 		super!
 		@reset!
 
+---
+-- @brief Represents a value-container which requests a typesetting loop re-run if its value at the end of the current run differs from that at the end of the last
 class SyncContainer extends Component
 	new: (@initial={}) =>
 		super!
@@ -71,19 +77,27 @@ class SyncContainer extends Component
 	add: =>
 		error "Function not implemented"
 
+---
+-- @brief Represnts a sync container of a single primitive value
 class SyncBox extends SyncContainer
 	new: (@initial=0) => super @initial
 	set: (v) => @new_contents = v
 	value: => @contents
 
+---
+-- @brief Represents a sync container of a list of elements
 class SyncList extends SyncContainer
 	add: (c) => insert @new_contents, c
 	has: (c) => elem c, @new_contents
 
+---
+-- @brief Represents a sync container of a set of values
 class SyncSet extends SyncContainer
 	add: (c) => @new_contents[c] = true
 	has: (c) => @new_contents[c]
 
+---
+-- @brief Represents a subc container which represents a map
 class SyncMap extends SyncContainer
 	add: (k,v) => @new_contents[k] = v
 	has: (k) => @contents[k] != nil

@@ -13,6 +13,8 @@ import rep from string
 
 -- stylesheet 'share/hdr.scss'
 
+---
+-- @brief Represents a table of contents
 class Toc extends SyncList
 	new: =>
 		super!
@@ -25,7 +27,8 @@ class Toc extends SyncList
 				insert formatted_contents, (rep '&nbsp;', contents_line[2]) .. contents_line[1]
 		concat formatted_contents, '</br>'
 
-
+---
+-- @brief The main table of contents
 toc = Toc!
 em.toc = Directive 0, 0, "Create a table of contents", toc\output
 

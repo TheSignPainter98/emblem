@@ -1,3 +1,9 @@
+---
+-- @file std.out.drivers
+-- @brief Provides a framework for handling and creating output drivers
+-- @author Edward Jones
+-- @date 2021-09-24
+
 import driver_capabilities, node_types from require 'std.constants'
 import unknown_x_msg from require 'std.edit'
 import key_list from require 'std.func'
@@ -12,8 +18,12 @@ if not io.module_unavailable
 
 curr_output_driver = nil
 
+---
+-- @brief Holds a a mapping of known languages to their associated drivers
 output_drivers = SanitisedKeyTable!
 
+---
+-- @brief Represents an output driver
 class OutputDriver
 	new: (@support=0, @output_extension, @requires_stylesheet=false) =>
 	format: (doc) => error "Output driver does not implement the 'format' class method"
@@ -35,6 +45,8 @@ class OutputDriver
 
 import WORD, CALL, CONTENT from node_types
 
+---
+-- @brief Represents an output driver for a context-free language
 class ContextFreeOutputDriver extends OutputDriver
 	new: (@do_wrap_root=false, ...) => super ...
 	special_tag_map: {}
@@ -80,6 +92,8 @@ class ContextFreeOutputDriver extends OutputDriver
 		ret = @wrap_root ret if @do_wrap_root
 		ret
 
+---
+-- @brief Represents an output driver for context-free markup languages where paragraphs are represented by whitespace
 class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 	general_tag_enclose: (t, r) =>
 		if t == 'p'
@@ -93,12 +107,18 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 	general_non_par_tag_enclose: (_, r) => r
 	par_enclose: (r) => '\n\n' .. r
 
+---
+-- @brief Gets the current output driver
+-- @return The current output driver
 get_output_driver = -> curr_output_driver
 
+---
+-- @brief Sets the current output driver
+-- @param dname The name of the new output driver
 set_output_driver = (dname) ->
 	if curr_output_driver != nil
 		log_err "The output driver cannot be set more than once"
 	unless curr_output_driver = output_drivers[dname]
 		log_err unknown_x_msg 'output driver', dname, key_list output_drivers
 
-{ :get_output_driver, :set_output_driver, :ContextFreeOutputDriver, :TextualMarkupOutputDriver, :output_drivers }
+{ :get_output_driver, :set_output_driver, :OutputDriver, :ContextFreeOutputDriver, :TextualMarkupOutputDriver, :output_drivers }

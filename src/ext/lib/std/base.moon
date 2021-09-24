@@ -14,7 +14,11 @@ collectgarbage 'stop' -- TODO: remove the need for this!
 
 base = { :eval, :include_file, :requires_reiter, :_log_err, :_log_err_at, :_log_warn, :_log_warn_at, :_log_info, :_log_debug, :_em_loc, :stylesheet }
 
+---
+-- @brief Wrap the __get and __set methods into the __index and __newindex methods if available
 -- Calling wrap_indices @ in a constructor before the end seems to be able to cause a memory leak.
+-- @param object (table) to wrap
+-- @return nil
 base.wrap_indices = =>
 	mt = getmetatable @
 
@@ -53,6 +57,8 @@ if not io
 if not os
 	export os = UnimplementedLuaStandardModule 'os'
 
+---
+-- @brief Stores the necessary information for a directive which may be called
 class Directive
 	new: (@nmand, @nopt, msg_or_func, func) =>
 		if func == nil
@@ -67,6 +73,8 @@ class DirectiveHelp
 	new: (@dname, @direc) =>
 	__tostring: => ".#{@dname}: #{@direc.msg} (takes #{@direc.nmand} mandatory and #{@direc.nopt} optional arguments)"
 
+---
+-- @brief Represents a table which makes no distinction between upper/lower case and _/- in its keys
 class SanitisedKeyTable
 	new: => base.wrap_indices @
 	__tostring: show
@@ -80,8 +88,12 @@ class SanitisedKeyTable
 base.SanitisedKeyTable = SanitisedKeyTable
 
 help = SanitisedKeyTable!
-base.help = help
 
+---
+-- @brief Tests whether an object is an instance of a given class
+-- @param cls The class to test, may be a class name or a class itself
+-- @param obj The object to test
+-- @return `true` if `obj` is an instance of a sub-class of `cls`, otherwise `false`
 is_instance = (cls, obj) ->
 	return true if cls == type obj
 	return false if 'table' != type obj
@@ -120,8 +132,14 @@ class DirectivePublicTable
 		help[k] = DirectiveHelp k, v
 
 export em = DirectivePublicTable!
+---
+-- @brief Stores directive functions, this table is indexed when evaluating directives to see whether any lua code is to be executed.
 base.em = em
 
+---
+-- @brief Extracts the text beneath a given node
+-- @param n The node to convert into a string, must be a table
+-- @return The text stored at and under the given node
 node_string = (n) ->
 	if n == nil
 		return nil
@@ -143,6 +161,10 @@ node_string = (n) ->
 			return nil
 base.node_string = node_string
 
+---
+-- @brief Evaluates a node pointer and extracts the text contained in and below it
+-- @param d The userdata pointer to evaluate and extract from
+-- @return A string which represents all text at and beneath _d_
 eval_string = (d) ->
 	if 'userdata' == type d
 		return node_string eval d
@@ -154,17 +176,33 @@ em.help = Directive 1, 0, "Show documentation for a given directive", (dname) ->
 	if ret = help[eval_string dname]
 		tostring ret
 
+---
+-- @brief Returns the number of the current iteration of the typesetting loop (starts at 1)
+-- @return The number of times the typesetting loop has been started this run
 base.iter_num = -> em_iter
 
 vars = {{}}
+---
+-- @brief Stores scopes and their contained variables
 base.vars = vars
+
+---
+-- @brief Opens a new variable scope
 export open_var_scope = -> insert vars, {}
 base.open_var_scope = open_var_scope
+
+---
+-- @brief Closes the most recently-opened variable scope
 export close_var_scope = -> vars[#vars] = nil
 base.close_var_scope = close_var_scope
 
 get_scope_widening = (n) -> len n\match '^!*'
 
+---
+-- @brief Gets the value of a given variable, if the variable name starts with _n_ > 0 exclamation marks, then that many possible matches are skipped while searching from the innermost scope
+-- @param rn The raw variable name as a string or core pointer
+-- @param d An optional default value to return if `rn` does not exist
+-- @return The value of variable `rn` in the current scope otherwise `d`
 export get_var = (rn, d) ->
 	wn = eval_string rn
 	widen_by = get_scope_widening wn
@@ -178,6 +216,12 @@ export get_var = (rn, d) ->
 	d
 base.get_var = get_var
 em.get_var = Directive 1, 0, "Get the value of a variable in the current scope", get_var
+
+---
+-- @brief Set a variable to a given value, if the variable name starts with _n_ > 0 exclamation marks, then a search is performed to set the _n_-th variable with the same name in found whilst searching parent scopes.
+-- @param n The name of the variable (string or code pointer)
+-- @param v The value to set (not changed by this operation)
+-- @param surrounding_scope If set to true, search is bumped up one scope (useful for the .set-var directive which would otherwise have the set value swallowed in its own scope)
 
 export set_var = (n, v, surrounding_scope=false) ->
 	-- If widening, search for parent scopes
@@ -199,13 +243,25 @@ export set_var = (n, v, surrounding_scope=false) ->
 	else
 		idx = #vars > 1 and #vars - extra_widen or 1
 		vars[idx][n] = v
-
 base.set_var = set_var
+
+---
+-- @brief Set a given variable to a given value as a string
+-- @param n Variable name as for `set_var`
+-- @param v Value to evaluate then set to _n_
+-- @param w Scope widening paramerer as for `set_var`
 set_var_string = (n, v, w) -> set_var n, (eval_string v), w
 base.set_var_string = set_var_string
 em.set_var = Directive 2, 0, "Set the value of a variable in the current scope", (n, v) -> set_var_string n, v, true
 
+---
+-- @brief Get the current location in the source code
+-- @return A pointer to the current source location
 base.em_loc = -> get_var 'em_loc'
+
+---
+-- @brief Copy a source-code location
+-- @return A copy of the current source code location
 base.copy_loc = -> _copy_loc base.em_loc!
 
 base

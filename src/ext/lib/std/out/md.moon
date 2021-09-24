@@ -1,8 +1,16 @@
+---
+-- @file std.out.md
+-- @brief Provides an output driver for [markdown](https://www.wikiwand.com/en/Markdown)
+-- @author Edward Jones
+-- @date 2021-09-24
+
 import driver_capabilities from require 'std.constants'
 import TextualMarkupOutputDriver, output_drivers from require 'std.out.drivers'
 
 import TS_BASIC_STYLING from driver_capabilities
 
+---
+-- @brief Represents an output driver for markdown
 class MarkdownOutputDriver extends TextualMarkupOutputDriver
 	new: =>
 		support = TS_BASIC_STYLING
