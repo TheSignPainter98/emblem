@@ -10,14 +10,16 @@ import Call, Content from require 'std.ast'
 import close_var_scope, Directive, em, eval, eval_string, get_var, open_var_scope, set_var, set_var_string, vars from require 'std.base'
 import node_flags from require 'std.constants'
 import key_list from require 'std.func'
-import log_err_here, log_warn_here from require 'std.log'
+import log_debug, log_err_here, log_warn_here from require 'std.log'
 import eq, on_iter_wrap, sorted from require 'std.util'
 
 import NO_FURTHER_EVAL from node_flags
 
 local getenv, popen
 unless os.module_unavailable
-	import getenv, popen from os
+	import getenv from os
+unless io.module_unavailable
+	import popen from io
 
 em.known_directives = Directive 0, 0, "Return a list of known directives", -> concat (sorted key_list em), ' '
 
@@ -88,28 +90,24 @@ em.xor = Directive 2, 0, "Takes two conditions, returns true if either is true b
 	return toint false if c1 and c2
 	toint c1 or c2
 
-em['$'] = Directive 1, 0, "Execute a shell command", (cmd, pipe) ->
+em['$'] = Directive 1, 0, "Execute a shell command", (cmd) ->
 	unless popen
 		log_warn_here "Sub-process opening is restricted at this sandbox level"
 		return nil
 	cmd = eval_string cmd
-	pipe = eval_string pipe unless pipe == nil
 	local result
-	t_start = os.clock!
-	local t_end
-	with popen(cmd, 'r+')
-		\write pipe unless pipe == nil
+	time = -os.clock!
+	with popen cmd, 'r'
 		result = \read '*all'
 		passed, mode, rc = \close!
-		t_end = os.clock!
+		time += os.clock!
 		unless passed
 			switch mode
 				when 'exit'
 					log_err_here "Command '#{cmd}' failed with exit code #{rc}"
 				when 'signal'
 					log_err_here "Command '#{cmd}' was killed by signal #{rc}"
-	import log_debug from require 'std.log'
-	log_debug "It took #{t_end - t_start}s to run #{cmd}"
+	log_debug "It took #{time}s to run #{cmd}"
 	result
 
 em.env = Directive 1, 0, "Get the value of an environment variable", (var) ->
