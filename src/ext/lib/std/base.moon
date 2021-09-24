@@ -7,14 +7,12 @@
 import len, lower from string
 import concat, insert from table
 
-constants = require 'std.constants'
-import WORD, CALL, CONTENT from constants.node_types
+import node_types from require 'std.constants'
+import WORD, CALL, CONTENT from node_types
 
 collectgarbage 'stop' -- TODO: remove the need for this!
 
-base = { :eval, :include_file, :requires_reiter, :_log_err, :_log_err_at, :_log_warn, :_log_warn_at, :_log_info, :_log_debug, :_em_loc, }
-for k,v in pairs constants
-	base[k] = v
+base = { :eval, :include_file, :requires_reiter, :_log_err, :_log_err_at, :_log_warn, :_log_warn_at, :_log_info, :_log_debug, :_em_loc, :stylesheet }
 
 -- Calling wrap_indices @ in a constructor before the end seems to be able to cause a memory leak.
 base.wrap_indices = =>

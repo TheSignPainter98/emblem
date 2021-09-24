@@ -21,9 +21,13 @@ func.keys = (t) ->
 			yield k
 
 func.values = (t) ->
-	wrap ->
-		for _, v in pairs t
-			yield v
+	switch type t
+		when 'function', 'coroutine'
+			t
+		else
+			wrap ->
+				for _, v in pairs t
+					yield v
 
 func.kv_pairs = (t) ->
 	wrap ->

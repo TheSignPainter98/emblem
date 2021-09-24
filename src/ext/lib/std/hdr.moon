@@ -41,4 +41,4 @@ for i = 1,6
 		toc\add {ret, i}
 		ret
 
-{ :Toc }
+{ :Toc, :toc }
