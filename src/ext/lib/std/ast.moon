@@ -4,7 +4,7 @@
 -- @author Edward Jones
 -- @date 2021-09-17
 
-import node_types from require 'std.base'
+import node_types from require 'std.constants'
 import show from require 'std.show'
 import is_list from require 'std.util'
 import insert from table
