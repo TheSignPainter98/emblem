@@ -48,17 +48,14 @@ endif
 
 # Binary and sources
 bin_PROGRAMS = em
-bin_SCRIPTS = html2em
+# bin_SCRIPTS =
 em_SOURCES = S_SRC_FILES
 em_CFLAGS = $(CFLAGS_ALL) S_DEPS_CFLAGS $(CFLAGS_ANALYSER)
 em_LDADD = $(LDADD_ALL) S_DEPS_LIBS
 em_LFLAGS = $(LFLAGS_ALL)
 em_YFLAGS = $(YFLAGS_ALL)
-dist_man_MANS = em.1 html2em.1
+dist_man_MANS = em.1
 
-html2em: src/scripts/html2em.moon
-	cp $< $@
-	chmod 700 $@
 %.moon: ;
 
 src/ext/lib/std/constants.moon: scripts/lua-constants src/ext-constants.yml
@@ -100,9 +97,6 @@ ChangeLog: ./scripts/changelog.sh
 
 ./em.1: ./em.yml ./scripts/mangen
 	./scripts/mangen < $< > $@
-
-html2em.1: html2em
-	help2man -N --no-discard-stderr -n html2em ./$< > $@
 
 command-line-manual.pdf: em.1
 	$(ROFF) $(ROFF_FLAGS) $< > $@
@@ -159,4 +153,4 @@ format-check:
 
 dist_pkgdata_DATA = S_DIST_DATA
 EXTRA_DIST = ./em.yml ./src/pp/ignore_warning.h.m4 S_EXTRA_DIST
-CLEANFILES = html2em *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1 em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c emblem-*.tar.* PKGBUILD .clang-tidy clang-tidy-info.json command-line-manual.pdf $(BUILT_SOURCES) src/ext/lib/std/*.loc src/ext/lib/std/*.lua src/ext/lib/std/*__mod.moon
+CLEANFILES = *.log *.swp src/argp.c src/argp.h src/pp/ignore_warning.h ChangeLog em.1 em.1.gz y.tab.h docs/html/ docs/man/ docs/rst/ docs/xml/ docs/_static/css/style.css *.bak GPATH GRTAGS GTAGS d_tags src/parser/*emblem-lexer.c src/parser/*emblem-lexer.h src/parser/*emblem-parser.h src/parser/*emblem-parser.c lex.$(EM_LEX_PREFIX).c emblem-*.tar.* PKGBUILD .clang-tidy clang-tidy-info.json command-line-manual.pdf $(BUILT_SOURCES) src/ext/lib/std/*.loc src/ext/lib/std/*.lua src/ext/lib/std/*__mod.moon
