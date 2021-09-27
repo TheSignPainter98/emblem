@@ -9,6 +9,7 @@ import concat, insert from table
 import Call, Content from require 'std.ast'
 import close_var_scope, Directive, em, eval, eval_string, get_var, open_var_scope, set_var, set_var_string, vars from require 'std.base'
 import node_flags from require 'std.constants'
+import expr from require 'std.expr'
 import key_list from require 'std.func'
 import log_debug, log_err_here, log_warn_here from require 'std.log'
 import eq, on_iter_wrap, sorted from require 'std.util'
@@ -46,7 +47,10 @@ cond = (c) ->
 	if not c
 		return false
 	r = eval_string c
-	if '' == r or '0' == r or 'false' == lower r
+	return false if r == ''
+
+	e = expr r
+	if e == 0 or not e
 		false
 	else
 		true
