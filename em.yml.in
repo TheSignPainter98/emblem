@@ -183,6 +183,7 @@ dist:
       - lua
       - lua-argparse
       - lua-htmlparser
+      - lua-lpeg
       - lua-lyaml
       - moonscript
       - ncurses
