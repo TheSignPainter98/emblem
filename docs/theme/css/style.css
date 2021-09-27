@@ -28,7 +28,7 @@ p + p {
 	ul, ol {
 		padding-left: 0em;
 	}
-	ul ul, ol ol {
+	ul ul, ul ol, ol ol, ol ul {
 		padding-left: 2em;
 	}
 }

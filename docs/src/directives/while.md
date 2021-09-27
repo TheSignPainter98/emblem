@@ -1,6 +1,6 @@
 # `.while`
 
-The `.while` directive takes two inputs: a condition and a loop body and does the following:
+The `.while` directive takes two inputs: a [condition][condition] and a loop body and does the following:
 
 1. Check to see if the condition is true
 2. If it is, evaluate the loop body and go to step 1
@@ -19,4 +19,5 @@ The following will ask the user for an input until they enter something which is
 	!!x <- .readline
 ```
 
+[condition]: ../expressions.md
 [readline]: readline.md

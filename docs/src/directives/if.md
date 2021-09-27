@@ -1,6 +1,6 @@
 # `.if`
 
-This directive allows for the selection of a single branch (or none) by use of a condition.
+This directive allows for the selection of a single branch (or none) by use of a [condition][condition].
 This directive takes two forms:
 
 ```emblem
@@ -29,5 +29,5 @@ Assuming that the variable `!is_morning` contains a value which represents wheth
 	::
 		Hello!
 ```
-
+[condition]: ../expressions.md
 [^ifelse]: This form operates exactly the same as an if-else block common to many programming languages.

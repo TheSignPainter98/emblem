@@ -117,8 +117,9 @@ To compile and run the `em`, you will need to install the following libraries:
 - [libsass](https://sass-lang.com/libsass)
 - [lua](https://www.lua.org/download.html) 5.4
 - [lua-argparse](https://luarocks.org/modules/argparse/argparse)
-- [lua-lyaml](https://luarocks.org/modules/gvvaughan/lyaml)
 - [lua-htmlparser](https://github.com/msva/lua-htmlparser)
+- [lua-lpeg](http://www.inf.puc-rio.br/~roberto/lpeg/)
+- [lua-lyaml](https://luarocks.org/modules/gvvaughan/lyaml)
 - [moonscript](https://moonscript.org)
 - [ncurses](https://invisible-island.net/ncurses/)
 
