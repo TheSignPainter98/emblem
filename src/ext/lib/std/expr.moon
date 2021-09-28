@@ -16,6 +16,11 @@ class Operator
 	new: (@name, @func) =>
 		@pat = P @name
 
+op_arity =
+	UNARY: 1
+	BINARY: 2
+import UNARY, BINARY from op_arity
+
 ---
 -- @brief Represents a set of operators which all have the same precidence, allowing them to be parsed at the same level in an expression tree
 class PrecidenceGroup
@@ -95,7 +100,7 @@ class ExprTreeLeaf
 mk_leaf = (...) -> ExprTreeLeaf ...
 
 ---
--- @brief List of precidence groups from which expression parsers are created
+-- @brief List of precedence groups from which expression parsers are created
 operators = {
 	MultiBinaryComparisonPredicenceGroup {
 		Operator '<==>', (a,b) -> bool_to_int a == b
@@ -198,7 +203,6 @@ class ExprGrammar
 		expr_tree = @parser\match ps
 		unless expr_tree
 			log_warn_here "Failed to parse expression '#{s}'"
-			print "Failed to parse expression '#{s}'"
 			return nil
 		expr_tree\eval!
 	preprocess_parse_input: (s) =>
