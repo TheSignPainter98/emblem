@@ -20,7 +20,7 @@ If the variable name contains exclamation marks, the scope of the assignment is 
 ```
 
 Note that as we want the literal variable name, the initial exclamation mark must be escaped to prevent variable recognition at parse-time and hence expansion.
-Only the first exclamation mark requires an escape, so `!!asdf` would become `\!!asdf`
+Only the first exclamation mark requires an escape, so the literal `!!asdf` can be escaped into `\!!asdf`.
 The above snippet is equivalent by syntactic sugar to the following.
 
 ```emblem
@@ -28,6 +28,26 @@ The above snippet is equivalent by syntactic sugar to the following.
 ```
 
 More exclamation marks will widen the scope-search further.
+
+The `.set-var` directive has some variants for some specialised use-cases.
+We combine [`.expr`][expr] with `.set-var` with the `.set-var-expr` directive, which evaluates the value parameter as an expression before performing assignment.
+We also have `.find-set-var` and `.find-set-var-expr`, which are the same as `.set-var` and `.set-var-expr`, except that the search for an existing instance of the variable is always performed, even when the number of exclamation marks specified would not trigger it with the non-find assignment directives.
+This cleans up the syntax slightly for the common operation of extracting a value from the scope of a loop for example---the following two are equivalent.
+
+```emblem
+!!hello <- world
+!hello <-- world
+```
+
+The variants of `.set-var` each have their own syntactic sugar.
+The following is a list of all sugars associated with assignment
+
+```emblem
+!var <- value // Equivalent to .set-var{var}{value}
+!var <~ exp // Equivalent to .set-var-expr{var}{exp} or !var <- .expr: exp
+!var <-- value // Equivalent to .find-set-var{var}{value}
+!var <~~ exp // Equivalent to .find-set-var-expr{var}{exp} or !var <-- .expr: exp
+```
 
 ## Example -- Recording a user’s name for later use
 
@@ -43,3 +63,5 @@ Please change yours.
 Warmest regards,
 !name
 ```
+
+[expr]: expr.md

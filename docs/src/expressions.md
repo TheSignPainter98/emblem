@@ -56,8 +56,7 @@ The following is a solution in Emblem to the [FizzBuzz][fizz-buzz] common interv
 This is by no means a model solution for Emblem is not a programming language---first and foremost it is a typesetter, it just happens to have a handy extension language which can be programmed in.
 
 ```
-!i <- 1
-.while{1 <= !i <= 100}:
+.for{!i <- 1}{1 <= !i <= 100}{!i <~ !i + 1}:
 	.if{!i % 15 == 0}:
 		.echo: FizzBuzz
 	::
@@ -68,7 +67,6 @@ This is by no means a model solution for Emblem is not a programming language---
 				.echo: Fizz
 			::
 				.echo: !i
-	!!i <- .expr: !i + 1
 ```
 
 [arithmetic-directives]: directives/expl/arithmetic.md

@@ -17,7 +17,7 @@ The following will ask the user for an input until they enter something which is
 !x <- .readline
 .while{.streq{}: !x}:
 	.warn: User didn't enter anything
-	!!x <- .readline
+	!x <-- .readline
 ```
 
 [readline]: readline.md

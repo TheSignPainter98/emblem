@@ -2,5 +2,6 @@ book
 *.swp
 generated/
 !*.css
-SUMMARY.md
 book.toml
+!*.md
+SUMMARY.md

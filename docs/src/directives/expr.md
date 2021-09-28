@@ -12,7 +12,7 @@ The following will repeatedly read an expression to evaluate from the user, unti
 !resp <- .readline
 .while{! .streq{}{!resp}}:
 	.echo: .expr: !resp
-	!!resp <- .readline
+	!resp <-- .readline
 ```
 
 [expression]: ../expressions.md

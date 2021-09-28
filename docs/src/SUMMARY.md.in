@@ -2,16 +2,17 @@
 
 - [Introduction](./introduction.md)
 - [How Emblem works](./how-emblem-works.md)
-- [How to use Emblem](./how-to-use-emblem.md)
+- [How to use Emblem]() <!-- (./how-to-use-emblem.md) -->
 	- [Basic syntax]()
 	- [Preprocessor directives (‘pragmas’)]()
-	- [Syntactic sugars](syntactic-sugar.md)
+	- [Syntactic sugars]() <!-- (syntactic-sugar.md) -->
 	- [Styling]()
-		- [Using SCSS/SASS to style documents](./advanced-document-styling.md)
-	- [Writing extensions](./writing-extensions.md)
-		- [Controlling the typesetting loop](./controlling-the-typesetting-loop.md)
-	- [Writing input drivers](./writing-input-drivers.md)
-	- [Writing output drivers](./writing-output-drivers.md)
+		- [Using SCSS/SASS to style documents]() <!-- (./advanced-document-styling.md) -->
+	- [Writing extensions]() <!-- (./writing-extensions.md) -->
+		- [Controlling the typesetting loop]() <!-- (./controlling-the-typesetting-loop.md) -->
+	- [Writing input drivers]() <!-- (./writing-input-drivers.md) -->
+	- [Writing output drivers]() <!-- (./writing-output-drivers.md) -->
+	- [Variables, Assignment and scope]() <!-- (./assignment-and-scope.md) -->
 	- [Expressions and Conditions](./expressions.md)
 - [Document directives](./directives.md)
 	- [Document structure](./directives/expl/document-structure.md)
@@ -27,10 +28,11 @@
 		- [`.def`](./directives/def.md)
 		- [`.defined`](./directives/defined.md)
 		- [`.exists`](./directives/exists.md)
+		- [`.for`](./directives/for.md)
 		- [`.foreach`](./directives/foreach.md)
 		- [`.get-var`](./directives/get-var.md)
 		- [`.if`](./directives/if.md)
-		- [`.set-var`](./directives/set-var.md)
+		- [`.set-var` and its variants](./directives/set-var.md)
 		- [`.undef`](./directives/undef.md)
 		- [`.while`](./directives/while.md)
 	- [Logging](./directives/expl/logging.md)
