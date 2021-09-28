@@ -171,6 +171,16 @@ em.while = Directive 2, 0, "Takes a condition and a body, repeats the body until
 		close_var_scope!
 	Content ret, NO_FURTHER_EVAL
 
+em.for = Directive 4, 0, "Takes an initialiser, condition, updater and body, executes the initialiser, then repeatedly: evaluates the condition, executes the body and then the updator, until the condition is false.", (i, c, u, b) ->
+	ret = {}
+	eval i
+	while cond c
+		open_var_scope!
+		insert ret, eval b
+		close_var_scope!
+		eval u
+	Content ret, NO_FURTHER_EVAL
+
 em.foreach = Directive 3, 0, "Takes a variable name, a list of values and a body, repeats the body with the variable taking each value specified, in the order given", (n, vs, b) ->
 	ret = {}
 	n = eval_string n
