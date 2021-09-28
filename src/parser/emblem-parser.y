@@ -85,6 +85,7 @@ typedef struct
 	Str* str;
 	Sugar sugar;
 	SimpleSugar simple_sugar;
+	Str* assignment;
 	size_t len;
 }
 
@@ -110,7 +111,7 @@ typedef struct
 %token					T_PAR_BREAK			"paragraph break"
 %token					T_COLON				"colon"
 %token					T_DOUBLE_COLON		"double-colon"
-%token					T_ASSIGNMENT		"<-"
+%token <assignment>		T_ASSIGNMENT		"assignment operator"
 %token <node>			T_INCLUDED_FILE		"file inclusion"
 %token <sugar>			T_UNDERSCORE_OPEN	"opening underscore(s)"
 %token <simple_sugar>	T_CITATION			"citation"
@@ -130,7 +131,7 @@ typedef struct
 
 %destructor { dest_unit(&$$); } <doc>
 %destructor { if ($$) { dest_free_doc_tree_node($$, false); } } <node>
-%destructor { if ($$) { dest_str($$); free($$); } } <str>
+%destructor { if ($$) { dest_str($$); free($$); } } <str> <assignment>
 %destructor { if ($$) { dest_call_io($$, false), free($$); } } <args>
 %destructor { dest_sugar(&$$); } <sugar>
 %destructor { dest_simple_sugar(&$$); } <simple_sugar>
@@ -143,7 +144,7 @@ static Location* alloc_assign_loc(EM_LTYPE yyloc, Str** ifn) __attribute__((mall
 static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str** ifn);
 static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode* arg, Location* loc);
 static void make_variable_retrieval(DocTreeNode* node, Str* var, Location* loc);
-static void make_variable_assignment(DocTreeNode* node, Str* var, DocTreeNode* val, Location* loc);
+static void make_variable_assignment(DocTreeNode* node, Str* assignment, Str* var, DocTreeNode* val, Location* loc);
 static void make_simple_syntactic_sugar_call(DocTreeNode* node, SimpleSugar ssugar, Location* loc);
 static void dest_preprocessor_data(PreProcessorData* preproc);
 static FILE* open_file(char* fname, char* mode);
@@ -191,7 +192,6 @@ lines
 line
 	: line_content T_LN
 	| T_INCLUDED_FILE
-	| T_VARIABLE_REF T_ASSIGNMENT line_content T_LN	{ $$ = malloc(sizeof(DocTreeNode)); make_variable_assignment($$, $1, $3, alloc_assign_loc(@$, data->ifn)); }
 	| T_HEADING line_content T_LN					{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_DIRECTIVE multi_line_args					{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| error											{ alloc_malloc_error_word(&$$, @$, data->ifn); }
@@ -225,6 +225,7 @@ line_content
 
 line_content_ne
 	: line_element line_content			{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
+	| T_VARIABLE_REF T_ASSIGNMENT line_content { $$ = malloc(sizeof(DocTreeNode)); make_variable_assignment($$, $2, $1, $3, alloc_assign_loc(@$, data->ifn)); }
 	| T_DIRECTIVE line_remainder_args	{
 											$$ = malloc(sizeof(DocTreeNode));
 											make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn));
@@ -303,17 +304,15 @@ static void make_variable_retrieval(DocTreeNode* node, Str* var, Location* loc)
 	make_doc_tree_node_call(node, get_call_name, args, dup_loc(loc));
 }
 
-static void make_variable_assignment(DocTreeNode* node, Str* var, DocTreeNode* val, Location* loc)
+static void make_variable_assignment(DocTreeNode* node, Str* assignment, Str* var, DocTreeNode* val, Location* loc)
 {
-	Str* set_call_name = malloc(sizeof(Str));
-	make_strv(set_call_name, "set-var");
 	DocTreeNode* var_node = malloc(sizeof(DocTreeNode));
 	make_doc_tree_node_word(var_node, var, loc);
 	CallIO* args = malloc(sizeof(CallIO));
 	make_call_io(args);
 	prepend_call_io_arg(args, val);
 	prepend_call_io_arg(args, var_node);
-	make_doc_tree_node_call(node, set_call_name, args, dup_loc(loc));
+	make_doc_tree_node_call(node, assignment, args, dup_loc(loc));
 }
 
 static void make_simple_syntactic_sugar_call(DocTreeNode* node, SimpleSugar ssugar, Location* loc)

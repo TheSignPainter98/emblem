@@ -5,7 +5,7 @@
 -- @date 2021-09-25
 
 import P, R, V from require 'lpeg'
-import Directive, em, eval_string, is_instance from require 'std.base'
+import Directive, em, eval_string, is_instance, set_var_string from require 'std.base'
 import id from require 'std.func'
 import log_err, log_err_here, log_warn_here from require 'std.log'
 import show from require 'std.show'
@@ -229,5 +229,7 @@ expr = (s) ->
 	g\eval s
 
 em.expr = Directive 1, 0, "Parse and evaluate an expression", expr
+em.set_var_expr = Directive 2, 0, "Set the value of a variable in the current scope, evaluating the value as an expression", (n,v) -> set_var_string n, (expr v), true
+em.find_set_var_expr = Directive 2, 0, "Set the value of a variable in the current scope, evaluating the value as an expression", (n,v) -> set_var_string n, (expr v), true, true
 
 { :ExprGrammar, :MultiBinaryComparisonPredicenceGroup, :MultiBinaryPrecidenceGroup, :Operator, :PrecidenceGroup, :UnaryPrecidenceGroup, :expr, :operators }

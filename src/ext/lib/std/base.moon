@@ -222,15 +222,14 @@ em.get_var = Directive 1, 0, "Get the value of a variable in the current scope",
 -- @param n The name of the variable (string or code pointer)
 -- @param v The value to set (not changed by this operation)
 -- @param surrounding_scope If set to true, search is bumped up one scope (useful for the .set-var directive which would otherwise have the set value swallowed in its own scope)
-
-export set_var = (n, v, surrounding_scope=false) ->
+export set_var = (n, v, surrounding_scope=false, search=false) ->
 	-- If widening, search for parent scopes
 	wn = eval_string n
 	name_widen = get_scope_widening wn
 	n = wn\sub 1 + name_widen
 	extra_widen = surrounding_scope and 1 or 0
 
-	if name_widen != 0
+	if name_widen != 0 or search
 		widen_by = name_widen + extra_widen
 		for i = #vars, 1, -1
 			ve = vars[i][n]
@@ -250,9 +249,10 @@ base.set_var = set_var
 -- @param n Variable name as for `set_var`
 -- @param v Value to evaluate then set to _n_
 -- @param w Scope widening paramerer as for `set_var`
-set_var_string = (n, v, w) -> set_var n, (eval_string v), w
+set_var_string = (n, v, ...) -> set_var n, (eval_string v), ...
 base.set_var_string = set_var_string
 em.set_var = Directive 2, 0, "Set the value of a variable in the current scope", (n, v) -> set_var_string n, v, true
+em.find_set_var = Directive 2, 0, "Set the value of a variable in the current scope", (n, v) -> set_var_string n, v, true, true
 
 ---
 -- @brief Get the current location in the source code

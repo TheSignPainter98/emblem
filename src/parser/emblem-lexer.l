@@ -109,8 +109,11 @@ WORD_END_REGULAR 	{WORD_EASY_END_CHAR}{2}
 WORD_ESCAPE_CHAR	"\\"[^ \t\r\n]
 WORD_MID_CHAR 		({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}])
 WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=.: \t\r\n{}!])
-VARIABLE_REFERENCE  "!"[^ \t\r\n:{}]+
-VARIABLE_ASSIGNMENT "<-"
+VARIABLE_REFERENCE  "!"+[^ \t\r\n\\/+:;=`*<>{},.!?()[\]'"-]+
+VARIABLE_ASSIGN_1S	"<-"
+VARIABLE_ASSIGN_1L	"<--"
+VARIABLE_ASSIGN_2S	"<~"
+VARIABLE_ASSIGN_2L	"<~~"
 
 %x COMMENT
 %x INITIAL_WHITE
@@ -175,9 +178,12 @@ VARIABLE_ASSIGNMENT "<-"
 										BEGIN(BODY);
 									}
 
-<MAYBE_VARIABLE_ASSIGNMENT>"<-"				{ return T_ASSIGNMENT; }
-<MAYBE_VARIABLE_ASSIGNMENT>{WHITE_SPACE}+ 	;
-<MAYBE_VARIABLE_ASSIGNMENT>(.|{LN})			{ yyless(0); BEGIN(BODY); }
+<MAYBE_VARIABLE_ASSIGNMENT>{VARIABLE_ASSIGN_1S}/{WHITE_SPACE}	{ yylval->assignment = malloc(sizeof(Str)); make_strv(yylval->assignment, "set-var"); return T_ASSIGNMENT; }
+<MAYBE_VARIABLE_ASSIGNMENT>{VARIABLE_ASSIGN_1L}/{WHITE_SPACE}	{ yylval->assignment = malloc(sizeof(Str)); make_strv(yylval->assignment, "find-set-var"); return T_ASSIGNMENT; }
+<MAYBE_VARIABLE_ASSIGNMENT>{VARIABLE_ASSIGN_2S}/{WHITE_SPACE}	{ yylval->assignment = malloc(sizeof(Str)); make_strv(yylval->assignment, "set-var-expr"); return T_ASSIGNMENT; }
+<MAYBE_VARIABLE_ASSIGNMENT>{VARIABLE_ASSIGN_2L}/{WHITE_SPACE}	{ yylval->assignment = malloc(sizeof(Str)); make_strv(yylval->assignment, "find-set-var-expr"); return T_ASSIGNMENT; }
+<MAYBE_VARIABLE_ASSIGNMENT>{WHITE_SPACE}+ 						;
+<MAYBE_VARIABLE_ASSIGNMENT>(.|{LN})								{ yyless(0); BEGIN(BODY); }
 
 <PRAGMA>{PRAGMA_NAME_LINE}		{ BEGIN(PRAGMA_LINE); }
 <PRAGMA>{PRAGMA_NAME_INCLUDE}	{ BEGIN(PRAGMA_INCLUDE); }
