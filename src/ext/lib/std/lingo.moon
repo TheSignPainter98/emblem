@@ -171,14 +171,14 @@ em.while = Directive 2, 0, "Takes a condition and a body, repeats the body until
 		close_var_scope!
 	Content ret, NO_FURTHER_EVAL
 
-em.for = Directive 4, 0, "Takes an initialiser, condition, updater and body, executes the initialiser, then repeatedly: evaluates the condition, executes the body and then the updator, until the condition is false.", (i, c, u, b) ->
+em.for = Directive 4, 0, "Takes an initialiser, condition, updater and body, executes the initialiser, then repeatedly: evaluates the condition, executes the body and then the updator, until the condition is false.", (i, c, m, b) ->
 	ret = {}
 	eval i
 	while cond c
 		open_var_scope!
 		insert ret, eval b
 		close_var_scope!
-		eval u
+		eval m
 	Content ret, NO_FURTHER_EVAL
 
 em.foreach = Directive 3, 0, "Takes a variable name, a list of values and a body, repeats the body with the variable taking each value specified, in the order given", (n, vs, b) ->
@@ -191,10 +191,10 @@ em.foreach = Directive 3, 0, "Takes a variable name, a list of values and a body
 		close_var_scope!
 	Content ret, NO_FURTHER_EVAL
 
-em.defined = Directive 1, 0, "Checks whether a given variable is defined", (v) ->
+em.exists = Directive 1, 0, "Checks whether a given variable exists", (v) ->
 	toint vars[v] != nil
 
-em.exists = Directive 1, 0, "Checks whether a given directive exists", (f) ->
+em.defined = Directive 1, 0, "Checks whether a given directive has been defined", (f) ->
 	toint em[f] != nil
 
 {:cond, :toint }
