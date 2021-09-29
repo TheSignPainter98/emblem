@@ -31,6 +31,9 @@ p + p {
 	ul ul, ul ol, ol ol, ol ul {
 		padding-left: 2em;
 	}
+	h1 a code:first-child {
+		margin-left: -0.66666em;
+	}
 }
 @media screen and (max-width: 500px) {
 	ul, ol {
