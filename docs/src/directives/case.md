@@ -15,10 +15,14 @@ So for example if `!index` is 2, the following will be evaluated to ‘World.’
 
 If the index supplied is higher than the number of cases present or is negative, the last case is returned as a fallback option, hence if above `!index` is -1 or 12 for example, ‘How are you?’ will be returned.
 
+The index given to `.case` is parsed as an [expression][expression], hence it is possible to compute the index using mathematical operators.
+
 ## Example -- Chinese calendar year name
 
 The following could be used to translate from the year number in the Gregorian calendar to its Chinese calendar name, assuming the current year is stored in `!year`.
 
 ```emblem
-.case{.add{1}: .mod{!year}: 12}{Rooster}{Dog}{Pig}{Rat}{Ox}{Tiger}{Rabbit}{Dragon}{Snake}{Horse}{Goat}{Monkey}
+.case{1 + !year % 12}{Rooster}{Dog}{Pig}{Rat}{Ox}{Tiger}{Rabbit}{Dragon}{Snake}{Horse}{Goat}{Monkey}
 ```
+
+[expression]: ../expressions.md
