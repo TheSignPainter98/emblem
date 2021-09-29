@@ -1,6 +1,6 @@
 # How Emblem Works
 
-In this document, we will discuss the [how documents are processed](#the-typesetting-loop), [how documents are styled](#styling), [extensions](#extensions) and [input and output drivers](#input-and-output-drivers).
+In this document, we will discuss the [how documents are processed](#the-typesetting-loop), [how documents are styled](#styling-documents-with-css), [extensions](#extensions) and [input and output drivers](#input-and-output-drivers).
 
 At its most abstracted level, Emblem takes input of a document, typesets it and outputs it.
 It does this by parsing its input looking for _directives,_ structuring-calls calls which sub-divide a document’s source, which can apply both styles to and perform computation upon document content.
