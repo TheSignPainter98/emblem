@@ -1,0 +1,3 @@
+[submodule "docs/theme/mdBook-pagetoc"]
+	path = docs/theme/mdBook-pagetoc
+	url = git@github.com:JorelAli/mdBook-pagetoc

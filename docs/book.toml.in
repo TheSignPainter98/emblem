@@ -9,7 +9,8 @@ title = "S_NAME S_VERSION Documentation"
 cname = "emblem.kcza.net"
 
 [output.html]
-additional-css = ['theme/fonts/fonts.css', 'theme/css/style.css']
+additional-css = ['theme/fonts/fonts.css', 'theme/mdBook-pagetoc/style.css', 'theme/css/style.css']
+additional-js = ['theme/mdBook-pagetoc/sidebar.js']
 copy-fonts = true
 curly-quotes = true
 default-theme = 'ayu'
