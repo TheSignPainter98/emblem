@@ -76,3 +76,10 @@ code, :not(pre) > .hljs {
 	border-bottom-width: 1.5px;
 	display: block;
 }
+
+.pagetoc a {
+	border-left: unset;
+}
+.pagetoc a.active, .pagetoc a:hover {
+	text-decoration: none;
+}
