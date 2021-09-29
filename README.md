@@ -53,7 +53,7 @@ As there can be relations between some parts of a document, the running of [Lua]
 As this iteration is done internally, the executable `em` need only be run once to fully typeset a document from a given input.
 Emblem operates as below.
 
-![How Emblem operates](https://raw.githubusercontent.com/TheSignPainter98/emblem/master/docs/how-it-works.svg)
+![How Emblem operates](https://raw.githubusercontent.com/TheSignPainter98/emblem/master/docs/src/img/how-emblem-loops.svg)
 
 ## Usage
 
