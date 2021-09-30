@@ -17,7 +17,7 @@
 - [Document directives](./directives.md)
 	- [Document structure](./directives/expl/document-structure.md)
 		- [`.h1–6` and `.h1–6*`](./directives/h1-6.md)
-		- [`.include` and `.include\*`](./directives/include.md)
+		- [`.include`, `.include*` and `:include`](./directives/include.md)
 		- [`.toc`](./directives/toc.md)
 	- [References](./directives/expl/references.md)
 		- [`.anchor` and `.ref`](./directives/anchor-and-ref.md)

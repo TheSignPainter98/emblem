@@ -1,4 +1,4 @@
-# `.include` and `.include*`
+# `.include`, `.include*` and `:include`
 
 When writing large documents which consist of a large number of sections, it can be beneficial to partition the source into a number of smaller files.
 The result can be a document which is much easier to work upon than a single monolithic source file.
@@ -17,7 +17,7 @@ In basic use, the `.include` directive takes input of a file name with either no
 This result is also cached to avoid repeatedly re-parsing the same file.
 
 The contents of the specified file is then pasted into the document in the current location.
-Due to how paragraphs are recognised, if the call to `.include` is the only thing in a paragraph, then its contents are scanned to discern paragraphs, however, if it is _not_ the sole member of the paragraph, then its contents is added directly into the paragraph.
+Due to how paragraphs are recognised, if the call to `.include` is the only thing in a paragraph, then the given file’s contents are scanned to discern paragraphs, however, if it is _not_ the sole member of the paragraph, then its contents is added directly into the paragraph.
 
 ```emblem
 .include: some-file // Paragraphs in some-file.em are parsed as if were written directly in the source file
