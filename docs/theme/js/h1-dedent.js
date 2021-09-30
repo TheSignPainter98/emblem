@@ -2,8 +2,8 @@ h1s = Array.from(document.getElementsByTagName('h1'));
 
 h1s.forEach((h1) => {
 	code = Array.from(h1.getElementsByTagName('code'));
-	if (code.length && code[0].textContent.charAt(0) == '.')
-		h1.classList.add('directive');
+	if (code.length && code[0].textContent.charAt(0) != '.')
+		h1.classList.add('not-directive');
 });
 
 root = document.getElementsByTagName('body')[0];

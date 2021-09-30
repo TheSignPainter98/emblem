@@ -34,8 +34,11 @@ p + p {
 	ul ul, ul ol, ol ol, ol ul {
 		padding-left: 2em;
 	}
-	h1.directive {
+	h1 code:first-child {
 		margin-left: -0.66666em;
+	}
+	h1.not-directive code:first-child {
+		margin-left: 0em;
 	}
 }
 @media screen and (max-width: 500px) {
