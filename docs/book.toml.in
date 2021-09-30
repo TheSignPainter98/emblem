@@ -10,7 +10,7 @@ cname = "emblem.kcza.net"
 
 [output.html]
 additional-css = ['theme/fonts/fonts.css', 'theme/mdBook-pagetoc/style.css', 'theme/css/style.css']
-additional-js = ['theme/mdBook-pagetoc/sidebar.js']
+additional-js = ['theme/js/h1-dedent.js', 'theme/mdBook-pagetoc/sidebar.js']
 copy-fonts = true
 curly-quotes = true
 default-theme = 'ayu'
