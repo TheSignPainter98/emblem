@@ -36,7 +36,7 @@ To alleviate this, Emblem operates a typesetting loop whereby it repeatedly type
 As such, the overall operation of Emblem can be considered as below.
 
 <center>
-	<img src='img/how-emblem-loops.svg' alt='How Emblem loops'>
+	<img src='img/how-emblem-loops.svg' alt='How Emblem loops' class='invertable'>
 </center>
 
 The typesetting loop gives the user the guarantee that---with sufficiently-many iterations---the document output by Emblem will fully typeset after a single execution of the ‘em’ binary.
