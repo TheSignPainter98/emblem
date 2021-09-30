@@ -42,7 +42,7 @@ p + p {
 	ul, ol {
 		padding-left: 2em;
 	}
-	ul ul, ol ol {
+	ul ul, ul ol, ol ol, ol ul {
 		padding-left: 2em;
 	}
 }
@@ -91,4 +91,10 @@ code, :not(pre) > .hljs {
 }
 .pagetoc a.active, .pagetoc a:hover {
 	text-decoration: none;
+}
+
+@media only screen and (min-width:1440px) {
+	.pagetoc {
+		width: 12.5%;
+	}
 }
