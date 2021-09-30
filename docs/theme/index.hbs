@@ -138,6 +138,9 @@
                     <h1 class="menu-title">{{ book_title }}</h1>
 
                     <div class="right-buttons">
+						<a id="serif-toggle-button" title="Toggle seriffed typeface" aria-label="Toggle seriffed typeface 2" aria-expanded="false" aria-shortcuts="F" aria-controls="serif-toggle" onclick="toggleSans();">
+							<i id="serif-toggle-button" class="fa fa-font"></i>
+						</a>
                         {{#if print_enable}}
                         <a href="{{ path_to_root }}print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>

@@ -1,15 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,700;1,400;1,700&display=swap');
-/* @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400&display=swap'); */
-/* @import url('https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&family=Jost:ital,wght@0,400;0,700;1,400;1,700&display=swap'); */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Unna:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 
-/* html { */
-/* } */
+html {
+	font-family: 'Jost', sans-serif;
+}
+.serif {
+	font-family: 'Unna', serif;
+	font-size: 17.25px;
+}
 
 @import url('../fonts/fonts.css');
 
 html, p, .content, .content p {
-	font-family: 'Jost', sans-serif;
 	line-height: 3.55ex;
 	margin-bottom: 0px;
 }
@@ -65,6 +68,9 @@ code, :not(pre) > .hljs {
 	color: unset;
 }
 
+.serif code, .serif :not(pre) > .hljs {
+	font-size: 80%;
+}
 .example {
 	background-color: #9f9;
 	padding-top: 1px;
