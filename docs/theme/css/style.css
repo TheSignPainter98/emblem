@@ -10,8 +10,6 @@ html {
 	font-size: 17.25px;
 }
 
-@import url('../fonts/fonts.css');
-
 html, p, .content, .content p {
 	line-height: 3.55ex;
 	margin-bottom: 0px;
