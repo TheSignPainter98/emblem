@@ -1,6 +1,8 @@
 language: rust
 os: linux
 dist: focal
+git:
+  depth: false
 addons:
   apt:
     # sources:
