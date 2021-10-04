@@ -27,7 +27,7 @@ void make_doc(Doc* doc, DocTreeNode* root, Styler* styler, ExtensionEnv* ext)
 	doc->ext	= ext;
 }
 
-void dest_doc(Doc* doc) { dest_free_doc_tree_node(doc->root, false); }
+void dest_doc(Doc* doc) { dest_free_doc_tree_node(doc->root, false, CORE_POINTER_DEREFERENCE); }
 
 void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc)
 {
@@ -43,6 +43,7 @@ void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc)
 	node->content	= content;
 	node->parent	= NULL;
 	node->src_loc	= src_loc;
+	node->lp		= NULL;
 
 	make_strc(node->name, NODE_NAME_WORD);
 }
@@ -61,6 +62,7 @@ void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc)
 	node->content	= content;
 	node->parent	= NULL;
 	node->src_loc	= src_loc;
+	node->lp		= NULL;
 
 	make_list(content->content);
 	make_strc(node->name, NODE_NAME_CONTENT);
@@ -80,6 +82,7 @@ void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Locatio
 	node->content	= content;
 	node->parent	= NULL;
 	node->src_loc	= src_loc;
+	node->lp		= NULL;
 
 	if (call)
 	{
@@ -93,14 +96,24 @@ void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Locatio
 	}
 }
 
-void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result)
+void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, DocTreeNodeSharedDestructionMode shared_mode)
 {
+	if (shared_mode == LUA_POINTER_DEREFERENCE)
+		node->lp = NULL;
+	else // shared_mode == CORE_POINTER_DEREFERENCE
+		node->parent = NULL;
+
+	// Only free orphaned nodes which aren't referenced from ext-space
+	if (node->lp || node->parent)
+		return;
+
+	// Call parameters are freed from the call node itself
 	if (processing_result && node->flags & IS_CALL_PARAM)
 		return;
 
 	if (node->style)
 		dest_style(node->style);
-	dest_doc_tree_node_content(node->content, processing_result);
+	dest_doc_tree_node_content(node->content, processing_result, CORE_POINTER_DEREFERENCE);
 	free(node->content);
 	free(node->src_loc);
 	dest_str(node->name);
@@ -108,9 +121,18 @@ void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result)
 	free(node);
 }
 
-void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_result)
+LuaPointer* get_ast_lua_pointer(ExtensionState* s, DocTreeNode* node)
 {
-	NON_ISO(Destructor ed = ilambda(void, (void* v), { dest_free_doc_tree_node((DocTreeNode*)v, processing_result); }));
+	if (!node->lp)
+		node->lp = new_lua_pointer(s, AST_NODE, node, true);
+	return node->lp;
+}
+
+void dest_doc_tree_node_content(
+	DocTreeNodeContent* content, bool processing_result, DocTreeNodeSharedDestructionMode shared_mode)
+{
+	NON_ISO(Destructor ed
+		= ilambda(void, (void* v), { dest_free_doc_tree_node((DocTreeNode*)v, processing_result, shared_mode); }));
 
 	switch (content->type)
 	{
@@ -119,7 +141,7 @@ void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_res
 			free(content->word);
 			break;
 		case CALL:
-			dest_call_io(content->call, processing_result);
+			dest_call_io(content->call, processing_result, shared_mode);
 			free(content->call);
 			break;
 		case CONTENT:
@@ -162,11 +184,12 @@ void append_call_io_arg(CallIO* call, DocTreeNode* arg)
 	append_list(call->args, arg);
 }
 
-void dest_call_io(CallIO* call, bool processing_result)
+void dest_call_io(CallIO* call, bool processing_result, DocTreeNodeSharedDestructionMode shared_mode)
 {
-	NON_ISO(Destructor ed = ilambda(void, (void* v), { dest_free_doc_tree_node((DocTreeNode*)v, processing_result); }));
+	NON_ISO(Destructor ed
+		= ilambda(void, (void* v), { dest_free_doc_tree_node((DocTreeNode*)v, processing_result, shared_mode); }));
 	if (call->result)
-		dest_free_doc_tree_node(call->result, true);
+		dest_free_doc_tree_node(call->result, true, shared_mode);
 	dest_list(call->args, ed);
 	free(call->args);
 }

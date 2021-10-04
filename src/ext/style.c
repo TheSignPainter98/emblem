@@ -9,22 +9,11 @@
 #include "data/str.h"
 #include "debug.h"
 #include "logs/logs.h"
-#include "lua-pointers.h"
+#include "ext-env.h"
 #include "lua.h"
 #include "style/css.h"
 #include <lauxlib.h>
 #include <stdbool.h>
-
-void provide_styler(ExtensionEnv* e)
-{
-	lua_pushlightuserdata(e->state, e->styler);
-	lua_setglobal(e->state, STYLER_LP_LOC);
-}
-void rescind_styler(ExtensionEnv* e)
-{
-	lua_pushnil(e->state);
-	lua_setglobal(e->state, STYLER_LP_LOC);
-}
 
 int ext_import_stylesheet(ExtensionState* s)
 {

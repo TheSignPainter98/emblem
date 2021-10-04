@@ -11,16 +11,25 @@
 #include "ext-loader.h"
 #include "logs/ext-log.h"
 #include "logs/logs.h"
-#include "lua-constants.h"
 #include "lua-ast-io.h"
+#include "lua-constants.h"
 #include "lua-em-parser.h"
 #include "lua-lib-load.h"
 #include "lua.h"
 #include "style.h"
 #include <lauxlib.h>
 
-#define EM_EVAL_NODE_FUNC_NAME	  "eval"
-#define EM_REQUIRE_RUNS_FUNC_NAME "requires_reiter"
+#define EM_EVAL_NODE_FUNC_NAME		  "eval"
+#define EM_REQUIRE_RUNS_FUNC_NAME	  "requires_reiter"
+#define LUA_POINTER_GC_METATABLE_RKEY "emblem_core_pointer"
+
+const char* const lua_pointer_type_names[] = {
+	[AST_NODE]		= "AST node",
+	[STYLER]		= "styler",
+	[EXT_ENV]		= "extension environment",
+	[MT_NAMES_LIST] = "mt-safe file-name list",
+	[PARSED_ARGS]	= "parsed command-line arguments",
+};
 
 static luaL_Reg lua_std_libs_universal[] = {
 	{ "", luaopen_base },
@@ -44,21 +53,86 @@ static luaL_Reg lua_std_libs_restriction_lvl_0[] = {
 	{ NULL, NULL },
 };
 
+static int ext_dest_lua_pointer(ExtensionState* s);
 static void set_globals(ExtensionEnv* e, ExtParams* params);
 static void load_em_std_functions(ExtensionState* s);
 static int load_libraries(ExtensionState* s, ExtParams* params);
 static void load_library_set(ExtensionState* s, luaL_Reg* lib);
 static int ext_require_rerun(ExtensionState* s);
 
+LuaPointer* new_lua_pointer(ExtensionState* s, LuaPointerType type, void* data, bool destruction_permitted)
+{
+	LuaPointer* ret			   = lua_newuserdatauv(s, sizeof(LuaPointer), 1);
+	ret->type				   = type;
+	ret->data				   = data;
+	ret->valid				   = true;
+	ret->destruction_permitted = destruction_permitted; // TODO: check that the destruction_permitted is honoured.
+
+	lua_getfield(s, LUA_REGISTRYINDEX, LUA_POINTER_GC_METATABLE_RKEY);
+	lua_setmetatable(s, -2);
+
+	return ret;
+}
+
+static int ext_dest_lua_pointer(ExtensionState* s)
+{
+	if (lua_gettop(s) < 1)
+		luaL_error(s, "Expected one argument to the lua pointer finaliser function");
+	if (!lua_isuserdata(s, -1))
+		luaL_error(
+			s, "Expected userdata value to finalise, instead got %s (%s)", luaL_typename(s, -1), lua_tostring(s, -1));
+
+	LuaPointer* lp = lua_touserdata(s, -1);
+	if (!lp->valid || !lp->destruction_permitted)
+		return 0;
+
+	// Destroy contents as necessary
+	switch (lp->type)
+	{
+		case AST_NODE:
+			dest_free_doc_tree_node(lp->data, false, LUA_POINTER_DEREFERENCE);
+			break;
+		default:
+			log_warn("No destructor for lua pointer of type %d", lp->type);
+			break;
+	}
+
+	return 0;
+}
+
+int to_userdata_pointer(void** val, ExtensionState* s, int idx, LuaPointerType type)
+{
+	if (!lua_isuserdata(s, idx))
+	{
+		log_err("Expected userdata but got %s '%s'", luaL_typename(s, idx), luaL_tolstring(s, idx, NULL));
+		return 1;
+	}
+	LuaPointer* ptr = lua_touserdata(s, idx);
+	if (!ptr->valid)
+	{
+		log_err("Attempted to dereference an invalid lua pointer of type %s", lua_pointer_type_names[type]);
+		return 1;
+	}
+	if (ptr->type != type)
+	{
+		log_err("Expected %s userdata (%d) but got %s userdata (%d)", lua_pointer_type_names[type], type,
+			lua_pointer_type_names[ptr->type], ptr->type);
+		return 1;
+	}
+	*val = ptr->data;
+	return 0;
+}
+
+void release_pass_local_lua_pointers(ExtensionEnv* e) { lua_gc(e->state, LUA_GCCOLLECT); }
+
+void invalidate_lua_pointer(LuaPointer* lp) { lp->valid = false; }
+
 int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 {
 	ext->state			   = luaL_newstate();
 	ext->require_extra_run = true;
 	ext->iter_num		   = 0;
-	ext->styler			   = malloc(sizeof(LuaPointer));
-	make_lua_pointer(ext->styler, STYLER, params->styler);
 	log_debug("Getting created ext state at %p in env %p", (void*)ext->state, (void*)ext);
-	provide_styler(ext);
 
 	set_globals(ext, params);
 
@@ -69,20 +143,13 @@ int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 	return load_extensions(ext->state, params);
 }
 
-void dest_ext_env(ExtensionEnv* ext)
-{
-	lua_close(ext->state);
-	dest_lua_pointer(ext->mt_names_list, NULL);
-	free(ext->mt_names_list);
-	dest_lua_pointer(ext->args, NULL);
-	free(ext->args);
-	dest_lua_pointer(ext->selfp, NULL);
-	free(ext->selfp);
-	dest_lua_pointer(ext->styler, NULL);
-	free(ext->styler);
-}
+void dest_ext_env(ExtensionEnv* ext) { lua_close(ext->state); }
 
-void finalise_env_for_typesetting(ExtensionEnv* e) { rescind_styler(e); }
+void finalise_env_for_typesetting(ExtensionEnv* e)
+{
+	lua_pushnil(e->state);
+	lua_setglobal(e->state, STYLER_LP_LOC);
+}
 
 static void set_globals(ExtensionEnv* e, ExtParams* params)
 {
@@ -90,27 +157,38 @@ static void set_globals(ExtensionEnv* e, ExtParams* params)
 
 	ext_set_global_constants(s);
 
+	// Garbage collector metatable for luapointers
+	luaL_newmetatable(s, LUA_POINTER_GC_METATABLE_RKEY);
+	/* lua_createtable(s, 0, 1); */
+	lua_pushcfunction(s, ext_dest_lua_pointer);
+	lua_setfield(s, -2, "__gc");
+	/* lua_setfield(s, LUA_REGISTRYINDEX, LUA_POINTER_GC_METATABLE_RKEY); */
+	lua_pop(s, 1);
+
+	/* // Garbage collection preventors for lua pointers */
+	/* lua_newtable(s); */
+	/* [> lua_setfield(s, LUA_REGISTRYINDEX, LUA_POINTER_GC_PREVENTOR_GLOBAL); <] */
+	/* lua_newtable(s); */
+	/* lua_setfield(s, LUA_REGISTRYINDEX, LUA_POINTER_GC_PREVENTOR_PASS_LOCAL); */
+
 	// Store the iteration number
 	lua_pushinteger(s, 0);
 	lua_setglobal(s, EM_ITER_NUM_VAR_NAME);
 
 	// Allow the environment to access itself
-	e->selfp = malloc(sizeof(LuaPointer));
-	make_lua_pointer(e->selfp, EXT_ENV, e);
-	lua_pushlightuserdata(s, e->selfp);
+	new_lua_pointer(s, EXT_ENV, e, false);
 	lua_setglobal(s, EM_ENV_VAR_NAME);
 
 	// Store the args in raw form
-	e->args = malloc(sizeof(LuaPointer));
-	make_lua_pointer(e->args, PARSED_ARGS, params->args);
-	lua_pushlightuserdata(s, e->args);
+	new_lua_pointer(s, PARSED_ARGS, params->args, false);
 	lua_setglobal(s, EM_ARGS_VAR_NAME);
 
 	// Store the names list
-	e->mt_names_list = malloc(sizeof(LuaPointer));
-	make_lua_pointer(e->mt_names_list, MT_NAMES_LIST, params->mt_names_list);
-	lua_pushlightuserdata(s, e->mt_names_list);
+	new_lua_pointer(s, MT_NAMES_LIST, params->mt_names_list, false);
 	lua_setglobal(s, EM_MT_NAMES_LIST_VAR_NAME);
+
+	new_lua_pointer(s, STYLER, params->styler, false);
+	lua_setglobal(e->state, STYLER_LP_LOC);
 }
 
 #define LOAD_LIBRARY_SET(lvl, s, lib)                                                                                  \

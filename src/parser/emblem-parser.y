@@ -130,9 +130,9 @@ typedef struct
 %token <sugar>			T_HEADING			"heading"
 
 %destructor { dest_unit(&$$); } <doc>
-%destructor { if ($$) { dest_free_doc_tree_node($$, false); } } <node>
+%destructor { if ($$) { dest_free_doc_tree_node($$, false, CORE_POINTER_DEREFERENCE); } } <node>
 %destructor { if ($$) { dest_str($$); free($$); } } <str> <assignment>
-%destructor { if ($$) { dest_call_io($$, false), free($$); } } <args>
+%destructor { if ($$) { dest_call_io($$, false, CORE_POINTER_DEREFERENCE); free($$); } } <args>
 %destructor { dest_sugar(&$$); } <sugar>
 %destructor { dest_simple_sugar(&$$); } <simple_sugar>
 

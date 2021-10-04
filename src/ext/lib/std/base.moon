@@ -10,8 +10,6 @@ import concat, insert from table
 import node_types from require 'std.constants'
 import WORD, CALL, CONTENT from node_types
 
-collectgarbage 'stop' -- TODO: remove the need for this!
-
 base = { :eval, :include_file, :requires_reiter, :_log_err, :_log_err_at, :_log_warn, :_log_warn_at, :_log_info, :_log_debug, :_em_loc, :stylesheet }
 
 ---

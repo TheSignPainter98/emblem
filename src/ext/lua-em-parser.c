@@ -14,7 +14,6 @@
 #include "debug.h"
 #include "logs/logs.h"
 #include "lua-ast-io.h"
-#include "lua-pointers.h"
 #include "lua.h"
 #include "parser/emblem-parser.h"
 #include <lauxlib.h>
@@ -61,13 +60,7 @@ int ext_include_file(ExtensionState* s)
 	if (exec_lua_pass_on_node(s, included_root, env->iter_num))
 		lua_pushnil(s);
 	else
-	{
-		pack_tree(s, included_root); // TODO: maybe pushlightuserdata here to a pointer to the result, not the result itself?
-		/* LuaPointer* lp = malloc(sizeof(LuaPointer)); */
-		/* make_lua_pointer(lp, AST_NODE, included_root); */
-		/* lua_pushlightuserdata(s, lp); */
-		/* log_warn("================================================================================"); */
-	}
+		get_ast_lua_pointer(s, included_root);
 
 	return 1;
 }
