@@ -21,7 +21,7 @@ html {
 	padding-bottom: unset;
 }
 
-html, p, .content, .content p {
+html, p, .content, .content * {
 	line-height: 3.55ex;
 	margin-bottom: 0px;
 }
