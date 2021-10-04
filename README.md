@@ -470,7 +470,7 @@ This is done in one of three ways:
 
 1. In code executed as the document goes through its typesetting cycle (‘extensions’)
 2. In code executed to convert a given input format to Emblem’s internal structures (‘input drivers’)
-3. ~~In code executed to convert to a given output format (‘output drivers’).~~ _Not yet fully implemented_
+3. In code executed to convert to a given output format (‘output drivers’).
 
 ### Typesetting-time extensions
 
