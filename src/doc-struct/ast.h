@@ -30,7 +30,12 @@
 #define PARAGRAPH_CANDIDATE	   (1 << 5)
 #define DISQUALIFIED_PARAGRAPH (1 << 6)
 #define INCLUDED_FILE_ROOT	   (1 << 7)
-#define NO_FURTHER_EVAL  (1 << 12)
+#define NO_FURTHER_EVAL		   (1 << 8)
+#define STYLE_DIRECTIVE_ONLY   (1 << 9)
+
+#define ACCEPTABLE_EXTENSION_FLAG_MASK                                                                                 \
+	(REQUIRES_RERUN | PARAGRAPH_CANDIDATE | DISQUALIFIED_PARAGRAPH | INCLUDED_FILE_ROOT | NO_FURTHER_EVAL              \
+		| STYLE_DIRECTIVE_ONLY)
 
 struct DocTreeNodeContent_s;
 struct DocTreeNode_s;

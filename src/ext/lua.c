@@ -54,7 +54,7 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 
 			lua_getglobal(s, EM_PUBLIC_TABLE);
 			lua_getfield(s, -1, node->name->str);
-			if (lua_isnoneornil(s, -1))
+			if (lua_isnoneornil(s, -1) || node->flags & STYLE_DIRECTIVE_ONLY)
 			{
 				lua_pop(s, 2); // Remove nil value and public table
 				node->flags |= CALL_HAS_NO_EXT_FUNC;

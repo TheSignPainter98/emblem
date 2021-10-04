@@ -6,6 +6,7 @@ node_flags:
       - DISQUALIFIED_PARAGRAPH
       - INCLUDED_FILE_ROOT
       - NO_FURTHER_EVAL
+      - STYLE_DIRECTIVE_ONLY
 node_types:
   doc-struct/ast.h:
     integer:
