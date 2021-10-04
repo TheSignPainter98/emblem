@@ -139,6 +139,8 @@ typedef struct
 %start doc
 
 %{
+#include <errno.h>
+
 static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err);
 static Location* alloc_assign_loc(EM_LTYPE yyloc, Str** ifn) __attribute__((malloc));
 static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str** ifn);
@@ -332,6 +334,11 @@ static void dest_preprocessor_data(PreProcessorData* preproc)
 
 static FILE* open_file(char* fname, char* mode)
 {
+	// Ensure file exists
+	if (access(fname, R_OK))
+		return NULL;
+
+	// Ensure a regular file is being opened (eg. not a directory)
 	struct stat fstat;
 	stat(fname, &fstat);
 	if (!S_ISREG(fstat.st_mode))
@@ -349,11 +356,14 @@ unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 	Str* ifn = malloc(sizeof(Str));
 	make_strv(ifn, use_stdin ? "(stdin)" : fname);
 	const size_t ifn_len = ifn->len;
+
+	// Test the file file name as-is
 	FILE* fp = use_stdin ? stdin : open_file(ifn->str, "r");
 	if (!fp)
 	{
 		if (!strrchr(ifn->str, '.'))
 		{
+			// Test the file name with the .em extension appended
 			char* fname_with_extension = malloc(1 + ifn_len + sizeof(DEFAULT_CONTENT_EXTENSION));
 			strcpy(fname_with_extension, ifn->str);
 			strcpy(fname_with_extension + ifn_len, DEFAULT_CONTENT_EXTENSION);
