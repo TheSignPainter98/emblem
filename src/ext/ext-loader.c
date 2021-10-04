@@ -172,7 +172,7 @@ static int load_extension_arguments(ExtensionState* s, Maybe* params)
 		{
 			Str* param = pa->p0;
 			Str* arg   = pa->p1;
-			lua_pushstring(s, arg->str);
+			lua_pushlstring(s, arg->str, arg->len);
 			lua_setfield(s, -2, param->str);
 		}
 	}
@@ -195,15 +195,13 @@ static int load_extension_code(ExtensionState* s, Str* ext_name)
 	int lrc = luaL_loadfile(s, ext_name_path);
 	if (lrc)
 	{
-		const char* err = lua_tostring(s, 0);
-		log_err("Failed to load file '%s' (%d): %s", ext_name_path, lrc, err);
+		log_err("Failed to load file '%s' (%d): %s", ext_name_path, lrc, lua_tostring(s, -1));
 		return 1;
 	}
 	lrc = lua_pcall(s, 0, 0, 0);
 	if (lrc)
 	{
-		const char* err = lua_tostring(s, 0);
-		log_err("Failed to load file '%s' (%d): %s", ext_name_path, lrc, err);
+		log_err("Failed to load file '%s' (%d): %s", ext_name_path, lrc, lua_tostring(s, -1));
 		return 1;
 	}
 	return 0;

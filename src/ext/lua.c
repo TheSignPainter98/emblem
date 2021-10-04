@@ -172,7 +172,8 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 			lua_getglobal(s, CLOSE_VAR_SCOPE_FUNC_NAME);
 			if (!is_callable(s, -1))
 			{
-				log_err_at(node->src_loc, "Variable " CLOSE_VAR_SCOPE_FUNC_NAME " is not a callable. Something has changed this!");
+				log_err_at(node->src_loc,
+					"Variable " CLOSE_VAR_SCOPE_FUNC_NAME " is not a callable. Something has changed this!");
 				lua_pop(s, 1);
 				return -1;
 			}
@@ -199,7 +200,8 @@ int exec_lua_pass_on_node(ExtensionState* s, DocTreeNode* node, int curr_iter)
 			return rc;
 		}
 		default:
-			log_err_at(node->src_loc, "Failed to perform lua pass, encountered node of unknown type %d", node->content->type);
+			log_err_at(
+				node->src_loc, "Failed to perform lua pass, encountered node of unknown type %d", node->content->type);
 			return -1;
 	}
 }
