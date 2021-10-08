@@ -1,0 +1,206 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js ayu">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>lua-ast-io.h - Emblem v0.0.1 Documentation</title>
+        <!-- Custom HTML head -->
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Documentation for the Emblem typesetter">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="../../theme/mdBook-pagetoc/style.css">
+        <link rel="stylesheet" href="../../theme/css/style.css">
+        <!-- MathJax -->
+        <script async type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "ayu";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('ayu')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item "><a href="../../introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item "><a href="../../how-emblem-works.html"><strong aria-hidden="true">2.</strong> How Emblem works</a></li><li class="chapter-item "><div><strong aria-hidden="true">3.</strong> How to use Emblem</div><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><div><strong aria-hidden="true">3.1.</strong> Basic syntax</div></li><li class="chapter-item "><div><strong aria-hidden="true">3.2.</strong> Preprocessor directives (‘pragmas’)</div></li><li class="chapter-item "><div><strong aria-hidden="true">3.3.</strong> Syntactic sugars</div></li><li class="chapter-item "><div><strong aria-hidden="true">3.4.</strong> Styling</div><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><div><strong aria-hidden="true">3.4.1.</strong> Using SCSS/SASS to style documents</div></li></ol></li><li class="chapter-item "><div><strong aria-hidden="true">3.5.</strong> Writing extensions</div><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><div><strong aria-hidden="true">3.5.1.</strong> Controlling the typesetting loop</div></li></ol></li><li class="chapter-item "><div><strong aria-hidden="true">3.6.</strong> Writing input drivers</div></li><li class="chapter-item "><div><strong aria-hidden="true">3.7.</strong> Writing output drivers</div></li><li class="chapter-item "><div><strong aria-hidden="true">3.8.</strong> Variables, Assignment and scope</div></li><li class="chapter-item "><a href="../../expressions.html"><strong aria-hidden="true">3.9.</strong> Expressions and Conditions</a></li></ol></li><li class="chapter-item "><a href="../../directives.html"><strong aria-hidden="true">4.</strong> Document directives</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../directives/expl/document-structure.html"><strong aria-hidden="true">4.1.</strong> Document structure</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../directives/h1-6.html"><strong aria-hidden="true">4.1.1.</strong> .h1–6 and .h1–6*</a></li><li class="chapter-item "><a href="../../directives/include.html"><strong aria-hidden="true">4.1.2.</strong> .include, .include* and :include</a></li><li class="chapter-item "><a href="../../directives/toc.html"><strong aria-hidden="true">4.1.3.</strong> .toc</a></li></ol></li><li class="chapter-item "><a href="../../directives/expl/references.html"><strong aria-hidden="true">4.2.</strong> References</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../directives/anchor-and-ref.html"><strong aria-hidden="true">4.2.1.</strong> .anchor and .ref</a></li><li class="chapter-item "><a href="../../directives/bib-and-cite.html"><strong aria-hidden="true">4.2.2.</strong> .bib and .cite</a></li></ol></li><li class="chapter-item "><a href="../../directives/expl/flow-control.html"><strong aria-hidden="true">4.3.</strong> Flow control</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../directives/call.html"><strong aria-hidden="true">4.3.1.</strong> .call</a></li><li class="chapter-item "><a href="../../directives/case.html"><strong aria-hidden="true">4.3.2.</strong> .case</a></li><li class="chapter-item "><a href="../../directives/def.html"><strong aria-hidden="true">4.3.3.</strong> .def</a></li><li class="chapter-item "><a href="../../directives/defined.html"><strong aria-hidden="true">4.3.4.</strong> .defined</a></li><li class="chapter-item "><a href="../../directives/exists.html"><strong aria-hidden="true">4.3.5.</strong> .exists</a></li><li class="chapter-item "><a href="../../directives/for.html"><strong aria-hidden="true">4.3.6.</strong> .for</a></li><li class="chapter-item "><a href="../../directives/foreach.html"><strong aria-hidden="true">4.3.7.</strong> .foreach</a></li><li class="chapter-item "><a href="../../directives/get-var.html"><strong aria-hidden="true">4.3.8.</strong> .get-var</a></li><li class="chapter-item "><a href="../../directives/if.html"><strong aria-hidden="true">4.3.9.</strong> .if</a></li><li class="chapter-item "><a href="../../directives/set-var.html"><strong aria-hidden="true">4.3.10.</strong> .set-var and its variants</a></li><li class="chapter-item "><a href="../../directives/undef.html"><strong aria-hidden="true">4.3.11.</strong> .undef</a></li><li class="chapter-item "><a href="../../directives/while.html"><strong aria-hidden="true">4.3.12.</strong> .while</a></li></ol></li><li class="chapter-item "><a href="../../directives/expl/logging.html"><strong aria-hidden="true">4.4.</strong> Logging</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../directives/echo.html"><strong aria-hidden="true">4.4.1.</strong> .echo and .echo-on</a></li><li class="chapter-item "><a href="../../directives/error.html"><strong aria-hidden="true">4.4.2.</strong> .error and .error-on</a></li><li class="chapter-item "><a href="../../directives/warn.html"><strong aria-hidden="true">4.4.3.</strong> .warn and .warn-on</a></li></ol></li><li class="chapter-item "><a href="../../directives/expl/logic.html"><strong aria-hidden="true">4.5.</strong> Logic</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../directives/equality.html"><strong aria-hidden="true">4.5.1.</strong> .eq, .numeq and .streq</a></li><li class="chapter-item "><a href="../../directives/expr.html"><strong aria-hidden="true">4.5.2.</strong> .expr</a></li><li class="chapter-item "><a href="../../directives/inequalities.html"><strong aria-hidden="true">4.5.3.</strong> .gt, .ge, .lt and .le</a></li><li class="chapter-item "><a href="../../directives/expl/boolean.html"><strong aria-hidden="true">4.5.4.</strong> Boolean</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../directives/all.html"><strong aria-hidden="true">4.5.4.1.</strong> .all</a></li><li class="chapter-item "><a href="../../directives/any.html"><strong aria-hidden="true">4.5.4.2.</strong> .any</a></li><li class="chapter-item "><a href="../../directives/impl.html"><strong aria-hidden="true">4.5.4.3.</strong> .impl</a></li><li class="chapter-item "><a href="../../directives/not.html"><strong aria-hidden="true">4.5.4.4.</strong> .not</a></li><li class="chapter-item "><a href="../../directives/xor.html"><strong aria-hidden="true">4.5.4.5.</strong> .xor</a></li></ol></li></ol></li><li class="chapter-item "><a href="../../directives/expl/arithmetic.html"><strong aria-hidden="true">4.6.</strong> Arithmetic</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../directives/abs.html"><strong aria-hidden="true">4.6.1.</strong> .abs</a></li><li class="chapter-item "><a href="../../directives/add.html"><strong aria-hidden="true">4.6.2.</strong> .add</a></li><li class="chapter-item "><a href="../../directives/div.html"><strong aria-hidden="true">4.6.3.</strong> .div</a></li><li class="chapter-item "><a href="../../directives/idiv.html"><strong aria-hidden="true">4.6.4.</strong> .idiv</a></li><li class="chapter-item "><a href="../../directives/mod.html"><strong aria-hidden="true">4.6.5.</strong> .mod</a></li><li class="chapter-item "><a href="../../directives/mul.html"><strong aria-hidden="true">4.6.6.</strong> .mul</a></li><li class="chapter-item "><a href="../../directives/pow.html"><strong aria-hidden="true">4.6.7.</strong> .pow</a></li><li class="chapter-item "><a href="../../directives/sign.html"><strong aria-hidden="true">4.6.8.</strong> .sign</a></li><li class="chapter-item "><a href="../../directives/sub.html"><strong aria-hidden="true">4.6.9.</strong> .sub</a></li></ol></li><li class="chapter-item "><a href="../../directives/expl/misc.html"><strong aria-hidden="true">4.7.</strong> Miscellaneous</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../directives/curr-version.html"><strong aria-hidden="true">4.7.1.</strong> .curr-version</a></li><li class="chapter-item "><a href="../../directives/help.html"><strong aria-hidden="true">4.7.2.</strong> .help</a></li><li class="chapter-item "><a href="../../directives/known-directives.html"><strong aria-hidden="true">4.7.3.</strong> .known-directives</a></li><li class="chapter-item "><a href="../../directives/vars.html"><strong aria-hidden="true">4.7.4.</strong> .vars</a></li><li class="chapter-item "><a href="../../directives/readline.html"><strong aria-hidden="true">4.7.5.</strong> .readline</a></li><li class="chapter-item "><a href="../../directives/system.html"><strong aria-hidden="true">4.7.6.</strong> .$</a></li><li class="chapter-item "><a href="../../directives/env.html"><strong aria-hidden="true">4.7.7.</strong> .env</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../../api.html"><strong aria-hidden="true">5.</strong> API</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/command-line-args.html"><strong aria-hidden="true">5.1.</strong> Command-line</a></li><li class="chapter-item "><a href="../../extension-api.html"><strong aria-hidden="true">5.2.</strong> Extensions</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/ext/lib/std/ast.moon.html"><strong aria-hidden="true">5.2.1.</strong> std.ast</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/base.moon.html"><strong aria-hidden="true">5.2.2.</strong> std.base</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/bib.moon.html"><strong aria-hidden="true">5.2.3.</strong> std.bib</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/edit.moon.html"><strong aria-hidden="true">5.2.4.</strong> std.edit</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/events.moon.html"><strong aria-hidden="true">5.2.5.</strong> std.events</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/expr.moon.html"><strong aria-hidden="true">5.2.6.</strong> std.expr</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/func.moon.html"><strong aria-hidden="true">5.2.7.</strong> std.func</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/hdr.moon.html"><strong aria-hidden="true">5.2.8.</strong> std.hdr</a></li><li class="chapter-item "><a href="../../modules/moon/std.in.html"><strong aria-hidden="true">5.2.9.</strong> std.in/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/ext/lib/std/in/drivers.moon.html"><strong aria-hidden="true">5.2.9.1.</strong> std.in.drivers</a></li></ol></li><li class="chapter-item "><a href="../../generated/ext/lib/std/lingo.moon.html"><strong aria-hidden="true">5.2.10.</strong> std.lingo</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/log.moon.html"><strong aria-hidden="true">5.2.11.</strong> std.log</a></li><li class="chapter-item "><a href="../../modules/moon/std.out.html"><strong aria-hidden="true">5.2.12.</strong> std.out/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/ext/lib/std/out/bb.moon.html"><strong aria-hidden="true">5.2.12.1.</strong> std.out.bb</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/out/drivers.moon.html"><strong aria-hidden="true">5.2.12.2.</strong> std.out.drivers</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/out/html.moon.html"><strong aria-hidden="true">5.2.12.3.</strong> std.out.html</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/out/latex.moon.html"><strong aria-hidden="true">5.2.12.4.</strong> std.out.latex</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/out/md.moon.html"><strong aria-hidden="true">5.2.12.5.</strong> std.out.md</a></li></ol></li><li class="chapter-item "><a href="../../generated/ext/lib/std/ref.moon.html"><strong aria-hidden="true">5.2.13.</strong> std.ref</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/show.moon.html"><strong aria-hidden="true">5.2.14.</strong> std.show</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/store.moon.html"><strong aria-hidden="true">5.2.15.</strong> std.store</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/style.moon.html"><strong aria-hidden="true">5.2.16.</strong> std.style</a></li><li class="chapter-item "><a href="../../generated/ext/lib/std/util.moon.html"><strong aria-hidden="true">5.2.17.</strong> std.util</a></li></ol></li><li class="chapter-item expanded "><a href="../../internal-api.html"><strong aria-hidden="true">5.3.</strong> Core</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../internal-api-module-interfaces.html"><strong aria-hidden="true">5.3.1.</strong> Module interfaces</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../modules/h/data.html"><strong aria-hidden="true">5.3.1.1.</strong> data/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/data/array.h.html"><strong aria-hidden="true">5.3.1.1.1.</strong> array.h</a></li><li class="chapter-item "><a href="../../generated/data/cmp.h.html"><strong aria-hidden="true">5.3.1.1.2.</strong> cmp.h</a></li><li class="chapter-item "><a href="../../generated/data/dest-free.h.html"><strong aria-hidden="true">5.3.1.1.3.</strong> dest-free.h</a></li><li class="chapter-item "><a href="../../generated/data/destructor.h.html"><strong aria-hidden="true">5.3.1.1.4.</strong> destructor.h</a></li><li class="chapter-item "><a href="../../generated/data/either.h.html"><strong aria-hidden="true">5.3.1.1.5.</strong> either.h</a></li><li class="chapter-item "><a href="../../generated/data/fmap.h.html"><strong aria-hidden="true">5.3.1.1.6.</strong> fmap.h</a></li><li class="chapter-item "><a href="../../generated/data/hash.h.html"><strong aria-hidden="true">5.3.1.1.7.</strong> hash.h</a></li><li class="chapter-item "><a href="../../generated/data/list-array-conversions.h.html"><strong aria-hidden="true">5.3.1.1.8.</strong> list-array-conversions.h</a></li><li class="chapter-item "><a href="../../generated/data/list.h.html"><strong aria-hidden="true">5.3.1.1.9.</strong> list.h</a></li><li class="chapter-item "><a href="../../generated/data/locked.h.html"><strong aria-hidden="true">5.3.1.1.10.</strong> locked.h</a></li><li class="chapter-item "><a href="../../generated/data/map.h.html"><strong aria-hidden="true">5.3.1.1.11.</strong> map.h</a></li><li class="chapter-item "><a href="../../generated/data/maybe.h.html"><strong aria-hidden="true">5.3.1.1.12.</strong> maybe.h</a></li><li class="chapter-item "><a href="../../generated/data/str.h.html"><strong aria-hidden="true">5.3.1.1.13.</strong> str.h</a></li><li class="chapter-item "><a href="../../generated/data/tuple.h.html"><strong aria-hidden="true">5.3.1.1.14.</strong> tuple.h</a></li><li class="chapter-item "><a href="../../generated/data/unit.h.html"><strong aria-hidden="true">5.3.1.1.15.</strong> unit.h</a></li></ol></li><li class="chapter-item "><a href="../../modules/h/doc-struct.html"><strong aria-hidden="true">5.3.1.2.</strong> doc-struct/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/doc-struct/ast.h.html"><strong aria-hidden="true">5.3.1.2.1.</strong> ast.h</a></li><li class="chapter-item "><a href="../../generated/doc-struct/discern-pars.h.html"><strong aria-hidden="true">5.3.1.2.2.</strong> discern-pars.h</a></li><li class="chapter-item "><a href="../../generated/doc-struct/location.h.html"><strong aria-hidden="true">5.3.1.2.3.</strong> location.h</a></li></ol></li><li class="chapter-item "><a href="../../modules/h/drivers.html"><strong aria-hidden="true">5.3.1.3.</strong> drivers/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/drivers/driver-params.h.html"><strong aria-hidden="true">5.3.1.3.1.</strong> driver-params.h</a></li><li class="chapter-item "><a href="../../generated/drivers/drivers.h.html"><strong aria-hidden="true">5.3.1.3.2.</strong> drivers.h</a></li><li class="chapter-item "><a href="../../generated/drivers/driver-util.h.html"><strong aria-hidden="true">5.3.1.3.3.</strong> driver-util.h</a></li><li class="chapter-item "><a href="../../generated/drivers/write-out.h.html"><strong aria-hidden="true">5.3.1.3.4.</strong> write-out.h</a></li></ol></li><li class="chapter-item expanded "><a href="../../modules/h/ext.html"><strong aria-hidden="true">5.3.1.4.</strong> ext/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/ext/debug.h.html"><strong aria-hidden="true">5.3.1.4.1.</strong> debug.h</a></li><li class="chapter-item "><a href="../../generated/ext/ext-env.h.html"><strong aria-hidden="true">5.3.1.4.2.</strong> ext-env.h</a></li><li class="chapter-item "><a href="../../generated/ext/ext-loader.h.html"><strong aria-hidden="true">5.3.1.4.3.</strong> ext-loader.h</a></li><li class="chapter-item "><a href="../../generated/ext/ext-params.h.html"><strong aria-hidden="true">5.3.1.4.4.</strong> ext-params.h</a></li><li class="chapter-item expanded "><a href="../../generated/ext/lua-ast-io.h.html" class="active"><strong aria-hidden="true">5.3.1.4.5.</strong> lua-ast-io.h</a></li><li class="chapter-item "><a href="../../generated/ext/lua-constants.h.html"><strong aria-hidden="true">5.3.1.4.6.</strong> lua-constants.h</a></li><li class="chapter-item "><a href="../../generated/ext/lua-em-parser.h.html"><strong aria-hidden="true">5.3.1.4.7.</strong> lua-em-parser.h</a></li><li class="chapter-item "><a href="../../generated/ext/lua-events.h.html"><strong aria-hidden="true">5.3.1.4.8.</strong> lua-events.h</a></li><li class="chapter-item "><a href="../../generated/ext/lua.h.html"><strong aria-hidden="true">5.3.1.4.9.</strong> lua.h</a></li><li class="chapter-item "><a href="../../generated/ext/lua-lib-load.h.html"><strong aria-hidden="true">5.3.1.4.10.</strong> lua-lib-load.h</a></li><li class="chapter-item "><a href="../../generated/ext/lua-pointers.h.html"><strong aria-hidden="true">5.3.1.4.11.</strong> lua-pointers.h</a></li><li class="chapter-item "><a href="../../generated/ext/style.h.html"><strong aria-hidden="true">5.3.1.4.12.</strong> style.h</a></li></ol></li><li class="chapter-item "><a href="../../modules/h/logs.html"><strong aria-hidden="true">5.3.1.5.</strong> logs/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/logs/ext-log.h.html"><strong aria-hidden="true">5.3.1.5.1.</strong> ext-log.h</a></li><li class="chapter-item "><a href="../../generated/logs/logs.h.html"><strong aria-hidden="true">5.3.1.5.2.</strong> logs.h</a></li></ol></li><li class="chapter-item "><a href="../../modules/h/parser.html"><strong aria-hidden="true">5.3.1.6.</strong> parser/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/parser/parser.h.html"><strong aria-hidden="true">5.3.1.6.1.</strong> parser.h</a></li><li class="chapter-item "><a href="../../generated/parser/sanitise-word.h.html"><strong aria-hidden="true">5.3.1.6.2.</strong> sanitise-word.h</a></li><li class="chapter-item "><a href="../../generated/parser/sugar.h.html"><strong aria-hidden="true">5.3.1.6.3.</strong> sugar.h</a></li></ol></li><li class="chapter-item "><a href="../../modules/h/pp.html"><strong aria-hidden="true">5.3.1.7.</strong> pp/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/pp/assert.h.html"><strong aria-hidden="true">5.3.1.7.1.</strong> assert.h</a></li><li class="chapter-item "><a href="../../generated/pp/lambda.h.html"><strong aria-hidden="true">5.3.1.7.2.</strong> lambda.h</a></li><li class="chapter-item "><a href="../../generated/pp/not_implemented.h.html"><strong aria-hidden="true">5.3.1.7.3.</strong> not_implemented.h</a></li><li class="chapter-item "><a href="../../generated/pp/unused.h.html"><strong aria-hidden="true">5.3.1.7.4.</strong> unused.h</a></li></ol></li><li class="chapter-item "><a href="../../modules/h/style.html"><strong aria-hidden="true">5.3.1.8.</strong> style/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/style/css.h.html"><strong aria-hidden="true">5.3.1.8.1.</strong> css.h</a></li><li class="chapter-item "><a href="../../generated/style/css-params.h.html"><strong aria-hidden="true">5.3.1.8.2.</strong> css-params.h</a></li><li class="chapter-item "><a href="../../generated/style/preprocess-css.h.html"><strong aria-hidden="true">5.3.1.8.3.</strong> preprocess-css.h</a></li></ol></li><li class="chapter-item "><a href="../../modules/h/typesetter.html"><strong aria-hidden="true">5.3.1.9.</strong> typesetter/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/typesetter/typesetter.h.html"><strong aria-hidden="true">5.3.1.9.1.</strong> typesetter.h</a></li></ol></li></ol></li><li class="chapter-item "><a href="../../internal-api-module-internals.html"><strong aria-hidden="true">5.3.2.</strong> Module internal docs</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../modules/c/data.html"><strong aria-hidden="true">5.3.2.1.</strong> data/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/data/array.c.html"><strong aria-hidden="true">5.3.2.1.1.</strong> array.c</a></li><li class="chapter-item "><a href="../../generated/data/cmp.c.html"><strong aria-hidden="true">5.3.2.1.2.</strong> cmp.c</a></li><li class="chapter-item "><a href="../../generated/data/either.c.html"><strong aria-hidden="true">5.3.2.1.3.</strong> either.c</a></li><li class="chapter-item "><a href="../../generated/data/hash.c.html"><strong aria-hidden="true">5.3.2.1.4.</strong> hash.c</a></li><li class="chapter-item "><a href="../../generated/data/list-array-conversions.c.html"><strong aria-hidden="true">5.3.2.1.5.</strong> list-array-conversions.c</a></li><li class="chapter-item "><a href="../../generated/data/list.c.html"><strong aria-hidden="true">5.3.2.1.6.</strong> list.c</a></li><li class="chapter-item "><a href="../../generated/data/locked.c.html"><strong aria-hidden="true">5.3.2.1.7.</strong> locked.c</a></li><li class="chapter-item "><a href="../../generated/data/map.c.html"><strong aria-hidden="true">5.3.2.1.8.</strong> map.c</a></li><li class="chapter-item "><a href="../../generated/data/maybe.c.html"><strong aria-hidden="true">5.3.2.1.9.</strong> maybe.c</a></li><li class="chapter-item "><a href="../../generated/data/str.c.html"><strong aria-hidden="true">5.3.2.1.10.</strong> str.c</a></li><li class="chapter-item "><a href="../../generated/data/unit.c.html"><strong aria-hidden="true">5.3.2.1.11.</strong> unit.c</a></li></ol></li><li class="chapter-item "><a href="../../modules/c/doc-struct.html"><strong aria-hidden="true">5.3.2.2.</strong> doc-struct/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/doc-struct/ast.c.html"><strong aria-hidden="true">5.3.2.2.1.</strong> ast.c</a></li><li class="chapter-item "><a href="../../generated/doc-struct/discern-pars.c.html"><strong aria-hidden="true">5.3.2.2.2.</strong> discern-pars.c</a></li><li class="chapter-item "><a href="../../generated/doc-struct/location.c.html"><strong aria-hidden="true">5.3.2.2.3.</strong> location.c</a></li></ol></li><li class="chapter-item "><a href="../../modules/c/drivers.html"><strong aria-hidden="true">5.3.2.3.</strong> drivers/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/drivers/drivers.c.html"><strong aria-hidden="true">5.3.2.3.1.</strong> drivers.c</a></li><li class="chapter-item "><a href="../../generated/drivers/write-out.c.html"><strong aria-hidden="true">5.3.2.3.2.</strong> write-out.c</a></li></ol></li><li class="chapter-item "><a href="../../generated/em.c.html"><strong aria-hidden="true">5.3.2.4.</strong> em.c</a></li><li class="chapter-item "><a href="../../modules/c/ext.html"><strong aria-hidden="true">5.3.2.5.</strong> ext/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/ext/debug.c.html"><strong aria-hidden="true">5.3.2.5.1.</strong> debug.c</a></li><li class="chapter-item "><a href="../../generated/ext/ext-env.c.html"><strong aria-hidden="true">5.3.2.5.2.</strong> ext-env.c</a></li><li class="chapter-item "><a href="../../generated/ext/ext-loader.c.html"><strong aria-hidden="true">5.3.2.5.3.</strong> ext-loader.c</a></li><li class="chapter-item "><a href="../../generated/ext/ext-params.c.html"><strong aria-hidden="true">5.3.2.5.4.</strong> ext-params.c</a></li><li class="chapter-item "><a href="../../generated/ext/lua-ast-io.c.html"><strong aria-hidden="true">5.3.2.5.5.</strong> lua-ast-io.c</a></li><li class="chapter-item "><a href="../../generated/ext/lua.c.html"><strong aria-hidden="true">5.3.2.5.6.</strong> lua.c</a></li><li class="chapter-item "><a href="../../generated/ext/lua-em-parser.c.html"><strong aria-hidden="true">5.3.2.5.7.</strong> lua-em-parser.c</a></li><li class="chapter-item "><a href="../../generated/ext/lua-events.c.html"><strong aria-hidden="true">5.3.2.5.8.</strong> lua-events.c</a></li><li class="chapter-item "><a href="../../generated/ext/lua-pointers.c.html"><strong aria-hidden="true">5.3.2.5.9.</strong> lua-pointers.c</a></li><li class="chapter-item "><a href="../../generated/ext/style.c.html"><strong aria-hidden="true">5.3.2.5.10.</strong> style.c</a></li></ol></li><li class="chapter-item "><a href="../../modules/c/logs.html"><strong aria-hidden="true">5.3.2.6.</strong> logs/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/logs/ext-log.c.html"><strong aria-hidden="true">5.3.2.6.1.</strong> ext-log.c</a></li><li class="chapter-item "><a href="../../generated/logs/logs.c.html"><strong aria-hidden="true">5.3.2.6.2.</strong> logs.c</a></li></ol></li><li class="chapter-item "><a href="../../modules/c/parser.html"><strong aria-hidden="true">5.3.2.7.</strong> parser/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/parser/parser.c.html"><strong aria-hidden="true">5.3.2.7.1.</strong> parser.c</a></li><li class="chapter-item "><a href="../../generated/parser/sanitise-word.c.html"><strong aria-hidden="true">5.3.2.7.2.</strong> sanitise-word.c</a></li><li class="chapter-item "><a href="../../generated/parser/sugar.c.html"><strong aria-hidden="true">5.3.2.7.3.</strong> sugar.c</a></li></ol></li><li class="chapter-item "><a href="../../modules/c/pp.html"><strong aria-hidden="true">5.3.2.8.</strong> pp/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/pp/lambda.c.html"><strong aria-hidden="true">5.3.2.8.1.</strong> lambda.c</a></li></ol></li><li class="chapter-item "><a href="../../modules/c/style.html"><strong aria-hidden="true">5.3.2.9.</strong> style/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/style/css.c.html"><strong aria-hidden="true">5.3.2.9.1.</strong> css.c</a></li><li class="chapter-item "><a href="../../generated/style/css-params.c.html"><strong aria-hidden="true">5.3.2.9.2.</strong> css-params.c</a></li><li class="chapter-item "><a href="../../generated/style/preprocess-css.c.html"><strong aria-hidden="true">5.3.2.9.3.</strong> preprocess-css.c</a></li></ol></li><li class="chapter-item "><a href="../../modules/c/typesetter.html"><strong aria-hidden="true">5.3.2.10.</strong> typesetter/</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="../../generated/typesetter/typesetter.c.html"><strong aria-hidden="true">5.3.2.10.1.</strong> typesetter.c</a></li></ol></li></ol></li></ol></li></ol></li><li class="chapter-item "><a href="../../license-and-author-notes.html"><strong aria-hidden="true">6.</strong> License and Author</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu (default)</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Emblem v0.0.1 Documentation</h1>
+
+                    <div class="right-buttons">
+						<a id="serif-toggle-button" title="Toggle seriffed typeface" aria-label="Toggle seriffed typeface 2" aria-expanded="false" aria-shortcuts="F" aria-controls="serif-toggle" onclick="toggleSans();">
+							<i id="serif-toggle-button" class="fa fa-font"></i>
+						</a>
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/TheSignPainter98/emblem" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/TheSignPainter98/emblem/edit/master/docs/src/generated/ext/lua-ast-io.h.md" title="Suggest an edit" aria-label="Suggest an edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+						<!-- Page table of contents -->
+						<div class="sidetoc"><nav class="pagetoc"></nav></div>
+
+                        <h1 id="lua-ast-ioh"><a class="header" href="#lua-ast-ioh"><code>lua-ast-io.h</code></a></h1>
+<p>Exposes functions for translating between Lua tables and document trees.</p>
+<ul>
+<li><strong>Author</strong>: Edward Jones</li>
+<li><strong>Date</strong>: 2021-09-17</li>
+</ul>
+<p><a href="https://github.com/TheSignPainter98/emblem/blob/master/src/ext/lua-ast-io.h">Source file</a></p>
+<center><i>This module does not contain any documented interface items.</i></center>
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../generated/ext/ext-params.h.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                            <a rel="next" href="../../generated/ext/lua-constants.h.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../generated/ext/ext-params.h.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                    <a rel="next" href="../../generated/ext/lua-constants.h.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        <script src="../../ace.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../editor.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mode-rust.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../theme-dawn.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../theme-tomorrow_night.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../searcher.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        <script type="text/javascript" src="../../theme/js/main.js"></script>
+        <script type="text/javascript" src="../../theme/mdBook-pagetoc/sidebar.js"></script>
+    </body>
+</html>
