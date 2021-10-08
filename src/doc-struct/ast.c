@@ -137,6 +137,14 @@ void prepend_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeN
 	new_child->parent = parent;
 }
 
+void connect_to_parent(DocTreeNode* child, DocTreeNode* parent)
+{
+	if (parent && parent->content->type == CONTENT)
+		append_doc_tree_node_child(parent, parent->content->content, child);
+	else
+		child->parent = parent;
+}
+
 void append_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child)
 {
 	append_list(child_list, new_child);

@@ -180,7 +180,7 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 			}
 			log_debug("Passing reference to %p", p->data);
 			*result			  = p->data;
-			(*result)->parent = parentNode;
+			connect_to_parent(*result, parentNode);
 			lua_pop(s, 1);
 			return 0;
 		}
@@ -202,7 +202,7 @@ static int unpack_single_value(DocTreeNode** result, Str* repr, DocTreeNode* par
 	*result = malloc(sizeof(DocTreeNode));
 	make_doc_tree_node_word(*result, repr, dup_loc(parentNode->src_loc));
 	(*result)->flags |= IS_GENERATED_NODE;
-	(*result)->parent = parentNode;
+	connect_to_parent(*result, parentNode);
 	return 0;
 }
 
@@ -260,8 +260,8 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 				int rc = unpack_lua_result(&new_child, s, *result);
 				if (rc)
 					return rc; // NOLINT
-				append_doc_tree_node_child(*result, (*result)->content->content, new_child);
 			}
+			connect_to_parent(*result, parentNode);
 			lua_pop(s, 1);
 			rc = 0;
 			break;
@@ -307,6 +307,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 				unpack_lua_result(&(*result)->content->call->result, s, *result);
 			else
 				(*result)->content->call->result = NULL;
+			connect_to_parent(*result, parentNode);
 			lua_pop(s, 2);
 			rc = 0;
 			break;

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "argp.h"
+#include "config.h"
 #include "data/list.h"
 #include "data/str.h"
 #include "ext/ext-env.h"
@@ -114,3 +115,5 @@ void make_call_io(CallIO* call);
 void dest_call_io(CallIO* call, bool processing_result);
 void prepend_call_io_arg(CallIO* call, DocTreeNode* arg);
 void append_call_io_arg(CallIO* call, DocTreeNode* arg);
+
+void connect_to_parent(DocTreeNode* restrict child, DocTreeNode* restrict parent);
