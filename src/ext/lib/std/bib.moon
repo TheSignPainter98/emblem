@@ -96,7 +96,7 @@ class Bib extends SyncSet
 		lines = f\read '*all'
 		f\close!
 		true, lines
-	load_bib: (bib) => @bib[k] = BibItem k, v for k,v in pairs bib
+	load_bib: (@raw_bib) => @bib[k] = BibItem k, v for k,v in pairs @raw_bib
 	read: (raw_src='bib') =>
 		src = eval_string raw_src
 		local acceptible_srcs
@@ -120,8 +120,9 @@ class Bib extends SyncSet
 		included_bib = sorted [ itm for ref,itm in pairs @bib when @contents[ref] ]
 		itm\set_bib_idx i for i,itm in pairs included_bib
 
-		bib_table = Content [ (Word itm\cite!) .. itm.author .. (it itm.title) .. itm.year for itm in *included_bib ]
+		bib_table = Content [ (Word itm\cite!) .. (itm.author .. ',') .. (it itm.title .. ',') .. itm.year for itm in *included_bib ]
 		(Call 'h1*', @bib_name) .. bib_table
+	records: => { k,v for k,v in pairs @raw_bib }
 
 bib = Bib!
 em.bib = Directive 1, 0, "Create the main bibliography using the given source file", (src) ->
@@ -130,4 +131,4 @@ em.bib = Directive 1, 0, "Create the main bibliography using the given source fi
 	bib\output!
 em.cite = Directive 1, 0, "Cite a given reference", (ref) -> bib\add ref
 
-{ :Bib, :get_cite_style, :set_cite_style, :cite_styles }
+{ :bib, :Bib, :get_cite_style, :set_cite_style, :cite_styles }

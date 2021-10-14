@@ -80,7 +80,7 @@ class ContextFreeOutputDriver extends OutputDriver
 						tag_encloser = @special_tag_enclose
 					else
 						tag_encloser = @general_tag_enclose
-					initial .. tag_encloser @, tag, result
+					initial .. tag_encloser @, tag, result, n.args
 
 				when CONTENT
 					intertext = ''
