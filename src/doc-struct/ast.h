@@ -53,10 +53,13 @@ typedef struct DocTreeNode_s
 {
 	int_least16_t flags;
 	Str* name;
+	Str* style_name;
 	Style* style;
+	StyleData* style_data;
 	int last_eval;
 	struct DocTreeNodeContent_s* content;
 	struct DocTreeNode_s* parent;
+	struct DocTreeNode_s* prev_sibling;
 	Location* src_loc;
 } DocTreeNode;
 
@@ -114,3 +117,5 @@ void make_call_io(CallIO* call);
 void dest_call_io(CallIO* call, bool processing_result);
 void prepend_call_io_arg(CallIO* call, DocTreeNode* arg);
 void append_call_io_arg(CallIO* call, DocTreeNode* arg);
+
+void connect_to_parent(DocTreeNode* child, DocTreeNode* parent);

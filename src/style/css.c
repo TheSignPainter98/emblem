@@ -10,8 +10,8 @@
 #include "logs/logs.h"
 #include "pp/unused.h"
 #include "preprocess-css.h"
+#include "selection-engine.h"
 #include <errno.h>
-#include <libcss/libcss.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -23,7 +23,6 @@
 #define USER_STYLE_OVERRIDE_FONT_SIZE	".body{font-size:%f;}"
 
 static int append_user_style_overrides(Styler* styler);
-static css_error resolve_url(void* pw, const char* base, lwc_string* rel, lwc_string** abs);
 
 void make_styler(Styler* styler, Args* args)
 {
@@ -46,30 +45,17 @@ void make_styler(Styler* styler, Args* args)
 	else
 		make_strc(styler->user_style_file, args->style);
 
-	// code = css_stylesheet_create(&params, myrealloc, NULL, &sheet);
-	css_stylesheet_params params;
-	params.params_version = CSS_STYLESHEET_PARAMS_VERSION_1;
-	params.level		  = CSS_LEVEL_3;
-	params.charset		  = "UTF-8";
-	params.url			  = args->style;
-	params.title		  = args->style;
-	params.allow_quirks	  = false;
-	params.inline_style	  = false;
-	params.resolve		  = resolve_url;
-	params.resolve_pw	  = NULL;
-	params.import		  = NULL;
-	params.import_pw	  = NULL;
-	params.color		  = NULL;
-	params.color_pw		  = NULL;
-	params.font			  = NULL;
-	params.font_pw		  = NULL;
-	styler->stylesheet	  = NULL;
-	int rc				  = css_stylesheet_create(&params, &styler->stylesheet);
+	styler->stylesheet_params = malloc(sizeof(css_stylesheet_params));
+	make_stylesheet_params(styler->stylesheet_params, args);
+	int rc = css_stylesheet_create(styler->stylesheet_params, &styler->stylesheet);
 	if (rc != CSS_OK)
 	{
 		log_err("Failed to create css stylesheet");
 		exit(1);
 	}
+
+	styler->engine = malloc(sizeof(StyleSelectionEngine));
+	make_style_selection_engine(styler->engine);
 
 	styler->prep_params = malloc(sizeof(StylePreprocessorParams));
 	make_style_preprocessor_params(styler->prep_params, args);
@@ -81,11 +67,16 @@ void dest_styler(Styler* styler)
 	free(styler->default_typeface);
 	dest_list(styler->snippets, (Destructor)dest_free_str);
 	free(styler->snippets);
+	dest_stylesheet_params(styler->stylesheet_params);
+	free(styler->stylesheet_params);
+	dest_style_selection_engine(styler->engine);
+	free(styler->engine);
 	dest_style_preprocessor_params(styler->prep_params);
 	free(styler->prep_params);
 	dest_str(styler->user_style_file);
 	free(styler->user_style_file);
-	css_stylesheet_destroy(styler->stylesheet);
+	if (css_stylesheet_destroy(styler->stylesheet))
+		log_err("Failed to destroy css stylesheet");
 }
 
 int prepare_styler(Styler* styler)
@@ -98,6 +89,9 @@ int prepare_styler(Styler* styler)
 	if (rc)
 		return 1;
 	rc = css_stylesheet_data_done(styler->stylesheet);
+	if (rc != CSS_OK)
+		return 1;
+	rc = css_select_ctx_append_sheet(styler->engine->ctx, styler->stylesheet, CSS_ORIGIN_AUTHOR, NULL);
 	if (rc != CSS_OK)
 		return 1;
 	return 0;
@@ -190,15 +184,25 @@ int append_style_sheet(Styler* styler, Str* sheet_loc)
 	return 0;
 }
 
-void dest_style(Style* style) { css_select_results_destroy(style); }
+void make_style(Style* style) { UNUSED(style); }
 
-css_error resolve_url(void* pw, const char* base, lwc_string* rel, lwc_string** abs)
+void dest_style(Style* style)
 {
-	UNUSED(pw);
-	UNUSED(base);
+	css_select_results_destroy(style);
+}
 
-	/* About as useless as possible */
-	*abs = lwc_string_ref(rel);
+void make_style_data(StyleData* data, Str* style_name)
+{
+	data->n_classes = 1;
+	data->classes	= malloc(sizeof(lwc_string*));
+	*data->classes	= lwc_string_ref(get_lwc_string(style_name));
+}
 
-	return CSS_OK;
+void dest_style_data(StyleData* data)
+{
+	for (int i = 0; i < data->n_classes; i++)
+	{
+		lwc_string_unref(data->classes[i]);
+	}
+	free(data->classes);
 }

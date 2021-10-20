@@ -30,4 +30,3 @@ typedef struct
 
 int make_ext_env(ExtensionEnv* ext, ExtParams* params);
 void dest_ext_env(ExtensionEnv* ext);
-void finalise_env_for_typesetting(ExtensionEnv* e);

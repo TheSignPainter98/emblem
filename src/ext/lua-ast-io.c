@@ -11,10 +11,11 @@
 
 #include "data/str.h"
 #include "doc-struct/ast.h"
+#include "ext-env.h"
 #include "logs/logs.h"
 #include "lua-pointers.h"
 #include "lua.h"
-#include "ext-env.h"
+#include "style.h"
 
 #include "debug.h"
 
@@ -40,7 +41,14 @@ int ext_eval_tree(ExtensionState* s)
 		luaL_error(s, "Invalid argument(s)");
 	lua_pop(s, 1);
 
-	int erc = exec_lua_pass_on_node(s, node, env->iter_num);
+	lua_getglobal(s, STYLER_LP_LOC);
+	Styler* sty;
+	rc = to_userdata_pointer((void**)&sty, s, -1, STYLER);
+	if (rc)
+		luaL_error(s, "Invalid styler value");
+	lua_pop(s, 1);
+
+	int erc = exec_lua_pass_on_node(s, sty, node, env->iter_num);
 	if (erc)
 		luaL_error(s, "Error while evaluating node");
 	else
@@ -61,6 +69,9 @@ int pack_tree(ExtensionState* s, DocTreeNode* node)
 
 	lua_pushinteger(s, node->flags & ACCEPTABLE_EXTENSION_FLAG_MASK);
 	lua_setfield(s, -2, "flags");
+
+	pack_style(s, node->style, node);
+	lua_setfield(s, -2, "style");
 
 	switch (node->content->type)
 	{
@@ -179,8 +190,8 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 				return -1;
 			}
 			log_debug("Passing reference to %p", p->data);
-			*result			  = p->data;
-			(*result)->parent = parentNode;
+			*result = p->data;
+			connect_to_parent(*result, parentNode);
 			lua_pop(s, 1);
 			return 0;
 		}
@@ -202,7 +213,7 @@ static int unpack_single_value(DocTreeNode** result, Str* repr, DocTreeNode* par
 	*result = malloc(sizeof(DocTreeNode));
 	make_doc_tree_node_word(*result, repr, dup_loc(parentNode->src_loc));
 	(*result)->flags |= IS_GENERATED_NODE;
-	(*result)->parent = parentNode;
+	connect_to_parent(*result, parentNode);
 	return 0;
 }
 
@@ -249,6 +260,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			*result = malloc(sizeof(DocTreeNode));
 			make_doc_tree_node_content(*result, dup_loc(parentNode->src_loc));
 			(*result)->flags = flags;
+			connect_to_parent(*result, parentNode);
 			// Iterate over the 'content' field list, unpacking at each level
 			lua_getfield(s, -1, "content");
 			lua_pushnil(s); /* first key */
@@ -260,7 +272,6 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 				int rc = unpack_lua_result(&new_child, s, *result);
 				if (rc)
 					return rc; // NOLINT
-				append_doc_tree_node_child(*result, (*result)->content->content, new_child);
 			}
 			lua_pop(s, 1);
 			rc = 0;
@@ -287,6 +298,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			}
 			make_doc_tree_node_call(*result, call_name, io, dup_loc(parentNode->src_loc));
 			(*result)->flags = flags;
+			connect_to_parent(*result, parentNode);
 			dumpstack(s);
 			lua_len(s, -1);
 			int num_args = lua_tointeger(s, -1);

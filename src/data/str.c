@@ -13,6 +13,7 @@ void make_str(Str* str)
 	*(char**)&str->str	   = NULL;
 	*(size_t*)&str->len	   = 0;
 	*(bool*)&str->free_mem = false;
+	str->lwc_rep		   = NULL;
 }
 
 void make_strv(Str* str, char* raw)
@@ -20,6 +21,7 @@ void make_strv(Str* str, char* raw)
 	*(char**)&str->str	   = raw;
 	*(size_t*)&str->len	   = strlen(raw);
 	*(bool*)&str->free_mem = false;
+	str->lwc_rep		   = NULL;
 }
 
 void make_strr(Str* str, char* raw)
@@ -27,6 +29,7 @@ void make_strr(Str* str, char* raw)
 	*(char**)&str->str	   = raw;
 	*(size_t*)&str->len	   = strlen(raw);
 	*(bool*)&str->free_mem = true;
+	str->lwc_rep		   = NULL;
 }
 
 void make_strc(Str* str, char* raw)
@@ -34,6 +37,7 @@ void make_strc(Str* str, char* raw)
 	*(char**)&str->str	   = strdup(raw);
 	*(size_t*)&str->len	   = strlen(raw);
 	*(bool*)&str->free_mem = true;
+	str->lwc_rep		   = NULL;
 }
 
 bool make_strl(Str* str, size_t len)
@@ -41,6 +45,7 @@ bool make_strl(Str* str, size_t len)
 	*(char**)&str->str	   = calloc(len + 1, sizeof(char));
 	*(size_t*)&str->len	   = len;
 	*(bool*)&str->free_mem = true;
+	str->lwc_rep		   = NULL;
 
 	return !!str->str;
 }
@@ -49,6 +54,8 @@ void dest_str(Str* str)
 {
 	if (str->free_mem)
 		free((void*)str->str);
+	if (str->lwc_rep)
+		lwc_string_unref(str->lwc_rep);
 }
 
 void str_to_arr(Array* arr, Str* str)
@@ -101,7 +108,19 @@ void dup_str(Str* o, Str* todup)
 	*(bool*)&o->free_mem = true;
 	*(size_t*)&o->len	 = todup->len;
 	*(char**)&o->str	 = malloc((todup->len + 1) * sizeof(char));
+	o->lwc_rep			 = NULL;
 	memcpy(o->str, todup->str, todup->len + 1);
+}
+
+lwc_string* get_lwc_string(Str* s)
+{
+	if (!s->lwc_rep)
+	{
+		lwc_intern_string(s->str, s->len, &s->lwc_rep);
+		lwc_string_ref(s->lwc_rep);
+	}
+
+	return s->lwc_rep;
 }
 
 dest_free_def(str, Str)

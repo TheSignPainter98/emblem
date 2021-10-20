@@ -22,8 +22,6 @@ int typeset_doc(Doc* doc, Args* args, TypesettingSupport support)
 	if (do_lua_start_event(doc->ext->state))
 		return 1;
 
-	finalise_env_for_typesetting(doc->ext);
-
 	if (prepare_styler(doc->styler))
 		return 1;
 
