@@ -31,14 +31,7 @@ class HtmlOutputDriver extends ContextFreeOutputDriver
 			"	</body>",
 			"</html>",
 		}, '\n'
-	special_tag_enclose: (t, r) =>
-		initial = ''
-		if t == 'p'
-			if @first_block
-				@first_block = false
-			else
-				initial = '\n'
-		initial .. "<#{t} class=\"#{t}\">#{r}</#{t}>"
+	special_tag_enclose: (t, r) => "<#{t} class=\"#{t}\">#{r}</#{t}>"
 	general_tag_enclose: (t, r) => "<span class=\"#{t}\">#{r}</span>"
 	par_enclose: (...) => @special_tag_enclose ...
 	special_tag_map:
@@ -55,6 +48,10 @@ class HtmlOutputDriver extends ContextFreeOutputDriver
 		'h4*': "h4"
 		'h5*': "h5"
 		'h6*': "h6"
+	sanitise: (w) =>
+		w = w\gsub '<', '&lt;'
+		w = w\gsub '>', '&gt;'
+		w
 
 output_drivers.html = HtmlOutputDriver true
 output_drivers.html_bare = HtmlOutputDriver false

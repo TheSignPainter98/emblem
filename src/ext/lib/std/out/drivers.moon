@@ -4,7 +4,7 @@
 -- @author Edward Jones
 -- @date 2021-09-24
 
-import driver_capabilities, node_types from require 'std.constants'
+import css, driver_capabilities, node_types from require 'std.constants'
 import unknown_x_msg from require 'std.edit'
 import key_list from require 'std.func'
 import em, SanitisedKeyTable from require 'std.base'
@@ -15,6 +15,8 @@ import concat from table
 local open
 if not io.module_unavailable
 	import open from io
+
+import DISPLAY_BLOCK from css.display
 
 curr_output_driver = nil
 
@@ -50,62 +52,95 @@ import WORD, CALL, CONTENT from node_types
 class ContextFreeOutputDriver extends OutputDriver
 	new: (@do_wrap_root=false, ...) => super ...
 	special_tag_map: {}
-	general_tag_enclose: (t, r) => error "Context free output driver does not implement the 'general_tag_enclose' class method"
-	special_tag_enclose: (t, r) => error "Context free output driver does not implement the 'special_tag_enclose' class method"
+	general_tag_enclose: (t, r, t2=t) => error "Context free output driver does not implement the 'general_tag_enclose' class method"
+	special_tag_enclose: (t, r, t2=t) => error "Context free output driver does not implement the 'special_tag_enclose' class method"
+	style_responses: {}
 	par_inner_sep: ' '
 	wrap_root: (r) => r
 	first_block: true
+	sanitise: (w) => w
+	enclose_tag: (name, fmtd) =>
+		special_tag = @special_tag_map[name]
+		tag = special_tag or name
+		tag_encloser = special_tag and @special_tag_enclose or @general_tag_enclose
+		tag_encloser @, tag, fmtd
 	format: (doc) =>
-		format = (n, can_space, par_content) ->
+		format = (n, can_space) ->
 			return '' unless n
 			switch n.type
 				when WORD
-					local result
-					if can_space
-						result = ' ' .. n.word
-					else
-						result = n.word
-					return result
+					@sanitise n.word
 				when CALL
 					special_tag = @special_tag_map[n.name]
 					tag = special_tag or n.name
-					result = format n.result, false, n.name == 'p'
-					return result if result == ''
+					result = format n.result, false
+					return '' if result == ''
 
-					initial = ""
+					initial = ''
 					if can_space
-						initial = " "
+						initial = ' '
 					local tag_encloser
 					if special_tag
 						tag_encloser = @special_tag_enclose
 					else
 						tag_encloser = @general_tag_enclose
-					initial .. tag_encloser @, tag, result
-
+					tag_encloser @, tag, result
 				when CONTENT
-					intertext = ''
-					intertext = @par_inner_sep if par_content
-					concat [ format n.content[i], i > 1, false for i=1,#n.content ], intertext
+					concat [ format n.content[i], 1 < i for i=1,#n.content ], ' '
 				else
 					error "Unknown node type #{n.type}"
-		ret = format doc, false, false
+		ret = format doc, false
 		ret = @wrap_root ret if @do_wrap_root
 		ret
 
 ---
 -- @brief Represents an output driver for context-free markup languages where paragraphs are represented by whitespace
 class TextualMarkupOutputDriver extends ContextFreeOutputDriver
-	general_tag_enclose: (t, r) =>
-		if t == 'p'
-			if @first_block
-				@first_block = false
-				r
+	general_tag_enclose: (t, r) => r
+	next_delimiter: ''
+	is_block: (n) => n.style.elem.display == DISPLAY_BLOCK
+	format: (doc) =>
+		@have_output = false
+		format = (n, do_delimit) ->
+			return '' unless n
+			delimiter = do_delimit and @next_delimiter or ''
+			@prev_delimiter = @next_delimiter unless delimiter == ''
+			@next_delimiter = ' '
+
+			local post_delimiter
+			if @is_block n
+				delimiter = '\n\n' if @have_output and @prev_delimiter != '\n\n'
+				post_delimiter = '\n\n'
 			else
-				@par_enclose r
-		else
-			@general_non_par_tag_enclose t, r
-	general_non_par_tag_enclose: (_, r) => r
-	par_enclose: (r) => '\n\n' .. r
+				post_delimiter = ' '
+
+			switch n.type
+				when WORD
+					@have_output = true
+					delimiter ..  @sanitise n.word
+				when CALL
+					result = format n.result, false
+					if result == ''
+						result
+					else
+						r = delimiter .. (@style n, @enclose_tag n.name, result)
+						@next_delimiter = post_delimiter
+						r
+				when CONTENT
+					delimiter .. (concat [ format n.content[i], 1 < i for i=1,#n.content ])
+				else
+					error "Unknown node type #{n.type}"
+		ret = format doc, false, false
+		ret = @wrap_root ret if @do_wrap_root
+		ret
+	style: (node, fmtd) =>
+		elem_style = node.style.elem
+		for style in *@style_responses
+			local open, close
+			open, close = style elem_style
+			if open or close
+				fmtd = @special_tag_enclose open, fmtd, close
+		fmtd
 
 ---
 -- @brief Gets the current output driver

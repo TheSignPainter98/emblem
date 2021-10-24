@@ -1,27 +1,52 @@
 #!/usr/bin/moon
 
 import load from require 'lyaml'
-import open from io
-import concat, insert from table
+import dir from require 'lfs'
+import lines, open from io
+import concat, insert, sort from table
+
+CSS_DOMAIN_NAME = 'css'
+
+sanitise_name = (name) ->
+	name = name\gsub 'color', 'colour'
+	name = name\gsub 'COLOR', 'COLOUR'
+	name\gsub 'CENTER', 'CENTRE'
 
 class Const
-	new: (@name, @type) =>
+	new: (name, @type, @src=name) =>
+		@name = sanitise_name name
+	__tostring: => "\tlua_push#{@type}(s, #{@src});\n\tlua_setfield(s, -2, \"#{@name}\");"
+
+class CssConst extends Const
+	new: (name, domain) =>
+		sname = name\gsub "^CSS_", ''
+		super sname, 'integer', name
+	__tostring: => super!
+
+sanitise_c_domain_name = (rdname) ->
+	dname = rdname\gsub '_[esu]$', ''
+	dname = dname\gsub '^css_', ''
+	dname\gsub '^properties', 'prop'
 
 constant_sources = {}
 constants = {}
 domains = {}
 
-local lines
+local const_lines
 with open 'src/ext-constants.yml'
-	lines = \read '*all'
+	const_lines = \read '*all'
 	\close!
-raw_consts = load lines
+raw_consts = load const_lines
 
 elem = (es, e) ->
 	for e2 in *es
 		if e == e2
 			return true
 	false
+
+sorted = (t, ...) ->
+	sort t, ...
+	t
 
 insert_unique = (es, e) -> insert es, e if not elem es, e
 
@@ -40,32 +65,83 @@ for domain_name, domain in pairs raw_consts
 					constants[domain_name] = {}
 				insert constants[domain_name], Const const, type_name
 
+css_unit_domain = nil
+
+libcss_files = (libcss_loc) -> [ f for f in dir libcss_loc when not f\match '^%.' ]
+get_libcss_constants = (libcss_headers, libcss_loc) ->
+	libcss_constants = {}
+	for libcss_header in *libcss_headers
+		header_lines = lines "#{libcss_loc}/#{libcss_header}"
+		domain = nil
+		dom_parts = {}
+		for line in header_lines
+			if line\match 'enum%s+'
+				domain = sanitise_c_domain_name line\match 'enum ([^%s]*)'
+			elseif declaration = line\match '^%s*([a-zA-Z0-9_]+)'
+				if domain
+					insert dom_parts, CssConst declaration, domain
+			elseif line\match '^}'
+				if domain
+					libcss_constants[domain] = dom_parts
+					css_unit_domain = dom_parts if domain == 'unit'
+				domain = nil
+				dom_parts = {}
+	libcss_constants
+
+unit_fmt = => "\tlua_pushliteral(s, \"#{(@name\gsub '^UNIT_', '')\lower!}\");\n\tlua_seti(s, -2, #{@src});"
+
 if elem {...}, '-c'
 	formatted_const_sources = concat [ "#include \"#{src}\"" for src in *constant_sources ], '\n'
 
-	const_domain_fmt = (n, d) ->
+	const_domain_fmt = (n, d, scope='global') ->
 		create_tab_call = "\tlua_createtable(s, 0, #{tab_len d});"
-		decls = concat [ "\tlua_push#{c.type}(s, #{c.name});\n\tlua_setfield(s, -2, \"#{c.name}\");" for c in *d ], '\n'
-		set_tab_call = "\tlua_setglobal(s, \"#{n}\");"
-		concat { create_tab_call, decls, set_tab_call }, '\n'
+		decls = concat [ tostring c for c in *d ], '\n'
+		local set_tab_call
+		if scope == 'field'
+			set_tab_call = "\tlua_setfield(s, -2, \"#{sanitise_name n}\");"
+		else -- scope == global
+			set_tab_call = "\tlua_setglobal(s, \"#{sanitise_name n}\");"
+		concat { create_tab_call, decls, set_tab_call, '' }, '\n'
 
 	formatted_constants = concat [ const_domain_fmt n, d for n,d in pairs constants ], '\n\n'
 
-	print " /**
-* @file lua-constants
-* @brief Provides function for setting-up interface constants in the extension environment
-* @author Edward Jones
-* @date 2021-09-17
-*/
+	args = {...}
+	LIBCSS_LOC = args[2] or '/usr/include/libcss/'
+	libcss_header_files = libcss_files LIBCSS_LOC
+	libcss_header_includes = concat (sorted [ "#include <libcss/#{hdr}>" for hdr in *libcss_header_files ]), '\n'
+	libcss_constants = get_libcss_constants libcss_header_files, LIBCSS_LOC
+	libcss_formatted_constants = concat [ const_domain_fmt n, d, 'field' for n,d in pairs libcss_constants ], '\n'
+	libcss_formatted_unit_converter = concat [ unit_fmt unit for unit in *css_unit_domain ], '\n'
+
+	print "/**
+ * @file lua-constants
+ * @brief Provides function for setting-up interface constants in the extension environment
+ * @author auto-generatad by lua-constants
+ * @date 2021-09-17
+ */
 #include \"ext/lua-constants.h\"
 
 #{formatted_const_sources}
+#{libcss_header_includes}
 
+/**
+ * @brief Set interface constants
+ *
+ * @param s Extension state into which the constants are added
+ */
 void ext_set_global_constants(ExtensionState* s)
 {
 #{formatted_constants}
+
+	lua_createtable(s, 0, #{#libcss_constants});
+#{libcss_formatted_constants}
+	lua_createtable(s, #{#css_unit_domain}, 0);
+#{libcss_formatted_unit_converter}
+	lua_setfield(s, -2, \"unit_str\");
+	lua_setglobal(s, \"#{CSS_DOMAIN_NAME}\");
 }"
 elseif elem {...}, '-m'
+	insert domains, CSS_DOMAIN_NAME
 	print "---"
 	print "-- @file std.constants"
 	print "-- @brief Provides the constants recognised by the core"
