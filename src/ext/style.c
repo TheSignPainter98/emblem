@@ -206,21 +206,19 @@ int ext_import_stylesheet(ExtensionState* s)
 	lua_setfield(s, -2, #f);
 
 #define PACK_STRING_LIST(f)                                                                                            \
-	ret = css_computed_font_family(pestyle, &str_list);                                                                \
+	ret = css_computed_##f(pestyle, &str_list);                                                                        \
 	lua_createtable(s, 0, 1);                                                                                          \
 	lua_pushinteger(s, ret);                                                                                           \
 	lua_setfield(s, -2, "type");                                                                                       \
+	lua_newtable(s);                                                                                                   \
 	if (str_list)                                                                                                      \
-	{                                                                                                                  \
-		lua_newtable(s);                                                                                               \
 		for (int i = 1; *str_list; str_list++, i++)                                                                    \
 		{                                                                                                              \
 			lua_pushlstring(s, lwc_string_data(*str_list), lwc_string_length(*str_list));                              \
 			lua_seti(s, -2, i);                                                                                        \
 		}                                                                                                              \
-		lua_setfield(s, -2, "families");                                                                               \
-	}                                                                                                                  \
-	lua_setfield(s, -2, "font_family");
+	lua_setfield(s, -2, "list");                                                                                       \
+	lua_setfield(s, -2, #f);
 
 int pack_style(ExtensionState* s, Style* style, DocTreeNode* node)
 {
