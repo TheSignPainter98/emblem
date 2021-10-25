@@ -34,7 +34,7 @@ font_size_strings =
 class BBCodeOutputDriver extends TextualMarkupOutputDriver
 	support: TS_BASIC_STYLING | TS_COLOUR | TS_TEXT_SIZE
 	output_extension: 'bb'
-	special_tag_enclose: (t, r, t2=t) => "[#{t}]#{r}[/#{t2}]"
+	special_tag_enclose: (t, r, t2=t) => { '[', t, ']', r, '[/', t2, ']' }
 	special_tag_map:
 		pre: 'pre'
 		quote: 'quote'

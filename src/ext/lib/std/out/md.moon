@@ -22,10 +22,9 @@ class MarkdownOutputDriver extends TextualMarkupOutputDriver
 		super false, support, 'md'
 	special_tag_enclose: (t, r, t2=t) =>
 		if t\match '#+'
-			@first_block = false
-			t .. ' ' .. r
+			{ t, ' ', r }
 		else
-			t .. r .. t2
+			{ t, r, t2 }
 	special_tag_map:
 		h1: '#'
 		h2: '##'
@@ -56,7 +55,8 @@ class MarkdownOutputDriver extends TextualMarkupOutputDriver
 	sanitise: (w) =>
 		w = w\gsub '([*\\])', '\\%1'
 		w = w\gsub '^_', '\\_'
-		w\gsub '_$', '\\_'
+		w = w\gsub '_$', '\\_'
+		w
 
 output_drivers.md = MarkdownOutputDriver!
 

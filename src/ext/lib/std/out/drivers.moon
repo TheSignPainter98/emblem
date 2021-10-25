@@ -7,9 +7,9 @@
 import css, driver_capabilities, node_types from require 'std.constants'
 import unknown_x_msg from require 'std.edit'
 import key_list from require 'std.func'
-import em, SanitisedKeyTable from require 'std.base'
+import SanitisedKeyTable from require 'std.base'
 import log_err, log_warn from require 'std.log'
-import sorted from require 'std.util'
+import sorted, StringBuilder from require 'std.util'
 import concat from table
 
 local open
@@ -65,7 +65,7 @@ class ContextFreeOutputDriver extends OutputDriver
 		tag_encloser = special_tag and @special_tag_enclose or @general_tag_enclose
 		tag_encloser @, tag, fmtd
 	format: (doc) =>
-		format = (n, can_space) ->
+		format = (n) ->
 			return '' unless n
 			switch n.type
 				when WORD
@@ -76,9 +76,6 @@ class ContextFreeOutputDriver extends OutputDriver
 					result = format n.result, false
 					return '' if result == ''
 
-					initial = ''
-					if can_space
-						initial = ' '
 					local tag_encloser
 					if special_tag
 						tag_encloser = @special_tag_enclose
@@ -86,12 +83,14 @@ class ContextFreeOutputDriver extends OutputDriver
 						tag_encloser = @general_tag_enclose
 					tag_encloser @, tag, result
 				when CONTENT
-					concat [ format n.content[i], 1 < i for i=1,#n.content ], ' '
+					sb = StringBuilder!
+					sb\extend [ format n.content[i], 1 < i for i=1,#n.content ], ' '
+					sb\get_contents!
 				else
 					error "Unknown node type #{n.type}"
-		ret = format doc, false
+		ret = StringBuilder format doc, false
 		ret = @wrap_root ret if @do_wrap_root
-		ret
+		ret!
 
 ---
 -- @brief Represents an output driver for context-free markup languages where paragraphs are represented by whitespace
@@ -117,22 +116,22 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 			switch n.type
 				when WORD
 					@have_output = true
-					delimiter ..  @sanitise n.word
+					{ delimiter, @sanitise n.word }
 				when CALL
 					result = format n.result, false
 					if result == ''
 						result
 					else
-						r = delimiter .. (@style n, @enclose_tag n.name, result)
+						r = { delimiter, @style n, @enclose_tag n.name, result }
 						@next_delimiter = post_delimiter
 						r
 				when CONTENT
-					delimiter .. (concat [ format n.content[i], 1 < i for i=1,#n.content ])
+					{ delimiter, [ format n.content[i], 1 < i for i=1,#n.content ] }
 				else
 					error "Unknown node type #{n.type}"
-		ret = format doc, false, false
+		ret = StringBuilder format doc, false, false
 		ret = @wrap_root ret if @do_wrap_root
-		ret
+		ret!
 	style: (node, fmtd) =>
 		elem_style = node.style.elem
 		for style in *@style_responses

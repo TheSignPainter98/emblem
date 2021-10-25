@@ -8,7 +8,7 @@ import eval_string, iter_num from require 'std.base'
 import wrap, yield from coroutine
 import maxinteger, mininteger from math
 import len from string
-import insert, sort from table
+import concat, insert, sort from table
 
 util = {}
 
@@ -154,5 +154,33 @@ util.on_iter_wrap = (f) -> (n, ...) ->
 		n = tonumber eval_string n
 	if iter_num! == n
 		f ...
+
+class util.StringBuilder
+	new: (@content={}) => -- @content is has type T where T <: primitive | [T] | {__tostring: => str}
+	get_contents: => @content
+	extend: (cs, d) =>
+		if d
+			return if #cs == 0
+			insert @content, cs[1]
+			for i=2,#cs
+				insert @content, d
+				insert @content, cs[i]
+		else
+			insert @content, c for c in *cs
+	__concat: (s) => insert @content, s
+	__call: =>
+		flattened = {}
+		flatten = (o) ->
+			if 'table' == type o
+				mt = getmetatable o
+				if mt and mt.__tostring
+					s = tostring o
+					insert flattened, s unless s == ''
+				else
+					flatten e for e in *o
+			else
+				insert flattened, o if o != nil and o != ''
+		flatten @content
+		concat flattened
 
 util

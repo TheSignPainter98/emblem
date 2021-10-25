@@ -7,7 +7,7 @@
 import css, driver_capabilities from require 'std.constants'
 import TextualMarkupOutputDriver, output_drivers from require 'std.out.drivers'
 import eq, is_list from require 'std.util'
-import extend from require 'std.util'
+import StringBuilder from require 'std.util'
 import concat from table
 
 import TS_BASIC_STYLING, TS_COLOUR, TS_TEXT_SIZE from driver_capabilities
@@ -32,7 +32,7 @@ class LaTeXLib
 					opt_string = "[#{concat [ tostring o for o in *@opts ], ','}]"
 				else
 					opt_string = "[#{concat [ "#{k}=#{v}" for k,v in ipairs @opts ], ','}]"
-		"\\usepackage#{opt_string}{#{@name}}"
+		"\\usepackage#{opt_string}{#{@name}}\n"
 
 ---
 -- @brief Represents an output driver for LaTeX
@@ -82,9 +82,9 @@ class LaTeXOutputDriver extends TextualMarkupOutputDriver
 	}
 	special_tag_enclose: (t, r) =>
 		if @environments[t]
-			"\\begin{#{t}}%\n\t#{r}%\n\\end{#{t}}"
+			{ '\\begin{', t, '}%\n\t', r, '%\n\\end{', t, '}' }
 		else
-			"{\\#{t}{#{r}}}"
+			{ '{\\', t, '{', r, '}}' }
 	default_libs: {
 		LaTeXLib 'babel', 'UKenglish'
 		LaTeXLib 'microtype', {'kerning','tracking','spacing'}
@@ -96,24 +96,23 @@ class LaTeXOutputDriver extends TextualMarkupOutputDriver
 		LaTeXLib 'adjustbox'
 		LaTeXLib 'ragged2e'
 	}
-	wrap_root: (r) =>
-		-- There should really be a way of customising this
-		libs = [ tostring l for l in *@default_libs ]
-		setup = {
-			'\\microtypecontext{spacing=nonfrench}'
-			'\\SetExtraKerning{encoding=*,family=*}{\\textemdash={83,83}}'
-		}
-		lines = extend {'\\documentclass{article}'},
-			libs,
-			setup,
-			{'\\begin{document}%'},
-			{r .. '%'},
-			{'\\end{document}%'}
-		concat lines, '\n'
+	wrap_root: (r) => StringBuilder {
+		'\\documentclass{article}\n',
+		'\n',
+		@default_libs,
+		'\n',
+		'\\microtypecontext{spacing=nonfrench}\n',
+		'\\SetExtraKerning{encoding=*,family=*}{\\textemdash={83,83}}\n',
+		'\n',
+		'\\begin{document}%\n',
+		{ r\get_contents!, '%\n' },
+		'\\end{document}'
+	}
 	sanitise: (w) =>
 		w = w\gsub '([\\{}])', '\\%1'
 		w = w\gsub '%^', '{\\textasciicircumflex}'
-		w\gsub '([%%&^_$])', '\\%1'
+		w = w\gsub '([%%&^_$])', '\\%1'
+		w
 
 output_drivers.latex = LaTeXOutputDriver true
 output_drivers.latex_bare = LaTeXOutputDriver false
