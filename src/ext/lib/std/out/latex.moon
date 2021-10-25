@@ -6,8 +6,8 @@
 
 import css, driver_capabilities from require 'std.constants'
 import TextualMarkupOutputDriver, output_drivers from require 'std.out.drivers'
-import eq, is_list from require 'std.util'
-import StringBuilder from require 'std.util'
+import colour_to_hex from require 'std.style'
+import eq, is_list, StringBuilder from require 'std.util'
 import concat from table
 
 import TS_BASIC_STYLING, TS_COLOUR, TS_TEXT_SIZE from driver_capabilities
@@ -78,7 +78,9 @@ class LaTeXOutputDriver extends TextualMarkupOutputDriver
 		=> 'justify' if @text_align == TEXT_ALIGN_JUSTIFY
 		=> 'FlushLeft' if @text_align == TEXT_ALIGN_LEFT
 		=> 'FlushRight' if @text_align == TEXT_ALIGN_RIGHT
-		=> "definecolor{color_#{@colour.hex}{HTML}{#{@colour.hex}}\\textcolor{color_#{@colour.hex}}" if 'table' == type @colour
+		=> if 'table' == type @colour
+			hex = colour_to_hex @colour
+			"definecolor{color_#{hex}{HTML}{#{hex}}\\textcolor{color_#{hex}}"
 	}
 	special_tag_enclose: (t, r) =>
 		if @environments[t]

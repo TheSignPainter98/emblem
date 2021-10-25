@@ -7,6 +7,7 @@
 import floor from math
 import css, driver_capabilities from require 'std.constants'
 import StyleResponse, TextualMarkupOutputDriver, output_drivers from require 'std.out.drivers'
+import colour_to_hex from require 'std.style'
 
 import TS_BASIC_STYLING, TS_COLOUR, TS_TEXT_SIZE from driver_capabilities
 import unit_str from css
@@ -68,7 +69,7 @@ class BBCodeOutputDriver extends TextualMarkupOutputDriver
 				fw == FONT_WEIGHT_900
 		=> 'u' if @text_decoration == TEXT_DECORATION_UNDERLINE
 		=> 's' if @text_decoration == TEXT_DECORATION_LINE_THROUGH
-		=> "color=##{@colour.hex}", 'color' if 'table' == type @colour
+		=> "color=##{colour_to_hex @colour}", 'color' if 'table' == type @colour
 		=> 'center' if @text_align == TEXT_ALIGN_CENTRE
 		=> 'left' if @text_align == TEXT_ALIGN_LEFT or @text_align == TEXT_ALIGN_JUSTIFY
 		=> 'right' if @text_align == TEXT_ALIGN_RIGHT
