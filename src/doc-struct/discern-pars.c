@@ -12,32 +12,24 @@
 typedef enum
 {
 	NO_PAR_NODE,
-	MAYBE_CHILD_PAR_NODE,
+	MAYBE_CHILD_REQUIRES_PAR_NODE,
 	REQUIRES_PAR_NODE,
-} ParNodeRequirement;
+} ParFosterRequirement;
 
-static void discern_pars_beneath_node(DocTreeNode* node);
 static void apply_par_node(ListNode* containingNode, DocTreeNode* node);
-static ParNodeRequirement requires_par_node(DocTreeNode* node);
+static ParFosterRequirement requires_par_node(DocTreeNode* node);
 static bool has_non_null_content(DocTreeNode* node);
 
-void discern_pars(Doc* doc)
-{
-	log_info("Marking paragraphs");
-	if (doc->root)
-		discern_pars_beneath_node(doc->root);
-}
-
-static void discern_pars_beneath_node(DocTreeNode* node)
+int introduce_foster_pars(DocTreeNode* node)
 {
 	switch (node->content->type)
 	{
 		case WORD:
-			return;
+			return 0;
 		case CALL:
 			if (node->content->call->result)
-				discern_pars_beneath_node(node->content->call->result);
-			return;
+				introduce_foster_pars(node->content->call->result);
+			return 0;
 		case CONTENT:
 		{
 			ListIter li;
@@ -50,8 +42,8 @@ static void discern_pars_beneath_node(DocTreeNode* node)
 				{
 					case NO_PAR_NODE:
 						break;
-					case MAYBE_CHILD_PAR_NODE:
-						discern_pars_beneath_node(childNode);
+					case MAYBE_CHILD_REQUIRES_PAR_NODE:
+						introduce_foster_pars(childNode);
 						break;
 					case REQUIRES_PAR_NODE:
 						apply_par_node(listNode, childNode);
@@ -60,8 +52,12 @@ static void discern_pars_beneath_node(DocTreeNode* node)
 			}
 
 			dest_list_iter(&li);
-			return;
+			return 0;
 		}
+		default:
+			log_err_at(node->src_loc, "Failed to introduce foster paragraphs, encountered node of unknown type %d",
+				node->content->type);
+			return -1;
 	}
 }
 
@@ -78,12 +74,25 @@ static void apply_par_node(ListNode* containingNode, DocTreeNode* node)
 	call_io->result = node;
 	pnode->flags |= IS_GENERATED_NODE;
 
+	// Update the prev_sibling of the next element
+	if (containingNode->nxt)
+	{
+		DocTreeNode* nxt_node = containingNode->nxt->data;
+		if (nxt_node)
+			nxt_node->prev_sibling = pnode;
+	}
+
+	// Foster the paragraph node
 	containingNode->data = pnode;
 	pnode->parent		 = node->parent;
 	node->parent		 = pnode;
+
+	// Update the previous siblings
+	pnode->prev_sibling = node->prev_sibling;
+	node->prev_sibling = NULL;
 }
 
-static ParNodeRequirement requires_par_node(DocTreeNode* node)
+static ParFosterRequirement requires_par_node(DocTreeNode* node)
 {
 	if (node->flags & DISQUALIFIED_PARAGRAPH)
 		return NO_PAR_NODE;
@@ -91,10 +100,10 @@ static ParNodeRequirement requires_par_node(DocTreeNode* node)
 	switch (node->content->type)
 	{
 		case CALL:
-			return MAYBE_CHILD_PAR_NODE;
+			return MAYBE_CHILD_REQUIRES_PAR_NODE;
 		case CONTENT:
 			if (node->flags & INCLUDED_FILE_ROOT && node->content->content->cnt)
-				return MAYBE_CHILD_PAR_NODE;
+				return MAYBE_CHILD_REQUIRES_PAR_NODE;
 			switch (node->content->content->cnt)
 			{
 				case 0:
@@ -103,13 +112,14 @@ static ParNodeRequirement requires_par_node(DocTreeNode* node)
 				{
 					DocTreeNode* sole_child = node->content->content->fst->data;
 					if (sole_child->content->type == CALL || sole_child->flags & INCLUDED_FILE_ROOT)
-						return MAYBE_CHILD_PAR_NODE;
+						return MAYBE_CHILD_REQUIRES_PAR_NODE;
 					if (sole_child->content->type == CONTENT && sole_child->content->content->cnt == 1)
 					{
 						// Case to handle .include directives with single-line directives, alone on a line
 						DocTreeNode* sole_child_sole_child = sole_child->content->content->fst->data;
-						if (sole_child_sole_child->content->type == CALL || sole_child_sole_child->flags & INCLUDED_FILE_ROOT)
-							return MAYBE_CHILD_PAR_NODE;
+						if (sole_child_sole_child->content->type == CALL
+							|| sole_child_sole_child->flags & INCLUDED_FILE_ROOT)
+							return MAYBE_CHILD_REQUIRES_PAR_NODE;
 					}
 					return REQUIRES_PAR_NODE;
 				}

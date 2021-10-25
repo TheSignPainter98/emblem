@@ -48,7 +48,7 @@ int ext_eval_tree(ExtensionState* s)
 		luaL_error(s, "Invalid styler value");
 	lua_pop(s, 1);
 
-	int erc = exec_lua_pass_on_node(s, sty, node, env->iter_num);
+	int erc = exec_lua_pass_on_node(s, sty, node, env->iter_num, false);
 	if (erc)
 		luaL_error(s, "Error while evaluating node");
 	else

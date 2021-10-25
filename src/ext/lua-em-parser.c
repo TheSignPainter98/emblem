@@ -66,7 +66,7 @@ int ext_include_file(ExtensionState* s)
 		luaL_error(s, "Invalid styler value");
 	lua_pop(s, 1);
 
-	if (exec_lua_pass_on_node(s, sty, included_root, env->iter_num))
+	if (exec_lua_pass_on_node(s, sty, included_root, env->iter_num, true))
 		lua_pushnil(s);
 	else
 	{

@@ -6,6 +6,7 @@
  */
 #include "lua.h"
 
+#include "doc-struct/discern-pars.h"
 #include "logs/logs.h"
 #include "lua-ast-io.h"
 #include "style.h"
@@ -19,6 +20,8 @@
 #define OPEN_VAR_SCOPE_FUNC_NAME  "open_var_scope"
 
 static bool is_callable(ExtensionState* s, int idx);
+static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_iter) __attribute__((nonnull(1, 2)));
+static int resolve_styling(DocTreeNode* node, Styler* sty) __attribute__((nonnull(1, 2)));
 
 void inc_iter_num(Doc* doc)
 {
@@ -29,23 +32,43 @@ void inc_iter_num(Doc* doc)
 
 int exec_lua_pass(Doc* doc)
 {
-	int rc = exec_lua_pass_on_node(doc->ext->state, doc->styler, doc->root, doc->ext->iter_num);
+	int rc
+		= exec_lua_pass_on_node(doc->ext->state, doc->styler, doc->root, doc->ext->iter_num, doc->ext->iter_num == 1);
 	lua_settop(doc->ext->state, 0);
 	return rc;
 }
 
 #include "debug.h"
-int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int curr_iter)
+int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int curr_iter, bool foster_paragraphs)
 {
-	// Takes a node at the top of the stack, replaces it with the result of executing a lua pass
 	if (!node)
 		return 0;
-	int rc = compute_style(sty, node);
-	if (rc)
-		return rc;
 	if (node->flags & NO_FURTHER_EVAL)
 		return 0;
 	node->last_eval = curr_iter;
+
+	// Evaluate the directives contained
+	int rc = evaluate_directives(s, node, curr_iter);
+	if (rc)
+		return rc;
+
+	// Add foster paragraphs if and where necessary
+	if (foster_paragraphs)
+	{
+		rc = introduce_foster_pars(node);
+		if (rc)
+			return rc;
+	}
+
+	// Resolve the resulting styling
+	return resolve_styling(node, sty);
+}
+
+static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_iter)
+{
+	int rc = 0;
+
+	// Exit if no further evaluation is required.
 	switch (node->content->type)
 	{
 		case WORD:
@@ -64,16 +87,16 @@ int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int
 				node->flags |= CALL_HAS_NO_EXT_FUNC;
 				if (is_empty_list(node->content->call->args))
 				{
-					int rc = log_warn_at(node->src_loc,
-						"Directive '.%s' is not an extension function and has no arguments (would style nothing)",
-						node->name->str);
-					return rc ? -1 : 0;
+					if (log_warn_at(node->src_loc,
+							"Directive '.%s' is not an extension function and has no arguments (would style nothing)",
+							node->name->str))
+						return -1;
 				}
 				if (node->content->call->args->cnt == 1)
 				{
 					// Pass through non-extension calls with a single argument
 					node->content->call->result = node->content->call->args->fst->data;
-					return exec_lua_pass_on_node(s, sty, node->content->call->result, curr_iter);
+					return evaluate_directives(s, node->content->call->result, curr_iter);
 				}
 
 				log_debug("Putting args into lines node for result");
@@ -87,7 +110,7 @@ int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int
 					prepend_doc_tree_node_child(resultNode, resultNode->content->content, currArg);
 				node->content->call->result = resultNode;
 
-				return exec_lua_pass_on_node(s, sty, node->content->call->result, curr_iter);
+				return evaluate_directives(s, node->content->call->result, curr_iter);
 			}
 			if (!is_callable(s, -1))
 			{
@@ -142,7 +165,6 @@ int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int
 			log_debug("Pre-call stack:");
 			dumpstack(s);
 			log_debug("(Pcalling %s with %ld arguments...)", node->name->str, num_args);
-			int rc;
 			switch (lua_pcall(s, num_args, 1, 0))
 			{
 				case LUA_OK:
@@ -151,24 +173,22 @@ int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int
 					rc = unpack_lua_result(&node->content->call->result, s, node);
 					log_debug("Unpacked result into %p", (void*)node->content->call->result);
 					if (!rc)
-						rc = exec_lua_pass_on_node(s, sty, node->content->call->result, curr_iter);
+						rc = evaluate_directives(s, node->content->call->result, curr_iter);
 					if (!rc)
 						lua_pop(s, 1); // Pop the public table
 					dumpstack(s);
 					break;
 				case LUA_YIELD:
 				{
-					int fw
-						= log_warn_at(node->src_loc, "Lua function em.%s yielded instead of returned", node->name->str);
+					rc |= log_warn_at(node->src_loc, "Lua function em.%s yielded instead of returned", node->name->str);
 					lua_pop(s, 1); // Pop the public table
-					rc = fw ? -1 : 0;
 					break;
 				}
 				default:
 					log_err_at(
 						node->src_loc, "Calling em.%s failed with error: %s", node->name->str, lua_tostring(s, -1));
 					lua_pop(s, 1); // Pop the public table
-					rc = -1;
+					rc |= -1;
 					break;
 			}
 
@@ -193,12 +213,11 @@ int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int
 			ListIter li;
 			make_list_iter(&li, node->content->content);
 			DocTreeNode* subNode;
-			int rc = 0;
 			while (iter_list((void**)&subNode, &li))
 			{
-				rc |= exec_lua_pass_on_node(s, sty, subNode, curr_iter);
+				rc |= evaluate_directives(s, subNode, curr_iter);
 				if (rc)
-					return rc;
+					break;
 			}
 			dest_list_iter(&li);
 			return rc;
@@ -228,6 +247,43 @@ static bool is_callable(ExtensionState* s, int idx)
 	return callable;
 }
 
+static int resolve_styling(DocTreeNode* node, Styler* sty)
+{
+	// Compute the style
+	int rc = compute_style(sty, node);
+	if (rc)
+		return rc;
+
+	switch (node->content->type)
+	{
+		case WORD:
+			break;
+		case CALL:
+			if (node->content->call->result)
+				return resolve_styling(node->content->call->result, sty);
+			break;
+		case CONTENT:
+		{
+			ListIter li;
+			make_list_iter(&li, node->content->content);
+			DocTreeNode* child;
+			while (iter_list((void**)&child, &li))
+			{
+				rc = resolve_styling(child, sty);
+				if (rc)
+					return rc;
+			}
+			break;
+		}
+		default:
+			log_err_at(node->src_loc, "Failed to perform styling pass, encountered node of unknown type %d",
+				node->content->type);
+			return -1;
+	}
+
+	return 0;
+}
+
 int to_userdata_pointer(void** val, ExtensionState* s, int idx, LuaPointerType type)
 {
 	if (!lua_isuserdata(s, idx))
@@ -238,7 +294,8 @@ int to_userdata_pointer(void** val, ExtensionState* s, int idx, LuaPointerType t
 	LuaPointer* ptr = lua_touserdata(s, idx);
 	if (ptr->type != type)
 	{
-		log_err("Expected %s userdata (%d) but got %s userdata (%d)", lua_pointer_type_names[type], type, lua_pointer_type_names[ptr->type], ptr->type);
+		log_err("Expected %s userdata (%d) but got %s userdata (%d)", lua_pointer_type_names[type], type,
+			lua_pointer_type_names[ptr->type], ptr->type);
 		return 1;
 	}
 	*val = ptr->data;
