@@ -51,9 +51,8 @@ int compute_style(Styler* s, DocTreeNode* node)
 	if ((rc = css_select_style(eng->ctx, node, &eng->media, NULL, &eng->handler, NULL, &node->style)))
 		return rc;
 
-	// TODO: compose style with parent if necessary!
-	bool compose_styles = false;
-	if (compose_styles && node->parent)
+#if 0
+	if (node->parent)
 	{
 		Style* new_styles = malloc(sizeof(css_select_results));
 		for (int i = 0; i < CSS_PSEUDO_ELEMENT_COUNT; i++)
@@ -71,6 +70,7 @@ int compute_style(Styler* s, DocTreeNode* node)
 		dest_style(node->style);
 		node->style = new_styles;
 	}
+#endif
 
 	return 0;
 }
@@ -186,7 +186,6 @@ static css_error resolve_url(void* pw, const char* base, lwc_string* rel, lwc_st
 		abs_url[path_end++] = PATH_SEP;
 		strncpy(abs_url + path_end, rel_url, abs_url_len - path_end);
 
-		// TODO compute abs_url!
 		lwc_intern_string(abs_url, strlen(abs_url), abs);
 	}
 

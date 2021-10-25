@@ -298,12 +298,12 @@ int pack_style(ExtensionState* s, Style* style, DocTreeNode* node)
 		PACK_LENGTH2(border_bottom_width, ret == CSS_BORDER_WIDTH_WIDTH);
 		PACK_LENGTH2(border_left_width, ret == CSS_BORDER_WIDTH_WIDTH);
 		PACK_LENGTH2(border_right_width, ret == CSS_BORDER_WIDTH_WIDTH);
-		PACK_LENGTH2(border_top_width, ret == CSS_BORDER_WIDTH_WIDTH); // TODO: can this be a rectangle?
+		PACK_LENGTH2(border_top_width, ret == CSS_BORDER_WIDTH_WIDTH);
 		PACK_LENGTH2(column_rule_width, ret == CSS_COLUMN_RULE_WIDTH_WIDTH);
 		PACK_LENGTH2(font_size, ret == CSS_FONT_SIZE_DIMENSION);
 		PACK_INTEGER_OR_LENGTH(line_height, ret == CSS_LINE_HEIGHT_NUMBER, ret == CSS_LINE_HEIGHT_DIMENSION)
-		PACK_LENGTH2(outline_width, ret == CSS_OUTLINE_WIDTH_WIDTH); // This defaults to 2px, is this normal?
-		if (!root) // v/h lengths don't initialise correctly for the root for some reason.
+		PACK_LENGTH2(outline_width, ret == CSS_OUTLINE_WIDTH_WIDTH);
+		if (!root) // v/h lengths don't initialise correctly for the root, seems to be a libcss bug?
 		{
 			PACK_LENGTH_VH(border_spacing, BORDER_SPACING);
 			PACK_LENGTH_VH(background_position, BACKGROUND_POSITION);

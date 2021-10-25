@@ -72,7 +72,6 @@ int main(int argc, char** argv)
 		return rc;
 
 	log_info("Executing output driver");
-	log_err("Executing output driver");
 	rc = run_output_driver(&driver, &doc, &ext);
 	if (rc)
 		return rc;

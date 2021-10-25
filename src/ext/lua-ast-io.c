@@ -180,7 +180,7 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 			log_debug("Popped string '%s'", repr->str);
 			return rc;
 		}
-		case LUA_TLIGHTUSERDATA:
+		case LUA_TUSERDATA:
 		{
 			LuaPointer* p = lua_touserdata(s, -1);
 			if (p->type != AST_NODE)
@@ -229,7 +229,8 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 	{
 		int bad_flags = in_flags & ~ACCEPTABLE_EXTENSION_FLAG_MASK;
 		if (bad_flags)
-			if (log_warn_at(parentNode->src_loc, "Ignoring invalid flags when unpacking table-representation of a node: %x", bad_flags))
+			if (log_warn_at(parentNode->src_loc,
+					"Ignoring invalid flags when unpacking table-representation of a node: %x", bad_flags))
 				return 1;
 	}
 	int flags = IS_GENERATED_NODE | (ACCEPTABLE_EXTENSION_FLAG_MASK & lua_tointeger(s, -1));
@@ -252,7 +253,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			char* word	 = (char*)lua_tostring(s, -1);
 			Str* wordstr = malloc(sizeof(Str));
 			make_strv(wordstr, word);
-			rc = unpack_single_value(result, wordstr, parentNode);
+			rc				 = unpack_single_value(result, wordstr, parentNode);
 			(*result)->flags = flags;
 			lua_pop(s, 1);
 			break;
@@ -277,7 +278,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			rc = 0;
 			break;
 		case CALL:
-			*result = malloc(sizeof(DocTreeNode));
+			*result	   = malloc(sizeof(DocTreeNode));
 			CallIO* io = malloc(sizeof(CallIO));
 			make_call_io(io);
 
@@ -291,7 +292,8 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			lua_getfield(s, -1, "args");
 			if (lua_type(s, -1) != LUA_TTABLE)
 			{
-				log_err("Attempted to unpack 'args' field of a call, but got %s object (%s)", luaL_typename(s, -1), lua_tostring(s, -1));
+				log_err("Attempted to unpack 'args' field of a call, but got %s object (%s)", luaL_typename(s, -1),
+					lua_tostring(s, -1));
 				lua_pop(s, 1);
 				rc = 1;
 				break;
