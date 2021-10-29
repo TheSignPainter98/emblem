@@ -191,11 +191,13 @@ void dest_style(Style* style)
 	css_select_results_destroy(style);
 }
 
-void make_style_data(StyleData* data, Str* style_name)
+void make_style_data(StyleData* data, Str* style_name, DocTreeNode* node)
 {
-	data->n_classes = 1;
-	data->classes	= malloc(sizeof(lwc_string*));
-	*data->classes	= lwc_string_ref(get_lwc_string(style_name));
+	data->n_classes		= 1;
+	data->classes		= malloc(sizeof(lwc_string*));
+	*data->classes		= lwc_string_ref(get_lwc_string(style_name));
+	data->node			= node;
+	data->node_css_data = NULL;
 }
 
 void dest_style_data(StyleData* data)
@@ -205,4 +207,7 @@ void dest_style_data(StyleData* data)
 		lwc_string_unref(data->classes[i]);
 	}
 	free(data->classes);
+
+	if (data->node_css_data)
+		modify_node_data(data->node, NODE_DATA_DELETED);
 }

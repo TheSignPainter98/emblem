@@ -47,7 +47,17 @@ typedef struct
 {
 	lwc_string** classes;
 	int n_classes;
+	void* node_css_data;
+	struct DocTreeNode_s* node;
 } StyleData;
+
+typedef enum
+{
+	NODE_DATA_DELETED			 = CSS_NODE_DELETED,
+	NODE_DATA_MODIFIED			 = CSS_NODE_MODIFIED,
+	NODE_DATA_ANCESTORS_MODIFIED = CSS_NODE_ANCESTORS_MODIFIED,
+	NODE_DATA_CLONED			 = CSS_NODE_CLONED,
+} NodeDataAction;
 
 void make_style_preprocessor_params(StylePreprocessorParams* params, Args* args);
 void dest_style_preprocessor_params(StylePreprocessorParams* params);

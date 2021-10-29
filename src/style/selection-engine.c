@@ -750,21 +750,25 @@ static css_error set_libcss_node_data(void* pw, void* n, void* libcss_node_data)
 {
 	LOG_FUNC_NAME("set_libcss_node_data");
 	UNUSED(pw);
-	UNUSED(n);
-	UNUSED(libcss_node_data);
 
-	/* Since we're not storing it, ensure node data gets deleted */
-	/* css_libcss_node_data_handler(&select_handler, CSS_NODE_DELETED, pw, n, NULL, libcss_node_data); */
+	DocTreeNode* node = n;
+	node->style_data->node_css_data = libcss_node_data;
 
 	return CSS_OK;
+}
+
+css_error modify_node_data(DocTreeNode* node, NodeDataAction action)
+{
+	LOG_FUNC_NAME("modify_node_data");
+	return css_libcss_node_data_handler(&select_handler, (css_node_data_action)action, NULL, node, NULL, node->style_data->node_css_data);
 }
 
 static css_error get_libcss_node_data(void* pw, void* n, void** libcss_node_data)
 {
 	LOG_FUNC_NAME("get_libcss_node_data");
 	UNUSED(pw);
-	UNUSED(n);
-	*libcss_node_data = NULL;
+	DocTreeNode* node = n;
+	*libcss_node_data = node->style_data->node_css_data;
 
 	return CSS_OK;
 }

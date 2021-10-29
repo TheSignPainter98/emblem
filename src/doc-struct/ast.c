@@ -41,14 +41,14 @@ void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc)
 	node->name		   = malloc(sizeof(Str));
 	node->style_name   = node->name;
 	node->style		   = NULL;
-	node->style_data = malloc(sizeof(StyleData));
+	node->style_data   = malloc(sizeof(StyleData));
 	node->content	   = content;
 	node->parent	   = NULL;
 	node->prev_sibling = NULL;
 	node->src_loc	   = src_loc;
 
 	make_strc(node->name, NODE_NAME_WORD);
-	make_style_data(node->style_data, node->style_name);
+	make_style_data(node->style_data, node->style_name, node);
 }
 
 void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc)
@@ -71,7 +71,7 @@ void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc)
 
 	make_list(content->content);
 	make_strc(node->name, NODE_NAME_CONTENT);
-	make_style_data(node->style_data, node->style_name);
+	make_style_data(node->style_data, node->style_name, node);
 }
 
 void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Location* src_loc)
@@ -108,7 +108,7 @@ void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Locatio
 	}
 	make_strr(node->style_name, t);
 
-	make_style_data(node->style_data, node->style_name);
+	make_style_data(node->style_data, node->style_name, node);
 
 	if (call)
 	{

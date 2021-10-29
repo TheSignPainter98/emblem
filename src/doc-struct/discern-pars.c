@@ -7,6 +7,7 @@
 #include "discern-pars.h"
 
 #include "logs/logs.h"
+#include "style/selection-engine.h"
 #include <string.h>
 
 typedef enum
@@ -89,7 +90,10 @@ static void apply_par_node(ListNode* containingNode, DocTreeNode* node)
 
 	// Update the previous siblings
 	pnode->prev_sibling = node->prev_sibling;
-	node->prev_sibling = NULL;
+	node->prev_sibling	= NULL;
+
+	if (node->style_data->node_css_data)
+		modify_node_data(node, NODE_DATA_ANCESTORS_MODIFIED);
 }
 
 static ParFosterRequirement requires_par_node(DocTreeNode* node)

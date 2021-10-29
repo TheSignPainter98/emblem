@@ -12,3 +12,5 @@ int dest_style_selection_engine(StyleSelectionEngine* engine);
 
 void make_stylesheet_params(css_stylesheet_params* params, Args* args);
 void dest_stylesheet_params(StylesheetParams* params);
+
+css_error modify_node_data(DocTreeNode* node, NodeDataAction action);
