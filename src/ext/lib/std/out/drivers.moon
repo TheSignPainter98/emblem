@@ -103,7 +103,6 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 		format = (n, do_delimit) ->
 			return '' unless n
 			delimiter = do_delimit and @next_delimiter or ''
-			@prev_delimiter = @next_delimiter unless delimiter == ''
 			@next_delimiter = ' '
 
 			local post_delimiter
@@ -112,6 +111,8 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 				post_delimiter = '\n\n'
 			else
 				post_delimiter = ' '
+
+			@prev_delimiter = delimiter unless delimiter == ''
 
 			switch n.type
 				when WORD
