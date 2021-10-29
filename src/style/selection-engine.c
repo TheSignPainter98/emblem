@@ -354,6 +354,7 @@ static css_error node_classes(void* pw, void* n, lwc_string*** classes, uint32_t
 	DocTreeNode* node = n;
 	*classes		  = node->style_data->classes;
 	*n_classes		  = node->style_data->n_classes;
+	lwc_string_ref(**classes);
 	return CSS_OK;
 }
 
