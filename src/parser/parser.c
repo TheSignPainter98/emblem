@@ -17,13 +17,15 @@
 #include <stdio.h>
 #include <string.h>
 
+static void foster_body_node(DocTreeNode** root);
+
 void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args)
 {
 	log_info("Parsing document '%s'", args->input_file);
 
 	// Select whether to use the core parser, or to use an extension one
 	bool use_core_parser = true;
-	char* dialect = args->input_driver;
+	char* dialect		 = args->input_driver;
 	if (*args->input_driver)
 		use_core_parser = streq(args->input_driver, "em");
 	else
@@ -32,7 +34,7 @@ void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args)
 		if (ext++ && strcmp(ext, "em"))
 		{
 			use_core_parser = false;
-			dialect = ext;
+			dialect			= ext;
 		}
 	}
 
@@ -42,7 +44,6 @@ void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args)
 
 		if (mo->type == NOTHING)
 		{
-			make_maybe_nothing(mo);
 			log_err("Parsing document '%s' failed with %d error%s.", args->input_file, nerrs, nerrs - 1 ? "s" : "");
 		}
 	}
@@ -81,4 +82,19 @@ void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args)
 
 		make_maybe_just(mo, root);
 	}
+
+	if (mo->type == JUST)
+		foster_body_node((DocTreeNode**)&mo->just);
+}
+
+static void foster_body_node(DocTreeNode** root)
+{
+	DocTreeNode* old_root = *root;
+	*root				  = malloc(sizeof(DocTreeNode));
+	CallIO* call		  = malloc(sizeof(CallIO));
+	Str* body_str		  = malloc(sizeof(Str));
+	make_strv(body_str, ROOT_NODE_NAME);
+	make_call_io(call);
+	append_call_io_arg(call, old_root);
+	make_doc_tree_node_call(*root, body_str, call, dup_loc(old_root->src_loc));
 }
