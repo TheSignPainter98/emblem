@@ -102,7 +102,7 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 		@have_output = false
 		format = (n, do_delimit) ->
 			return '' unless n
-			delimiter = do_delimit and @next_delimiter or ''
+			delimiter = do_delimit and @have_output and @next_delimiter or ''
 			@next_delimiter = ' '
 
 			local post_delimiter
