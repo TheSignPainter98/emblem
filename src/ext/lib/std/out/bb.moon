@@ -9,7 +9,7 @@ import css, driver_capabilities from require 'std.constants'
 import StyleResponse, TextualMarkupOutputDriver, output_drivers from require 'std.out.drivers'
 import colour_to_hex from require 'std.style'
 
-import TS_BASIC_STYLING, TS_COLOUR, TS_TEXT_SIZE from driver_capabilities
+import TS_CSS_STYLES from driver_capabilities
 import unit_str from css
 import DISPLAY_BLOCK from css.display
 import FONT_SIZE_XX_SMALL, FONT_SIZE_X_SMALL, FONT_SIZE_SMALL, FONT_SIZE_MEDIUM, FONT_SIZE_LARGE, FONT_SIZE_X_LARGE, FONT_SIZE_XX_LARGE, FONT_SIZE_SMALLER, FONT_SIZE_LARGER from css.font_size
@@ -33,13 +33,11 @@ font_size_strings =
 ---
 -- @brief Represents an output driver for bbcode
 class BBCodeOutputDriver extends TextualMarkupOutputDriver
-	support: TS_BASIC_STYLING | TS_COLOUR | TS_TEXT_SIZE
-	output_extension: 'bb'
+	new: (...) => super false, TS_CSS_STYLES, 'bb', ...
 	special_tag_enclose: (t, r, t2=t) => { '[', t, ']', r, '[/', t2, ']' }
 	special_tag_map:
 		pre: 'pre'
 		quote: 'quote'
-		tt: 'tt'
 		ul: 'list type=decimal'
 		ol: 'list'
 		li: 'li'
@@ -50,11 +48,6 @@ class BBCodeOutputDriver extends TextualMarkupOutputDriver
 		more: 'more'
 		spoiler: 'spoiler'
 		hr: 'hr'
-		justify: 'justify'
-		left: 'left'
-		centre: 'center'
-		center: 'center'
-		right: 'right'
 	style_responses: {
 		=> if @font_family.type == FONT_FAMILY_MONOSPACE
 			if @display != DISPLAY_BLOCK

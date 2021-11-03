@@ -18,8 +18,12 @@
 #include <stdbool.h>
 #include <string.h>
 
+#define EM_IMPORT_STYLESHEET_FUNC_NAME "stylesheet"
+#define STYLESHEET_LIST_RIDX		   "emblem_stylesheets"
+
 static const char* const pseudo_element_names[] = { "elem", "first_line", "first_letter", "before", "after" };
 
+static int ext_declare_stylesheet(ExtensionState* s);
 static int pack_content(ExtensionState* s, const css_computed_content_item* content, DocTreeNode* node);
 
 void provide_styler(ExtensionEnv* e)
@@ -28,35 +32,60 @@ void provide_styler(ExtensionEnv* e)
 	lua_setglobal(e->state, STYLER_LP_LOC);
 }
 
-int ext_import_stylesheet(ExtensionState* s)
+void set_ext_style_globals(ExtensionState* s)
 {
-	lua_getglobal(s, EM_ENV_VAR_NAME);
-	ExtensionEnv* env;
-	int rc = to_userdata_pointer((void**)&env, s, -1, EXT_ENV);
-	if (rc)
-		luaL_error(s, "Invalid environment pointer");
-	lua_pop(s, 1);
-	if (env->iter_num)
-		luaL_error(s, "Stylesheets cannot be added after the `start` event has occurred");
+	lua_newtable(s);
+	lua_setfield(s, LUA_REGISTRYINDEX, STYLESHEET_LIST_RIDX);
 
+	lua_register(s, EM_IMPORT_STYLESHEET_FUNC_NAME, ext_declare_stylesheet);
+}
+
+static int ext_declare_stylesheet(ExtensionState* s)
+{
 	luaL_argcheck(s, true, lua_gettop(s) == 1, "Expected exactly one argument to " EM_IMPORT_STYLESHEET_FUNC_NAME);
 	luaL_argcheck(s, true, lua_isstring(s, -1), "Expected string as argument to " EM_IMPORT_STYLESHEET_FUNC_NAME);
-	Str sheet_loc;
-	char* str = (char*)lua_tostring(s, -1);
-	make_strv(&sheet_loc, str);
 
-	lua_getglobal(s, STYLER_LP_LOC);
-	Styler* styler;
-	rc = to_userdata_pointer((void**)&styler, s, -1, STYLER);
-	if (rc)
-		luaL_error(s, "Invalid internal value");
+	const char* stylesheet_loc = lua_tostring(s, -1);
+
+	lua_getfield(s, LUA_REGISTRYINDEX, STYLESHEET_LIST_RIDX);
+
+	// Get the new index
+	lua_len(s, -1);
+	int new_index = 1 + lua_tointeger(s, -1);
 	lua_pop(s, 1);
 
-	log_debug("Got lua styler at %p", (void*)styler);
+	// Append the stylesheet
+	lua_pushstring(s, stylesheet_loc);
+	lua_seti(s, -2, new_index);
 
-	if (append_style_sheet(styler, &sheet_loc))
-		luaL_error(s, "Failed to import extension stylesheet '%s'", sheet_loc.str);
+	lua_pop(s, 1);
+
 	return 0;
+}
+
+int import_stylesheets_from_extensions(ExtensionState* s, Styler* styler, bool insert_css_into_context)
+{
+	int rc = 0;
+
+	lua_getfield(s, LUA_REGISTRYINDEX, STYLESHEET_LIST_RIDX);
+	lua_pushnil(s);
+	while (lua_next(s, -2))
+	{
+		Str sheet_loc;
+		make_strv(&sheet_loc, (char*)lua_tostring(s, -1));
+		if (append_style_sheet(styler, &sheet_loc, insert_css_into_context))
+		{
+			log_err("Failed to import extension stylesheet '%s'", sheet_loc.str);
+			rc = 1;
+		}
+		dest_str(&sheet_loc);
+		lua_pop(s, 1);
+
+		if (rc)
+			break;
+	}
+	lua_pop(s, 1);
+	return rc;
 }
 
 #define PACK_SCALAR(f)                                                                                                 \

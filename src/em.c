@@ -18,6 +18,7 @@
 #include "logs/logs.h"
 #include "parser/parser.h"
 #include "style/css.h"
+#include "style/styler-driver-interface.h"
 #include "typesetter/typesetter.h"
 
 /**
@@ -56,6 +57,8 @@ int main(int argc, char** argv)
 	rc = get_output_driver(&driver, &args, &ext);
 	if (rc)
 		return rc;
+
+	pass_output_driver_data_to_styler(&styler, &driver);
 
 	// Parse the document
 	Maybe maybe_ast_root;

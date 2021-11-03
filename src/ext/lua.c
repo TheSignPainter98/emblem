@@ -43,8 +43,6 @@ int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int
 {
 	if (!node)
 		return 0;
-	if (node->flags & NO_FURTHER_EVAL)
-		return 0;
 	node->last_eval = curr_iter;
 
 	// Evaluate the directives contained
@@ -67,6 +65,11 @@ int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int
 static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_iter)
 {
 	int rc = 0;
+
+	if (!node)
+		return 0;
+	if (node->flags & NO_FURTHER_EVAL)
+		return 0;
 
 	// Exit if no further evaluation is required.
 	switch (node->content->type)

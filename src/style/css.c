@@ -7,6 +7,7 @@
 #include "css.h"
 
 #include "argp.h"
+#include "ext/style.h"
 #include "logs/logs.h"
 #include "pp/unused.h"
 #include "preprocess-css.h"
@@ -79,12 +80,21 @@ void dest_styler(Styler* styler)
 		log_err("Failed to destroy css stylesheet");
 }
 
-int prepare_styler(Styler* styler)
+int prepare_styler(Styler* styler, ExtensionState* s)
 {
 	int rc;
-	rc = append_style_sheet(styler, styler->user_style_file);
-	if (rc != CSS_OK)
-		return 1;
+	if (styler->process_scss)
+	{
+		if (styler->process_css)
+		{
+			rc = append_style_sheet(styler, styler->user_style_file, true);
+			if (rc != CSS_OK)
+				return 1;
+		}
+		rc = import_stylesheets_from_extensions(s, styler, styler->process_css);
+		if (rc)
+			return rc;
+	}
 	rc = append_user_style_overrides(styler);
 	if (rc)
 		return 1;
@@ -124,7 +134,7 @@ static int append_user_style_overrides(Styler* styler)
 	return 0;
 }
 
-int append_style_sheet(Styler* styler, Str* sheet_loc)
+int append_style_sheet(Styler* styler, Str* sheet_loc, bool append_css_to_context)
 {
 	log_debug("Appending stylesheet %s", sheet_loc->str);
 	if (access(sheet_loc->str, R_OK))
@@ -163,33 +173,41 @@ int append_style_sheet(Styler* styler, Str* sheet_loc)
 		return 1;
 	}
 
-	char* preprocessed_stylesheet_content = NULL;
-	CssPreprocessResult prs
-		= preprocess_css(&preprocessed_stylesheet_content, raw_stylesheet_content, sheet_loc, styler->prep_params);
-	if (prs == FAIL)
-		return 1;
-	Str* preprocessed_stylesheet_content_str = malloc(sizeof(Str));
-	make_strr(preprocessed_stylesheet_content_str, preprocessed_stylesheet_content);
-	append_list(styler->snippets, preprocessed_stylesheet_content_str);
-
-	// Append style to sheet
-	css_error rc = css_stylesheet_append_data(styler->stylesheet,
-		(const uint8_t*)preprocessed_stylesheet_content_str->str, preprocessed_stylesheet_content_str->len);
-	if (rc != CSS_OK && rc != CSS_NEEDDATA)
+	if (*raw_stylesheet_content)
 	{
-		log_err("Failed to append stylesheet to styler: %d", rc);
-		return 1;
-	}
+		char* preprocessed_stylesheet_content = NULL;
+		CssPreprocessResult prs
+			= preprocess_css(&preprocessed_stylesheet_content, raw_stylesheet_content, sheet_loc, styler->prep_params);
+		if (prs == FAIL)
+			return 1;
 
-	return 0;
+		Str* preprocessed_stylesheet_content_str = malloc(sizeof(Str));
+		make_strr(preprocessed_stylesheet_content_str, preprocessed_stylesheet_content);
+		append_list(styler->snippets, preprocessed_stylesheet_content_str);
+
+		// Append style to sheet
+		if (append_css_to_context)
+		{
+			css_error rc = css_stylesheet_append_data(styler->stylesheet,
+				(const uint8_t*)preprocessed_stylesheet_content_str->str, preprocessed_stylesheet_content_str->len);
+			if (rc != CSS_OK && rc != CSS_NEEDDATA)
+			{
+				log_err("Failed to append stylesheet to styler: %d", rc);
+				return 1;
+			}
+		}
+		return 0;
+	}
+	else
+	{
+		free(raw_stylesheet_content);
+		return log_warn("Attempted to append empty stylesheet!");
+	}
 }
 
 void make_style(Style* style) { UNUSED(style); }
 
-void dest_style(Style* style)
-{
-	css_select_results_destroy(style);
-}
+void dest_style(Style* style) { css_select_results_destroy(style); }
 
 void make_style_data(StyleData* data, Str* style_name, DocTreeNode* node)
 {

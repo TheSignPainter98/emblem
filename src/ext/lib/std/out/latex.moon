@@ -10,7 +10,7 @@ import colour_to_hex from require 'std.style'
 import eq, is_list, StringBuilder from require 'std.util'
 import concat from table
 
-import TS_BASIC_STYLING, TS_COLOUR, TS_TEXT_SIZE from driver_capabilities
+import TS_CSS_STYLES from driver_capabilities
 import FONT_FAMILY_MONOSPACE, FONT_FAMILY_SANS_SERIF, FONT_FAMILY_SERIF from css.font_family
 import FONT_STYLE_ITALIC, FONT_STYLE_OBLIQUE from css.font_style
 import FONT_WEIGHT_BOLD, FONT_WEIGHT_BOLDER, FONT_WEIGHT_700, FONT_WEIGHT_800, FONT_WEIGHT_900 from css.font_weight
@@ -37,9 +37,7 @@ class LaTeXLib
 ---
 -- @brief Represents an output driver for LaTeX
 class LaTeXOutputDriver extends TextualMarkupOutputDriver
-	new: (do_wrap_root) =>
-		support = TS_BASIC_STYLING | TS_COLOUR | TS_TEXT_SIZE
-		super do_wrap_root, support, 'tex'
+	new: (do_wrap_root) => super do_wrap_root, TS_CSS_STYLES, 'tex'
 	par_inner_sep: '\n'
 	special_tag_map:
 		ul: 'itemize'

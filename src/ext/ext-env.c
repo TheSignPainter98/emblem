@@ -131,12 +131,12 @@ static int load_libraries(ExtensionState* s, ExtParams* params)
 static void load_em_std_functions(ExtensionState* s)
 {
 	lua_register(s, EM_EVAL_NODE_FUNC_NAME, ext_eval_tree);
-	lua_register(s, EM_IMPORT_STYLESHEET_FUNC_NAME, ext_import_stylesheet);
 	lua_register(s, EM_REQUIRE_RUNS_FUNC_NAME, ext_require_rerun);
 	lua_register(s, EM_INCLUDE_FILE_FUNC_NAME, ext_include_file);
 
 	set_ext_logging_globals(s);
 	set_ext_location_globals(s);
+	set_ext_style_globals(s);
 }
 
 static void load_library_set(ExtensionState* s, luaL_Reg* lib)

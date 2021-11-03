@@ -7,7 +7,7 @@
 import css, driver_capabilities from require 'std.constants'
 import StyleResponse, TextualMarkupOutputDriver, output_drivers from require 'std.out.drivers'
 
-import TS_BASIC_STYLING from driver_capabilities
+import TS_CSS_STYLES from driver_capabilities
 import DISPLAY_BLOCK from css.display
 import FONT_FAMILY_MONOSPACE from css.font_family
 import FONT_STYLE_ITALIC, FONT_STYLE_OBLIQUE from css.font_style
@@ -17,9 +17,7 @@ import TEXT_DECORATION_LINE_THROUGH from css.text_decoration
 ---
 -- @brief Represents an output driver for markdown
 class MarkdownOutputDriver extends TextualMarkupOutputDriver
-	new: =>
-		support = TS_BASIC_STYLING
-		super false, support, 'md'
+	new: => super false, TS_CSS_STYLES, 'md'
 	special_tag_enclose: (t, r, t2=t) =>
 		if t\match '#+'
 			{ t, ' ', r }

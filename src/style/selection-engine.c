@@ -43,6 +43,9 @@ static bool is_http_request(const char* rel_url, size_t rel_url_len);
 
 int compute_style(Styler* s, DocTreeNode* node)
 {
+	if (!s->process_css)
+		return 0;
+
 	int rc;
 	if (node->style)
 		dest_style(node->style);
@@ -51,8 +54,7 @@ int compute_style(Styler* s, DocTreeNode* node)
 	if ((rc = css_select_style(eng->ctx, node, &eng->media, NULL, &eng->handler, NULL, &node->style)))
 		return rc;
 
-#if 0
-	if (node->parent)
+	if (s->compose_styles && node->parent)
 	{
 		Style* new_styles = malloc(sizeof(css_select_results));
 		for (int i = 0; i < CSS_PSEUDO_ELEMENT_COUNT; i++)
@@ -70,7 +72,6 @@ int compute_style(Styler* s, DocTreeNode* node)
 		dest_style(node->style);
 		node->style = new_styles;
 	}
-#endif
 
 	return 0;
 }

@@ -20,7 +20,7 @@ int typeset_doc(Doc* doc, Args* args, TypesettingSupport support)
 	if (do_lua_start_event(doc->ext->state))
 		return 1;
 
-	if (prepare_styler(doc->styler))
+	if (prepare_styler(doc->styler, doc->ext->state))
 		return 1;
 
 	do

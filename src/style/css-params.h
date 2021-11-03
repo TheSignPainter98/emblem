@@ -26,6 +26,9 @@ typedef struct
 	Str* default_typeface;
 	double default_font_size;
 	List* snippets;
+	bool compose_styles;
+	bool process_scss;
+	bool process_css;
 } Styler;
 
 typedef struct StyleSelectionEngine_s

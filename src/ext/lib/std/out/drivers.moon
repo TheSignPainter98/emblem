@@ -17,6 +17,7 @@ if not io.module_unavailable
 	import open from io
 
 import DISPLAY_BLOCK from css.display
+import TS_NONE from driver_capabilities
 
 curr_output_driver = nil
 
@@ -27,7 +28,7 @@ output_drivers = SanitisedKeyTable!
 ---
 -- @brief Represents an output driver
 class OutputDriver
-	new: (@support=0, @output_extension, @requires_stylesheet=false) =>
+	new: (@support=TS_NONE, @output_extension) =>
 	format: (doc) => error "Output driver does not implement the 'format' class method"
 	output: (doc, use_stdout, @stem, @generation_time) =>
 		if not open
@@ -97,7 +98,7 @@ class ContextFreeOutputDriver extends OutputDriver
 class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 	general_tag_enclose: (t, r) => r
 	next_delimiter: ''
-	is_block: (n) => n.style.elem.display == DISPLAY_BLOCK
+	is_block: (n) => n.style and n.style.elem.display == DISPLAY_BLOCK
 	format: (doc) =>
 		@have_output = false
 		format = (n, do_delimit) ->
@@ -134,6 +135,7 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 		ret = @wrap_root ret if @do_wrap_root
 		ret!
 	style: (node, fmtd) =>
+		return fmtd unless node.style
 		elem_style = node.style.elem
 		for style in *@style_responses
 			local open, close
