@@ -754,6 +754,12 @@ static css_error set_libcss_node_data(void* pw, void* n, void* libcss_node_data)
 	UNUSED(pw);
 
 	DocTreeNode* node = n;
+
+	// Prevent leak
+	if (node->style_data->node_css_data != libcss_node_data)
+		modify_node_data(node, NODE_DATA_DELETED);
+
+	// Store new data
 	node->style_data->node_css_data = libcss_node_data;
 
 	return CSS_OK;
