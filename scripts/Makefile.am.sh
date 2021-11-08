@@ -9,7 +9,7 @@ hand_written_srcs=($(find src -name '*.c' -or -name '*.h' | grep -v 'argp\.[ch]$
 srcs=(${built_srcs[@]} ${parser_srcs[@]} ${hand_written_srcs[@]})
 tests=(${built_srcs[@]} ${parser_srcs[@]} $(echo ${hand_written_srcs[@]} | tr ' ' '\n' | grep -v 'em.[ch]$') $(find check -name '*.c' -or -name '*.h'))
 scripts=($(find scripts -type f | grep -v '.*\.swp'))
-dist_data=($(find share/emblem/ -type f))
+dist_data=($(find share/emblem/ -type f | grep -v '.*\.swp'))
 
 deps_cflags=$(yq -y '.deps | map("$(" + .name + "_CFLAGS)")' em.yml | cut -d' ' -f2- | tr '\n' ' ' | sed 's/ $//')
 deps_libs=$(yq -y '.deps | map("$(" + .name + "_LIBS)")' em.yml | cut -d' ' -f2- | tr '\n' ' ' | sed 's/ $//')
