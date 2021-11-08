@@ -137,72 +137,28 @@ static int append_user_style_overrides(Styler* styler)
 int append_style_sheet(Styler* styler, Str* sheet_loc, bool append_css_to_context)
 {
 	log_debug("Appending stylesheet %s", sheet_loc->str);
-	if (access(sheet_loc->str, R_OK))
+
+	char* preprocessed_stylesheet_content = NULL;
+	int prs = preprocess_css(&preprocessed_stylesheet_content, sheet_loc, styler->prep_params);
+	if (prs)
+		return prs;
+
+	Str* preprocessed_stylesheet_content_str = malloc(sizeof(Str));
+	make_strr(preprocessed_stylesheet_content_str, preprocessed_stylesheet_content);
+	append_list(styler->snippets, preprocessed_stylesheet_content_str);
+
+	// Append style to sheet
+	if (append_css_to_context)
 	{
-		log_err("Could not read file '%s': %s", sheet_loc->str, strerror(errno));
-		return 1;
-	}
-
-	// Open file
-	FILE* fp = fopen(sheet_loc->str, "r");
-	if (!fp)
-	{
-		log_err("Failed to open file '%s': %s", sheet_loc->str, strerror(errno));
-		return 1;
-	}
-
-	// Read file
-	fseek(fp, 0, SEEK_END);
-	size_t len = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	char* raw_stylesheet_content = malloc(1 + len);
-	size_t fr					 = fread(raw_stylesheet_content, 1, len, fp);
-	raw_stylesheet_content[len]	 = '\0';
-	if (fr != len)
-	{
-		if (feof(fp))
-			log_err("Premature end of file detected while reading %s", sheet_loc->str);
-		else if (ferror(fp))
-			log_err("Error while reading %s: %zu", sheet_loc->str, fr);
-		exit(1);
-	}
-
-	if (fclose(fp))
-	{
-		log_err("Failed to close file after reading '%s': %s", sheet_loc->str, strerror(errno));
-		return 1;
-	}
-
-	if (*raw_stylesheet_content)
-	{
-		char* preprocessed_stylesheet_content = NULL;
-		CssPreprocessResult prs
-			= preprocess_css(&preprocessed_stylesheet_content, raw_stylesheet_content, sheet_loc, styler->prep_params);
-		if (prs == FAIL)
-			return 1;
-
-		Str* preprocessed_stylesheet_content_str = malloc(sizeof(Str));
-		make_strr(preprocessed_stylesheet_content_str, preprocessed_stylesheet_content);
-		append_list(styler->snippets, preprocessed_stylesheet_content_str);
-
-		// Append style to sheet
-		if (append_css_to_context)
+		css_error rc = css_stylesheet_append_data(styler->stylesheet,
+			(const uint8_t*)preprocessed_stylesheet_content_str->str, preprocessed_stylesheet_content_str->len);
+		if (rc != CSS_OK && rc != CSS_NEEDDATA)
 		{
-			css_error rc = css_stylesheet_append_data(styler->stylesheet,
-				(const uint8_t*)preprocessed_stylesheet_content_str->str, preprocessed_stylesheet_content_str->len);
-			if (rc != CSS_OK && rc != CSS_NEEDDATA)
-			{
-				log_err("Failed to append stylesheet to styler: %d", rc);
-				return 1;
-			}
+			log_err("Failed to append stylesheet to styler: %d", rc);
+			return 1;
 		}
-		return 0;
 	}
-	else
-	{
-		free(raw_stylesheet_content);
-		return log_warn("Attempted to append empty stylesheet!");
-	}
+	return 0;
 }
 
 void make_style(Style* style) { UNUSED(style); }

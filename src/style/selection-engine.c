@@ -7,17 +7,12 @@
 #include "selection-engine.h"
 
 #include "logs/logs.h"
+#include "pp/path.h"
 #include "pp/unused.h"
 #include <libwapcaplet/libwapcaplet.h>
 #include <limits.h>
 #include <string.h>
 #include <unistd.h>
-
-#ifndef __WIN32
-#	define PATH_SEP '/'
-#else
-#	define PATH_SEP '\\'
-#endif
 
 typedef struct
 {
@@ -35,7 +30,7 @@ static bool is_http_request(const char* rel_url, size_t rel_url_len);
 
 #define STR_LWC_EQ(s, t) caseless_isequal(get_lwc_string(s), t)
 
-#ifdef DEBUG
+#ifdef DEBUG_CSS
 #	define LOG_FUNC_NAME(...) log_debug(__VA_ARGS__)
 #else
 #	define LOG_FUNC_NAME(...)
@@ -176,7 +171,7 @@ static css_error resolve_url(void* pw, const char* base, lwc_string* rel, lwc_st
 	const size_t rel_url_len = lwc_string_length(rel);
 
 	// Check if absolute address must be computed.
-	if ((rel_url_len && *rel_url == PATH_SEP) || is_http_request(rel_url, rel_url_len))
+	if ((rel_url_len && *rel_url == PATH_SEP_CHAR) || is_http_request(rel_url, rel_url_len))
 		*abs = lwc_string_ref(rel);
 	else
 	{
@@ -184,7 +179,7 @@ static css_error resolve_url(void* pw, const char* base, lwc_string* rel, lwc_st
 		char abs_url[PATH_MAX + 1];
 		getcwd(abs_url, PATH_MAX);
 		size_t path_end		= strlen(abs_url);
-		abs_url[path_end++] = PATH_SEP;
+		abs_url[path_end++] = PATH_SEP_CHAR;
 		strncpy(abs_url + path_end, rel_url, abs_url_len - path_end);
 
 		lwc_intern_string(abs_url, strlen(abs_url), abs);

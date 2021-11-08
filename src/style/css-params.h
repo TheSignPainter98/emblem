@@ -41,6 +41,7 @@ typedef struct StyleSelectionEngine_s
 typedef struct StylePreprocessorParams_s
 {
 	int precision;
+	bool debug_sources;
 	List* include_path;
 } StylePreprocessorParams;
 
