@@ -1,0 +1,12 @@
+@for $i from 1 to 6 + 1 {
+	.h#{$i} {
+		display: block;
+	}
+	.toc-item-l#{$i} {
+		margin-left: 2em * $i;
+	}
+}
+
+.toc-item {
+	display: block;
+}

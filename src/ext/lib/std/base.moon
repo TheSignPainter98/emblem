@@ -14,6 +14,8 @@ collectgarbage 'stop' -- TODO: remove the need for this!
 
 base = { :eval, :include_file, :requires_reiter, :_log_err, :_log_err_at, :_log_warn, :_log_warn_at, :_log_info, :_log_debug, :_em_loc, :stylesheet }
 
+stylesheet 'std/base.scss'
+
 ---
 -- @brief Wrap the __get and __set methods into the __index and __newindex methods if available
 -- Calling wrap_indices @ in a constructor before the end seems to be able to cause a memory leak.

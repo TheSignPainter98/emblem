@@ -1,0 +1,43 @@
+.it {
+	font-style: italic
+}
+
+.bf {
+	font-weight: bold;
+}
+
+.sc {
+	font-variant: small-caps;
+}
+
+.tt {
+	font-family: monospace;
+}
+
+.af {
+	font-family: sans-serif;
+}
+
+body, .df {
+	font-family: serif;
+}
+
+.flush-left {
+	text-align: left;
+	display: block;
+}
+
+.flush-right {
+	text-align: right;
+	display: block;
+}
+
+.justify {
+	text-align: justify;
+	display: block;
+}
+
+.center, .centre {
+	text-align: center;
+	display: block;
+}
