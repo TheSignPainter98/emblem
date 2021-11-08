@@ -763,7 +763,8 @@ static css_error set_libcss_node_data(void* pw, void* n, void* libcss_node_data)
 css_error modify_node_data(DocTreeNode* node, NodeDataAction action)
 {
 	LOG_FUNC_NAME("modify_node_data");
-	return css_libcss_node_data_handler(&select_handler, (css_node_data_action)action, NULL, node, NULL, node->style_data->node_css_data);
+	return css_libcss_node_data_handler(
+		&select_handler, (css_node_data_action)action, NULL, node, NULL, node->style_data->node_css_data);
 }
 
 static css_error get_libcss_node_data(void* pw, void* n, void** libcss_node_data)
