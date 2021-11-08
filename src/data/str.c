@@ -115,10 +115,7 @@ void dup_str(Str* o, Str* todup)
 lwc_string* get_lwc_string(Str* s)
 {
 	if (!s->lwc_rep)
-	{
 		lwc_intern_string(s->str, s->len, &s->lwc_rep);
-		lwc_string_ref(s->lwc_rep);
-	}
 
 	return s->lwc_rep;
 }
