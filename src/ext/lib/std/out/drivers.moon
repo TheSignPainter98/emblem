@@ -98,7 +98,7 @@ class ContextFreeOutputDriver extends OutputDriver
 class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 	general_tag_enclose: (t, r) => r
 	next_delimiter: ''
-	is_block: (n) => n.style and n.style.elem.display == DISPLAY_BLOCK
+	is_block: (n) => n.style and n.style.display == DISPLAY_BLOCK
 	format: (doc) =>
 		@have_output = false
 		format = (n, do_delimit) ->
@@ -136,7 +136,7 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 		ret!
 	style: (node, fmtd) =>
 		return fmtd unless node.style
-		elem_style = node.style.elem
+		elem_style = node.style
 		for style in *@style_responses
 			local open, close
 			open, close = style elem_style

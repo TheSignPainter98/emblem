@@ -21,7 +21,15 @@
 #define EM_IMPORT_STYLESHEET_FUNC_NAME "stylesheet"
 #define STYLESHEET_LIST_RIDX		   "emblem_stylesheets"
 
-static const char* const pseudo_element_names[] = { "elem", "first_line", "first_letter", "before", "after" };
+static const char* const pseudo_element_names[] = {
+	[CSS_PSEUDO_ELEMENT_NONE]		  = NULL, // Unused
+	[CSS_PSEUDO_ELEMENT_FIRST_LINE]	  = "first_line",
+	[CSS_PSEUDO_ELEMENT_FIRST_LETTER] = "first_letter",
+	[CSS_PSEUDO_ELEMENT_BEFORE]		  = "before",
+	[CSS_PSEUDO_ELEMENT_AFTER]		  = "after",
+};
+
+static const int num_style_elements = 59;
 
 static int ext_declare_stylesheet(ExtensionState* s);
 static int pack_content(ExtensionState* s, const css_computed_content_item* content, DocTreeNode* node);
@@ -271,14 +279,14 @@ int pack_style(ExtensionState* s, Style* style, DocTreeNode* node)
 	bool root = !node->parent;
 	int rc	  = 0;
 
-	lua_createtable(s, 0, CSS_PSEUDO_ELEMENT_COUNT);
+	lua_createtable(s, 0, num_style_elements + CSS_PSEUDO_ELEMENT_COUNT - 1);
 	for (int i = 0; i < CSS_PSEUDO_ELEMENT_COUNT; i++)
 	{
 		const css_computed_style* pestyle = style->styles[i];
 		if (!pestyle)
 			continue;
-		const int num_style_elements = 59;
-		lua_createtable(s, 0, num_style_elements);
+		if (i != CSS_PSEUDO_ELEMENT_NONE)
+			lua_createtable(s, 0, num_style_elements);
 
 		PACK_LENGTH(top, TOP);
 		PACK_LENGTH(bottom, BOTTOM);
@@ -405,7 +413,8 @@ int pack_style(ExtensionState* s, Style* style, DocTreeNode* node)
 		// -- unsupported
 		// cursor();
 		// quotes();
-		lua_setfield(s, -2, pseudo_element_names[i]);
+		if (i != CSS_PSEUDO_ELEMENT_NONE)
+			lua_setfield(s, -2, pseudo_element_names[i]);
 	}
 	return rc;
 }
