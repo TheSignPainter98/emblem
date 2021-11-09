@@ -370,9 +370,10 @@ static css_error named_ancestor_node(
 	UNUSED(pw);
 	DocTreeNode* node  = n;
 	DocTreeNode* anode = node->parent;
-	while (anode && !STR_LWC_EQ(anode->style_name, qname->name))
+	bool match = false;
+	while (anode && !(match = STR_LWC_EQ(anode->style_name, qname->name)))
 		anode = anode->parent;
-	*ancestor = anode;
+	*ancestor = match ? anode : NULL;
 	return CSS_OK;
 }
 
@@ -419,7 +420,8 @@ static css_error parent_node(void* pw, void* n, void** parent) // Done
 	UNUSED(pw);
 	DocTreeNode* node = n;
 	*parent			  = node->parent;
-	LOG_FUNC_NAME("parent_node %p", (void*)*parent);
+	LOG_FUNC_NAME(
+		"parent_node %s |-> %s", node->style_name->str, node->parent ? node->parent->style_name->str : "(n/a)");
 	return CSS_OK;
 }
 
