@@ -70,9 +70,14 @@ static void apply_par_node(ListNode* containingNode, DocTreeNode* node)
 	Location* loc	= dup_loc(node->src_loc);
 	CallIO* call_io = malloc(sizeof(CallIO));
 	make_call_io(call_io);
+
+	// Create par-node and set it as the parent of 'node'
+	DocTreeNode* tmp_parent = node->parent;
 	prepend_call_io_arg(call_io, node);
 	make_doc_tree_node_call(pnode, pcall, call_io, loc);
-	call_io->result = node;
+	containingNode->data = pnode;
+	pnode->parent		 = tmp_parent;
+	call_io->result		 = node;
 	pnode->flags |= IS_GENERATED_NODE;
 
 	// Update the prev_sibling of the next element
@@ -82,11 +87,6 @@ static void apply_par_node(ListNode* containingNode, DocTreeNode* node)
 		if (nxt_node)
 			nxt_node->prev_sibling = pnode;
 	}
-
-	// Foster the paragraph node
-	containingNode->data = pnode;
-	pnode->parent		 = node->parent;
-	node->parent		 = pnode;
 
 	// Update the previous siblings
 	pnode->prev_sibling = node->prev_sibling;
