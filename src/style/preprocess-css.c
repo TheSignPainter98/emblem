@@ -9,12 +9,16 @@
 #include "data/list.h"
 #include "logs/logs.h"
 #include "pp/path.h"
+#include "pp/unused.h"
 #include <errno.h>
 #include <sass.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
+typedef Sass_Import_List SassImportList;
+typedef Sass_Importer_Entry SassImporterEntry;
+typedef Sass_Importer_List SassImporterList;
 typedef struct Sass_Compiler SassCompiler;
 typedef struct Sass_Context SassContext;
 typedef struct Sass_File_Context SassFileContext;
@@ -24,6 +28,8 @@ static int run_scss_preprocessor(char** restrict data_out, bool isSass, Str* fna
 static int get_raw_style_file(char** restrict data_out, Str* fname, StylePreprocessorParams* params);
 static void handle_style_path(SassOptions* opts, StylePreprocessorParams* params);
 static void log_sass_error(SassContext* ctx, Str* fname, bool isSass);
+static SassImportList importer(const char* path, SassImporterEntry cp, SassCompiler* comp);
+static SassImportList trivial_importer(const char* path, SassImporterEntry cp, SassCompiler* comp);
 
 static const char* env_style_path	 = NULL;
 static bool check_for_env_style_path = true;
@@ -59,7 +65,15 @@ static int get_raw_style_file(char** restrict data_out, Str* fname, StylePreproc
 	SassFileContext* file_ctx = sass_make_file_context(fname->str);
 	SassContext* ctx		  = sass_file_context_get_context(file_ctx);
 	SassOptions* opts		  = sass_file_context_get_options(file_ctx);
+
 	handle_style_path(opts, params);
+
+	// Ignore imports
+	SassImporterEntry imp = sass_make_importer(trivial_importer, 0, NULL);
+	SassImporterList imps = sass_make_importer_list(1);
+	sass_importer_set_list_entry(imps, 0, imp);
+	sass_option_set_c_importers(opts, imps);
+
 	sass_file_context_set_options(file_ctx, opts);
 	SassCompiler* compiler = sass_make_file_compiler(file_ctx);
 	sass_compiler_parse(compiler);
@@ -116,6 +130,12 @@ static int run_scss_preprocessor(char** restrict data_out, bool isSass, Str* fna
 		sass_option_set_precision(opts, params->precision);
 	sass_option_set_is_indented_syntax_src(opts, isSass);
 
+	// Set import handler
+	SassImporterEntry imp = sass_make_importer(importer, 0, NULL);
+	SassImporterList imps = sass_make_importer_list(1);
+	sass_importer_set_list_entry(imps, 0, imp);
+	sass_option_set_c_importers(opts, imps);
+
 	// Set debugging options
 	if (params->debug_sources)
 	{
@@ -167,6 +187,22 @@ static void handle_style_path(SassOptions* opts, StylePreprocessorParams* params
 #ifdef SCSS_PATH
 	sass_option_push_include_path(opts, SCSS_PATH);
 #endif
+}
+
+static SassImportList importer(const char* path, SassImporterEntry cp, SassCompiler* comp)
+{
+	UNUSED(cp);
+	UNUSED(comp);
+	log_info("Importing from path '%s'", path);
+	return NULL;
+}
+
+static SassImportList trivial_importer(const char* path, SassImporterEntry cp, SassCompiler* comp)
+{
+	UNUSED(path);
+	UNUSED(cp);
+	UNUSED(comp);
+	return sass_make_import_list(0);
 }
 
 static void log_sass_error(SassContext* ctx, Str* fname, bool isSass)
