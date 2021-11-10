@@ -20,7 +20,7 @@
 #define OPEN_VAR_SCOPE_FUNC_NAME  "open_var_scope"
 
 static bool is_callable(ExtensionState* s, int idx);
-static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_iter) __attribute__((nonnull(1, 2)));
+static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_iter) __attribute__((nonnull(1)));
 static int resolve_styling(DocTreeNode* node, Styler* sty) __attribute__((nonnull(1, 2)));
 
 void inc_iter_num(Doc* doc)
