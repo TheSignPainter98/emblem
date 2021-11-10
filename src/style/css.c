@@ -15,9 +15,12 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
+#ifdef DEBUG_CSS
+#	include <stdio.h>
+#endif
 
 #define DEFAULT_STYLESHEET_EXTENSION	".scss"
 #define USER_STYLE_OVERRIDE_FONT_FAMILY ".body{font-family:'%s';}"
@@ -142,6 +145,10 @@ int append_style_sheet(Styler* styler, Str* sheet_loc, bool append_css_to_contex
 	int prs = preprocess_css(&preprocessed_stylesheet_content, sheet_loc, styler->prep_params);
 	if (prs)
 		return prs;
+
+#ifdef DEBUG_SASS
+	fputs(preprocessed_stylesheet_content, stderr);
+#endif
 
 	Str* preprocessed_stylesheet_content_str = malloc(sizeof(Str));
 	make_strr(preprocessed_stylesheet_content_str, preprocessed_stylesheet_content);
