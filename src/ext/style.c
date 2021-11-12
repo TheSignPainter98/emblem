@@ -50,10 +50,11 @@ void set_ext_style_globals(ExtensionState* s)
 
 static int ext_declare_stylesheet(ExtensionState* s)
 {
-	luaL_argcheck(s, true, lua_gettop(s) == 1, "Expected exactly one argument to " EM_IMPORT_STYLESHEET_FUNC_NAME);
-	luaL_argcheck(s, true, lua_isstring(s, -1), "Expected string as argument to " EM_IMPORT_STYLESHEET_FUNC_NAME);
-
-	const char* stylesheet_loc = lua_tostring(s, -1);
+	int n_args = lua_gettop(s);
+	luaL_argcheck(
+		s, true, 1 <= n_args && n_args <= 2, "Expected either one or two arguments to " EM_IMPORT_STYLESHEET_FUNC_NAME);
+	luaL_argcheck(s, true, lua_isstring(s, 1), "Expected string as first argument to " EM_IMPORT_STYLESHEET_FUNC_NAME);
+	luaL_argcheck(s, true, lua_isstring(s, 2), "Expected string as second argument to " EM_IMPORT_STYLESHEET_FUNC_NAME);
 
 	lua_getfield(s, LUA_REGISTRYINDEX, STYLESHEET_LIST_RIDX);
 
@@ -62,8 +63,18 @@ static int ext_declare_stylesheet(ExtensionState* s)
 	int new_index = 1 + lua_tointeger(s, -1);
 	lua_pop(s, 1);
 
-	// Append the stylesheet
-	lua_pushstring(s, stylesheet_loc);
+	// Create the stylesheet info container
+	lua_createtable(s, 2, 0);
+
+	// Set the stylesheet info
+	lua_pushnil(s);
+	lua_copy(s, 1, -1);
+	lua_pushnil(s);
+	lua_copy(s, 2, -1);
+	lua_seti(s, -3, 2);
+	lua_seti(s, -2, 1);
+
+	// Append the stylesheet info
 	lua_seti(s, -2, new_index);
 
 	lua_pop(s, 1);
@@ -79,15 +90,26 @@ int import_stylesheets_from_extensions(ExtensionState* s, Styler* styler, bool i
 	lua_pushnil(s);
 	while (lua_next(s, -2))
 	{
+		lua_geti(s, -1, 1);
+		lua_geti(s, -2, 2);
 		Str sheet_loc;
-		make_strv(&sheet_loc, (char*)lua_tostring(s, -1));
-		if (append_style_sheet(styler, &sheet_loc, insert_css_into_context))
+		make_strv(&sheet_loc, (char*)lua_tostring(s, -2));
+		bool have_sheet_data;
+		Str sheet_data;
+		if ((have_sheet_data = lua_isstring(s, -1)))
+			make_strv(&sheet_data, (char*)lua_tostring(s, -1));
+
+		if (append_style_sheet(styler, &sheet_loc, have_sheet_data ? &sheet_data : NULL, insert_css_into_context))
 		{
 			log_err("Failed to import extension stylesheet '%s'", sheet_loc.str);
 			rc = 1;
 		}
+
 		dest_str(&sheet_loc);
-		lua_pop(s, 1);
+		if (have_sheet_data)
+			dest_str(&sheet_data);
+
+		lua_pop(s, 3);
 
 		if (rc)
 			break;

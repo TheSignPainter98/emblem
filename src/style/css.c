@@ -88,15 +88,15 @@ int prepare_styler(Styler* styler, ExtensionState* s)
 	int rc;
 	if (styler->process_scss)
 	{
-		if (styler->process_css)
-		{
-			rc = append_style_sheet(styler, styler->user_style_file, true);
-			if (rc != CSS_OK)
-				return 1;
-		}
 		rc = import_stylesheets_from_extensions(s, styler, styler->process_css);
 		if (rc)
 			return rc;
+		if (styler->process_css)
+		{
+			rc = append_style_sheet(styler, styler->user_style_file, NULL, true);
+			if (rc != CSS_OK)
+				return 1;
+		}
 	}
 	rc = append_user_style_overrides(styler);
 	if (rc)
@@ -137,12 +137,12 @@ static int append_user_style_overrides(Styler* styler)
 	return 0;
 }
 
-int append_style_sheet(Styler* styler, Str* sheet_loc, bool append_css_to_context)
+int append_style_sheet(Styler* styler, Str* sheet_loc, Str* sheet_data, bool append_css_to_context)
 {
-	log_debug("Appending stylesheet %s", sheet_loc->str);
+	log_debug("Appending stylesheet '%s' (%s)", sheet_loc->str, sheet_data ? "internal" : "external");
 
 	char* preprocessed_stylesheet_content = NULL;
-	int prs = preprocess_css(&preprocessed_stylesheet_content, sheet_loc, styler->prep_params);
+	int prs = preprocess_css(&preprocessed_stylesheet_content, sheet_loc, sheet_data, styler->prep_params);
 	if (prs)
 		return prs;
 

@@ -10,4 +10,4 @@
 #include "css-params.h"
 #include "data/str.h"
 
-int preprocess_css(char** data_out, Str* fname, StylePreprocessorParams* params);
+int preprocess_css(char** data_out, Str* loc, Str* data, StylePreprocessorParams* params) __attribute__((nonnull(1, 2, 4)));

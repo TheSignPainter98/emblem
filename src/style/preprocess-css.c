@@ -21,11 +21,15 @@ typedef Sass_Importer_Entry SassImporterEntry;
 typedef Sass_Importer_List SassImporterList;
 typedef struct Sass_Compiler SassCompiler;
 typedef struct Sass_Context SassContext;
+typedef struct Sass_Data_Context SassDataContext;
 typedef struct Sass_File_Context SassFileContext;
 typedef struct Sass_Options SassOptions;
 
 static int run_scss_preprocessor(char** restrict data_out, bool isSass, Str* fname, StylePreprocessorParams* params);
+static int run_scss_preprocessor_on_raw_data(
+	char** restrict data_out, Str* fname, Str* data, StylePreprocessorParams* params);
 static int get_raw_style_file(char** restrict data_out, Str* fname, StylePreprocessorParams* params);
+static void handle_sass_options(SassOptions* opts, StylePreprocessorParams* params, bool isSass);
 static void handle_style_path(SassOptions* opts, StylePreprocessorParams* params);
 static void log_sass_error(SassContext* ctx, Str* fname, bool isSass);
 static SassImportList importer(const char* path, SassImporterEntry cp, SassCompiler* comp);
@@ -42,19 +46,22 @@ static bool check_for_env_style_path = true;
 
 #define SCSS_PATH DATA_DIR SCSS_PATH_SEP "share" PATH_SEP "emblem"
 
-int preprocess_css(char** data_out, Str* fname, StylePreprocessorParams* params)
+int preprocess_css(char** data_out, Str* fname, Str* data, StylePreprocessorParams* params)
 {
+	if (data)
+		return run_scss_preprocessor_on_raw_data(data_out, fname, data, params);
+
 	const char* ext = strrchr(fname->str, '.');
+	if (!ext++)
+		goto unknown_extension;
 
-	if (ext++)
-	{
-		if (!strcmp(ext, "sass") || !strcmp(ext, "scss"))
-			return run_scss_preprocessor(data_out, ext[1] == 'a', fname, params);
-		else if (!strcmp(ext, "css"))
-			return get_raw_style_file(data_out, fname, params);
-	}
+	if (!strcmp(ext, "sass") || !strcmp(ext, "scss"))
+		return run_scss_preprocessor(data_out, ext[1] == 'a', fname, params);
+	else if (!strcmp(ext, "css"))
+		return get_raw_style_file(data_out, fname, params);
 
-	log_err("Failed to process style file: '%s' has unknown extension", fname->str);
+unknown_extension:
+	log_err("Failed to process style file: '%s' has unknown extension", data->str);
 	return 1;
 }
 
@@ -125,6 +132,58 @@ static int run_scss_preprocessor(char** restrict data_out, bool isSass, Str* fna
 	SassContext* ctx		  = sass_file_context_get_context(file_ctx);
 	SassOptions* opts		  = sass_file_context_get_options(file_ctx);
 
+	handle_sass_options(opts, params, isSass);
+	handle_style_path(opts, params);
+	sass_file_context_set_options(file_ctx, opts);
+
+	SassCompiler* compiler = sass_make_file_compiler(file_ctx);
+	sass_compiler_parse(compiler);
+	sass_compiler_execute(compiler);
+
+	// Retrieve errors during compilation
+	if (sass_context_get_error_status(ctx))
+	{
+		log_sass_error(ctx, fname, isSass);
+		rc = 1;
+	}
+	else
+		*data_out = sass_context_take_output_string(ctx);
+
+	// Release memory dedicated to the C compiler
+	sass_delete_compiler(compiler);
+	sass_delete_file_context(file_ctx);
+	return rc;
+}
+
+static int run_scss_preprocessor_on_raw_data(
+	char** restrict data_out, Str* fname, Str* data, StylePreprocessorParams* params)
+{
+	int rc					  = 0;
+	bool isSass				  = false;
+	SassDataContext* data_ctx = sass_make_data_context(sass_copy_c_string(data->str));
+	SassContext* ctx		  = sass_data_context_get_context(data_ctx);
+	SassOptions* opts		  = sass_data_context_get_options(data_ctx);
+
+	handle_sass_options(opts, params, isSass);
+	handle_style_path(opts, params);
+	sass_data_context_set_options(data_ctx, opts);
+
+	sass_compile_data_context(data_ctx);
+
+	if (sass_context_get_error_status(ctx))
+	{
+		log_sass_error(ctx, fname, isSass);
+		rc = 1;
+	}
+	else
+		*data_out = sass_context_take_output_string(ctx);
+
+	sass_delete_data_context(data_ctx);
+	return rc;
+}
+
+static void handle_sass_options(SassOptions* opts, StylePreprocessorParams* params, bool isSass)
+{
 	// Set options
 	if (~params->precision)
 		sass_option_set_precision(opts, params->precision);
@@ -144,26 +203,6 @@ static int run_scss_preprocessor(char** restrict data_out, bool isSass, Str* fna
 	}
 	else
 		sass_option_set_output_style(opts, SASS_STYLE_COMPRESSED);
-
-	handle_style_path(opts, params);
-
-	sass_file_context_set_options(file_ctx, opts);
-
-	SassCompiler* compiler = sass_make_file_compiler(file_ctx);
-	sass_compiler_parse(compiler);
-	sass_compiler_execute(compiler);
-
-	*data_out = sass_context_take_output_string(ctx);
-	// Retrieve errors during compilation
-	if (sass_context_get_error_status(ctx))
-	{
-		log_sass_error(ctx, fname, isSass);
-		rc = 1;
-	}
-	// Release memory dedicated to the C compiler
-	sass_delete_compiler(compiler);
-	sass_delete_file_context(file_ctx);
-	return rc;
 }
 
 static void handle_style_path(SassOptions* opts, StylePreprocessorParams* params)
