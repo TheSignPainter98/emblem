@@ -52,7 +52,7 @@ body {
 }
 
 @for $i from 1 to 1 + $header_max {
-	.h#{$i}, .h#{$i}\* {
+	.h#{$i} {
 		font-size: size(1 + $header_max - $i);
 		font-family: $title-font-family;
 		font-weight: bold;
