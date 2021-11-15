@@ -271,11 +271,8 @@ static int resolve_styling(DocTreeNode* node, Styler* sty)
 			make_list_iter(&li, node->content->content);
 			DocTreeNode* child;
 			while (iter_list((void**)&child, &li))
-			{
-				rc = resolve_styling(child, sty);
-				if (rc)
+				if ((rc = resolve_styling(child, sty)))
 					return rc;
-			}
 			break;
 		}
 		default:

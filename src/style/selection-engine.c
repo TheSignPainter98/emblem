@@ -753,8 +753,10 @@ static css_error set_libcss_node_data(void* pw, void* n, void* libcss_node_data)
 	DocTreeNode* node = n;
 
 	// Prevent leak
+	int rc;
 	if (node->style_data->node_css_data != libcss_node_data)
-		modify_node_data(node, NODE_DATA_DELETED);
+		if ((rc = modify_node_data(node, NODE_DATA_DELETED)))
+			return rc;
 
 	// Store new data
 	node->style_data->node_css_data = libcss_node_data;
@@ -765,6 +767,8 @@ static css_error set_libcss_node_data(void* pw, void* n, void* libcss_node_data)
 css_error modify_node_data(DocTreeNode* node, NodeDataAction action)
 {
 	LOG_FUNC_NAME("modify_node_data");
+	if (action == NODE_DATA_DELETED && !node->style_data->node_css_data)
+		return CSS_OK;
 	return css_libcss_node_data_handler(
 		&select_handler, (css_node_data_action)action, NULL, node, NULL, node->style_data->node_css_data);
 }
