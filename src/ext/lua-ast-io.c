@@ -261,7 +261,6 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			*result = malloc(sizeof(DocTreeNode));
 			make_doc_tree_node_content(*result, dup_loc(parentNode->src_loc));
 			(*result)->flags = flags;
-			connect_to_parent(*result, parentNode);
 			// Iterate over the 'content' field list, unpacking at each level
 			lua_getfield(s, -1, "content");
 			lua_pushnil(s); /* first key */
@@ -301,7 +300,6 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			}
 			make_doc_tree_node_call(*result, call_name, io, dup_loc(parentNode->src_loc));
 			(*result)->flags = flags;
-			connect_to_parent(*result, parentNode);
 			dumpstack(s);
 			lua_len(s, -1);
 			int num_args = lua_tointeger(s, -1);

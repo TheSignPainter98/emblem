@@ -370,7 +370,7 @@ static css_error named_ancestor_node(
 	UNUSED(pw);
 	DocTreeNode* node  = n;
 	DocTreeNode* anode = node->parent;
-	bool match = false;
+	bool match		   = false;
 	while (anode && !(match = STR_LWC_EQ(anode->style_name, qname->name)))
 		anode = anode->parent;
 	*ancestor = match ? anode : NULL;
@@ -392,13 +392,19 @@ static css_error named_parent_node(
 
 static css_error named_generic_sibling_node(void* pw, void* n, const css_qname* qname, void** sibling) // Done
 {
-	LOG_FUNC_NAME("named_generic_sibling_node");
+	LOG_FUNC_NAME("named_generic_sibling_node(%s)", lwc_string_data(qname->name));
 	UNUSED(pw);
 	DocTreeNode* node = n;
-	DocTreeNode* sib  = node->prev_sibling;
-	while (sib && !STR_LWC_EQ(node->style_name, qname->name))
+	DocTreeNode* restrict sib  = node->prev_sibling;
+	bool match		  = false;
+	while (sib && !(match = STR_LWC_EQ(node->style_name, qname->name)))
 		sib = sib->prev_sibling;
-	*sibling = sib;
+	*sibling = match ? sib : NULL;
+#ifdef DEBUG_CSS
+	log_info("named_generic_sibling_node(%p) |-> (%p)", n, *sibling);
+	if (*sibling)
+		log_info("named_generic_sibling_node(%s) |-> (%s)", node->name->str, sib->name->str);
+#endif
 	return CSS_OK;
 }
 
