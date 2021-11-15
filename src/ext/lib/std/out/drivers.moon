@@ -54,17 +54,17 @@ class ContextFreeOutputDriver extends OutputDriver
 	new: (@do_wrap_root=false, ...) => super ...
 	special_tag_map: {}
 	general_tag_enclose: (t, r, t2=t) => error "Context free output driver does not implement the 'general_tag_enclose' class method"
-	special_tag_enclose: (t, r, t2=t) => error "Context free output driver does not implement the 'special_tag_enclose' class method"
+	special_tag_enclose: (t, r, t2=t, as) => error "Context free output driver does not implement the 'special_tag_enclose' class method"
 	style_responses: {}
 	par_inner_sep: ' '
 	wrap_root: (r) => r
 	first_block: true
 	sanitise: (w) => w
-	enclose_tag: (name, fmtd) =>
+	enclose_tag: (name, fmtd, as, close=name) =>
 		special_tag = @special_tag_map[name]
 		tag = special_tag or name
-		tag_encloser = special_tag and @special_tag_enclose or @general_tag_enclose
-		tag_encloser @, tag, fmtd
+		tag_encloser = special_tag and @\special_tag_enclose or @\general_tag_enclose
+		tag_encloser tag, fmtd, close, as
 	format: (doc) =>
 		format = (n) ->
 			return '' unless n
@@ -72,17 +72,9 @@ class ContextFreeOutputDriver extends OutputDriver
 				when WORD
 					@sanitise n.word
 				when CALL
-					special_tag = @special_tag_map[n.name]
-					tag = special_tag or n.name
 					result = format n.result, false
 					return '' if result == ''
-
-					local tag_encloser
-					if special_tag
-						tag_encloser = @special_tag_enclose
-					else
-						tag_encloser = @general_tag_enclose
-					tag_encloser @, tag, result
+					@enclose_tag n.name, result, n.args
 				when CONTENT
 					sb = StringBuilder!
 					sb\extend [ format n.content[i], 1 < i for i=1,#n.content ], ' '
@@ -99,6 +91,7 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 	general_tag_enclose: (t, r) => r
 	next_delimiter: ''
 	is_block: (n) => n.style and n.style.display == DISPLAY_BLOCK
+	enclose_tag: (t, r, as, t2=t) => super t, r, t2, as
 	format: (doc) =>
 		@have_output = false
 		format = (n, do_delimit) ->
@@ -124,7 +117,7 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 					if result == ''
 						result
 					else
-						r = { delimiter, @style n, @enclose_tag n.name, result }
+						r = { delimiter, @style n, @enclose_tag n.name, result, n.args }
 						@next_delimiter = post_delimiter
 						r
 				when CONTENT
@@ -134,14 +127,14 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 		ret = StringBuilder format doc, false, false
 		ret = @wrap_root ret if @do_wrap_root
 		ret!
-	style: (node, fmtd) =>
+	style: (node, fmtd, as) =>
 		return fmtd unless node.style
 		elem_style = node.style
 		for style in *@style_responses
 			local open, close
 			open, close = style elem_style
 			if open or close
-				fmtd = @special_tag_enclose open, fmtd, close
+				fmtd = @special_tag_enclose open, fmtd, close, as
 		fmtd
 
 ---

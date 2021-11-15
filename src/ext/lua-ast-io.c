@@ -274,6 +274,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 				if (rc)
 					return rc; // NOLINT
 			}
+			connect_to_parent(*result, parentNode);
 			lua_pop(s, 1);
 			rc = 0;
 			break;
@@ -321,6 +322,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 				unpack_lua_result(&(*result)->content->call->result, s, *result);
 			else
 				(*result)->content->call->result = NULL;
+			connect_to_parent(*result, parentNode);
 			lua_pop(s, 2);
 			rc = 0;
 			break;
