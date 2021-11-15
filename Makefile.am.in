@@ -69,7 +69,7 @@ src/ext/lua-lib-load.c: scripts/lua-lib-load.c.sh S_EXTENSION_LIB_SRC_FILES
 src/ext/lua-constants.c: scripts/lua-constants src/ext-constants.yml
 	./$< -c > $@
 
-%.lc: %.moon scripts/moon2c scripts/bin2c.lua scripts/module_name
+%.lc: %.moon scripts/moon2c scripts/bin2c.lua scripts/module_name scripts/moon-module-make.awk
 	./scripts/moon2c $< $@
 
 src/argp.h: src/argp.c

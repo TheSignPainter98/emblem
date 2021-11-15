@@ -112,7 +112,7 @@ args:
     long: --class
     type: char*
     metaDest: style
-    default: '" DATA_DIR "/article'
+    default: article
     help: Set the output class
     doc: Holds the root style
   - dest: default_typeface
@@ -169,6 +169,13 @@ args:
     default: 4
     help: Max number of typesetting iterations allowed
     doc: Maximum number of permissible typesetting iterations
+  - dest: debug_scss_sources
+    short: -d
+    long: --debug-scss
+    help: Treat warnings as errors
+    doc: Include debugging information in SCSS output
+    type: flag
+    default: false
 env_vars:
   - name: EM_STYLE_PATH
     desc: >

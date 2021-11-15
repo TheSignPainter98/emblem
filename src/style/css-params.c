@@ -15,8 +15,9 @@
 void make_style_preprocessor_params(StylePreprocessorParams* params, Args* args)
 {
 	UNUSED(args);
-	params->precision	 = SASS_PREPROC_DEFAULT_PRECISION;
-	params->include_path = malloc(sizeof(List));
+	params->precision	  = SASS_PREPROC_DEFAULT_PRECISION;
+	params->debug_sources = args->debug_scss_sources;
+	params->include_path  = malloc(sizeof(List));
 	make_list(params->include_path);
 }
 

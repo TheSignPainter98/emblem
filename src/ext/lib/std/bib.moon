@@ -71,6 +71,7 @@ class Bib extends SyncSet
 		super!
 		@bib = {}
 		@unknown_citations = {}
+		@raw_bib = {}
 	on_iter_start: =>
 		super!
 		@unknown_citations = {}
@@ -125,7 +126,7 @@ class Bib extends SyncSet
 	records: => { k,v for k,v in pairs @raw_bib }
 
 bib = Bib!
-em.bib = Directive 1, 0, "Create the main bibliography using the given source file", (src) ->
+em.bib = Directive 0, 1, "Create the main bibliography using the given source file", (src) ->
 	if iter_num! == 1
 		bib\read src
 	bib\output!

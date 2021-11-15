@@ -6,16 +6,22 @@
 
 import node_string from require 'std.base'
 import bib from require 'std.bib'
-import driver_capabilities from require 'std.constants'
+import css, driver_capabilities from require 'std.constants'
 import log_err, log_warn from require 'std.log'
 import TextualMarkupOutputDriver, output_drivers from require 'std.out.drivers'
-import elem, eq, extend, is_list, sorted from require 'std.util'
+import colour_to_hex from require 'std.style'
+import eq, extend, is_list, sorted, StringBuilder from require 'std.util'
 import concat, sort from table
 
 local open
 import open from io unless io.module_unavailable
 
-import TS_BASIC_STYLING, TS_COLOUR, TS_TEXT_SIZE from driver_capabilities
+import TS_CSS_STYLES from driver_capabilities
+import FONT_FAMILY_MONOSPACE, FONT_FAMILY_SANS_SERIF, FONT_FAMILY_SERIF from css.font_family
+import FONT_STYLE_ITALIC, FONT_STYLE_OBLIQUE from css.font_style
+import FONT_WEIGHT_BOLD, FONT_WEIGHT_BOLDER, FONT_WEIGHT_700, FONT_WEIGHT_800, FONT_WEIGHT_900 from css.font_weight
+import FONT_VARIANT_SMALL_CAPS from css.font_variant
+import TEXT_ALIGN_CENTRE, TEXT_ALIGN_LEFT, TEXT_ALIGN_RIGHT, TEXT_ALIGN_JUSTIFY from css.text_align
 
 class LaTeXLib
 	new: (@name,@opts) =>
@@ -32,7 +38,7 @@ class LaTeXLib
 					opt_string = "[#{concat [ tostring o for o in *@opts ], ','}]"
 				else
 					opt_string = "[#{concat [ "#{k}=#{v}" for k,v in pairs @opts ], ','}]"
-		"\\usepackage#{opt_string}{#{@name}}"
+		"\\usepackage#{opt_string}{#{@name}}\n"
 
 class LaTeXBibRecord
 	new: (@name, @map) =>
@@ -47,15 +53,16 @@ class LaTeXBibRecord
 ---
 -- @brief Represents an output driver for LaTeX
 class LaTeXOutputDriver extends TextualMarkupOutputDriver
-	new: (do_wrap_root) =>
-		support = TS_BASIC_STYLING | TS_COLOUR | TS_TEXT_SIZE
-		super do_wrap_root, support, 'tex'
+	new: (do_wrap_root) => super do_wrap_root, TS_CSS_STYLES, 'tex'
 	output: (doc, use_stdout, @stem, @generation_time) =>
 		@bib_loc = "#{@stem}.bib"
 		if not open
 			log_warn "Extension-space output drivers unavailable due to sandbox level"
 			return
 
+		@output_bib @bib_loc, use_stdout
+		super doc, use_stdout, @stem, @generation_time
+	output_bib: (bib_loc, use_stdout) =>
 		records = [ LaTeXBibRecord k, v for k,v in pairs bib\records! ]
 		sort records, (a,b) -> a.name < b.name
 		formatted_bib = concat [ tostring r for r in *records ], '\n\n'
@@ -63,24 +70,17 @@ class LaTeXOutputDriver extends TextualMarkupOutputDriver
 		if use_stdout
 			print formatted_bib
 		else
-			f = open @bib_loc, 'w'
-			log_err "Failed to open file #{@bib_loc}" unless f
+			f = open bib_loc, 'w'
+			log_err "Failed to open file #{bib_loc}" unless f
 			with f
 				\write formatted_bib
 				\close!
-
-		super doc, use_stdout, @stem, @generation_time
 	par_inner_sep: '\n'
 	special_tag_map:
 		ul: 'itemize'
 		ol: 'enumerate'
 		bib: 'bibliography'
 		cite: 'cite'
-		it: 'textit'
-		sc: 'textsc'
-		bf: 'textbf'
-		tt: 'texttt'
-		af: 'textsf'
 		h1: 'section'
 		h2: 'subsection'
 		h3: 'subsubsection'
@@ -89,30 +89,48 @@ class LaTeXOutputDriver extends TextualMarkupOutputDriver
 		'h2*': 'subsection*'
 		'h3*': 'subsubsection*'
 		'h4*': 'subsubsubsection*'
-	raw_tags: {
-		'bibliography'
-		'cite'
-	}
+	raw_tags:
+		cite: true
+	const_tags:
+		bibliography: => @bib_loc
 	environments:
 		itemize: true
 		enumerate: true
+		FlushLeft: true
+		FlushRight: true
+		Center: true
+		justify: true
+	style_responses: {
+		=> 'textit' if @font_style == FONT_STYLE_ITALIC
+		=> 'textsl' if @font_style == FONT_STYLE_OBLIQUE
+		=>
+			fw = @font_weight
+			'textbf' if fw == FONT_WEIGHT_BOLD or
+				fw == FONT_WEIGHT_BOLDER or
+				fw == FONT_WEIGHT_700 or
+				fw == FONT_WEIGHT_800 or
+				fw == FONT_WEIGHT_900
+		=> 'texttt' if @font_family.type == FONT_FAMILY_MONOSPACE
+		=> 'textsf' if @font_family.type == FONT_FAMILY_SANS_SERIF
+		=> 'textrm' if @font_family.type == FONT_FAMILY_SERIF
+		=> 'textsc' if @font_variant == FONT_VARIANT_SMALL_CAPS
+		=> 'Center' if @text_align == TEXT_ALIGN_CENTRE
+		=> 'justify' if @text_align == TEXT_ALIGN_JUSTIFY
+		=> 'FlushLeft' if @text_align == TEXT_ALIGN_LEFT
+		=> 'FlushRight' if @text_align == TEXT_ALIGN_RIGHT
+		=> if 'table' == type @colour
+			hex = colour_to_hex @colour
+			"definecolor{color@#{hex}}{HTML}{#{hex}}\\textcolor{color@#{hex}}"
+	}
 	special_tag_enclose: (t, r, as) =>
 		if @environments[t]
-			"%\n\n\\begin{#{t}}%\n\t#{r}%\n\\end{#{t}}"
-		else
-			prefix = ''
-			if t\match 'section%*?$'
-				if @first_block
-					@first_block = false
-				else
-					prefix = '\n\n'
-			p = r
-			if t == 'bibliography'
-				p = @bib_loc
-			else if elem t, @raw_tags
-				p = node_string as[1]
-			prefix .. "\\#{t}{#{p}}"
-	default_libs: => {
+			return { '\\begin{', t, '}%\n\t', r, '%\n\\end{', t, '}' }
+		if @raw_tags[t]
+			r = node_string as[1]
+		else if f = @const_tags[t]
+			r = f @, as
+		{ '{\\', t, '{', r, '}}' }
+	default_libs: {
 		LaTeXLib 'babel', 'UKenglish'
 		LaTeXLib 'microtype', {'kerning','tracking','spacing'}
 		LaTeXLib 'graphicx'
@@ -121,23 +139,26 @@ class LaTeXOutputDriver extends TextualMarkupOutputDriver
 		LaTeXLib 'xcolor', 'table'
 		LaTeXLib 'geometry', 'a4paper'
 		LaTeXLib 'adjustbox'
+		LaTeXLib 'ragged2e'
 		LaTeXLib 'biblatex', {'backend': 'bibtex'}
 	}
-	wrap_root: (r) =>
-		-- There should really be a way of customising this
-		libs = [ tostring l for l in *@default_libs! ]
-		setup = {
-			'\\microtypecontext{spacing=nonfrench}'
-			'\\SetExtraKerning{encoding=*,family=*}{\\textemdash={83,83}}'
-		}
-		lines = extend {'\\documentclass{article}'},
-			libs,
-			setup,
-			{'\\begin{document}%'},
-			{r},
-			{'\\end{document}%'}
-		concat lines, '\n'
-
+	wrap_root: (r) => StringBuilder {
+		'\\documentclass{article}\n',
+		'\n',
+		@default_libs,
+		'\n',
+		'\\microtypecontext{spacing=nonfrench}\n',
+		'\\SetExtraKerning{encoding=*,family=*}{\\textemdash={83,83}}\n',
+		'\n',
+		'\\begin{document}%\n',
+		{ r\get_contents!, '%\n' },
+		'\\end{document}'
+	}
+	sanitise: (w) =>
+		w = w\gsub '([\\{}])', '\\%1'
+		w = w\gsub '%^', '{\\textasciicircumflex}'
+		w = w\gsub '([%%&^_$])', '\\%1'
+		w
 
 output_drivers.latex = LaTeXOutputDriver true
 output_drivers.latex_bare = LaTeXOutputDriver false

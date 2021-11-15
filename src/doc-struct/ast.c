@@ -36,15 +36,19 @@ void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc)
 	content->type = WORD;
 	content->word = word;
 
-	node->flags		= 0;
-	node->last_eval = -1;
-	node->name		= malloc(sizeof(Str));
-	node->style		= NULL;
-	node->content	= content;
-	node->parent	= NULL;
-	node->src_loc	= src_loc;
+	node->flags		   = 0;
+	node->last_eval	   = -1;
+	node->name		   = malloc(sizeof(Str));
+	node->style_name   = node->name;
+	node->style		   = NULL;
+	node->style_data   = malloc(sizeof(StyleData));
+	node->content	   = content;
+	node->parent	   = NULL;
+	node->prev_sibling = NULL;
+	node->src_loc	   = src_loc;
 
 	make_strc(node->name, NODE_NAME_WORD);
+	make_style_data(node->style_data, node->style_name, node);
 }
 
 void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc)
@@ -54,16 +58,20 @@ void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc)
 	content->type	 = CONTENT;
 	content->content = malloc(sizeof(List));
 
-	node->flags		= 0;
-	node->last_eval = -1;
-	node->name		= malloc(sizeof(Str));
-	node->style		= NULL;
-	node->content	= content;
-	node->parent	= NULL;
-	node->src_loc	= src_loc;
+	node->flags		   = 0;
+	node->last_eval	   = -1;
+	node->name		   = malloc(sizeof(Str));
+	node->style_name   = node->name;
+	node->style		   = NULL;
+	node->style_data   = malloc(sizeof(StyleData));
+	node->content	   = content;
+	node->parent	   = NULL;
+	node->prev_sibling = NULL;
+	node->src_loc	   = src_loc;
 
 	make_list(content->content);
 	make_strc(node->name, NODE_NAME_CONTENT);
+	make_style_data(node->style_data, node->style_name, node);
 }
 
 void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Location* src_loc)
@@ -73,13 +81,34 @@ void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Locatio
 	content->type = CALL;
 	content->call = call;
 
-	node->flags		= 0;
-	node->last_eval = -1;
-	node->name		= name;
-	node->style		= NULL;
-	node->content	= content;
-	node->parent	= NULL;
-	node->src_loc	= src_loc;
+	node->flags		   = 0;
+	node->last_eval	   = -1;
+	node->name		   = name;
+	node->style_name   = malloc(sizeof(Str));
+	node->style		   = NULL;
+	node->style_data   = malloc(sizeof(StyleData));
+	node->content	   = content;
+	node->parent	   = NULL;
+	node->prev_sibling = NULL;
+	node->src_loc	   = src_loc;
+
+	char* s = name->str;
+	char* t = malloc(1 + name->len);
+	{
+		size_t i = 0;
+		while (*s)
+		{
+			if (*s == '_')
+				t[i++] = '-';
+			else if (*s != '*')
+				t[i++] = *s;
+			s++;
+		}
+		t[i] = '\0';
+	}
+	make_strr(node->style_name, t);
+
+	make_style_data(node->style_data, node->style_name, node);
 
 	if (call)
 	{
@@ -100,9 +129,16 @@ void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result)
 
 	if (node->style)
 		dest_style(node->style);
+	dest_style_data(node->style_data);
+	free(node->style_data);
 	dest_doc_tree_node_content(node->content, processing_result);
 	free(node->content);
 	free(node->src_loc);
+	if (node->style_name != node->name)
+	{
+		dest_str(node->style_name);
+		free(node->style_name);
+	}
 	dest_str(node->name);
 	free(node->name);
 	free(node);
@@ -133,6 +169,8 @@ void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_res
 
 void prepend_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child)
 {
+	if (child_list->fst)
+		((DocTreeNode*)(child_list->fst->data))->prev_sibling = new_child;
 	prepend_list(child_list, new_child);
 	new_child->parent = parent;
 }
@@ -147,6 +185,8 @@ void connect_to_parent(DocTreeNode* child, DocTreeNode* parent)
 
 void append_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child)
 {
+	if (child_list->lst)
+		new_child->prev_sibling = child_list->lst->data;
 	append_list(child_list, new_child);
 	new_child->parent = parent;
 }

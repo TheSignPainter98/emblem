@@ -9,6 +9,7 @@
 #include "array.h"
 #include "dest-free.h"
 #include "maybe.h"
+#include <libwapcaplet/libwapcaplet.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -29,6 +30,10 @@ typedef struct
 	 * @brief Indicates whether memory will be freed
 	 */
 	bool const free_mem;
+	/**
+	 * @brief The libwapcaplet internalisation of the string
+	 */
+	lwc_string* lwc_rep;
 } Str;
 
 /**
@@ -141,4 +146,19 @@ bool set_strc(Str* str, size_t idx, char val);
  */
 bool copy_into_str(Str* cont, Str* ins, size_t startIdx);
 
+/**
+ * @brief Duplicate a given string
+ *
+ * @param o Location to fill with the duplicated string
+ * @param todup String to duplicate
+ */
 void dup_str(Str* o, Str* todup);
+
+/**
+ * @brief Obtain the libwapcaplet string version of a string
+ *
+ * @param si String to internalise/return existing `lwc_string`
+ *
+ * @return The lwc string equal to si
+ */
+lwc_string* get_lwc_string(Str* s);
