@@ -120,7 +120,7 @@ class LaTeXOutputDriver extends TextualMarkupOutputDriver
 		=> 'FlushRight' if @text_align == TEXT_ALIGN_RIGHT
 		=> if 'table' == type @colour
 			hex = colour_to_hex @colour
-			"definecolor{color_#{hex}}{HTML}{#{hex}}\\textcolor{color_#{hex}}"
+			"definecolor{color@#{hex}}{HTML}{#{hex}}\\textcolor{color@#{hex}}"
 	}
 	special_tag_enclose: (t, r, as) =>
 		if @environments[t]
