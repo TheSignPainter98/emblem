@@ -143,24 +143,31 @@ base.em = em
 -- @param n The node to convert into a string, must be a table
 -- @return The text stored at and under the given node
 node_string = (n) ->
-	if n == nil
-		return nil
-	if 'table' != type n or ('table' == type n and n.type == nil)
-		return tostring n
-	switch n.type
-		when WORD
-			return n.word
-		when CALL
-			return node_string n.result
-		when CONTENT
-			ss = {}
-			for m in *n.content
-				if s = node_string m
-					insert ss, s
-			return concat ss, ' '
-		else
-			error "Unrecognised node type '#{n.type}'"
-			return nil
+	str_parts = {}
+	node_string_parts = (n) ->
+		if n == nil
+			return
+		if 'table' != type n
+			insert str_parts, tostring n
+		switch n.type
+			when WORD
+				insert str_parts, n.word
+			when CALL
+				node_string_parts n.result
+			when CONTENT
+				cs = n.content
+				cn = #cs
+				return if cn == 0
+				node_string_parts cs[1]
+				for i=2,cn
+					insert str_parts, ' '
+					node_string_parts cs[i]
+			when nil
+				insert str_parts, tostring n
+			else
+				error "Unrecognised node type '#{n.type}'"
+	node_string_parts n
+	concat str_parts
 base.node_string = node_string
 
 ---
