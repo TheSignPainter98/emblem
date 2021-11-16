@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 	Args args;
 	rc = parse_args(&args, argc, argv);
 	if (rc)
-		return rc;
+		goto clean_args;
 	init_logs(&args);
 
 	Styler styler;
@@ -50,13 +50,13 @@ int main(int argc, char** argv)
 	make_ext_params(&ext_params, &args, &styler, &mtNamesList);
 	ExtensionEnv ext;
 	if ((rc = make_ext_env(&ext, &ext_params)))
-		return rc;
+		goto clean_ext;
 
 	// Get the output driver
 	OutputDriver driver;
 	rc = get_output_driver(&driver, &args, &ext);
 	if (rc)
-		return rc;
+		goto clean_output_driver;
 
 	pass_output_driver_data_to_styler(&styler, &driver);
 
@@ -65,28 +65,34 @@ int main(int argc, char** argv)
 	parse_doc(&maybe_ast_root, &mtNamesList, &args);
 	rc = maybe_ast_root.type == NOTHING;
 	if (rc)
-		return rc;
+		goto cleanup;
 
 	DocTreeNode* root = maybe_ast_root.just;
 	Doc doc;
 	make_doc(&doc, root, &styler, &ext);
 	rc = typeset_doc(&doc, &args, driver.support);
 	if (rc)
-		return rc;
+		goto cleanup;
 
 	log_info("Executing output driver");
 	rc = run_output_driver(&driver, &doc, &ext);
 	if (rc)
-		return rc;
+		goto cleanup;
 
+cleanup:
 	log_debug("Cleaning up execution");
 	dest_doc(&doc);
-	dest_ext_env(&ext);
+clean_output_driver:
 	dest_output_driver(&driver);
+clean_ext:
+	dest_ext_env(&ext);
+	dest_ext_params(&ext_params);
 	dest_locked(&mtNamesList, NULL);
 	dest_list(&namesList, (Destructor)dest_free_str);
-	dest_ext_params(&ext_params);
 	dest_styler(&styler);
+	fini_logs();
+clean_args:
 	dest_args(&args);
+
 	return rc;
 }
