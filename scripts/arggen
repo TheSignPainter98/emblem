@@ -404,12 +404,12 @@ def gen_c(spec: dict, ifname: str) -> [(str, str)]:
             ], '}',
             'if (showVersion)', '{', [
                 'printf(%s);' % license_string,
-                'return 1;',
+                'return -1;',
             ], '}',
             'if (showHelp)', '{', [
                 'fprintf(stderr, "%s", argv[0]);' % usage_string,
             ] + help_printer + [
-                'exit(0);'
+                'return -1;'
             ], '}',
             '',
             'return 0;'

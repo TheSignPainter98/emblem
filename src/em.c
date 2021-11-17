@@ -37,7 +37,11 @@ int main(int argc, char** argv)
 	Args args;
 	rc = parse_args(&args, argc, argv);
 	if (rc)
+	{
+		if (rc < 0)
+			rc = 0;
 		goto clean_args;
+	}
 	init_logs(&args);
 
 	Styler styler;
