@@ -102,13 +102,13 @@ command-line-manual.pdf: em.1
 	$(ROFF) $(ROFF_FLAGS) $< > $@
 
 # Add tests
-TESTS = check_em
-check_PROGRAMS = check_em
-check_em_SOURCES = S_TEST_FILES
-check_em_CFLAGS = $(CFLAGS_ALL) S_CHECK_DEPS_CFLAGS $(CFLAGS_ANALYSER)
-check_em_LDADD = $(LDADD_ALL) S_CHECK_DEPS_LIBS
-check_em_LFLAGS = $(LFLAGS_ALL)
-check_em_YFLAGS = $(YFLAGS_ALL)
+TESTS = check_criterion_em
+check_PROGRAMS = check_criterion_em
+check_criterion_em_SOURCES = S_TEST_FILES
+check_criterion_em_CFLAGS = $(CFLAGS_ALL) S_CHECK_DEPS_CFLAGS $(CFLAGS_ANALYSER)
+check_criterion_em_LDADD = $(LDADD_ALL) S_CHECK_DEPS_LIBS
+check_criterion_em_LFLAGS = $(LFLAGS_ALL)
+check_criterion_em_YFLAGS = $(YFLAGS_ALL)
 
 doc: docs/book/index.html
 .PHONY: doc
