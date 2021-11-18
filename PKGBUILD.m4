@@ -33,6 +33,7 @@ package()
 check()
 {
 	cd "$srcdir/$pkgname-$pkgver"
-	make -s check_em CFLAGS=-Wno-error
-	./check_em
+	make -s check_criterion_em CFLAGS=-Wno-error
+	./check_criterion_em
+	./check_bats.sh
 }

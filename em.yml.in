@@ -189,7 +189,7 @@ dist:
       - libsass
       - lua
       - lua-argparse
-      - lua-htmlparser
+      # - lua-htmlparser
       - lua-lpeg
       - lua-lyaml
       - moonscript
@@ -197,6 +197,7 @@ dist:
     make-depends:
       - gcc
     check-depends:
+      - bash-bats
       - criterion
     opt-depends:
       - otf-bodoni
