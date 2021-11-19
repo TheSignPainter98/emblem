@@ -10,7 +10,7 @@ EOF
 	assert_exit_pass
 	[[ ${#lines[@]} -eq 4 ]]
 	local sanitised_output=$(echo $output)
-	[[ "$sanitised_output" -eq 1 ]]
+	[[ "$sanitised_output" == "0 1 2 3" ]]
 }
 
 @test '.foreach executes correctly when nested' {
