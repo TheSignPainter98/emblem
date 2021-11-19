@@ -1,3 +1,3 @@
 #!/bin/bash
 
-bats -r check/bats/
+bats -r check/bats/ $@
