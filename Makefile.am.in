@@ -102,16 +102,16 @@ command-line-manual.pdf: em.1
 	$(ROFF) $(ROFF_FLAGS) $< > $@
 
 # Add tests
-TESTS = check_criterion_em check_bats.sh
+TESTS = check_criterion_em scripts/check_bats.sh
 check_PROGRAMS = check_criterion_em
-dist_check_SCRIPTS = check_bats.sh
+dist_check_SCRIPTS = scripts/check_bats.sh
 check_criterion_em_SOURCES = S_TEST_FILES
 check_criterion_em_CFLAGS = $(CFLAGS_ALL) S_CHECK_DEPS_CFLAGS $(CFLAGS_ANALYSER)
 check_criterion_em_LDADD = $(LDADD_ALL) S_CHECK_DEPS_LIBS
 check_criterion_em_LFLAGS = $(LFLAGS_ALL)
 check_criterion_em_YFLAGS = $(YFLAGS_ALL)
 
-check_bats.sh: S_CHECK_BATS_FILES
+scripts/check_bats.sh: S_CHECK_BATS_FILES
 
 doc: docs/book/index.html
 .PHONY: doc
