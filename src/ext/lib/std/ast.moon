@@ -40,12 +40,14 @@ concat_ast_nodes = (as, bs) ->
 -- @brief Represents a word node
 class Word extends Node
 	new: (@word, ...) => super WORD, ...
+	__tostring: => show @
 	__concat: concat_ast_nodes
 
 ---
 -- @brief Represents a content node (which has no content itself but rather stores other nodes beneath it)
 class Content extends Node
 	new: (@content, ...) => super CONTENT, ...
+	__tostring: => show @
 	__concat: concat_ast_nodes
 
 ---
@@ -54,6 +56,7 @@ class Call extends Node
 	new: (@name, @args, ...) =>
 		super CALL, ...
 		@args = {@args} if not is_list @args
+	__tostring: => show @
 	__concat: concat_ast_nodes
 	__mul: (c, a) ->
 		if 'table' != type c or c.type != CALL

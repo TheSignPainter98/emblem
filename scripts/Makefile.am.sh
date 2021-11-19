@@ -1,13 +1,13 @@
 #!/bin/bash
 
 extension_lib_srcs=($(find src/ext/lib/ -name '*.moon' | grep -v '__mod'))
-extension_lib_built_srcs=($(for f in ${extension_lib_srcs[@]}; do echo ${f%.*}.lc; done))
+extension_lib_built_srcs=($(for f in ${extension_lib_srcs[@]}; do echo ${f%.*}.lc ${f%.*}.loc ${f%.*}.lua ${f%.*}__mod.moon; done))
 built_srcs=(./src/config.h ./src/argp.c ./src/argp.h ./src/pp/ignore_warning.h ./src/ext/lua-lib-load.c ./src/ext/lua-constants.c ${extension_lib_built_srcs[@]})
 parser_srcs=(src/parser/emblem-lexer.l src/parser/emblem-parser.y)
-hand_written_srcs=($(find src -name '*.c' -or -name '*.h' | grep -v 'argp\.[ch]$' | grep -Pv 'emblem-(lexer|parser)\.[ch]$' | grep -v 'src/pp/ignore_warning\.h$' | grep -v 'config\.h') $(find src/scripts/ -name '*.moon'))
+hand_written_srcs=($(find src -name '*.c' -or -name '*.h' | grep -v 'argp\.[ch]$' | grep -Pv 'emblem-(lexer|parser)\.[ch]$' | grep -v 'src/pp/ignore_warning\.h$' | grep -v 'config\.h') src/ext-constants.yml)
 
 srcs=(${built_srcs[@]} ${parser_srcs[@]} ${hand_written_srcs[@]})
-tests=(${built_srcs[@]} ${parser_srcs[@]} $(echo ${hand_written_srcs[@]} | tr ' ' '\n' | grep -v 'em.[ch]$') $(find check -name '*.c' -or -name '*.h'))
+tests=(${built_srcs[@]} ${parser_srcs[@]} $(echo ${hand_written_srcs[@]} | tr ' ' '\n' | grep -v 'em.[ch]$') $(find check/criterion/ -name '*.c' -or -name '*.h'))
 scripts=($(find scripts -type f | grep -v '.*\.swp'))
 dist_data=($(find share/emblem/ -type f | grep -v '.*\.swp'))
 
@@ -15,6 +15,8 @@ deps_cflags=$(yq -y '.deps | map("$(" + .name + "_CFLAGS)")' em.yml | cut -d' ' 
 deps_libs=$(yq -y '.deps | map("$(" + .name + "_LIBS)")' em.yml | cut -d' ' -f2- | tr '\n' ' ' | sed 's/ $//')
 check_deps_cflags=$(yq -y '.check_deps | map("$(" + .name + "_CFLAGS)")' em.yml | cut -d' ' -f2- | tr '\n' ' ' | sed 's/ $//')
 check_deps_libs=$(yq -y '.check_deps | map("$(" + .name + "_LIBS)")' em.yml | cut -d' ' -f2- | tr '\n' ' ' | sed 's/ $//')
+
+check_bats_srcs=($(find check/bats/ -type f | grep -v '.*\.swp'))
 
 lintable_srcs=($(./scripts/lintable-srcs.sh))
 
@@ -34,9 +36,8 @@ function pofile()
 
 formattable_srcs=($(echo ${hand_written_srcs[@]} | tr ' ' '\n' | grep '^.*\.[ch]$'))
 
-extra_dist=(${scripts[@]} ${extension_lib_srcs[@]})
 source_dependency_files=($(for s in ${srcs[@]}; do [[ "${s##*.}" =~ ^[cly]$ ]] && pofile $s; done))
-extra_dist=(${scripts[@]} ${extension_lib_srcs[@]} ${source_dependency_files[@]})
+extra_dist=(${scripts[@]} ${extension_lib_srcs[@]} ${source_dependency_files[@]} ${check_bats_srcs[@]})
 
 # function src_docs()
 # {
@@ -66,4 +67,5 @@ m4_define(S_FORMATTABLE_SRCS, ${formattable_srcs[@]})m4_dnl
 m4_define(S_LINTABLE_SRCS, ${lintable_srcs[@]})m4_dnl
 m4_define(S_EXTRA_DIST, ${extra_dist[@]})m4_dnl
 m4_define(S_DOC_SOURCES, ${doc_sources[@]})m4_dnl
+m4_define(S_CHECK_BATS_FILES, ${check_bats_srcs[@]})m4_dnl
 EOF

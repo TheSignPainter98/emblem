@@ -9,15 +9,15 @@ while getopts 'vc' arg; do
 	case $arg in
 		v) v=1 ;;
 		c) c=1 ;;
-		\*) print nothing: $OPTARG ;;
-		\?) print invalid option: $OPTARG ;;
+		\*) echo nothing: $OPTARG >&2 ;;
+		\?) echo invalid option: $OPTARG >&2 ;;
 	esac
 done
 
 [[ ! "$v" -eq "0" ]] && set -o verbose
 
 # Clean the existing directories
-[[ -f Makefile ]] && make -s clean
+[[ -f Makefile ]] && make -s clean || true
 # rm -rf $(grep -v '^$' .gitignore | grep -v '^#')
 
 [[ "$c" -eq "0" ]] || exit 0

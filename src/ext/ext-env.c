@@ -62,6 +62,7 @@ int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 
 	set_globals(ext, params);
 
+	log_info("Loading standard library...");
 	int rc = load_libraries(ext->state, params);
 	if (rc)
 		return rc;
