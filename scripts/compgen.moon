@@ -54,7 +54,7 @@ em_imposter_arg_parser = with ArgParser!
 			imp_arg\choices [ tostring c for c in *arg.choices ]
 		else
 			switch arg.type
-				when 'flag', 'int'
+				when 'int', 'double'
 					imp_arg\choices {}
 	\add_complete!
 
