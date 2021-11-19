@@ -18,6 +18,14 @@ EOF
 	assert_exit_pass
 }
 
+@test 'multi indent at EOF accepted' {
+	run $em << EOF
+.asdf:
+	.fdsa:
+		hjfdklsahfj
+EOF
+}
+
 @test 'trailing indent at EOF rejected' {
 	run $em << EOF
 .asdf:
