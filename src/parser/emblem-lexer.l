@@ -88,6 +88,7 @@ EMPH_ASTERISK       "*""*"?
 EMPH_BACKTICK		"`"
 EMPH_EQUALS			"=""="?
 EMPH_UNDERSCORE     "_""_"?
+EMPH_DELIM			[*`=_]
 FILENAME			\"("\\"[^\r\n]|[^\\"\t\r\n])+\"
 GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
@@ -101,8 +102,10 @@ INTEGER				[0-9]+
 REFERENCE			"#"[^ \t\r\n{}]+
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
-WORD 				"."|"!"|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
-WORD_EASY_END_CHAR  ({WORD_ESCAPE_CHAR}|[^\\_*`= \t\r\n{}])
+SYMBOL				[!"£$%^&*()_+=\[\]#~;:'@<>,./?\\|¬`-]
+WORD 				"."|"!"|{WORD_DELIM_SPECIAL}|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
+WORD_DELIM_SPECIAL	{SYMBOL}{EMPH_DELIM}|{EMPH_DELIM}{SYMBOL}
+WORD_EASY_END_CHAR  ({WORD_ESCAPE_CHAR}|[^\\_*`= \t\r\n{}~])
 WORD_END 			({WORD_ESCAPE_CHAR}|{WORD_END_REGULAR}|{WORD_END_EMPH})
 WORD_END_EMPH		[_*`=]({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}_*`=,.'":;])
 WORD_END_REGULAR 	{WORD_EASY_END_CHAR}{2}
