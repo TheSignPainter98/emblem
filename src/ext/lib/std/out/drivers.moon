@@ -70,7 +70,7 @@ class ContextFreeOutputDriver extends OutputDriver
 			return '' unless n
 			switch n.type
 				when WORD
-					@sanitise n.word
+					@sanitise n.pword or n.word
 				when CALL
 					result = format n.result, false
 					return '' if result == ''
@@ -111,7 +111,7 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 			switch n.type
 				when WORD
 					@have_output = true
-					{ delimiter, @sanitise n.word }
+					{ delimiter, @sanitise n.pword or n.word }
 				when CALL
 					result = format n.result, false
 					if result == ''

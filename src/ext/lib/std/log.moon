@@ -15,7 +15,7 @@ log = {}
 base = require 'std.base'
 log_funcs = { 'log_err', 'log_err_at', 'log_warn', 'log_warn_at', 'log_info', 'log_debug' }
 for log_func in *log_funcs
-	handle_log_args = (...) -> concat [ eval_string e for e in *{...} ], ' '
+	handle_log_args = (...) -> concat [ eval_string e, true for e in *{...} ], ' '
 
 	-- Handle exiting on error-logs
 	afterop = do_nothing

@@ -9,6 +9,7 @@
 #include "logs/logs.h"
 #include "lua.h"
 #include "pp/lambda.h"
+#include "parser/sanitise-word.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -29,12 +30,13 @@ void make_doc(Doc* doc, DocTreeNode* root, Styler* styler, ExtensionEnv* ext)
 
 void dest_doc(Doc* doc) { dest_free_doc_tree_node(doc->root, false); }
 
-void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc)
+void make_doc_tree_node_word(DocTreeNode* node, Str* raw, Location* src_loc)
 {
 	DocTreeNodeContent* content = malloc(sizeof(DocTreeNodeContent));
 
 	content->type = WORD;
-	content->word = word;
+	content->word = malloc(sizeof(Word));
+	make_word(content->word, raw, src_loc);
 
 	node->flags		   = 0;
 	node->last_eval	   = -1;
@@ -151,7 +153,7 @@ void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_res
 	switch (content->type)
 	{
 		case WORD:
-			dest_str(content->word);
+			dest_word(content->word);
 			free(content->word);
 			break;
 		case CALL:
@@ -191,6 +193,12 @@ void append_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNo
 	new_child->parent = parent;
 }
 
+void make_word(Word* word, Str* raw, Location* src_loc)
+{
+	word->raw = raw;
+	sanitise_word(word, src_loc);
+}
+
 void make_call_io(CallIO* call)
 {
 	call->result = NULL;
@@ -208,6 +216,12 @@ void append_call_io_arg(CallIO* call, DocTreeNode* arg)
 {
 	arg->flags |= IS_CALL_PARAM;
 	append_list(call->args, arg);
+}
+
+void dest_word(Word* word)
+{
+	dest_free_str(word->raw);
+	dest_free_str(word->sanitised);
 }
 
 void dest_call_io(CallIO* call, bool processing_result)
