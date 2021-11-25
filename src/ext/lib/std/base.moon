@@ -141,6 +141,7 @@ base.em = em
 ---
 -- @brief Extracts the text beneath a given node
 -- @param n The node to convert into a string, must be a table
+-- @param pretty Whether use the pretty or raw form of words
 -- @return The text stored at and under the given node
 node_string = (n, pretty=false) ->
 	str_parts = {}
@@ -173,10 +174,11 @@ base.node_string = node_string
 ---
 -- @brief Evaluates a node pointer and extracts the text contained in and below it
 -- @param d The userdata pointer to evaluate and extract from
+-- @param pretty Whether use the pretty or raw form of words
 -- @return A string which represents all text at and beneath _d_
-eval_string = (d, ...) ->
+eval_string = (d, pretty) ->
 	if 'userdata' == type d
-		return node_string (eval d), ...
+		return node_string (eval d), pretty
 	tostring d
 base.eval_string = eval_string
 
