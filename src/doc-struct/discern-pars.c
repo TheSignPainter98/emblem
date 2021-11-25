@@ -142,7 +142,7 @@ static bool has_non_null_content(DocTreeNode* node)
 	switch (node->content->type)
 	{
 		case WORD:
-			return *node->content->word->str;
+			return *node->content->word->raw->str;
 		case CALL:
 			return has_non_null_content(node->content->call->result);
 		case CONTENT:

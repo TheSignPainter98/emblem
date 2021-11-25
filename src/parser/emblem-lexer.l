@@ -15,7 +15,6 @@
 #include "emblem-parser.h"
 #include "logs/logs.h"
 #include "parser.h"
-#include "sanitise-word.h"
 #include "sugar.h"
 #include <math.h>
 #include <stdbool.h>
@@ -226,7 +225,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 <BODY>{CITATION}			{ extract_citation_sugar(&yylval->simple_sugar, yytext, yyleng); return T_CITATION; }
 <BODY>{REFERENCE}			{ extract_reference_sugar(&yylval->simple_sugar, yytext); return T_REFERENCE; }
 <BODY>{LABEL}				{ extract_label_sugar(&yylval->simple_sugar, yytext); return T_LABEL; }
-<BODY>{WORD}				{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strr(yylval->str, sanitise_word(yylloc, yyextra->ifn, yytext, yyleng)); return T_WORD; }
+<BODY>{WORD}				{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext); return T_WORD; }
 
 <BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
 

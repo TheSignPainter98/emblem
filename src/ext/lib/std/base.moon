@@ -151,7 +151,7 @@ node_string = (n) ->
 			insert str_parts, tostring n
 		switch n.type
 			when WORD
-				insert str_parts, n.word
+				insert str_parts, n.pword or n.word
 			when CALL
 				node_string_parts n.result
 			when CONTENT

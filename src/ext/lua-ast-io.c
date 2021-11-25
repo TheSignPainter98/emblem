@@ -76,8 +76,11 @@ int pack_tree(ExtensionState* s, DocTreeNode* node)
 	switch (node->content->type)
 	{
 		case WORD:
-			lua_pushlstring(s, node->content->word->str, node->content->word->len);
+			Word* word = node->content->word;
+			lua_pushlstring(s, word->raw->str, word->raw->len);
 			lua_setfield(s, -2, "word");
+			lua_pushlstring(s, word->sanitised->str, word->sanitised->len);
+			lua_setfield(s, -2, "pword");
 			break;
 		case CALL:
 			lua_pushlstring(s, node->name->str, node->name->len);

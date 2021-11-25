@@ -22,7 +22,7 @@ class RawOutputDriver extends OutputDriver
 			switch n.type
 				when WORD
 					sb .. delimiter if delimiter
-					sb .. n.word
+					sb .. (n.pword or n.word)
 					delimiter = ' '
 				when CALL
 					format n.result

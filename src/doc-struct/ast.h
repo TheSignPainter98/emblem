@@ -76,7 +76,7 @@ typedef struct DocTreeNodeContent_s
 	DocTreeNodeContentType type;
 	union
 	{
-		Str* word;
+		struct Word_s* word;
 		struct CallIO_s* call;
 		List* content;
 	};
@@ -84,6 +84,12 @@ typedef struct DocTreeNodeContent_s
 
 extern const char* const node_tree_content_type_names[];
 extern const size_t node_tree_content_type_names_len;
+
+typedef struct Word_s
+{
+	Str* raw;
+	Str* sanitised;
+} Word;
 
 typedef struct CallIO_s
 {
@@ -113,6 +119,9 @@ void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_res
 
 void prepend_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child);
 void append_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child);
+
+void make_word(Word* word, Str* raw, Location* src_loc);
+void dest_word(Word* word);
 
 void make_call_io(CallIO* call);
 void dest_call_io(CallIO* call, bool processing_result);
