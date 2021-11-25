@@ -32,7 +32,7 @@ em.def = Directive 2, 0, "Takes a name and a section of document and creates a d
 em.undef = Directive 1, 0, "Undefine a directive", (n) -> em[eval_string n] = nil
 
 em.echo = Directive 0, -1, "Output text to stdout", (...) ->
-	print concat [ eval_string v for v in *{...} when v != nil ], ' '
+	print concat [ eval_string v, true for v in *{...} when v != nil ], ' '
 
 em['echo-on'] = Directive 1, -1, "Output text to stdout on a given iteration", on_iter_wrap em.echo
 
