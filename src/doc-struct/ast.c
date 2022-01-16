@@ -8,8 +8,8 @@
 
 #include "logs/logs.h"
 #include "lua.h"
-#include "pp/lambda.h"
 #include "parser/sanitise-word.h"
+#include "pp/lambda.h"
 #include <stdlib.h>
 #include <string.h>
 

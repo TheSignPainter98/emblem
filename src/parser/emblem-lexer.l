@@ -49,6 +49,8 @@ static void extract_label_sugar(SimpleSugar* ref_str, char* ytext);
 
 static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err, ...);
 #define llerror(...) handle_llerror(yylloc, yyextra, __VA_ARGS__)
+static void handle_llwarn(EM_LTYPE* yyloc, LexerData* data, const char* err, ...);
+#define llwarn(...) handle_llwarn(yylloc, yyextra, __VA_ARGS__)
 static int indent_len(int tab_size, char* inp);
 
 #define EMPHASIS(T_open, T_close)\
@@ -59,6 +61,11 @@ static int indent_len(int tab_size, char* inp);
 	}\
 	yylval->len = yyleng;\
 	return T_close;
+
+static int glue_tokens[] = {
+	[GS_GLUE] = T_GLUE,
+	[GS_NBSP] = T_GLUE_NBSP,
+};
 %}
 
 /* %option outfile="lex.yy.c" */
@@ -89,6 +96,8 @@ EMPH_EQUALS			"=""="?
 EMPH_UNDERSCORE     "_""_"?
 EMPH_DELIM			[*`=_]
 FILENAME			\"("\\"[^\r\n]|[^\\"\t\r\n])+\"
+GLUE 				"~"
+GLUE_NBSP 			"~~"
 GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
@@ -101,17 +110,17 @@ INTEGER				[0-9]+
 REFERENCE			"#"[^ \t\r\n{}]+
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
-SYMBOL				[!"£$%^&*()_+=\[\]#~;:'@<>,./?\\|¬`-]
+SYMBOL				[!"£$%^&*()_+=\[\]#;:'@<>,./?\\|¬`-]
 WORD 				"."|"!"|{WORD_DELIM_SPECIAL}|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 WORD_DELIM_SPECIAL	{SYMBOL}{EMPH_DELIM}|{EMPH_DELIM}{SYMBOL}
 WORD_EASY_END_CHAR  ({WORD_ESCAPE_CHAR}|[^\\_*`= \t\r\n{}~])
 WORD_END 			({WORD_ESCAPE_CHAR}|{WORD_END_REGULAR}|{WORD_END_EMPH})
-WORD_END_EMPH		[_*`=]({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}_*`=,.'":;])
+WORD_END_EMPH		[_*`=]({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}_*`=,.'":;~])
 WORD_END_REGULAR 	{WORD_EASY_END_CHAR}{2}
 WORD_ESCAPE_CHAR	"\\"[^ \t\r\n]
-WORD_MID_CHAR 		({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}])
-WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=.: \t\r\n{}!])
-VARIABLE_REFERENCE  "!"+[^ \t\r\n\\/+:;=`*<>{},.!?()[\]'"-]+
+WORD_MID_CHAR 		({WORD_ESCAPE_CHAR}|[^\\ \t\r\n{}~])
+WORD_START_CHAR		({WORD_ESCAPE_CHAR}|[^\\_*`=.: \t\r\n{}!~])
+VARIABLE_REFERENCE  "!"+[^ \t\r\n\\/+:;=`*<>{},.!?()[\]'"~-]+
 VARIABLE_ASSIGN_1S	"<-"
 VARIABLE_ASSIGN_1L	"<--"
 VARIABLE_ASSIGN_2S	"<~"
@@ -121,6 +130,8 @@ VARIABLE_ASSIGN_2L	"<~~"
 %x INITIAL_WHITE
 %x INITIAL_BODY
 %x BODY
+%x BODY_WHITE
+%x BODY_W_GLUE
 %x MAYBE_VARIABLE_ASSIGNMENT
 %x PRAGMA
 %x PRAGMA_LINE
@@ -185,7 +196,8 @@ VARIABLE_ASSIGN_2L	"<~~"
 <MAYBE_VARIABLE_ASSIGNMENT>{VARIABLE_ASSIGN_2S}/{WHITE_SPACE}	{ yylval->assignment = malloc(sizeof(Str)); make_strv(yylval->assignment, "set-var-expr"); return T_ASSIGNMENT; }
 <MAYBE_VARIABLE_ASSIGNMENT>{VARIABLE_ASSIGN_2L}/{WHITE_SPACE}	{ yylval->assignment = malloc(sizeof(Str)); make_strv(yylval->assignment, "find-set-var-expr"); return T_ASSIGNMENT; }
 <MAYBE_VARIABLE_ASSIGNMENT>{WHITE_SPACE}+ 						;
-<MAYBE_VARIABLE_ASSIGNMENT>(.|{LN})								{ yyless(0); BEGIN(BODY); }
+<MAYBE_VARIABLE_ASSIGNMENT>{LN}									{ yyless(0); BEGIN(BODY); }
+<MAYBE_VARIABLE_ASSIGNMENT>.									{ yyless(0); BEGIN(BODY_WHITE); }
 
 <PRAGMA>{PRAGMA_NAME_LINE}		{ BEGIN(PRAGMA_LINE); }
 <PRAGMA>{PRAGMA_NAME_INCLUDE}	{ BEGIN(PRAGMA_INCLUDE); }
@@ -209,25 +221,30 @@ VARIABLE_ASSIGN_2L	"<~~"
 <PRAGMA_INCLUDE>{LN}			{ BEGIN(INITIAL_WHITE); if (handle_file_include(yyextra)) { yylval->node = yyextra->preproc.included_root; return T_INCLUDED_FILE; } }
 <PRAGMA_INCLUDE>. 				{ llerror("Failed to parse include directive, found extra text '%s'", yytext); BEGIN(INITIAL_WHITE); }
 
-<BODY>{WHITE_SPACE}+		{ yyextra->opening_emph = true; }
-<BODY>{EMPH_UNDERSCORE}		{ EMPHASIS(T_UNDERSCORE_OPEN, T_UNDERSCORE_CLOSE); }
-<BODY>{EMPH_ASTERISK}		{ EMPHASIS(T_ASTERISK_OPEN, T_ASTERISK_CLOSE); }
-<BODY>{EMPH_BACKTICK}		{ EMPHASIS(T_BACKTICK_OPEN, T_BACKTICK_CLOSE); }
-<BODY>{EMPH_EQUALS}			{ EMPHASIS(T_EQUALS_OPEN, T_EQUALS_CLOSE); }
+<BODY>{EMPH_UNDERSCORE}		{ BEGIN(BODY_WHITE); EMPHASIS(T_UNDERSCORE_OPEN, T_UNDERSCORE_CLOSE); }
+<BODY>{EMPH_ASTERISK}		{ BEGIN(BODY_WHITE); EMPHASIS(T_ASTERISK_OPEN, T_ASTERISK_CLOSE); }
+<BODY>{EMPH_BACKTICK}		{ BEGIN(BODY_WHITE); EMPHASIS(T_BACKTICK_OPEN, T_BACKTICK_CLOSE); }
+<BODY>{EMPH_EQUALS}			{ BEGIN(BODY_WHITE); EMPHASIS(T_EQUALS_OPEN, T_EQUALS_CLOSE); }
 <BODY>{COMMENT_LINE}		{ BEGIN(INITIAL_WHITE); return T_LN; }
 <BODY>{LN}					{ BEGIN(INITIAL_WHITE); return T_LN; }
-<BODY>{DIRECTIVE}			{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
-<BODY>{VARIABLE_REFERENCE}	{ yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); BEGIN(MAYBE_VARIABLE_ASSIGNMENT); return T_VARIABLE_REF; }
-<BODY>{DOUBLE_COLON}		{ yyextra->opening_emph = true; log_warn("DOUBLE COLON!"); return T_DOUBLE_COLON; }
-<BODY>{COLON}				{ yyextra->opening_emph = true; return T_COLON; }
-<BODY>{GROUP_OPEN}			{ yyextra->opening_emph = true; return T_GROUP_OPEN; }
-<BODY>{GROUP_CLOSE}			{ yyextra->opening_emph = false; return T_GROUP_CLOSE; }
-<BODY>{CITATION}			{ extract_citation_sugar(&yylval->simple_sugar, yytext, yyleng); return T_CITATION; }
-<BODY>{REFERENCE}			{ extract_reference_sugar(&yylval->simple_sugar, yytext); return T_REFERENCE; }
-<BODY>{LABEL}				{ extract_label_sugar(&yylval->simple_sugar, yytext); return T_LABEL; }
-<BODY>{WORD}				{ yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext); return T_WORD; }
+<BODY>{DIRECTIVE}			{ BEGIN(BODY_WHITE); yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
+<BODY>{VARIABLE_REFERENCE}	{ BEGIN(BODY_WHITE); yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); BEGIN(MAYBE_VARIABLE_ASSIGNMENT); return T_VARIABLE_REF; }
+<BODY>{DOUBLE_COLON}		{ BEGIN(BODY_WHITE); return T_DOUBLE_COLON; }
+<BODY>{COLON}				{ BEGIN(BODY_WHITE); return T_COLON; }
+<BODY>{GROUP_OPEN}			{ BEGIN(BODY_WHITE); return T_GROUP_OPEN; }
+<BODY>{GROUP_CLOSE}			{ BEGIN(BODY_WHITE); yyextra->opening_emph = false; return T_GROUP_CLOSE; }
+<BODY>{CITATION}			{ BEGIN(BODY_WHITE); extract_citation_sugar(&yylval->simple_sugar, yytext, yyleng); return T_CITATION; }
+<BODY>{REFERENCE}			{ BEGIN(BODY_WHITE); extract_reference_sugar(&yylval->simple_sugar, yytext); return T_REFERENCE; }
+<BODY>{LABEL}				{ BEGIN(BODY_WHITE); extract_label_sugar(&yylval->simple_sugar, yytext); return T_LABEL; }
+<BODY>{WORD}				{ BEGIN(BODY_WHITE); yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext); return T_WORD; }
 
 <BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
+
+<BODY_WHITE>.|{LN}			{ yyextra->gap_state = GS_NONE; yyless(0); BEGIN(BODY_W_GLUE); }
+<BODY_W_GLUE>{WHITE_SPACE}+	{ yyextra->opening_emph = true; if (yyextra->gap_state) llwarn("Trailing whitespace caused glue token to be ignored"); yyextra->gap_state = GS_GAP; }
+<BODY_W_GLUE>{GLUE}			{ yyextra->opening_emph = true; if (yyextra->gap_state != GS_GAP) yyextra->gap_state = GS_GLUE; else llwarn("Leading whitespace caused glue token to be ignored"); }
+<BODY_W_GLUE>{GLUE_NBSP}	{ yyextra->opening_emph = true; if (yyextra->gap_state != GS_GAP) yyextra->gap_state = GS_NBSP; else llwarn("Leading whitespace caused glue token to be ignored"); }
+<BODY_W_GLUE>[^ \t]			{ yyless(0); BEGIN(BODY); if (yyextra->gap_state > 0) return glue_tokens[yyextra->gap_state]; }
 
 {BLOCK_COMMENT_OPEN}		{ yyextra->comment_lvl = 1; BEGIN(COMMENT); }
 {BLOCK_COMMENT_CLOSE}		{ llerror("No comment to close"); return EM_error; }
@@ -260,6 +277,22 @@ static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err, ..
 		.src_file = data->ifn,
 	};
 	vlog_err_at(&loc, err, va);
+	va_end(va);
+}
+
+static void handle_llwarn(EM_LTYPE* yyloc, LexerData* data, const char* warn, ...)
+{
+	va_list va;
+	va_start(va, warn);
+	Location loc = {
+		.first_line = yyloc->first_line,
+		.first_column = yyloc->first_column,
+		.last_line = yyloc->last_line,
+		.last_column = yyloc->last_column,
+		.src_file = data->ifn,
+	};
+	if (vlog_warn_at(&loc, warn, va))
+		++*data->nerrs;
 	va_end(va);
 }
 

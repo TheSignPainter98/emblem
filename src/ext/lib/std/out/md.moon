@@ -17,7 +17,7 @@ import TEXT_DECORATION_LINE_THROUGH from css.text_decoration
 ---
 -- @brief Represents an output driver for markdown
 class MarkdownOutputDriver extends TextualMarkupOutputDriver
-	new: => super false, TS_CSS_STYLES, 'md'
+	new: => super false, '&nbsp;', TS_CSS_STYLES, 'md'
 	special_tag_enclose: (t, r, t2=t) =>
 		if t\match '#+'
 			{ t, ' ', r }

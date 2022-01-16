@@ -4,7 +4,7 @@
 -- @author Edward Jones
 -- @date 2021-09-24
 
-import css, driver_capabilities, node_types from require 'std.constants'
+import css, driver_capabilities, node_flags, node_types from require 'std.constants'
 import unknown_x_msg from require 'std.edit'
 import key_list from require 'std.func'
 import SanitisedKeyTable from require 'std.base'
@@ -18,6 +18,8 @@ if not io.module_unavailable
 
 import DISPLAY_BLOCK from css.display
 import TS_NONE from driver_capabilities
+import GLUE_LEFT, GLUE_LEFT_SPACE from node_flags
+import WORD, CALL, CONTENT from node_types
 
 curr_output_driver = nil
 
@@ -46,12 +48,10 @@ class OutputDriver
 				\write output
 				\close!
 
-import WORD, CALL, CONTENT from node_types
-
 ---
 -- @brief Represents an output driver for a context-free language
 class ContextFreeOutputDriver extends OutputDriver
-	new: (@do_wrap_root=false, ...) => super ...
+	new: (@do_wrap_root=false, @nbsp='', ...) => super ...
 	special_tag_map: {}
 	general_tag_enclose: (t, r, t2=t) => error "Context free output driver does not implement the 'general_tag_enclose' class method"
 	special_tag_enclose: (t, r, t2=t, as) => error "Context free output driver does not implement the 'special_tag_enclose' class method"
@@ -76,9 +76,18 @@ class ContextFreeOutputDriver extends OutputDriver
 					return '' if result == ''
 					@enclose_tag n.name, result, n.args
 				when CONTENT
-					sb = StringBuilder!
-					sb\extend [ format n.content[i], 1 < i for i=1,#n.content ], ' '
-					sb\get_contents!
+					ret = {}
+					for i = 1, 2 * #n.content - 1
+						m = n.content[1 + i // 2]
+						if i % 2 == 1
+							ret[i] = format m
+						else if (m.flags & GLUE_LEFT_SPACE) != 0
+							ret[i] = @nbsp
+						else if (m.flags & GLUE_LEFT) != 0
+							ret[i] = ''
+						else
+							ret[i] = ' '
+					ret
 				else
 					error "Unknown node type #{n.type}"
 		ret = StringBuilder format doc, false
@@ -96,7 +105,12 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 		@have_output = false
 		format = (n, do_delimit) ->
 			return '' unless n
-			delimiter = do_delimit and @have_output and @next_delimiter or ''
+			delimiter = ''
+			if do_delimit and @have_output
+				if (n.flags & GLUE_LEFT_SPACE) != 0
+					delimiter = @nbsp
+				if (n.flags & GLUE_LEFT) == 0
+					delimiter = ' '
 			@next_delimiter = ' '
 
 			local post_delimiter
