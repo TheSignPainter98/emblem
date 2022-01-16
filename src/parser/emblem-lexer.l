@@ -196,7 +196,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 <MAYBE_VARIABLE_ASSIGNMENT>{VARIABLE_ASSIGN_2S}/{WHITE_SPACE}	{ yylval->assignment = malloc(sizeof(Str)); make_strv(yylval->assignment, "set-var-expr"); return T_ASSIGNMENT; }
 <MAYBE_VARIABLE_ASSIGNMENT>{VARIABLE_ASSIGN_2L}/{WHITE_SPACE}	{ yylval->assignment = malloc(sizeof(Str)); make_strv(yylval->assignment, "find-set-var-expr"); return T_ASSIGNMENT; }
 <MAYBE_VARIABLE_ASSIGNMENT>{WHITE_SPACE}+ 						;
-<MAYBE_VARIABLE_ASSIGNMENT>{LN}									{ yyless(0); BEGIN(INITIAL_WHITE); }
+<MAYBE_VARIABLE_ASSIGNMENT>{LN}									{ yyless(0); BEGIN(BODY); }
 <MAYBE_VARIABLE_ASSIGNMENT>.									{ yyless(0); BEGIN(BODY_WHITE); }
 
 <PRAGMA>{PRAGMA_NAME_LINE}		{ BEGIN(PRAGMA_LINE); }
