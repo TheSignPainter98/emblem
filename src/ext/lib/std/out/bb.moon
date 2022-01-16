@@ -33,7 +33,7 @@ font_size_strings =
 ---
 -- @brief Represents an output driver for bbcode
 class BBCodeOutputDriver extends TextualMarkupOutputDriver
-	new: (...) => super false, TS_CSS_STYLES, 'bb', ...
+	new: (...) => super false, ' ', TS_CSS_STYLES, 'bb', ...
 	special_tag_enclose: (t, r, t2=t) => { '[', t, ']', r, '[/', t2, ']' }
 	special_tag_map:
 		pre: 'pre'

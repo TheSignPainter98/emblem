@@ -14,6 +14,13 @@ typedef struct
 	DocTreeNode* included_root;
 } PreProcessorData;
 
+typedef enum {
+	GS_GAP = -1,
+	GS_NONE = 0,
+	GS_GLUE,
+	GS_NBSP,
+} GapState;
+
 typedef struct
 {
 	int comment_lvl;
@@ -23,6 +30,7 @@ typedef struct
 	int post_dent_tok;
 	int tab_size;
 	bool opening_emph;
+	GapState gap_state;
 	int* nerrs;
 	FILE* ifp;
 	Str* ifn;
@@ -87,6 +95,7 @@ typedef struct
 	SimpleSugar simple_sugar;
 	Str* assignment;
 	size_t len;
+	DocTreeNodeFlags glue;
 }
 
 %nterm <args>			short_args
@@ -103,6 +112,8 @@ typedef struct
 %nterm <node>			line_element
 %nterm <node>			lines
 %nterm <node>			par
+%nterm <node>			literal
+%nterm <glue>			glue
 %token					T_DEDENT			"dedent"
 %token					T_GROUP_CLOSE		"}"
 %token					T_GROUP_OPEN		"{"
@@ -111,6 +122,8 @@ typedef struct
 %token					T_PAR_BREAK			"paragraph break"
 %token					T_COLON				"colon"
 %token					T_DOUBLE_COLON		"double-colon"
+%token 					T_GLUE				"glue"
+%token 					T_GLUE_NBSP			"nbsp-glue"
 %token <assignment>		T_ASSIGNMENT		"assignment operator"
 %token <node>			T_INCLUDED_FILE		"file inclusion"
 %token <sugar>			T_UNDERSCORE_OPEN	"opening underscore(s)"
@@ -226,28 +239,37 @@ line_content
 	;
 
 line_content_ne
-	: line_element line_content			{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
-	| T_VARIABLE_REF T_ASSIGNMENT line_content { $$ = malloc(sizeof(DocTreeNode)); make_variable_assignment($$, $2, $1, $3, alloc_assign_loc(@$, data->ifn)); }
-	| T_DIRECTIVE line_remainder_args	{
-											$$ = malloc(sizeof(DocTreeNode));
-											make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn));
-											DocTreeNode* call_node = malloc(sizeof(DocTreeNode));
-											make_doc_tree_node_call(call_node, $1, $2, alloc_assign_loc(@$, data->ifn));
-											prepend_doc_tree_node_child($$, $$->content->content, call_node);
-										}
+	: line_element line_content					{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
+	| line_element glue line_content_ne 		{ $$ = $3; ((DocTreeNode*)$3->content->content->fst->data)->flags |= $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
+	| T_VARIABLE_REF T_ASSIGNMENT line_content	{ $$ = malloc(sizeof(DocTreeNode)); make_variable_assignment($$, $2, $1, $3, alloc_assign_loc(@$, data->ifn)); }
+	| T_DIRECTIVE line_remainder_args			{
+													$$ = malloc(sizeof(DocTreeNode));
+													make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn));
+													DocTreeNode* call_node = malloc(sizeof(DocTreeNode));
+													make_doc_tree_node_call(call_node, $1, $2, alloc_assign_loc(@$, data->ifn));
+													prepend_doc_tree_node_child($$, $$->content->content, call_node);
+												}
+	;
+
+glue: T_GLUE 		{ $$ = GLUE_LEFT; }
+	| T_GLUE_NBSP 	{ $$ = GLUE_LEFT | GLUE_LEFT_SPACE; }
 	;
 
 line_element
+	: literal
+	| T_UNDERSCORE_OPEN line_content_ne T_UNDERSCORE_CLOSE	{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_ASTERISK_OPEN line_content_ne T_ASTERISK_CLOSE		{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_BACKTICK_OPEN line_content_ne T_BACKTICK_CLOSE		{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_EQUALS_OPEN line_content_ne T_EQUALS_CLOSE			{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	;
+
+literal
 	: T_WORD												{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_word($$, $1, alloc_assign_loc(@$, data->ifn)); }
 	| T_DIRECTIVE short_args								{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_CITATION											{ $$ = malloc(sizeof(DocTreeNode)); make_simple_syntactic_sugar_call($$, $1, alloc_assign_loc(@$, data->ifn)); }
 	| T_REFERENCE											{ $$ = malloc(sizeof(DocTreeNode)); make_simple_syntactic_sugar_call($$, $1, alloc_assign_loc(@$, data->ifn)); }
 	| T_LABEL												{ $$ = malloc(sizeof(DocTreeNode)); make_simple_syntactic_sugar_call($$, $1, alloc_assign_loc(@$, data->ifn)); }
 	| T_VARIABLE_REF										{ $$ = malloc(sizeof(DocTreeNode)); make_variable_retrieval($$, $1, alloc_assign_loc(@$, data->ifn)); }
-	| T_UNDERSCORE_OPEN line_content_ne T_UNDERSCORE_CLOSE	{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
-	| T_ASTERISK_OPEN line_content_ne T_ASTERISK_CLOSE		{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
-	| T_BACKTICK_OPEN line_content_ne T_BACKTICK_CLOSE		{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
-	| T_EQUALS_OPEN line_content_ne T_EQUALS_CLOSE			{ ENSURE_MATCHING_PAIR($1, $3, @3, data); $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	;
 
 %%
@@ -322,7 +344,7 @@ static void make_simple_syntactic_sugar_call(DocTreeNode* node, SimpleSugar ssug
 	CallIO* io = malloc(sizeof(CallIO));
 	make_call_io(io);
 	DocTreeNode* arg_node = malloc(sizeof(DocTreeNode));
-	make_doc_tree_node_word (arg_node, ssugar.arg, loc);
+	make_doc_tree_node_word(arg_node, ssugar.arg, loc);
 	prepend_call_io_arg(io, arg_node);
 	make_doc_tree_node_call(node, ssugar.call, io, dup_loc(loc));
 }
@@ -414,6 +436,7 @@ unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 		.indent_lvl_target = 0,
 		.tab_size = args->tab_size,
 		.opening_emph = true,
+		.gap_state = GS_NONE,
 		.nerrs = &nerrs,
 		.ifn = ifn,
 		.ifp = fp,

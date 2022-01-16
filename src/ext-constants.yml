@@ -7,6 +7,8 @@ node_flags:
       - INCLUDED_FILE_ROOT
       - NO_FURTHER_EVAL
       - STYLE_DIRECTIVE_ONLY
+      - GLUE_LEFT
+      - GLUE_LEFT_SPACE
 node_types:
   doc-struct/ast.h:
     integer:

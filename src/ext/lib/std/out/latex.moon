@@ -53,7 +53,7 @@ class LaTeXBibRecord
 ---
 -- @brief Represents an output driver for LaTeX
 class LaTeXOutputDriver extends TextualMarkupOutputDriver
-	new: (do_wrap_root) => super do_wrap_root, TS_CSS_STYLES, 'tex'
+	new: (do_wrap_root) => super do_wrap_root, '~', TS_CSS_STYLES, 'tex'
 	output: (doc, use_stdout, @stem, @generation_time) =>
 		@bib_loc = "#{@stem}.bib"
 		if not open

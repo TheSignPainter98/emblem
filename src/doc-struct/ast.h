@@ -23,6 +23,7 @@
 #define NODE_NAME_WORD		"w"
 #define ROOT_NODE_NAME		"body"
 
+typedef uint_least16_t DocTreeNodeFlags;
 #define REQUIRES_RERUN		   (1 << 0)
 #define IS_GENERATED_NODE	   (1 << 1)
 #define IS_CALL_PARAM		   (1 << 2)
@@ -33,10 +34,12 @@
 #define INCLUDED_FILE_ROOT	   (1 << 7)
 #define NO_FURTHER_EVAL		   (1 << 8)
 #define STYLE_DIRECTIVE_ONLY   (1 << 9)
+#define GLUE_LEFT			   (1 << 10)
+#define GLUE_LEFT_SPACE		   (1 << 11)
 
 #define ACCEPTABLE_EXTENSION_FLAG_MASK                                                                                 \
 	(REQUIRES_RERUN | PARAGRAPH_CANDIDATE | DISQUALIFIED_PARAGRAPH | INCLUDED_FILE_ROOT | NO_FURTHER_EVAL              \
-		| STYLE_DIRECTIVE_ONLY)
+		| STYLE_DIRECTIVE_ONLY | GLUE_LEFT | GLUE_LEFT_SPACE)
 
 struct DocTreeNodeContent_s;
 struct DocTreeNode_s;
@@ -52,7 +55,7 @@ typedef struct
 
 typedef struct DocTreeNode_s
 {
-	int_least16_t flags;
+	DocTreeNodeFlags flags;
 	Str* name;
 	Str* style_name;
 	Style* style;
