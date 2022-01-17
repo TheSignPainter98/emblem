@@ -158,4 +158,6 @@ completion/
 *.html
 *.bb
 *.tex
+*.bib
 *.md
+*.txt
