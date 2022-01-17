@@ -116,13 +116,13 @@ class LaTeXOutputDriver extends TextualMarkupOutputDriver
 		=> 'textsf' if @font_family.type == FONT_FAMILY_SANS_SERIF
 		=> 'textrm' if @font_family.type == FONT_FAMILY_SERIF
 		=> 'textsc' if @font_variant == FONT_VARIANT_SMALL_CAPS
-		=> 'Center' if @text_align == TEXT_ALIGN_CENTRE
-		=> 'justify' if @text_align == TEXT_ALIGN_JUSTIFY
-		=> 'FlushLeft' if @text_align == TEXT_ALIGN_LEFT
-		=> 'FlushRight' if @text_align == TEXT_ALIGN_RIGHT
-		=> if 'table' == type @colour
-			hex = colour_to_hex @colour
-			"definecolor{color@#{hex}}{HTML}{#{hex}}\\textcolor{color@#{hex}}"
+		-- => 'Center' if @text_align == TEXT_ALIGN_CENTRE
+		-- => 'justify' if @text_align == TEXT_ALIGN_JUSTIFY
+		-- => 'FlushLeft' if @text_align == TEXT_ALIGN_LEFT
+		-- => 'FlushRight' if @text_align == TEXT_ALIGN_RIGHT
+		-- => if 'table' == type @colour
+		-- 	hex = colour_to_hex @colour
+		-- 	"definecolor{color@#{hex}}{HTML}{#{hex}}\\textcolor{color@#{hex}}"
 	}
 	special_tag_enclose: (t, r, as) =>
 		if @environments[t]
