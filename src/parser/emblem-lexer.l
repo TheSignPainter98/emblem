@@ -30,8 +30,8 @@
 	} while (0)
 
 #define YY_EXTRA_TYPE LexerData*
-#define YY_USER_ACTION update_yylloc(yylloc, yytext, yyextra->tab_size);
-static void update_yylloc(EM_LTYPE* loc, char* text, int tab_size);
+#define YY_USER_ACTION update_yylloc(yyextra, yylloc, yytext, yyextra->tab_size);
+static void update_yylloc(YY_EXTRA_TYPE yextra, EM_LTYPE* loc, char* text, int tab_size);
 static void make_header_call_str(Sugar* hdr, char* ytext, size_t yleng);
 static void make_emph_str(Sugar* emph, char* ytext, size_t yleng);
 static void apply_line_directive(YY_EXTRA_TYPE yextra, EM_LTYPE* yloc);
@@ -61,6 +61,11 @@ static int indent_len(int tab_size, char* inp);
 	}\
 	yylval->len = yyleng;\
 	return T_close;
+
+#define RELEX {\
+		yyless(0);\
+		yyextra->undo_loc = true;\
+	}
 
 static int glue_tokens[] = {
 	[GS_GLUE] = T_GLUE,
@@ -173,7 +178,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 										goto lex_start;
 									}
 <INITIAL_WHITE>[^ \t]				{
-										yyless(0);
+										RELEX;
 										yyextra->indent_lvl_target = 0;
 										yyextra->opening_emph = true;
 										BEGIN(INITIAL_BODY);
@@ -188,7 +193,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 									}
 <INITIAL_BODY>{HEADING}/[ \t]		{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
 <INITIAL_BODY>([^:]|{LN})			{
-										yyless(0);
+										RELEX;
 										BEGIN(BODY);
 									}
 
@@ -197,8 +202,8 @@ VARIABLE_ASSIGN_2L	"<~~"
 <MAYBE_VARIABLE_ASSIGNMENT>{VARIABLE_ASSIGN_2S}/{WHITE_SPACE}	{ yylval->assignment = malloc(sizeof(Str)); make_strv(yylval->assignment, "set-var-expr"); return T_ASSIGNMENT; }
 <MAYBE_VARIABLE_ASSIGNMENT>{VARIABLE_ASSIGN_2L}/{WHITE_SPACE}	{ yylval->assignment = malloc(sizeof(Str)); make_strv(yylval->assignment, "find-set-var-expr"); return T_ASSIGNMENT; }
 <MAYBE_VARIABLE_ASSIGNMENT>{WHITE_SPACE}+ 						;
-<MAYBE_VARIABLE_ASSIGNMENT>{LN}									{ yyless(0); BEGIN(BODY); }
-<MAYBE_VARIABLE_ASSIGNMENT>.									{ yyless(0); BEGIN(BODY_WHITE); }
+<MAYBE_VARIABLE_ASSIGNMENT>{LN}									{ RELEX; BEGIN(BODY); }
+<MAYBE_VARIABLE_ASSIGNMENT>.									{ RELEX; BEGIN(BODY_WHITE); }
 
 <PRAGMA>{PRAGMA_NAME_LINE}		{ BEGIN(PRAGMA_LINE); }
 <PRAGMA>{PRAGMA_NAME_INCLUDE}	{ BEGIN(PRAGMA_INCLUDE); }
@@ -207,7 +212,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 
 <PRAGMA_LINE>{FILENAME}		{ extract_file_name(yyextra, yytext, yyleng); }
 <PRAGMA_LINE>{WHITE_SPACE}+ ;
-<PRAGMA_LINE>.				{ yyless(0); BEGIN(PRAGMA_LINE_NUM); }
+<PRAGMA_LINE>.				{ RELEX; BEGIN(PRAGMA_LINE_NUM); }
 <PRAGMA_LINE>{LN}			{ llerror("Failed to parse line directive, expected line and column numbers"); BEGIN(INITIAL_WHITE); }
 <PRAGMA_LINE_NUM>{INTEGER}		{ extract_integer(&yyextra->preproc.line_num, yytext); BEGIN(PRAGMA_LINE_COL); }
 <PRAGMA_LINE_NUM>{WHITE_SPACE}+ ;
@@ -242,12 +247,12 @@ VARIABLE_ASSIGN_2L	"<~~"
 
 <BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
 
-<BODY_WHITE>.|{LN}			{ yyextra->gap_state = GS_GAP; DISCARD; BEGIN(BODY_W_GLUE); }
+<BODY_WHITE>.|{LN}			{ yyextra->gap_state = GS_GAP; RELEX; BEGIN(BODY_W_GLUE); }
 <BODY_W_GLUE>{WHITE_SPACE}+	{ yyextra->opening_emph = true; }
 <BODY_W_GLUE>{GLUE}			{ yyextra->opening_emph = true; }
 <BODY_W_GLUE>{NBSP}			{ yyextra->opening_emph = true; }
 <BODY_W_GLUE>{SPILT_GLUE}	{ llwarn("Ignoring spilt glue"); }
-<BODY_W_GLUE>[^ \t]			{ yyless(0); BEGIN(BODY); if (yyextra->gap_state) return glue_tokens[yyextra->gap_state]; }
+<BODY_W_GLUE>[^ \t]			{ RELEX; BEGIN(BODY); if (yyextra->gap_state) return glue_tokens[yyextra->gap_state]; }
 
 {BLOCK_COMMENT_OPEN}		{ yyextra->comment_lvl = 1; BEGIN(COMMENT); }
 {BLOCK_COMMENT_CLOSE}		{ llerror("No comment to close"); return EM_error; }
@@ -263,7 +268,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 
 {SHEBANG}					;
 {LN}	 					{ BEGIN(INITIAL_WHITE); }
-. 		 					{ yyless(0); BEGIN(INITIAL_WHITE); }
+. 		 					{ RELEX; BEGIN(INITIAL_WHITE); }
 
 %%
 
@@ -311,14 +316,30 @@ static int indent_len(int tab_size, char* inp)
 	return ceil(ret / tab_size);
 }
 
-static void update_yylloc(EM_LTYPE* loc, char* text, int tab_size)
+static void update_yylloc(YY_EXTRA_TYPE yextra, EM_LTYPE* loc, char* text, int tab_size)
 {
-	loc->first_line = loc->last_line;
-	loc->first_column = loc->last_column;
-
-	for(unsigned int i = 0; text[i] != '\0'; i++)
+	if (yextra->undo_loc)
 	{
-		if(text[i] == '\r' || (text[i] == '\n' && (i == 0 || text[i - 1] != '\r')))
+		loc->first_line = yextra->prev_loc.first_line;
+		loc->first_column = yextra->prev_loc.first_column;
+		loc->last_line = yextra->prev_loc.last_line;
+		loc->last_column = yextra->prev_loc.last_column;
+		yextra->undo_loc = false;
+	}
+	else
+	{
+		yextra->prev_loc.first_line = loc->first_line;
+		yextra->prev_loc.first_column = loc->first_column;
+		yextra->prev_loc.last_line = loc->last_line;
+		yextra->prev_loc.last_column = loc->last_column;
+	}
+
+	loc->first_line = loc->last_line;
+	loc->first_column = loc->last_column + 1;
+
+	for (unsigned int i = 0; text[i]; i++)
+	{
+		if (text[i] == '\r' || (text[i] == '\n' && (i == 0 || text[i - 1] != '\r')))
 		{
 			loc->last_line++;
 			loc->last_column = 0;

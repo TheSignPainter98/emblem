@@ -65,10 +65,10 @@ void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args)
 		make_strv(tname_str, dialect);
 		make_strv(call_name, "include");
 
-		loc->first_line	  = 1;
-		loc->first_column = 1;
+		loc->first_line	  = 0;
+		loc->first_column = 0;
 		loc->last_line	  = 1;
-		loc->last_column  = 1;
+		loc->last_column  = 0;
 		loc->src_file	  = src_name;
 
 		make_doc_tree_node_word(fname_node, fname_str, loc);
