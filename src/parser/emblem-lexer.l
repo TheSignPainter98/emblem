@@ -249,8 +249,8 @@ VARIABLE_ASSIGN_2L	"<~~"
 
 <BODY_WHITE>.|{LN}			{ yyextra->gap_state = GS_GAP; RELEX; BEGIN(BODY_W_GLUE); }
 <BODY_W_GLUE>{WHITE_SPACE}+	{ yyextra->opening_emph = true; }
-<BODY_W_GLUE>{GLUE}			{ yyextra->opening_emph = true; }
-<BODY_W_GLUE>{NBSP}			{ yyextra->opening_emph = true; }
+<BODY_W_GLUE>{GLUE}			{ yyextra->opening_emph = true; yyextra->gap_state = GS_GLUE; }
+<BODY_W_GLUE>{NBSP}			{ yyextra->opening_emph = true; yyextra->gap_state = GS_NBSP; }
 <BODY_W_GLUE>{SPILT_GLUE}	{ llwarn("Ignoring spilt glue"); }
 <BODY_W_GLUE>[^ \t]			{ RELEX; BEGIN(BODY); if (yyextra->gap_state) return glue_tokens[yyextra->gap_state]; }
 
