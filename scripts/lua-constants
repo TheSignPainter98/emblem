@@ -148,7 +148,7 @@ elseif elem {...}, '-m'
 	print "-- @author scripts/lua-constants"
 	print "-- @date 2021-09-17"
 	print ""
-	print "{ #{concat [ ':' .. d for d in *domains ], ', '} }"
+	print "{ #{concat [ "#{d}: _G['#{d}']" for d in *domains ], ', '} }"
 else
 	import stderr from io
 	import exit from os
