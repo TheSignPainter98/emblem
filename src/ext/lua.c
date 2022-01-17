@@ -51,12 +51,8 @@ int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int
 		return rc;
 
 	// Add foster paragraphs if and where necessary
-	if (foster_paragraphs)
-	{
-		rc = introduce_foster_pars(node);
-		if (rc)
-			return rc;
-	}
+	if (foster_paragraphs && (rc = introduce_foster_pars(node)))
+		return rc;
 
 	// Resolve the resulting styling
 	return resolve_styling(node, sty);
