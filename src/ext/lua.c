@@ -106,7 +106,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 				make_list_iter(&li, node->content->call->args);
 				DocTreeNode* currArg;
 				while (iter_list((void**)&currArg, &li))
-					prepend_doc_tree_node_child(resultNode, resultNode->content->content, currArg);
+					append_doc_tree_node_child(resultNode, resultNode->content->content, currArg);
 				node->content->call->result = resultNode;
 
 				return evaluate_directives(s, node->content->call->result, curr_iter);
