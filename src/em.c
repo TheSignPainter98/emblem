@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 	OutputDriver driver;
 	rc = get_output_driver(&driver, &args, &ext);
 	if (rc)
-		goto clean_output_driver;
+		goto clean_ext;
 
 	pass_output_driver_data_to_styler(&styler, &driver);
 
@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 	parse_doc(&maybe_ast_root, &mtNamesList, &args);
 	rc = maybe_ast_root.type == NOTHING;
 	if (rc)
-		goto cleanup;
+		goto clean_output_driver;
 
 	DocTreeNode* root = maybe_ast_root.just;
 	Doc doc;
