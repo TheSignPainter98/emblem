@@ -36,6 +36,8 @@ typedef struct
 	Locked* mtNamesList;
 	Args* args;
 	PreProcessorData preproc;
+	bool undo_loc;
+	Location prev_loc;
 } LexerData;
 
 typedef struct
@@ -435,13 +437,21 @@ unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 		.indent_lvl_target = 0,
 		.tab_size = args->tab_size,
 		.opening_emph = true,
-		.gap_state = GS_NONE,
+		.gap_state = GS_GAP,
 		.nerrs = &nerrs,
 		.ifn = ifn,
 		.ifp = fp,
 		.mtNamesList = mtNamesList,
 		.args = args,
 		.preproc = { 0 },
+		.undo_loc = true,
+		.prev_loc = {
+			.first_line = 0,
+			.first_column = 0,
+			.last_line = 1,
+			.last_column = 0,
+			.src_file = ifn,
+		},
 	};
 	yyscan_t scanner;
 	em_lex_init(&scanner);
