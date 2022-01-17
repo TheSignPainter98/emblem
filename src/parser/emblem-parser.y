@@ -15,8 +15,7 @@ typedef struct
 } PreProcessorData;
 
 typedef enum {
-	GS_GAP = -1,
-	GS_NONE = 0,
+	GS_GAP = 0,
 	GS_GLUE,
 	GS_NBSP,
 } GapState;
@@ -123,7 +122,7 @@ typedef struct
 %token					T_COLON				"colon"
 %token					T_DOUBLE_COLON		"double-colon"
 %token 					T_GLUE				"glue"
-%token 					T_GLUE_NBSP			"nbsp-glue"
+%token 					T_NBSP				"nbsp"
 %token <assignment>		T_ASSIGNMENT		"assignment operator"
 %token <node>			T_INCLUDED_FILE		"file inclusion"
 %token <sugar>			T_UNDERSCORE_OPEN	"opening underscore(s)"
@@ -251,8 +250,8 @@ line_content_ne
 												}
 	;
 
-glue: T_GLUE 		{ $$ = GLUE_LEFT; }
-	| T_GLUE_NBSP 	{ $$ = NBSP_LEFT; }
+glue: T_GLUE { $$ = GLUE_LEFT; }
+	| T_NBSP { $$ = NBSP_LEFT; }
 	;
 
 line_element

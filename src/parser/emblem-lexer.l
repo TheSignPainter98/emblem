@@ -64,7 +64,7 @@ static int indent_len(int tab_size, char* inp);
 
 static int glue_tokens[] = {
 	[GS_GLUE] = T_GLUE,
-	[GS_NBSP] = T_GLUE_NBSP,
+	[GS_NBSP] = T_NBSP,
 };
 %}
 
@@ -97,19 +97,20 @@ EMPH_UNDERSCORE     "_""_"?
 EMPH_DELIM			[*`=_]
 FILENAME			\"("\\"[^\r\n]|[^\\"\t\r\n])+\"
 GLUE 				"~"
-GLUE_NBSP 			"~~"
 GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
 LABEL 				"@"[^ \t\r\n{}]+
 LINE_COMMENT_START	"//"
 LN					"\n"|"\r"|"\r\n"
+NBSP 				"~~"
 PRAGMA_NAME_LINE 	"line"
 PRAGMA_NAME_INCLUDE "include"
 INTEGER				[0-9]+
 REFERENCE			"#"[^ \t\r\n{}]+
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
+SPILT_GLUE 			({WHITE_SPACE}+({GLUE}|{NBSP}){WHITE_SPACE}*)|({WHITE_SPACE}*({GLUE}|{NBSP}){WHITE_SPACE}+)
 SYMBOL				[!"£$%^&*()_+=\[\]#;:'@<>,./?\\|¬`-]
 WORD 				"."|"!"|{WORD_DELIM_SPECIAL}|{WORD_START_CHAR}({WORD_EASY_END_CHAR}|{WORD_MID_CHAR}*{WORD_END})?
 WORD_DELIM_SPECIAL	{SYMBOL}{EMPH_DELIM}|{EMPH_DELIM}{SYMBOL}
@@ -237,15 +238,16 @@ VARIABLE_ASSIGN_2L	"<~~"
 <BODY>{REFERENCE}			{ BEGIN(BODY_WHITE); extract_reference_sugar(&yylval->simple_sugar, yytext); return T_REFERENCE; }
 <BODY>{LABEL}				{ BEGIN(BODY_WHITE); extract_label_sugar(&yylval->simple_sugar, yytext); return T_LABEL; }
 <BODY>{WORD}				{ BEGIN(BODY_WHITE); yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext); return T_WORD; }
-<BODY>{GLUE}|{GLUE_NBSP}	{ llwarn("Unexpected glue, ignoring"); }
+<BODY>{GLUE}|{NBSP}			{ BEGIN(BODY_WHITE); llwarn("Unexpected glue, ignoring"); }
 
 <BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
 
-<BODY_WHITE>.|{LN}			{ yyextra->gap_state = GS_NONE; yyless(0); BEGIN(BODY_W_GLUE); }
-<BODY_W_GLUE>{WHITE_SPACE}+	{ yyextra->opening_emph = true; if (yyextra->gap_state) llwarn("Trailing whitespace caused glue token to be ignored"); yyextra->gap_state = GS_GAP; }
-<BODY_W_GLUE>{GLUE}			{ yyextra->opening_emph = true; if (yyextra->gap_state != GS_GAP) yyextra->gap_state = GS_GLUE; else llwarn("Leading whitespace caused glue token to be ignored"); }
-<BODY_W_GLUE>{GLUE_NBSP}	{ yyextra->opening_emph = true; if (yyextra->gap_state != GS_GAP) yyextra->gap_state = GS_NBSP; else llwarn("Leading whitespace caused glue token to be ignored"); }
-<BODY_W_GLUE>[^ \t]			{ yyless(0); BEGIN(BODY); if (yyextra->gap_state > 0) return glue_tokens[yyextra->gap_state]; }
+<BODY_WHITE>.|{LN}			{ yyextra->gap_state = GS_GAP; DISCARD; BEGIN(BODY_W_GLUE); }
+<BODY_W_GLUE>{WHITE_SPACE}+	{ yyextra->opening_emph = true; }
+<BODY_W_GLUE>{GLUE}			{ yyextra->opening_emph = true; }
+<BODY_W_GLUE>{NBSP}			{ yyextra->opening_emph = true; }
+<BODY_W_GLUE>{SPILT_GLUE}	{ llwarn("Ignoring spilt glue"); }
+<BODY_W_GLUE>[^ \t]			{ yyless(0); BEGIN(BODY); if (yyextra->gap_state) return glue_tokens[yyextra->gap_state]; }
 
 {BLOCK_COMMENT_OPEN}		{ yyextra->comment_lvl = 1; BEGIN(COMMENT); }
 {BLOCK_COMMENT_CLOSE}		{ llerror("No comment to close"); return EM_error; }
