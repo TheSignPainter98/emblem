@@ -67,7 +67,7 @@ class LaTeXOutputDriver extends TextualMarkupOutputDriver
 		sort records, (a,b) -> a.name < b.name
 		formatted_bib = concat [ tostring r for r in *records ], '\n\n'
 
-		if use_stdout
+		if use_stdout and formatted_bib != ''
 			print formatted_bib
 		else
 			f = open bib_loc, 'w'
