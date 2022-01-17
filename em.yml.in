@@ -172,8 +172,8 @@ args:
   - dest: debug_scss_sources
     short: -d
     long: --debug-scss
-    help: Treat warnings as errors
-    doc: Include debugging information in SCSS output
+    help: Include debugging information in preprocessed CSS output
+    doc: Include debugging information in libsass output
     type: flag
     default: false
 env_vars:
