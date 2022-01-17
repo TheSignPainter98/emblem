@@ -156,12 +156,17 @@ format-check:
 
 scripts/compgen: scripts/compgen.moon
 
+define ensure_dir
+	mkdir -p $(@D)
+endef
+
 if ENABLE_BASH_COMPLETION
 bashcompletiondir = $(BASH_COMPLETION_DIR)
 dist_bashcompletion_DATA = completion/bash/em
 endif
 
 completion/bash/em: scripts/compgen
+	$(ensure_dir)
 	./scripts/compgen bash > $@
 
 if ENABLE_ZSH_COMPLETION
@@ -170,6 +175,7 @@ dist_zshcompletion_DATA = completion/zsh/_em
 endif
 
 completion/zsh/_em: scripts/compgen
+	$(ensure_dir)
 	./scripts/compgen zsh > $@
 
 if ENABLE_FISH_COMPLETION
@@ -178,6 +184,7 @@ dist_fishcompletion_DATA = completion/fish/em.fish
 endif
 
 completion/fish/em.fish: scripts/compgen
+	$(ensure_dir)
 	./scripts/compgen fish > $@
 
 dist_pkgdata_DATA = S_DIST_DATA
