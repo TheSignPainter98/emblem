@@ -34,6 +34,10 @@ int exec_lua_pass(Doc* doc)
 {
 	int rc
 		= exec_lua_pass_on_node(doc->ext->state, doc->styler, doc->root, doc->ext->iter_num, doc->ext->iter_num == 1);
+#ifdef DEBUG
+	if (lua_gettop(doc->ext->state) != 0)
+		log_err("NON-EMPTY LUA STACK AFTER PASS!");
+#endif
 	lua_settop(doc->ext->state, 0);
 	return rc;
 }
