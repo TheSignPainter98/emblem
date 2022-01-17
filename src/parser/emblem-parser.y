@@ -252,7 +252,7 @@ line_content_ne
 	;
 
 glue: T_GLUE 		{ $$ = GLUE_LEFT; }
-	| T_GLUE_NBSP 	{ $$ = GLUE_LEFT | GLUE_LEFT_SPACE; }
+	| T_GLUE_NBSP 	{ $$ = NBSP_LEFT; }
 	;
 
 line_element
