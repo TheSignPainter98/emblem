@@ -89,6 +89,8 @@ class LaTeXOutputDriver extends TextualMarkupOutputDriver
 		'h2*': 'subsection*'
 		'h3*': 'subsubsection*'
 		'h4*': 'subsubsubsection*'
+		'tex': 'TeX'
+		'latex': 'LaTeX'
 	raw_tags:
 		cite: true
 	const_tags:
