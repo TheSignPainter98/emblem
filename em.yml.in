@@ -192,10 +192,10 @@ dist:
       # - lua-htmlparser
       - lua-lpeg
       - lua-lyaml
-      - moonscript
       - ncurses
     make-depends:
       - gcc
+      - moonscript
     check-depends:
       - bash-bats
       - criterion
