@@ -35,11 +35,11 @@ typedef uint_least16_t DocTreeNodeFlags;
 #define NO_FURTHER_EVAL		   (1 << 8)
 #define STYLE_DIRECTIVE_ONLY   (1 << 9)
 #define GLUE_LEFT			   (1 << 10)
-#define GLUE_LEFT_SPACE		   (1 << 11)
+#define NBSP_LEFT			   (1 << 11)
 
 #define ACCEPTABLE_EXTENSION_FLAG_MASK                                                                                 \
 	(REQUIRES_RERUN | PARAGRAPH_CANDIDATE | DISQUALIFIED_PARAGRAPH | INCLUDED_FILE_ROOT | NO_FURTHER_EVAL              \
-		| STYLE_DIRECTIVE_ONLY | GLUE_LEFT | GLUE_LEFT_SPACE)
+		| STYLE_DIRECTIVE_ONLY | GLUE_LEFT | NBSP_LEFT)
 
 struct DocTreeNodeContent_s;
 struct DocTreeNode_s;
