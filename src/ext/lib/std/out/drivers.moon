@@ -18,7 +18,7 @@ if not io.module_unavailable
 
 import DISPLAY_BLOCK from css.display
 import TS_NONE from driver_capabilities
-import GLUE_LEFT, GLUE_LEFT_SPACE from node_flags
+import GLUE_LEFT, NBSP_LEFT from node_flags
 import WORD, CALL, CONTENT from node_types
 
 curr_output_driver = nil
@@ -81,10 +81,10 @@ class ContextFreeOutputDriver extends OutputDriver
 						m = n.content[1 + i // 2]
 						if i % 2 == 1
 							ret[i] = format m
-						else if (m.flags & GLUE_LEFT_SPACE) != 0
-							ret[i] = @nbsp
 						else if (m.flags & GLUE_LEFT) != 0
 							ret[i] = ''
+						else if (m.flags & NBSP_LEFT) != 0
+							ret[i] = @nbsp
 						else
 							ret[i] = ' '
 					ret
@@ -107,10 +107,10 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 			return '' unless n
 			delimiter = ''
 			if do_delimit and @have_output
-				if (n.flags & GLUE_LEFT_SPACE) != 0
+				if (n.flags & NBSP_LEFT) != 0
 					delimiter = @nbsp
-				if (n.flags & GLUE_LEFT) == 0
-					delimiter = ' '
+				else if (n.flags & GLUE_LEFT) == 0
+					delimiter = @next_delimiter
 			@next_delimiter = ' '
 
 			local post_delimiter

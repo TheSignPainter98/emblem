@@ -8,7 +8,7 @@ import len, lower from string
 import concat, insert from table
 
 import node_types from require 'std.constants'
-import GLUE_LEFT, GLUE_LEFT_SPACE from node_flags
+import GLUE_LEFT from node_flags
 import WORD, CALL, CONTENT from node_types
 
 collectgarbage 'stop' -- TODO: remove the need for this!
@@ -163,7 +163,7 @@ node_string = (n, pretty=false) ->
 				node_string_parts cs[1]
 				for i=2,cn
 					m = cs[i]
-					insert str_parts, ' ' unless (m.flags & GLUE_LEFT) != 0 and (m.flags & GLUE_LEFT_SPACE) == 0
+					insert str_parts, ' ' if (m.flags & GLUE_LEFT) == 0
 					node_string_parts m
 			when nil
 				insert str_parts, tostring n
