@@ -3,6 +3,7 @@
 load common.bash
 
 @test '.foreach executes correctly' {
+	skip
 	run $em << EOF
 .foreach{d}{0 1 2 3}:
 	.echo: !d
@@ -14,6 +15,7 @@ EOF
 }
 
 @test '.foreach executes correctly when nested' {
+	skip
 	run $em << EOF
 .foreach{d}{0 1}:
 	.foreach{e}{0 1}:
@@ -26,6 +28,7 @@ EOF
 }
 
 @test '.foreach returns correctly' {
+	skip
 	run $em << EOF
 .foreach{d}{0 1}:
 	!d
@@ -37,6 +40,7 @@ EOF
 }
 
 @test '.foreach returns correctly when nested' {
+	skip
 	run $em << EOF
 .foreach{d}{0 1}:
 	.foreach{e}{0 1}:
