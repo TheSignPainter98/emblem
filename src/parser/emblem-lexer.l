@@ -237,6 +237,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 <BODY>{REFERENCE}			{ BEGIN(BODY_WHITE); extract_reference_sugar(&yylval->simple_sugar, yytext); return T_REFERENCE; }
 <BODY>{LABEL}				{ BEGIN(BODY_WHITE); extract_label_sugar(&yylval->simple_sugar, yytext); return T_LABEL; }
 <BODY>{WORD}				{ BEGIN(BODY_WHITE); yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext); return T_WORD; }
+<BODY>{GLUE}|{GLUE_NBSP}	{ llwarn("Unexpected glue, ignoring"); }
 
 <BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
 
