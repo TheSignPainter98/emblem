@@ -21,12 +21,17 @@ sanitise_concat_input = (x) ->
 	return x.content if x.type == CONTENT
 	error "Unrecognised concatenation input: #{show x}"
 
+local Word
+sanitise_content_item = (x) ->
+	return Word x if 'table' != type x
+	x
+
 local Content
 concat_ast_nodes = (as, bs) ->
 	as2 = sanitise_concat_input as
 	bs2 = sanitise_concat_input bs
-	newlist = [ a for a in *as2 ]
-	insert newlist, b for b in *bs2
+	newlist = [ sanitise_content_item a for a in *as2 ]
+	insert newlist, sanitise_content_item b for b in *bs2
 	flags = nil
 	if ('table' == type as) and ('table' == type bs) and as.type == bs.type and bs.type == CONTENT
 		flags = as.flags
