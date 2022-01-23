@@ -18,6 +18,7 @@ typedef enum {
 	GS_GAP = 0,
 	GS_GLUE,
 	GS_NBSP,
+	GS_TOT_ENUMS
 } GapState;
 
 typedef struct
@@ -75,6 +76,24 @@ typedef struct
 		YYERROR;\
 	}
 #define DEFAULT_CONTENT_EXTENSION ".em"
+
+// map gap state -> direction -> flags
+typedef enum
+{
+	GFD_LEFT,
+	GFD_RIGHT,
+} Direction;
+
+static const DocTreeNodeFlags gap_flags[][GS_TOT_ENUMS] = {
+	[GFD_LEFT] = {
+		[GS_GLUE] = GLUE_LEFT,
+		[GS_NBSP] = NBSP_LEFT,
+	},
+	[GFD_RIGHT] = {
+		[GS_GLUE] = GLUE_RIGHT,
+		[GS_NBSP] = NBSP_RIGHT,
+	},
+};
 %}
 
 %define			parse.trace true
@@ -96,7 +115,7 @@ typedef struct
 	SimpleSugar simple_sugar;
 	Str* assignment;
 	size_t len;
-	DocTreeNodeFlags glue;
+	GapState glue;
 }
 
 %nterm <args>			short_args
@@ -241,7 +260,7 @@ line_content
 
 line_content_ne
 	: line_element line_content					{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
-	| line_element glue line_content_ne 		{ $$ = $3; ((DocTreeNode*)$3->content->content->fst->data)->flags |= $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
+	| line_element glue line_content_ne 		{ $$ = $3; $1->flags |= gap_flags[GFD_RIGHT][$2]; ((DocTreeNode*)$3->content->content->fst->data)->flags |= gap_flags[GFD_LEFT][$2]; prepend_doc_tree_node_child($$, $$->content->content, $1); }
 	| T_VARIABLE_REF T_ASSIGNMENT line_content	{ $$ = malloc(sizeof(DocTreeNode)); make_variable_assignment($$, $2, $1, $3, alloc_assign_loc(@$, data->ifn)); }
 	| T_DIRECTIVE line_remainder_args			{
 													$$ = malloc(sizeof(DocTreeNode));
@@ -252,8 +271,8 @@ line_content_ne
 												}
 	;
 
-glue: T_GLUE { $$ = GLUE_LEFT; }
-	| T_NBSP { $$ = NBSP_LEFT; }
+glue: T_GLUE { $$ = GS_GLUE; }
+	| T_NBSP { $$ = GS_NBSP; }
 	;
 
 line_element
