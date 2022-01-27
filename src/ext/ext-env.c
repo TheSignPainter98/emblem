@@ -11,16 +11,18 @@
 #include "ext-loader.h"
 #include "logs/ext-log.h"
 #include "logs/logs.h"
-#include "lua-constants.h"
 #include "lua-ast-io.h"
+#include "lua-constants.h"
 #include "lua-em-parser.h"
 #include "lua-lib-load.h"
 #include "lua.h"
+#include "setting-io.h"
 #include "style.h"
 #include <lauxlib.h>
 
 #define EM_EVAL_NODE_FUNC_NAME	  "eval"
 #define EM_REQUIRE_RUNS_FUNC_NAME "requires_reiter"
+#define EM_CONFIG_FILE_NAME		  "em_config_file"
 
 static luaL_Reg lua_std_libs_universal[] = {
 	{ "", luaopen_base },
@@ -110,6 +112,9 @@ static void set_globals(ExtensionEnv* e, ExtParams* params)
 	make_lua_pointer(e->mt_names_list, MT_NAMES_LIST, params->mt_names_list);
 	lua_pushlightuserdata(s, e->mt_names_list);
 	lua_setglobal(s, EM_MT_NAMES_LIST_VAR_NAME);
+
+	lua_pushstring(s, params->config_file->str);
+	lua_setglobal(s, EM_CONFIG_FILE_NAME);
 }
 
 #define LOAD_LIBRARY_SET(lvl, s, lib)                                                                                  \
@@ -138,6 +143,7 @@ static void load_em_std_functions(ExtensionState* s)
 	set_ext_logging_globals(s);
 	set_ext_location_globals(s);
 	set_ext_style_globals(s);
+	set_ext_setting_globals(s);
 }
 
 static void load_library_set(ExtensionState* s, luaL_Reg* lib)

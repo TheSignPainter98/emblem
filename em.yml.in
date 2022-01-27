@@ -176,6 +176,13 @@ args:
     doc: Include debugging information in libsass output
     type: flag
     default: false
+  - dest: config
+    short: -@
+    long: --load-config
+    help: Load document settings from a file
+    doc: Document config file location
+    type: char*
+    default: 'emdoc.yml'
 env_vars:
   - name: EM_STYLE_PATH
     desc: >
