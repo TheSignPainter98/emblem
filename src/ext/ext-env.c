@@ -54,6 +54,7 @@ static int ext_require_rerun(ExtensionState* s);
 
 int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 {
+	int rc;
 	ext->state			   = luaL_newstate();
 	ext->require_extra_run = true;
 	ext->iter_num		   = 0;
@@ -64,9 +65,10 @@ int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 
 	set_globals(ext, params);
 
+	load_arguments(ext, params->ext_args);
+
 	log_info("Loading standard library...");
-	int rc = load_libraries(ext->state, params);
-	if (rc)
+	if ((rc = load_libraries(ext->state, params)))
 		return rc;
 
 	return load_extensions(ext->state, params);

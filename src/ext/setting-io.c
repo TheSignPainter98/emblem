@@ -3,26 +3,41 @@
 #include "logs/logs.h"
 #include <lauxlib.h>
 #include <lua.h>
+#include <string.h>
 
 #define SETTING_GETTER_FUNC_NAME "get_conf"
 #define SETTING_SETTER_FUNC_NAME "set_conf"
 #define USED_SETTINGS_RIDX		 "emblem_used_settings"
-
-/* static int ext_set_setting(ExtensionState* s); */
-/* static int ext_get_setting(ExtensionState* s); */
+#define EMBLEM_SETTING_LIST_NAME "__em_arguments"
+#define INITIAL_MAX_PATH_PARTS	 10
 
 void set_ext_setting_globals(ExtensionState* s)
 {
 	lua_newtable(s);
 	lua_setfield(s, LUA_REGISTRYINDEX, USED_SETTINGS_RIDX);
-
-	/* lua_register(s, EM_SET_SETTING_FUNC_NAME, ext_set_setting); */
-	/* lua_register(s, EM_GET_SETTING_FUNC_NAME, ext_get_setting); */
 }
 
-int set_setting(ExtensionEnv* env, char* name, char* value)
+void load_arguments(ExtensionEnv* env, List* args)
 {
 	ExtensionState* s = env->state;
+	ListIter li;
+	make_list_iter(&li, args);
+	Str* arg;
+	lua_createtable(s, args->cnt, 0);
+	int idx = 1;
+	while (iter_list((void**)&arg, &li))
+	{
+		lua_pushlstring(s, arg->str, arg->len);
+		lua_seti(s, -2, idx++);
+	}
+	dest_list_iter(&li);
+	lua_setglobal(s, EMBLEM_SETTING_LIST_NAME);
+}
+
+int set_setting(ExtensionEnv* env, const char* name, const char* value)
+{
+	ExtensionState* s = env->state;
+
 	lua_getglobal(s, SETTING_SETTER_FUNC_NAME);
 	lua_pushstring(s, name);
 	lua_pushstring(s, value);
