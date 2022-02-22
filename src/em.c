@@ -15,6 +15,7 @@
 #include "drivers/drivers.h"
 #include "ext/ext-env.h"
 #include "ext/ext-params.h"
+#include "ext/setting-io.h"
 #include "logs/logs.h"
 #include "parser/parser.h"
 #include "style/css.h"
@@ -54,7 +55,15 @@ int main(int argc, char** argv)
 	make_ext_params(&ext_params, &args, &styler, &mtNamesList);
 	ExtensionEnv ext;
 	if ((rc = make_ext_env(&ext, &ext_params)))
-		goto clean_ext;
+		goto clean_args;
+
+	const char* input = args.input_file;
+	if (streq(input, "-"))
+	{
+		const char* conf_main = get_setting(&ext, "main");
+		if (conf_main)
+			input = conf_main;
+	}
 
 	// Get the output driver
 	OutputDriver driver;
@@ -66,9 +75,8 @@ int main(int argc, char** argv)
 
 	// Parse the document
 	Maybe maybe_ast_root;
-	parse_doc(&maybe_ast_root, &mtNamesList, &args);
-	rc = maybe_ast_root.type == NOTHING;
-	if (rc)
+	parse_doc(&maybe_ast_root, &mtNamesList, &args, input);
+	if ((rc = maybe_ast_root.type == NOTHING))
 		goto clean_output_driver;
 
 	DocTreeNode* root = maybe_ast_root.just;
@@ -89,6 +97,8 @@ cleanup:
 clean_output_driver:
 	dest_output_driver(&driver);
 clean_ext:
+	if (input != args.input_file)
+		release_setting(&ext);
 	dest_ext_env(&ext);
 	dest_ext_params(&ext_params);
 	dest_locked(&mtNamesList, NULL);
