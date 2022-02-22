@@ -24,6 +24,7 @@ const size_t node_tree_content_type_names_len
 void make_doc(Doc* doc, DocTreeNode* root, Styler* styler, ExtensionEnv* ext)
 {
 	doc->root	= root;
+	doc->tdoc	= NULL;
 	doc->styler = styler;
 	doc->ext	= ext;
 }
@@ -202,6 +203,7 @@ void make_word(Word* word, Str* raw, Location* src_loc)
 void make_call_io(CallIO* call)
 {
 	call->result = NULL;
+	call->attrs	 = NULL;
 	call->args	 = malloc(sizeof(List));
 	make_list(call->args);
 }
@@ -218,6 +220,35 @@ void append_call_io_arg(CallIO* call, DocTreeNode* arg)
 	append_list(call->args, arg);
 }
 
+void make_attrs(Attrs* attrs) { make_map(attrs, hash_str, cmp_strs, (Destructor)dest_free_str); }
+
+void dest_attrs(Attrs* attrs) { dest_map(attrs, (Destructor)dest_free_str); }
+
+void dest_free_attrs(Attrs* attrs) { dest_attrs(attrs); free(attrs); }
+
+int set_attr(Attrs* attrs, Str* k, Str* v)
+{
+	if (!attrs)
+		return 1;
+	int rc = 0;
+	Maybe old;
+	push_map(&old, attrs, k, v);
+	if (old.type == JUST)
+	{
+		dest_free_str((Str*)old.just);
+		rc = 1;
+	}
+	return rc;
+}
+
+void get_attr(Maybe* ret, Attrs* attrs, Str* k)
+{
+	if (attrs)
+		get_map(ret, attrs, k);
+	else
+		make_maybe_nothing(ret);
+}
+
 void dest_word(Word* word)
 {
 	dest_free_str(word->raw);
@@ -227,6 +258,8 @@ void dest_word(Word* word)
 void dest_call_io(CallIO* call, bool processing_result)
 {
 	NON_ISO(Destructor ed = ilambda(void, (void* v), { dest_free_doc_tree_node((DocTreeNode*)v, processing_result); }));
+	if (call->attrs)
+		dest_free_attrs(call->attrs);
 	if (call->result)
 		dest_free_doc_tree_node(call->result, true);
 	dest_list(call->args, ed);

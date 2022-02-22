@@ -21,6 +21,11 @@ typedef enum {
 	GS_TOT_ENUMS
 } GapState;
 
+typedef struct {
+	Str* k;
+	Str* v;
+} Attribute;
+
 typedef struct
 {
 	int comment_lvl;
@@ -114,13 +119,17 @@ static const DocTreeNodeFlags gap_flags[][GS_TOT_ENUMS] = {
 	Sugar sugar;
 	SimpleSugar simple_sugar;
 	Str* assignment;
+	Attrs* attrs;
 	size_t len;
 	GapState glue;
 }
 
 %nterm <args>			short_args
+%nterm <args>			short_passables
 %nterm <args>			line_remainder_args
+%nterm <args>			line_remainder_passables
 %nterm <args>			multi_line_args
+%nterm <args>			multi_line_passables
 %nterm <args>			trailing_args
 %nterm <doc>			doc
 %nterm <node>			doc_content
@@ -133,7 +142,12 @@ static const DocTreeNodeFlags gap_flags[][GS_TOT_ENUMS] = {
 %nterm <node>			lines
 %nterm <node>			par
 %nterm <node>			literal
+%nterm <attrs>			attributes
+%nterm <attrs>			maybe_attributes
 %nterm <glue>			glue
+%token 					T_ATTRIBUTES_ASSIGN	":"
+%token 					T_ATTRIBUTES_CLOSE 	"]"
+%token 					T_ATTRIBUTES_OPEN 	"["
 %token					T_DEDENT			"dedent"
 %token					T_GROUP_CLOSE		"}"
 %token					T_GROUP_OPEN		"{"
@@ -145,6 +159,7 @@ static const DocTreeNodeFlags gap_flags[][GS_TOT_ENUMS] = {
 %token 					T_GLUE				"glue"
 %token 					T_NBSP				"nbsp"
 %token <assignment>		T_ASSIGNMENT		"assignment operator"
+%token <str>			T_ATTRIBUTE 	 	"attribute"
 %token <node>			T_INCLUDED_FILE		"file inclusion"
 %token <sugar>			T_UNDERSCORE_OPEN	"opening underscore(s)"
 %token <simple_sugar>	T_CITATION			"citation"
@@ -174,9 +189,8 @@ static const DocTreeNodeFlags gap_flags[][GS_TOT_ENUMS] = {
 %{
 #include <errno.h>
 
-#include "pp/unused.h"
-
 static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err);
+static void yywarn(YYLTYPE* yyloc, ParserData* params, const char* err);
 static Location* alloc_assign_loc(EM_LTYPE yyloc, Str** ifn) __attribute__((malloc));
 static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str** ifn);
 static void make_syntactic_sugar_call(DocTreeNode* ret, Sugar sugar, DocTreeNode* arg, Location* loc);
@@ -228,18 +242,29 @@ line
 	: line_content T_LN
 	| T_INCLUDED_FILE
 	| T_HEADING line_content T_LN					{ $$ = malloc(sizeof(DocTreeNode)); make_syntactic_sugar_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
-	| T_DIRECTIVE multi_line_args					{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_DIRECTIVE multi_line_passables				{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| error											{ alloc_malloc_error_word(&$$, @$, data->ifn); }
 	;
+
+short_passables
+	: maybe_attributes short_args { $$ = $2; $$->attrs = $1; }
 
 short_args
 	: %empty													{ $$ = malloc(sizeof(CallIO)); make_call_io($$); }
 	| T_GROUP_OPEN line_content T_GROUP_CLOSE short_args 		{ $$ = $4; prepend_call_io_arg($$, $2); }
 	;
 
+line_remainder_passables
+	: maybe_attributes line_remainder_args { $$ = $2; $$->attrs = $1; }
+	;
+
 line_remainder_args
 	: T_GROUP_OPEN line_content T_GROUP_CLOSE line_remainder_args	{ $$ = $4; prepend_call_io_arg($$, $2); }
 	| T_COLON line_content_ne										{ $$ = malloc(sizeof(CallIO)); make_call_io($$); prepend_call_io_arg($$, $2); }
+	;
+
+multi_line_passables
+	: maybe_attributes multi_line_args { $$ = $2; $$->attrs = $1; }
 	;
 
 multi_line_args
@@ -262,13 +287,7 @@ line_content_ne
 	: line_element line_content					{ $$ = $2; prepend_doc_tree_node_child($$, $$->content->content, $1); }
 	| line_element glue line_content_ne 		{ $$ = $3; $1->flags |= gap_flags[GFD_RIGHT][$2]; ((DocTreeNode*)$3->content->content->fst->data)->flags |= gap_flags[GFD_LEFT][$2]; prepend_doc_tree_node_child($$, $$->content->content, $1); }
 	| T_VARIABLE_REF T_ASSIGNMENT line_content	{ $$ = malloc(sizeof(DocTreeNode)); make_variable_assignment($$, $2, $1, $3, alloc_assign_loc(@$, data->ifn)); }
-	| T_DIRECTIVE line_remainder_args			{
-													$$ = malloc(sizeof(DocTreeNode));
-													make_doc_tree_node_content($$, alloc_assign_loc(@$, data->ifn));
-													DocTreeNode* call_node = malloc(sizeof(DocTreeNode));
-													make_doc_tree_node_call(call_node, $1, $2, alloc_assign_loc(@$, data->ifn));
-													prepend_doc_tree_node_child($$, $$->content->content, call_node);
-												}
+	| T_DIRECTIVE line_remainder_passables 		{ make_doc_tree_node_call($$ = malloc(sizeof(DocTreeNode)), $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	;
 
 glue: T_GLUE { $$ = GS_GLUE; }
@@ -285,11 +304,25 @@ line_element
 
 literal
 	: T_WORD												{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_word($$, $1, alloc_assign_loc(@$, data->ifn)); }
-	| T_DIRECTIVE short_args								{ $$ = malloc(sizeof(DocTreeNode)); make_doc_tree_node_call($$, $1, $2, alloc_assign_loc(@$, data->ifn)); }
+	| T_DIRECTIVE short_passables							{ make_doc_tree_node_call($$ = malloc(sizeof(DocTreeNode)), $1, $2, alloc_assign_loc(@$, data->ifn)); }
 	| T_CITATION											{ $$ = malloc(sizeof(DocTreeNode)); make_simple_syntactic_sugar_call($$, $1, alloc_assign_loc(@$, data->ifn)); }
 	| T_REFERENCE											{ $$ = malloc(sizeof(DocTreeNode)); make_simple_syntactic_sugar_call($$, $1, alloc_assign_loc(@$, data->ifn)); }
 	| T_LABEL												{ $$ = malloc(sizeof(DocTreeNode)); make_simple_syntactic_sugar_call($$, $1, alloc_assign_loc(@$, data->ifn)); }
 	| T_VARIABLE_REF										{ $$ = malloc(sizeof(DocTreeNode)); make_variable_retrieval($$, $1, alloc_assign_loc(@$, data->ifn)); }
+	;
+
+maybe_attributes
+	: %empty 											{ $$ = NULL; }
+	| T_ATTRIBUTES_OPEN attributes T_ATTRIBUTES_CLOSE 	{ $$ = $2; }
+	;
+
+attributes
+	: %empty { make_attrs($$ = malloc(sizeof(Attrs))); }
+	| attributes T_ATTRIBUTE T_ATTRIBUTES_ASSIGN T_ATTRIBUTE
+		{
+			if (set_attr($1, $2, $4))
+				yywarn(&@$, data, "Redefined attribute");
+		}
 	;
 
 %%
@@ -305,6 +338,19 @@ static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err)
 		.src_file     = *params->ifn,
 	};
 	log_err_at(&loc, "%s", err);
+}
+
+static void yywarn(YYLTYPE* yyloc, ParserData* params, const char* err)
+{
+	Location loc = {
+		.first_line   = yyloc->first_line,
+		.first_column = yyloc->first_column,
+		.last_line    = yyloc->last_line,
+		.last_column  = yyloc->last_column,
+		.src_file     = *params->ifn,
+	};
+	if (log_warn_at(&loc, "%s", err))
+		++*params->nerrs;
 }
 
 static Location* alloc_assign_loc(EM_LTYPE yyloc, Str** ifn)

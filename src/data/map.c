@@ -14,7 +14,7 @@
  *
  * @return The initial size of a map table
  */
-#define MAP_INITIAL_SIZE 100
+#define MAP_INITIAL_SIZE 10
 /**
  * @brief The proportion of values stored to the total number of buckets which must be exceeded to cause a resize
  *
