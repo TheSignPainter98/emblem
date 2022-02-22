@@ -16,6 +16,7 @@ void make_ext_params(ExtParams* params, Args* args, Styler* styler, Locked* mtNa
 	params->ext_args	  = &args->extension_args;
 	params->args		  = args;
 	params->mt_names_list = mtNamesList;
+	make_strv(params->config_file = malloc(sizeof(Str)), args->config);
 }
 
-void dest_ext_params(ExtParams* params) { UNUSED(params); }
+void dest_ext_params(ExtParams* params) { dest_free_str(params->config_file); }

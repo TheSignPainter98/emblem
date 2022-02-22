@@ -19,7 +19,7 @@
 
 static void foster_body_node(DocTreeNode** root);
 
-void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args)
+void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args, const char* input)
 {
 	log_info("Parsing document '%s'", args->input_file);
 
@@ -30,7 +30,7 @@ void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args)
 		use_core_parser = streq(args->input_driver, "em");
 	else
 	{
-		char* ext = strrchr(args->input_file, '.');
+		char* ext = strrchr(input, '.');
 		if (ext++ && strcmp(ext, "em"))
 		{
 			use_core_parser = false;
@@ -40,11 +40,11 @@ void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args)
 
 	if (use_core_parser)
 	{
-		unsigned int nerrs = parse_file(mo, mtNamesList, args, args->input_file);
+		unsigned int nerrs = parse_file(mo, mtNamesList, args, input);
 
 		if (mo->type == NOTHING)
 		{
-			log_err("Parsing document '%s' failed with %d error%s.", args->input_file, nerrs, nerrs - 1 ? "s" : "");
+			log_err("Parsing document '%s' failed with %d error%s.", input, nerrs, nerrs - 1 ? "s" : "");
 		}
 	}
 	else
@@ -61,7 +61,7 @@ void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args)
 		Str* call_name			= malloc(sizeof(Str));
 		make_strv(src_name, "cli");
 		USE_LOCK(List * names_list, mtNamesList, append_list(names_list, src_name));
-		make_strv(fname_str, args->input_file);
+		make_strv(fname_str, input);
 		make_strv(tname_str, dialect);
 		make_strv(call_name, "include");
 

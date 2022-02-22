@@ -88,8 +88,8 @@ args:
   - dest: extension_args
     short: -a
     long: --ext-arg
-    metaDest: extension.param=value
-    help: Pass parameter _param_ with value _value_ to extension _ext_
+    metaDest: path=value
+    help: Set the value of _path_ in the settings to _value_
     type: List
   - dest: driver
     short: -T
@@ -176,6 +176,13 @@ args:
     doc: Include debugging information in libsass output
     type: flag
     default: false
+  - dest: config
+    short: -@
+    long: --load-config
+    help: Load document settings from a file
+    doc: Document config file location
+    type: char*
+    default: 'emdoc.yml'
 env_vars:
   - name: EM_STYLE_PATH
     desc: >

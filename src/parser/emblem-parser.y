@@ -4,7 +4,7 @@
 #include "data/locked.h"
 #include "data/str.h"
 #include "sugar.h"
-unsigned int parse_file(Maybe* eo, Locked* namesList, Args* args, char* fname);
+unsigned int parse_file(Maybe* eo, Locked* namesList, Args* args, const char* fname);
 
 typedef struct
 {
@@ -174,6 +174,8 @@ static const DocTreeNodeFlags gap_flags[][GS_TOT_ENUMS] = {
 %{
 #include <errno.h>
 
+#include "pp/unused.h"
+
 static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err);
 static Location* alloc_assign_loc(EM_LTYPE yyloc, Str** ifn) __attribute__((malloc));
 static void alloc_malloc_error_word(DocTreeNode** out, EM_LTYPE loc, Str** ifn);
@@ -182,9 +184,7 @@ static void make_variable_retrieval(DocTreeNode* node, Str* var, Location* loc);
 static void make_variable_assignment(DocTreeNode* node, Str* assignment, Str* var, DocTreeNode* val, Location* loc);
 static void make_simple_syntactic_sugar_call(DocTreeNode* node, SimpleSugar ssugar, Location* loc);
 static void dest_preprocessor_data(PreProcessorData* preproc);
-static FILE* open_file(char* fname, char* mode);
-
-#include "pp/unused.h"
+static FILE* open_file(const char* fname, char* mode);
 %}
 
 %%
@@ -374,7 +374,7 @@ static void dest_preprocessor_data(PreProcessorData* preproc)
 	UNUSED(preproc);
 }
 
-static FILE* open_file(char* fname, char* mode)
+static FILE* open_file(const char* fname, char* mode)
 {
 	// Ensure file exists
 	if (access(fname, R_OK))
@@ -388,12 +388,9 @@ static FILE* open_file(char* fname, char* mode)
 	return fopen(fname, mode);
 }
 
-unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
+unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, const char* fname)
 {
 	log_info("Parsing file '%s'", fname);
-	size_t fname_len = strlen(fname);
-	if (fname_len > 1 && fname[fname_len - 1] == '/')
-		fname[fname_len - 1] = '\0';
 	bool use_stdin = !strcmp(fname, "-");
 	Str* ifn = malloc(sizeof(Str));
 	make_strv(ifn, use_stdin ? "(stdin)" : fname);
@@ -417,7 +414,7 @@ unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, char* fname)
 				// Try /path/to/file/file.em (duplicate the name as the directory which contains it)
 				const char* sub_tree_fmt = "%s/%s.em";
 				const size_t sub_tree_fmt_len = strlen(sub_tree_fmt);
-				char* subdir = strrchr(fname, '/'); // This only works on UNIX systems
+				const char* subdir = strrchr(fname, '/'); // This only works on UNIX systems
 				if (!subdir)
 					subdir = fname;
 				else

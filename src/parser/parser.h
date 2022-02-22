@@ -12,4 +12,4 @@
 #include "data/str.h"
 #include "doc-struct/ast.h"
 
-void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args);
+void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args, const char* input);

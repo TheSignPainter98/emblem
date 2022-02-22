@@ -8,6 +8,7 @@
 
 #include "argp.h"
 #include "data/locked.h"
+#include "data/str.h"
 #include "style/css-params.h"
 #include <lua.h>
 #include <stdbool.h>
@@ -20,6 +21,7 @@ typedef struct
 	Styler* styler;
 	Args* args;
 	Locked* mt_names_list;
+	Str* config_file;
 } ExtParams;
 
 void make_ext_params(ExtParams* params, Args* args, Styler* styler, Locked* mtNamesList);

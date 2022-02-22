@@ -8,46 +8,28 @@
 
 #include <string.h>
 
-void make_str(Str* str)
+void make_strv(Str* str, const char* raw)
 {
-	*(char**)&str->str	   = NULL;
-	*(size_t*)&str->len	   = 0;
-	*(bool*)&str->free_mem = false;
-	str->lwc_rep		   = NULL;
+	*(const char**)&str->str = raw;
+	*(size_t*)&str->len		 = strlen(raw);
+	*(bool*)&str->free_mem	 = false;
+	str->lwc_rep			 = NULL;
 }
 
-void make_strv(Str* str, char* raw)
+void make_strr(Str* str, const char* raw)
 {
-	*(char**)&str->str	   = raw;
-	*(size_t*)&str->len	   = strlen(raw);
-	*(bool*)&str->free_mem = false;
-	str->lwc_rep		   = NULL;
+	*(const char**)&str->str = raw;
+	*(size_t*)&str->len		 = strlen(raw);
+	*(bool*)&str->free_mem	 = true;
+	str->lwc_rep			 = NULL;
 }
 
-void make_strr(Str* str, char* raw)
-{
-	*(char**)&str->str	   = raw;
-	*(size_t*)&str->len	   = strlen(raw);
-	*(bool*)&str->free_mem = true;
-	str->lwc_rep		   = NULL;
-}
-
-void make_strc(Str* str, char* raw)
+void make_strc(Str* str, const char* raw)
 {
 	*(char**)&str->str	   = strdup(raw);
 	*(size_t*)&str->len	   = strlen(raw);
 	*(bool*)&str->free_mem = true;
 	str->lwc_rep		   = NULL;
-}
-
-bool make_strl(Str* str, size_t len)
-{
-	*(char**)&str->str	   = calloc(len + 1, sizeof(char));
-	*(size_t*)&str->len	   = len;
-	*(bool*)&str->free_mem = true;
-	str->lwc_rep		   = NULL;
-
-	return !!str->str;
 }
 
 void dest_str(Str* str)
@@ -69,9 +51,11 @@ void str_to_arr(Array* arr, Str* str)
 
 void arr_to_str(Str* str, Array* arr)
 {
-	make_strl(str, arr->cnt);
+	char* s = calloc(arr->cnt + 1, sizeof(char));
 	for (size_t i = 0; i < arr->cnt; i++)
-		str->str[i] = *(char*)&arr->data[i];
+		s[i] = *(char*)&arr->data[i];
+	s[arr->cnt] = '\0';
+	make_strr(str, s);
 }
 
 void get_strc(Maybe* ret, Str* str, size_t idx)
@@ -82,34 +66,13 @@ void get_strc(Maybe* ret, Str* str, size_t idx)
 		make_maybe_just(ret, *(void**)&str->str[idx]);
 }
 
-bool set_strc(Str* str, size_t idx, char val)
-{
-	if (str->len <= idx)
-		return false;
-
-	str->str[idx] = val;
-
-	return true;
-}
-
-bool copy_into_str(Str* cont, Str* ins, size_t startIdx)
-{
-	if (cont->len <= ins->len + startIdx)
-		return false;
-
-	for (size_t i = 0; i < ins->len; i++)
-		cont->str[startIdx + i] = ins->str[i];
-
-	return true;
-}
-
 void dup_str(Str* o, Str* todup)
 {
 	*(bool*)&o->free_mem = true;
 	*(size_t*)&o->len	 = todup->len;
 	*(char**)&o->str	 = malloc((todup->len + 1) * sizeof(char));
 	o->lwc_rep			 = NULL;
-	memcpy(o->str, todup->str, todup->len + 1);
+	memcpy((void*)o->str, todup->str, todup->len + 1);
 }
 
 lwc_string* get_lwc_string(Str* s)
