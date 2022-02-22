@@ -88,8 +88,8 @@ args:
   - dest: extension_args
     short: -a
     long: --ext-arg
-    metaDest: extension.param=value
-    help: Pass parameter _param_ with value _value_ to extension _ext_
+    metaDest: path=value
+    help: Set the value of _path_ in the settings to _value_
     type: List
   - dest: driver
     short: -T
