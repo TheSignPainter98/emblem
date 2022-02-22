@@ -106,7 +106,7 @@ static const char valid_escape_chars[] = {
 
 static bool is_valid_escape_char(char c);
 
-static void compute_mark(SanitiserState* state, size_t word_len, char* word, size_t* pos);
+static void compute_mark(SanitiserState* state, size_t word_len, const char* word, size_t* pos);
 static bool matches_needle(Substitution* sub, size_t word_len, char const* word, size_t pos);
 
 static void init_word_sanitiser(void) __attribute__((constructor));
@@ -133,8 +133,8 @@ static void init_word_sanitiser(void)
 
 void sanitise_word(Word* word_lit, Location* loc) // TODO: move this to always be run when a word node is created!
 {
-	char* word = word_lit->raw->str;
-	size_t len = word_lit->raw->len;
+	const char* word = word_lit->raw->str;
+	size_t len		 = word_lit->raw->len;
 	Mark marks[len];
 	SanitiserState state = {
 		.marks				 = marks,
@@ -191,7 +191,7 @@ void sanitise_word(Word* word_lit, Location* loc) // TODO: move this to always b
 	make_strr(word_lit->sanitised, new_word);
 }
 
-static void compute_mark(SanitiserState* state, size_t word_len, char* word, size_t* pos)
+static void compute_mark(SanitiserState* state, size_t word_len, const char* word, size_t* pos)
 {
 	for (size_t i = 0; i < sizeof(subs) / sizeof(*subs); i++)
 	{

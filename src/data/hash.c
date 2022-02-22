@@ -47,7 +47,7 @@ HASH_SIG(str)
 	// The djb2 algorithm
 	Hash h = DJB2_INITIAL_HASH;
 	char c;
-	char* str = ((Str*)v)->str;
+	const char* str = ((Str*)v)->str;
 	while ((c = *str++))
 		h = ((h << DJB2_SHIFT) + h) ^ c;
 
