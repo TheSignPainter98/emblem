@@ -111,6 +111,24 @@ int pack_tree(ExtensionState* s, DocTreeNode* node)
 			else
 				lua_pushnil(s);
 			lua_setfield(s, -2, "result");
+
+			if (node->content->call->attrs)
+			{
+				Attrs* attrs = node->content->call->attrs;
+				lua_createtable(s, 0, attrs->curr_stored);
+				MapIter mi;
+				make_map_iter(&mi, attrs);
+				Pair* kv;
+				while (iter_map(&kv, &mi))
+				{
+					Str* k = kv->p0;
+					Str* v = kv->p1;
+					lua_pushlstring(s, v->str, v->len);
+					lua_setfield(s, -2, k->str);
+				}
+				dest_map_iter(&mi);
+				lua_setfield(s, -2, "attrs");
+			}
 			break;
 		case CONTENT:
 		{
@@ -324,7 +342,27 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			else
 				(*result)->content->call->result = NULL;
 			connect_to_parent(*result, parentNode);
-			lua_pop(s, 2);
+			lua_pop(s, 1);
+
+			// Unpack attributes
+			Attrs* attrs = io->attrs = malloc(sizeof(Attrs));
+			make_attrs(attrs);
+			lua_getfield(s, -1, "attrs");
+			if (!lua_isnil(s, -1))
+			{
+				lua_pushnil(s);
+				while (lua_next(s, -2))
+				{
+					Str* k = malloc(sizeof(Str));
+					Str* v = malloc(sizeof(Str));
+					make_strc(k, lua_tostring(s, -2));
+					make_strc(v, lua_tostring(s, -1));
+					set_attr(attrs, k, v);
+					lua_pop(s, 1);
+				}
+			}
+			lua_pop(s, 1);
+
 			rc = 0;
 			break;
 		default:

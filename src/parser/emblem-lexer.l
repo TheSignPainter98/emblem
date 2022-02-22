@@ -41,6 +41,7 @@ static void extract_file_name(YY_EXTRA_TYPE yextra, char* ytext, size_t yleng);
 static void extract_citation_sugar(SimpleSugar* ssugar, char* ytext, size_t yleng);
 static void extract_reference_sugar(SimpleSugar* ref_str, char* ytext);
 static void extract_label_sugar(SimpleSugar* ref_str, char* ytext);
+static void handle_attribute_part(Str* attr, char* ytext, size_t yleng);
 
 #if __GNUC__
 #	pragma GCC diagnostic push
@@ -88,12 +89,18 @@ static int glue_tokens[] = {
 %option extra-type="LexerData*"
 %pointer
 
+ATTRIBUTES_OPEN		"["
+ATTRIBUTES_CLOSE 	"]"
+ATTRIBUTE_PART 		("\""[^\r\n"]*"\""|{ATTRIBUTE_CHAR}+)
+ATTRIBUTE_ASSIGN	":"
+ATTRIBUTE_CHAR 		({WORD_ESCAPE_CHAR}|[^\]\r\n,:])
+ATTRIBUTE_DELIMITER	","
 BLOCK_COMMENT_CLOSE "*/"
 BLOCK_COMMENT_OPEN  "/*"
 CITATION			"["[^ \t\r\n\]]+"]"
 COLON				":"
 COMMENT_LINE		{WHITE_SPACE}*{LINE_COMMENT_START}.*{LN}
-DIRECTIVE			"."[^ \t\r\n:{}]+
+DIRECTIVE			"."[^ \t\r\n:{}[]+
 DOUBLE_COLON		"::"
 EMPH_ASTERISK       "*""*"?
 EMPH_BACKTICK		"`"
@@ -139,6 +146,8 @@ VARIABLE_ASSIGN_2L	"<~~"
 %x BODY_WHITE
 %x BODY_W_GLUE
 %x MAYBE_VARIABLE_ASSIGNMENT
+%x MAYBE_ATTRIBUTES
+%x ATTRIBUTES
 %x PRAGMA
 %x PRAGMA_LINE
 %x PRAGMA_LINE_NUM
@@ -233,7 +242,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 <BODY>{EMPH_EQUALS}			{ BEGIN(BODY_WHITE); EMPHASIS(T_EQUALS_OPEN, T_EQUALS_CLOSE); }
 <BODY>{COMMENT_LINE}		{ BEGIN(INITIAL_WHITE); return T_LN; }
 <BODY>{LN}					{ BEGIN(INITIAL_WHITE); return T_LN; }
-<BODY>{DIRECTIVE}			{ BEGIN(BODY_WHITE); yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
+<BODY>{DIRECTIVE}			{ BEGIN(MAYBE_ATTRIBUTES); yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); return T_DIRECTIVE; }
 <BODY>{VARIABLE_REFERENCE}	{ BEGIN(BODY_WHITE); yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); BEGIN(MAYBE_VARIABLE_ASSIGNMENT); return T_VARIABLE_REF; }
 <BODY>{DOUBLE_COLON}		{ BEGIN(BODY_WHITE); return T_DOUBLE_COLON; }
 <BODY>{COLON}				{ BEGIN(BODY_WHITE); return T_COLON; }
@@ -245,7 +254,17 @@ VARIABLE_ASSIGN_2L	"<~~"
 <BODY>{WORD}				{ BEGIN(BODY_WHITE); yyextra->opening_emph = false; yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext); return T_WORD; }
 <BODY>{GLUE}|{NBSP}			{ BEGIN(BODY_WHITE); llwarn("Unexpected glue, ignoring"); }
 
-<BODY>.						{ llerror("Unrecognised character '%c' (%#x)", yytext[0], yytext[0]); }
+<BODY>.						{ llerror("Unexpected character '%c' (%#x)", yytext[0], yytext[0]); }
+
+<MAYBE_ATTRIBUTES>{ATTRIBUTES_OPEN} { BEGIN(ATTRIBUTES); return T_ATTRIBUTES_OPEN; }
+<MAYBE_ATTRIBUTES>(.|{LN})  		{ RELEX; BEGIN(BODY_WHITE); }
+
+<ATTRIBUTES>{ATTRIBUTE_PART}		{ handle_attribute_part(yylval->str = malloc(sizeof(Str)), yytext, yyleng); return T_ATTRIBUTE; }
+<ATTRIBUTES>{ATTRIBUTES_CLOSE}		{ BEGIN(BODY); return T_ATTRIBUTES_CLOSE; }
+<ATTRIBUTES>{ATTRIBUTE_ASSIGN}		{ return T_ATTRIBUTES_ASSIGN; }
+<ATTRIBUTES>{ATTRIBUTE_DELIMITER} 	;
+<ATTRIBUTES>({WHITE_SPACE}|{LN})	;
+<ATTRIBUTES>.						{ llwarn("Unexpected character while parsing attributes '%c' (%#x)", *yytext, *yytext); }
 
 <BODY_WHITE>.|{LN}			{ yyextra->gap_state = GS_GAP; RELEX; BEGIN(BODY_W_GLUE); }
 <BODY_W_GLUE>{WHITE_SPACE}+	{ yyextra->opening_emph = true; }
@@ -452,6 +471,26 @@ static void extract_label_sugar(SimpleSugar* sugar, char* ytext)
 static void extract_reference_sugar(SimpleSugar* sugar, char* ytext)
 {
 	make_simple_sugarvc(sugar, "ref", 1 + ytext);
+}
+
+static void handle_attribute_part(Str* attr, char* ytext, size_t yleng)
+{
+	// Strip whitespace
+	char* end = ytext + yleng - 1;
+	while (*end == ' ' || *end == '\t')
+		end--;
+	*(end + 1) = '\0';
+	while (*ytext == ' ' || *ytext == '\t')
+		ytext++;
+
+	// Strip enclosing quotes
+	if (*ytext == '"')
+	{
+		ytext++;
+		*end = '\0';
+	}
+
+	make_strc(attr, ytext);
 }
 
 #if __GNUC__
