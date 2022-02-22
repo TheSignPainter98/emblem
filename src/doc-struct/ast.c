@@ -258,6 +258,8 @@ void dest_word(Word* word)
 void dest_call_io(CallIO* call, bool processing_result)
 {
 	NON_ISO(Destructor ed = ilambda(void, (void* v), { dest_free_doc_tree_node((DocTreeNode*)v, processing_result); }));
+	if (call->attrs)
+		dest_free_attrs(call->attrs);
 	if (call->result)
 		dest_free_doc_tree_node(call->result, true);
 	dest_list(call->args, ed);
