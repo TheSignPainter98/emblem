@@ -21,7 +21,7 @@ typedef struct
 	/**
 	 * @brief Pointer to the null-terminated memory block
 	 */
-	char* const str;
+	const char* const str;
 	/**
 	 * @brief Length of the stored string (does not include the null-terminator)
 	 */
@@ -37,13 +37,6 @@ typedef struct
 } Str;
 
 /**
- * @brief Make an empty string
- *
- * @param str Pointer to the String object to initialise
- */
-void make_str(Str* str);
-
-/**
  * @brief Make a string by reference to a raw value.
  *
  * Does not free stored memory at destruction, assumes this is handled externally for `raw`
@@ -51,7 +44,7 @@ void make_str(Str* str);
  * @param str Pointer to the string to make
  * @param raw Pointer to the raw characters
  */
-void make_strv(Str* str, char* raw);
+void make_strv(Str* str, const char* raw);
 
 /**
  * @brief Make a string by reference to a raw value, freeing the raw value when destroyed.
@@ -59,7 +52,7 @@ void make_strv(Str* str, char* raw);
  * @param str Pointer to the string to make
  * @param raw Pointer to the raw characters
  */
-void make_strr(Str* str, char* raw);
+void make_strr(Str* str, const char* raw);
 
 /**
  * @brief Make a string by copying another
@@ -69,19 +62,7 @@ void make_strr(Str* str, char* raw);
  * @param str Pointer to the string to make
  * @param raw Pointer to the raw characters to copy
  */
-void make_strc(Str* str, char* raw);
-
-/**
- * @brief Make a string of specified length.
- *
- * All positions initially have value `\0`
- *
- * @param str Pointer to the string to initialise
- * @param len Length of the string to create
- *
- * @return True iff memory was successfully allocated
- */
-bool make_strl(Str* str, size_t len);
+void make_strc(Str* str, const char* raw);
 
 /**
  * @brief Destroy a string and free its memory if required
