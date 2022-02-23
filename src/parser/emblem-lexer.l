@@ -144,6 +144,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 %x INITIAL_BODY
 %x BODY
 %x BODY_WHITE
+%x IGNORE_WHITE
 %x BODY_W_GLUE
 %x MAYBE_VARIABLE_ASSIGNMENT
 %x MAYBE_ATTRIBUTES
@@ -200,7 +201,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 										BEGIN(BODY);
 										return T_DOUBLE_COLON;
 									}
-<INITIAL_BODY>{HEADING}/[ \t]		{ make_header_call_str(&yylval->sugar, yytext, yyleng); return T_HEADING; }
+<INITIAL_BODY>{HEADING}/[ \t]		{ make_header_call_str(&yylval->sugar, yytext, yyleng); BEGIN(BODY_WHITE); return T_HEADING; }
 <INITIAL_BODY>([^:]|{LN})			{
 										RELEX;
 										BEGIN(BODY);
@@ -246,7 +247,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 <BODY>{VARIABLE_REFERENCE}	{ BEGIN(BODY_WHITE); yylval->str = malloc(sizeof(Str)); make_strc(yylval->str, yytext + 1); BEGIN(MAYBE_VARIABLE_ASSIGNMENT); return T_VARIABLE_REF; }
 <BODY>{DOUBLE_COLON}		{ BEGIN(BODY_WHITE); return T_DOUBLE_COLON; }
 <BODY>{COLON}				{ BEGIN(BODY_WHITE); return T_COLON; }
-<BODY>{GROUP_OPEN}			{ BEGIN(BODY_WHITE); return T_GROUP_OPEN; }
+<BODY>{GROUP_OPEN}			{ BEGIN(IGNORE_WHITE); return T_GROUP_OPEN; }
 <BODY>{GROUP_CLOSE}			{ BEGIN(BODY_WHITE); yyextra->opening_emph = false; return T_GROUP_CLOSE; }
 <BODY>{CITATION}			{ BEGIN(BODY_WHITE); extract_citation_sugar(&yylval->simple_sugar, yytext, yyleng); return T_CITATION; }
 <BODY>{REFERENCE}			{ BEGIN(BODY_WHITE); extract_reference_sugar(&yylval->simple_sugar, yytext); return T_REFERENCE; }
@@ -257,7 +258,7 @@ VARIABLE_ASSIGN_2L	"<~~"
 <BODY>.						{ llerror("Unexpected character '%c' (%#x)", yytext[0], yytext[0]); }
 
 <MAYBE_ATTRIBUTES>{ATTRIBUTES_OPEN} { BEGIN(ATTRIBUTES); return T_ATTRIBUTES_OPEN; }
-<MAYBE_ATTRIBUTES>(.|{LN})  		{ RELEX; BEGIN(BODY_WHITE); }
+<MAYBE_ATTRIBUTES>(.|{LN})  		{ RELEX; BEGIN(IGNORE_WHITE); }
 
 <ATTRIBUTES>{ATTRIBUTE_PART}		{ handle_attribute_part(yylval->str = malloc(sizeof(Str)), yytext, yyleng); return T_ATTRIBUTE; }
 <ATTRIBUTES>{ATTRIBUTES_CLOSE}		{ BEGIN(BODY); return T_ATTRIBUTES_CLOSE; }
@@ -266,12 +267,15 @@ VARIABLE_ASSIGN_2L	"<~~"
 <ATTRIBUTES>({WHITE_SPACE}|{LN})	;
 <ATTRIBUTES>.						{ llwarn("Unexpected character while parsing attributes '%c' (%#x)", *yytext, *yytext); }
 
-<BODY_WHITE>.|{LN}			{ yyextra->gap_state = GS_GAP; RELEX; BEGIN(BODY_W_GLUE); }
-<BODY_W_GLUE>{WHITE_SPACE}+	{ yyextra->opening_emph = true; }
-<BODY_W_GLUE>{GLUE}			{ yyextra->opening_emph = true; yyextra->gap_state = GS_GLUE; }
-<BODY_W_GLUE>{NBSP}			{ yyextra->opening_emph = true; yyextra->gap_state = GS_NBSP; }
-<BODY_W_GLUE>{SPILT_GLUE}	{ llwarn("Ignoring spilt glue"); }
-<BODY_W_GLUE>[^ \t]			{ RELEX; BEGIN(BODY); if (yyextra->gap_state) return glue_tokens[yyextra->gap_state]; }
+<BODY_WHITE>{LN}|{GROUP_CLOSE}	{ yyextra->gap_state = GS_GAP; RELEX; BEGIN(BODY_W_GLUE); }
+<BODY_WHITE>.					{ yyextra->gap_state = GS_GLUE; RELEX; BEGIN(BODY_W_GLUE); }
+<IGNORE_WHITE>{WHITE_SPACE}+	;
+<IGNORE_WHITE>.|{LN}			{ RELEX; BEGIN(BODY); }
+<BODY_W_GLUE>{WHITE_SPACE}+		{ yyextra->opening_emph = true; yyextra->gap_state = GS_GAP; }
+<BODY_W_GLUE>{GLUE}				{ yyextra->opening_emph = true; }
+<BODY_W_GLUE>{NBSP}				{ yyextra->opening_emph = true; yyextra->gap_state = GS_NBSP; }
+<BODY_W_GLUE>{SPILT_GLUE}		{ llwarn("Ignoring spilt glue"); }
+<BODY_W_GLUE>[^ \t]				{ RELEX; BEGIN(BODY); if (yyextra->gap_state) return glue_tokens[yyextra->gap_state]; }
 
 {BLOCK_COMMENT_OPEN}		{ yyextra->comment_lvl = 1; BEGIN(COMMENT); }
 {BLOCK_COMMENT_CLOSE}		{ llerror("No comment to close"); return EM_error; }
