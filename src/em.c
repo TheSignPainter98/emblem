@@ -67,8 +67,7 @@ int main(int argc, char** argv)
 
 	// Get the output driver
 	OutputDriver driver;
-	rc = get_output_driver(&driver, &args, &ext);
-	if (rc)
+	if ((rc = get_output_driver(&driver, &args, &ext)))
 		goto clean_ext;
 
 	pass_output_driver_data_to_styler(&styler, &driver);
@@ -87,8 +86,7 @@ int main(int argc, char** argv)
 		goto cleanup;
 
 	log_info("Executing output driver");
-	rc = run_output_driver(&driver, &doc, &ext);
-	if (rc)
+	if ((rc = run_output_driver(&driver, &doc, &ext)))
 		goto cleanup;
 
 cleanup:

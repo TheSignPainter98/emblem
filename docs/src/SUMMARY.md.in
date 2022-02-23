@@ -14,6 +14,8 @@
 	- [Writing output drivers]() <!-- (./writing-output-drivers.md) -->
 	- [Variables, Assignment and scope]() <!-- (./assignment-and-scope.md) -->
 	- [Expressions and Conditions](./expressions.md)
+- [Complete Examples](./generated/examples.md)
+_EXAMPLE_LINKS_
 - [Document directives](./directives.md)
 	- [Document structure](./directives/expl/document-structure.md)
 		- [`.h1–6` and `.h1–6*`](./directives/h1-6.md)
