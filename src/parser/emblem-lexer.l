@@ -112,14 +112,14 @@ GLUE 				"~"
 GROUP_CLOSE			"}"
 GROUP_OPEN			"{"
 HEADING				"#"{1,6}\*?
-LABEL 				"@"[^ \t\r\n{}]+
+LABEL 				"@"[^ \t\r\n{}()[\]~,.]+
 LINE_COMMENT_START	"//"
 LN					"\n"|"\r"|"\r\n"
 NBSP 				"~~"
 PRAGMA_NAME_LINE 	"line"
 PRAGMA_NAME_INCLUDE "include"
 INTEGER				[0-9]+
-REFERENCE			"#"[^ \t\r\n{}]+
+REFERENCE			"#"[^ \t\r\n{}()[\]~,.]+
 SHEBANG				"#!".*{LN}
 WHITE_SPACE			[ \t]
 SPILT_GLUE 			({WHITE_SPACE}+({GLUE}|{NBSP}){WHITE_SPACE}*)|({WHITE_SPACE}*({GLUE}|{NBSP}){WHITE_SPACE}+)
