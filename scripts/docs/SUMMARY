@@ -33,9 +33,10 @@ function doc-links()
 				*/lib/*) mod_type=moon ;;
 				*.c) mod_type=c ;;
 				*.h) mod_type=h ;;
+				examples/*) mod_type=NONE ;;
 			esac
 			mod_link="modules/$mod_type/$mod_name.md"
-			echo -e "$mod_indents- [\`$mod_name/\`]($mod_link)"
+			[[ "$mod_type" != NONE ]] && echo -e "$mod_indents- [\`$mod_name/\`]($mod_link)"
 		fi
 		indents=$(rep '\t' $reps)
 		echo -e "$indents- [\`$fname\`]($link)"
