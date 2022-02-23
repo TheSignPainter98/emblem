@@ -51,11 +51,14 @@ function rep()
 	echo
 }
 
+EXAMPLES=($(find examples/ -name '*.em' -or -name '*.yml' | sed 's%examples/%%g' | sort))
+
 C_INTERNAL_API=($(find src/ -name '*.c' | sed 's/^src\///' | sort))
 C_EXTERNAL_API=($(find src/ -name '*.h' | sed 's/^src\///' | sort))
 # DIRECTIVE_API=()
 MOONSCRIPT_API=($(find src/ext/lib/ -name '*.moon' ! -name '*__mod.moon' | sort))
 
+EXAMPLE_LINKS=$(doc-links EXAMPLES 1)
 C_API_INTERNAL_DOC_LINKS=$(doc-links C_INTERNAL_API 3)
 C_API_EXTERNAL_DOC_LINKS=$(doc-links C_EXTERNAL_API 3)
 # DIRECTIVE_API_DOC_LINKS=$(doc-links DIRECTIVE_API 1)
@@ -64,6 +67,7 @@ MOONSCRIPT_EXTENSION_API_DOC_LINKS=$(doc-links MOONSCRIPT_API 1)
 # m4 -PE - docs/src/SUMMARY.md.in << EOF
 m4 -PE - docs/src/SUMMARY.md.in > docs/src/SUMMARY.md << EOF
 m4_changequote({,})m4_dnl
+m4_define(_EXAMPLE_LINKS_, {$EXAMPLE_LINKS})m4_dnl
 m4_define(_C_API_INTERNAL_DOC_LINKS_, {$C_API_INTERNAL_DOC_LINKS})m4_dnl
 m4_define(_C_API_EXTERNAL_DOC_LINKS_, {$C_API_EXTERNAL_DOC_LINKS})m4_dnl
 m4_dnl m4_define(_DIRECTIVE_API_DOC_LINKS_, {$DIRECTIVE_API_DOC_LINKS})m4_dnl

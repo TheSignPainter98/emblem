@@ -1,0 +1,57 @@
+#!/usr/bin/moon
+
+import open, lines, stderr from io
+import mkdir from require 'lfs'
+import exit from os
+import concat from table
+
+arg_parser = with (require 'argparse')!
+	\name 'example-gen'
+	\description 'Generates example files'
+	with \argument 'input_files'
+		\description 'Files to turn into doc examples'
+		\args '+'
+args = arg_parser\parse!
+
+title_case = (str) ->
+	concat [s\sub(1, 1)\upper! .. s\sub 2 for s in str\gmatch '[^-]*'], ' '
+
+format_name = (path) ->
+	name = path\gsub '^examples/', ''
+	name = name\gsub '%.em$', ''
+	title_case name
+
+make_dirs = (dname) ->
+	curr_dir = ''
+	for ds in dname\gmatch '([^/\\]+)[/\\]'
+		curr_dir ..= "#{ds}/"
+		d = open curr_dir, 'r'
+		unless d
+			mkdir curr_dir
+		else
+			d\close!
+
+output_file_name = (path) -> "docs/src/generated/#{path\gsub 'examples/', ''}.md"
+link_output_file_name = (path) -> "#{path\gsub 'examples/', ''}.md"
+
+generate_doc = (path) ->
+	opath = output_file_name path
+	print "#{path} -> #{opath}"
+	make_dirs opath\match '^.*[/\\]'
+	with open opath, 'w+'
+		\write "# #{format_name path}\n\n"
+		\write '```emblem\n'
+		for line in lines "examples/#{path}"
+			\write line
+			\write '\n'
+		\write '```\n'
+
+generate_doc input_file for input_file in *args.input_files
+
+output_table_of_contents = ->
+	with open 'docs/src/generated/examples.md', 'w+'
+		\write '# Complete Examples\n\n'
+		\write 'The following are complete examples of Emblem documents and related files.\n\n'
+		\write "- [#{file}](#{link_output_file_name file})\n" for file in *args.input_files
+
+output_table_of_contents!

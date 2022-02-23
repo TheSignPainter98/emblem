@@ -6,6 +6,7 @@ set -e
 
 core_srcs=($(find src/ -name '*.c' -or -name '*.h'))
 lib_srcs=($(find src/ext/lib -name '*.moon' | grep -v '__mod'))
+example_srcs=($(find examples/ -name '*.em' -or -name '*.yml' | sed 's%examples/%%g' | sort))
 
 [[ ! -d docs/src/generated/ ]] && mkdir docs/src/generated/
 
@@ -16,6 +17,7 @@ lib_srcs=($(find src/ext/lib -name '*.moon' | grep -v '__mod'))
 ./scripts/docs/SUMMARY
 moon ./scripts/docs/cli-api-gen > docs/src/generated/command-line-args.md
 moon ./scripts/docs/code-to-md-doc ${core_srcs[@]} ${lib_srcs[@]}
+moon ./scripts/docs/example-gen ${example_srcs[@]} > docs/src/generated/examples.md
 
 # Generate book from source
 mdbook build docs/ # && mdbook test docs/
