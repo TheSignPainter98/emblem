@@ -6,9 +6,13 @@
  */
 #include "sanitise-word.h"
 
+#include "data/list.h"
+#include "data/str.h"
+#include "emblem-parser.h"
 #include "logs/logs.h"
 #include <limits.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -70,6 +74,10 @@ static Substitution subs[] = {
 	{ 0, "...", SINGLE_SUBSTITUTION, .single = { 0, "…" } },
 	{ 0, "<=", SINGLE_SUBSTITUTION, .single = { 0, "≤" } },
 	{ 0, ">=", SINGLE_SUBSTITUTION, .single = { 0, "≥" } },
+	/* { 0, "/\\", SINGLE_SUBSTITUTION, .single = { 0, "↑" } }, */
+	{ 0, "->", SINGLE_SUBSTITUTION, .single = { 0, "→" } },
+	/* { 0, "\\/", SINGLE_SUBSTITUTION, .single = { 0, "↓" } }, */
+	{ 0, "<-", SINGLE_SUBSTITUTION, .single = { 0, "←" } },
 	{ 0, "'", PAIR_SUBSTITUTION, .pair = { 0, "‘", 0, "’" } },
 	{ 0, "\"", PAIR_SUBSTITUTION, .pair = { 0, "“", 0, "”" } },
 };
@@ -97,7 +105,8 @@ static const char valid_escape_chars[] = {
 };
 
 static bool is_valid_escape_char(char c);
-static void compute_mark(SanitiserState* state, size_t word_len, char* word, size_t* pos);
+
+static void compute_mark(SanitiserState* state, size_t word_len, const char* word, size_t* pos);
 static bool matches_needle(Substitution* sub, size_t word_len, char const* word, size_t pos);
 
 static void init_word_sanitiser(void) __attribute__((constructor));
@@ -122,8 +131,10 @@ static void init_word_sanitiser(void)
 	}
 }
 
-char* sanitise_word(EM_LTYPE* yylloc, Str* ifn, char* word, size_t len)
+void sanitise_word(Word* word_lit, Location* loc) // TODO: move this to always be run when a word node is created!
 {
+	const char* word = word_lit->raw->str;
+	size_t len		 = word_lit->raw->len;
 	Mark marks[len];
 	SanitiserState state = {
 		.marks				 = marks,
@@ -152,11 +163,11 @@ char* sanitise_word(EM_LTYPE* yylloc, Str* ifn, char* word, size_t len)
 				if (!is_valid_escape_char(word[i]))
 				{
 					Location eloc = {
-						.first_line	  = yylloc->first_line,
-						.first_column = yylloc->first_column + i,
-						.last_line	  = yylloc->last_line,
-						.last_column  = yylloc->first_column + i + 1,
-						.src_file	  = ifn,
+						.first_line	  = loc->first_line,
+						.first_column = loc->first_column + i,
+						.last_line	  = loc->last_line,
+						.last_column  = loc->first_column + i + 1,
+						.src_file	  = loc->src_file,
 					};
 
 					if (log_warn_at(&eloc, "Unrecognised character escape '\\%c' (%#02x)", word[i] ? word[i] : '0',
@@ -176,10 +187,11 @@ char* sanitise_word(EM_LTYPE* yylloc, Str* ifn, char* word, size_t len)
 		}
 	*new_wordp = '\0';
 
-	return new_word;
+	word_lit->sanitised = malloc(sizeof(Str));
+	make_strr(word_lit->sanitised, new_word);
 }
 
-static void compute_mark(SanitiserState* state, size_t word_len, char* word, size_t* pos)
+static void compute_mark(SanitiserState* state, size_t word_len, const char* word, size_t* pos)
 {
 	for (size_t i = 0; i < sizeof(subs) / sizeof(*subs); i++)
 	{

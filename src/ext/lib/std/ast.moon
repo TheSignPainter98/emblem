@@ -21,12 +21,17 @@ sanitise_concat_input = (x) ->
 	return x.content if x.type == CONTENT
 	error "Unrecognised concatenation input: #{show x}"
 
+local Word
+sanitise_content_item = (x) ->
+	return Word x if 'table' != type x
+	x
+
 local Content
 concat_ast_nodes = (as, bs) ->
 	as2 = sanitise_concat_input as
 	bs2 = sanitise_concat_input bs
-	newlist = [ a for a in *as2 ]
-	insert newlist, b for b in *bs2
+	newlist = [ sanitise_content_item a for a in *as2 ]
+	insert newlist, sanitise_content_item b for b in *bs2
 	flags = nil
 	if ('table' == type as) and ('table' == type bs) and as.type == bs.type and bs.type == CONTENT
 		flags = as.flags
@@ -40,12 +45,14 @@ concat_ast_nodes = (as, bs) ->
 -- @brief Represents a word node
 class Word extends Node
 	new: (@word, ...) => super WORD, ...
+	__tostring: => show @
 	__concat: concat_ast_nodes
 
 ---
 -- @brief Represents a content node (which has no content itself but rather stores other nodes beneath it)
 class Content extends Node
 	new: (@content, ...) => super CONTENT, ...
+	__tostring: => show @
 	__concat: concat_ast_nodes
 
 ---
@@ -54,6 +61,7 @@ class Call extends Node
 	new: (@name, @args, ...) =>
 		super CALL, ...
 		@args = {@args} if not is_list @args
+	__tostring: => show @
 	__concat: concat_ast_nodes
 	__mul: (c, a) ->
 		if 'table' != type c or c.type != CALL

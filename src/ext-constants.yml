@@ -6,6 +6,11 @@ node_flags:
       - DISQUALIFIED_PARAGRAPH
       - INCLUDED_FILE_ROOT
       - NO_FURTHER_EVAL
+      - STYLE_DIRECTIVE_ONLY
+      - GLUE_RIGHT
+      - NBSP_RIGHT
+      - GLUE_LEFT
+      - NBSP_LEFT
 node_types:
   doc-struct/ast.h:
     integer:
@@ -16,9 +21,8 @@ driver_capabilities:
   drivers/driver-params.h:
     integer:
       - TS_NONE
-      - TS_BASIC_STYLING
-      - TS_COLOUR
-      - TS_IMAGE
-      - TS_TEXT_SIZE
+      - TS_CSS_UNPARSED
+      - TS_CSS_STYLES
+      - TS_CSS_STYLES_COMPOSED
       - TS_PLACEMENT
-      - TS_SVG
+      - TS_PLACEMENT_MONOSPACE

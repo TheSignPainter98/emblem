@@ -6,10 +6,10 @@ In Emblem, these are done using the `.cite` and `.bib` directives.
 The `.cite` directive takes input of a _key,_ a unique string which provides a reference to a particular bibliography item.
 
 The bibliography is both parsed and produced by the `.bib` directive.
-// TODO: talk about the optional argument!
+This optionally takes one argument as below.
 
 ```emblem
-.bib // Reads from the default location
+.bib // Reads from the default location, bib.{yml,yaml,json}
 .bib: file // Reads from some-file if it exists, otherwise, file.yml, file.yaml or file.json
 ```
 

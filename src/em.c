@@ -15,9 +15,11 @@
 #include "drivers/drivers.h"
 #include "ext/ext-env.h"
 #include "ext/ext-params.h"
+#include "ext/setting-io.h"
 #include "logs/logs.h"
 #include "parser/parser.h"
 #include "style/css.h"
+#include "style/styler-driver-interface.h"
 #include "typesetter/typesetter.h"
 
 /**
@@ -36,7 +38,11 @@ int main(int argc, char** argv)
 	Args args;
 	rc = parse_args(&args, argc, argv);
 	if (rc)
-		return rc;
+	{
+		if (rc < 0)
+			rc = 0;
+		goto clean_args;
+	}
 	init_logs(&args);
 
 	Styler styler;
@@ -49,41 +55,56 @@ int main(int argc, char** argv)
 	make_ext_params(&ext_params, &args, &styler, &mtNamesList);
 	ExtensionEnv ext;
 	if ((rc = make_ext_env(&ext, &ext_params)))
-		return rc;
+		goto clean_args;
+
+	const char* input = args.input_file;
+	if (streq(input, "-"))
+	{
+		const char* conf_main = get_setting(&ext, "main");
+		if (conf_main)
+			input = conf_main;
+	}
 
 	// Get the output driver
 	OutputDriver driver;
-	rc = get_output_driver(&driver, &args, &ext);
-	if (rc)
-		return rc;
+	if ((rc = get_output_driver(&driver, &args, &ext)))
+		goto clean_ext;
+
+	pass_output_driver_data_to_styler(&styler, &driver);
 
 	// Parse the document
 	Maybe maybe_ast_root;
-	parse_doc(&maybe_ast_root, &mtNamesList, &args);
-	rc = maybe_ast_root.type == NOTHING;
-	if (rc)
-		return rc;
+	parse_doc(&maybe_ast_root, &mtNamesList, &args, input);
+	if ((rc = maybe_ast_root.type == NOTHING))
+		goto clean_output_driver;
 
 	DocTreeNode* root = maybe_ast_root.just;
 	Doc doc;
 	make_doc(&doc, root, &styler, &ext);
 	rc = typeset_doc(&doc, &args, driver.support);
 	if (rc)
-		return rc;
+		goto cleanup;
 
 	log_info("Executing output driver");
-	rc = run_output_driver(&driver, &doc, &ext);
-	if (rc)
-		return rc;
+	if ((rc = run_output_driver(&driver, &doc, &ext)))
+		goto cleanup;
 
+cleanup:
 	log_debug("Cleaning up execution");
 	dest_doc(&doc);
-	dest_ext_env(&ext);
+clean_output_driver:
 	dest_output_driver(&driver);
+clean_ext:
+	if (input != args.input_file)
+		release_setting(&ext);
+	dest_ext_env(&ext);
+	dest_ext_params(&ext_params);
 	dest_locked(&mtNamesList, NULL);
 	dest_list(&namesList, (Destructor)dest_free_str);
-	dest_ext_params(&ext_params);
 	dest_styler(&styler);
+	fini_logs();
+clean_args:
 	dest_args(&args);
+
 	return rc;
 }

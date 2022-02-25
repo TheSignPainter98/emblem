@@ -8,6 +8,7 @@
 
 #include "logs/logs.h"
 #include "lua.h"
+#include "parser/sanitise-word.h"
 #include "pp/lambda.h"
 #include <stdlib.h>
 #include <string.h>
@@ -29,23 +30,28 @@ void make_doc(Doc* doc, DocTreeNode* root, Styler* styler, ExtensionEnv* ext)
 
 void dest_doc(Doc* doc) { dest_free_doc_tree_node(doc->root, false, CORE_POINTER_DEREFERENCE); }
 
-void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc)
+void make_doc_tree_node_word(DocTreeNode* node, Str* raw, Location* src_loc)
 {
 	DocTreeNodeContent* content = malloc(sizeof(DocTreeNodeContent));
 
 	content->type = WORD;
-	content->word = word;
+	content->word = malloc(sizeof(Word));
+	make_word(content->word, raw, src_loc);
 
-	node->flags		= 0;
-	node->last_eval = -1;
-	node->name		= malloc(sizeof(Str));
-	node->style		= NULL;
-	node->content	= content;
-	node->parent	= NULL;
-	node->src_loc	= src_loc;
-	node->lp		= NULL;
+	node->flags		   = 0;
+	node->last_eval	   = -1;
+	node->name		   = malloc(sizeof(Str));
+	node->style_name   = node->name;
+	node->style		   = NULL;
+	node->style_data   = malloc(sizeof(StyleData));
+	node->content	   = content;
+	node->parent	   = NULL;
+	node->prev_sibling = NULL;
+	node->src_loc	   = src_loc;
+	node->lp		   = NULL;
 
 	make_strc(node->name, NODE_NAME_WORD);
+	make_style_data(node->style_data, node->style_name, node);
 }
 
 void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc)
@@ -55,17 +61,21 @@ void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc)
 	content->type	 = CONTENT;
 	content->content = malloc(sizeof(List));
 
-	node->flags		= 0;
-	node->last_eval = -1;
-	node->name		= malloc(sizeof(Str));
-	node->style		= NULL;
-	node->content	= content;
-	node->parent	= NULL;
-	node->src_loc	= src_loc;
-	node->lp		= NULL;
+	node->flags		   = 0;
+	node->last_eval	   = -1;
+	node->name		   = malloc(sizeof(Str));
+	node->style_name   = node->name;
+	node->style		   = NULL;
+	node->style_data   = malloc(sizeof(StyleData));
+	node->content	   = content;
+	node->parent	   = NULL;
+	node->prev_sibling = NULL;
+	node->src_loc	   = src_loc;
+	node->lp		   = NULL;
 
 	make_list(content->content);
 	make_strc(node->name, NODE_NAME_CONTENT);
+	make_style_data(node->style_data, node->style_name, node);
 }
 
 void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Location* src_loc)
@@ -75,14 +85,35 @@ void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Locatio
 	content->type = CALL;
 	content->call = call;
 
-	node->flags		= 0;
-	node->last_eval = -1;
-	node->name		= name;
-	node->style		= NULL;
-	node->content	= content;
-	node->parent	= NULL;
-	node->src_loc	= src_loc;
-	node->lp		= NULL;
+	node->flags		   = 0;
+	node->last_eval	   = -1;
+	node->name		   = name;
+	node->style_name   = malloc(sizeof(Str));
+	node->style		   = NULL;
+	node->style_data   = malloc(sizeof(StyleData));
+	node->content	   = content;
+	node->parent	   = NULL;
+	node->prev_sibling = NULL;
+	node->src_loc	   = src_loc;
+	node->lp		   = NULL;
+
+	const char* s = name->str;
+	char* t = malloc(1 + name->len);
+	{
+		size_t i = 0;
+		while (*s)
+		{
+			if (*s == '_')
+				t[i++] = '-';
+			else if (*s != '*')
+				t[i++] = *s;
+			s++;
+		}
+		t[i] = '\0';
+	}
+	make_strr(node->style_name, t);
+
+	make_style_data(node->style_data, node->style_name, node);
 
 	if (call)
 	{
@@ -113,9 +144,16 @@ void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, DocTreeN
 
 	if (node->style)
 		dest_style(node->style);
+	dest_style_data(node->style_data);
+	free(node->style_data);
 	dest_doc_tree_node_content(node->content, processing_result, CORE_POINTER_DEREFERENCE);
 	free(node->content);
 	free(node->src_loc);
+	if (node->style_name != node->name)
+	{
+		dest_str(node->style_name);
+		free(node->style_name);
+	}
 	dest_str(node->name);
 	free(node->name);
 	free(node);
@@ -137,7 +175,7 @@ void dest_doc_tree_node_content(
 	switch (content->type)
 	{
 		case WORD:
-			dest_str(content->word);
+			dest_word(content->word);
 			free(content->word);
 			break;
 		case CALL:
@@ -155,19 +193,38 @@ void dest_doc_tree_node_content(
 
 void prepend_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child)
 {
+	if (child_list->fst)
+		((DocTreeNode*)(child_list->fst->data))->prev_sibling = new_child;
 	prepend_list(child_list, new_child);
 	new_child->parent = parent;
 }
 
+void connect_to_parent(DocTreeNode* child, DocTreeNode* parent)
+{
+	if (parent && parent->content->type == CONTENT)
+		append_doc_tree_node_child(parent, parent->content->content, child);
+	else
+		child->parent = parent;
+}
+
 void append_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child)
 {
+	if (child_list->lst)
+		new_child->prev_sibling = child_list->lst->data;
 	append_list(child_list, new_child);
 	new_child->parent = parent;
+}
+
+void make_word(Word* word, Str* raw, Location* src_loc)
+{
+	word->raw = raw;
+	sanitise_word(word, src_loc);
 }
 
 void make_call_io(CallIO* call)
 {
 	call->result = NULL;
+	call->attrs	 = NULL;
 	call->args	 = malloc(sizeof(List));
 	make_list(call->args);
 }
@@ -184,10 +241,47 @@ void append_call_io_arg(CallIO* call, DocTreeNode* arg)
 	append_list(call->args, arg);
 }
 
+void make_attrs(Attrs* attrs) { make_map(attrs, hash_str, cmp_strs, (Destructor)dest_free_str); }
+
+void dest_attrs(Attrs* attrs) { dest_map(attrs, (Destructor)dest_free_str); }
+
+void dest_free_attrs(Attrs* attrs) { dest_attrs(attrs); free(attrs); }
+
+int set_attr(Attrs* attrs, Str* k, Str* v)
+{
+	if (!attrs)
+		return 1;
+	int rc = 0;
+	Maybe old;
+	push_map(&old, attrs, k, v);
+	if (old.type == JUST)
+	{
+		dest_free_str((Str*)old.just);
+		rc = 1;
+	}
+	return rc;
+}
+
+void get_attr(Maybe* ret, Attrs* attrs, Str* k)
+{
+	if (attrs)
+		get_map(ret, attrs, k);
+	else
+		make_maybe_nothing(ret);
+}
+
+void dest_word(Word* word)
+{
+	dest_free_str(word->raw);
+	dest_free_str(word->sanitised);
+}
+
 void dest_call_io(CallIO* call, bool processing_result, DocTreeNodeSharedDestructionMode shared_mode)
 {
 	NON_ISO(Destructor ed
 		= ilambda(void, (void* v), { dest_free_doc_tree_node((DocTreeNode*)v, processing_result, shared_mode); }));
+	if (call->attrs)
+		dest_free_attrs(call->attrs);
 	if (call->result)
 		dest_free_doc_tree_node(call->result, true, shared_mode);
 	dest_list(call->args, ed);

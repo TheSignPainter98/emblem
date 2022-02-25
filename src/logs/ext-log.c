@@ -75,7 +75,8 @@ void set_ext_logging_globals(ExtensionState* s)
 		}                                                                                                              \
 		else                                                                                                           \
 		{                                                                                                              \
-			luaL_error(s, "Location value is not a userdata pointer or a table");                                      \
+			const char* msg = luaL_tolstring(s, -1, NULL);                                                             \
+			luaL_error(s, "Location value is not a userdata pointer or a table, failed while logging '%s'", msg);      \
 			return 0; /* never happens */                                                                              \
 		}                                                                                                              \
 		err_handler(log_##lvl##_at(loc, "%s", msg));                                                                   \

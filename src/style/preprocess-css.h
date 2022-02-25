@@ -10,11 +10,4 @@
 #include "css-params.h"
 #include "data/str.h"
 
-typedef enum
-{
-	UNPROCESSED = 1,
-	PROCESSED	= 0,
-	FAIL		= -1,
-} CssPreprocessResult;
-
-CssPreprocessResult preprocess_css(char** data_out, char* data_in, Str* fname, StylePreprocessorParams* params);
+int preprocess_css(char** data_out, Str* loc, Str* data, StylePreprocessorParams* params) __attribute__((nonnull(1, 2, 4)));

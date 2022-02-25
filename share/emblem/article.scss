@@ -47,29 +47,12 @@ body {
 	color: #00ff00;
 }
 
-.sc {
-	font-variant: small-caps;
-}
-
-.bf {
-	font-weight: bolder;
-}
-
-.it {
-	font-style: italic;
-}
-
-.af {
-	font-family: $alternate-font-family;
-}
-
 .tt {
-	font-family: $mono-font-family;
 	font-size: 2.1ex;
 }
 
 @for $i from 1 to 1 + $header_max {
-	.h#{$i}, .h#{$i}\* {
+	.h#{$i} {
 		font-size: size(1 + $header_max - $i);
 		font-family: $title-font-family;
 		font-weight: bold;
@@ -77,19 +60,3 @@ body {
 	}
 }
 
-.flush-left {
-	text-align: left;
-	display: block;
-}
-.flush-right {
-	text-align: right;
-	display: block;
-}
-.justify {
-	text-align: justify;
-	display: block;
-}
-.center .centre {
-	text-align: center;
-	display: block;
-}

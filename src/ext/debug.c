@@ -11,7 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_DEBUG_STR_LEN 60
+#ifndef MAX_DEBUG_STR_LEN
+#	define MAX_DEBUG_STR_LEN 0
+#endif
 #define ELIPSES_STRING "..."
 
 void _dumpstack(lua_State* L)
@@ -40,12 +42,17 @@ void _dumpstack(lua_State* L)
 				default:
 				{
 					size_t s_len;
-					char* s = strdup(luaL_tolstring(L, i, &s_len));
-					if (s_len >= MAX_DEBUG_STR_LEN)
-						strcpy(s + MAX_DEBUG_STR_LEN - strlen(ELIPSES_STRING), ELIPSES_STRING); // NOLINT
+					const char* s = luaL_tolstring(L, i, &s_len);
+#if MAX_DEBUG_STR_LEN <= 0
 					fprintf(stderr, "'%s'\n", s);
+#else
+					char* t = strdup(s);
+					if (s_len >= MAX_DEBUG_STR_LEN)
+						strcpy(t + MAX_DEBUG_STR_LEN - strlen(ELIPSES_STRING), ELIPSES_STRING); // NOLINT
+					fprintf(stderr, "'%s'\n", t);
+					free(t);
+#endif
 					lua_pop(L, 1);
-					free(s);
 					break;
 				}
 			}

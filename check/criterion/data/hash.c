@@ -25,9 +25,8 @@ void init_hash_test(void) { srand(RAND_SEED); } // NOLINT
 		{                                                                                                              \
 			int r  = rand();                                                                                           \
 			type v = generator;                                                                                        \
-			void* w[1];                                                                                                \
-			TYPE_PUN_DEREFERENCE(ARRAY_BOUND_MISMATCH(w[0] = *(void**)&v));                                            \
-			hashes[i] = hash_##type(*w);                                                                               \
+			INT_CONVERSION(void* w = v);\
+			hashes[i] = hash_##type(w);                                                                               \
 		}                                                                                                              \
 		int totCollisions = num_collisions(NUM_HASHES_TO_TEST, hashes);                                                \
 		cr_assert(totCollisions <= NUM_ACCEPTABLE_COLLISIONS, "Got %d (>= %d) collisions when hashing %d " #type "s",  \

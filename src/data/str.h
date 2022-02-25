@@ -9,6 +9,7 @@
 #include "array.h"
 #include "dest-free.h"
 #include "maybe.h"
+#include <libwapcaplet/libwapcaplet.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -20,7 +21,7 @@ typedef struct
 	/**
 	 * @brief Pointer to the null-terminated memory block
 	 */
-	char* const str;
+	const char* const str;
 	/**
 	 * @brief Length of the stored string (does not include the null-terminator)
 	 */
@@ -29,14 +30,11 @@ typedef struct
 	 * @brief Indicates whether memory will be freed
 	 */
 	bool const free_mem;
+	/**
+	 * @brief The libwapcaplet internalisation of the string
+	 */
+	lwc_string* lwc_rep;
 } Str;
-
-/**
- * @brief Make an empty string
- *
- * @param str Pointer to the String object to initialise
- */
-void make_str(Str* str);
 
 /**
  * @brief Make a string by reference to a raw value.
@@ -46,7 +44,7 @@ void make_str(Str* str);
  * @param str Pointer to the string to make
  * @param raw Pointer to the raw characters
  */
-void make_strv(Str* str, char* raw);
+void make_strv(Str* str, const char* raw);
 
 /**
  * @brief Make a string by reference to a raw value, freeing the raw value when destroyed.
@@ -54,7 +52,7 @@ void make_strv(Str* str, char* raw);
  * @param str Pointer to the string to make
  * @param raw Pointer to the raw characters
  */
-void make_strr(Str* str, char* raw);
+void make_strr(Str* str, const char* raw);
 
 /**
  * @brief Make a string by copying another
@@ -64,19 +62,7 @@ void make_strr(Str* str, char* raw);
  * @param str Pointer to the string to make
  * @param raw Pointer to the raw characters to copy
  */
-void make_strc(Str* str, char* raw);
-
-/**
- * @brief Make a string of specified length.
- *
- * All positions initially have value `\0`
- *
- * @param str Pointer to the string to initialise
- * @param len Length of the string to create
- *
- * @return True iff memory was successfully allocated
- */
-bool make_strl(Str* str, size_t len);
+void make_strc(Str* str, const char* raw);
 
 /**
  * @brief Destroy a string and free its memory if required
@@ -141,4 +127,19 @@ bool set_strc(Str* str, size_t idx, char val);
  */
 bool copy_into_str(Str* cont, Str* ins, size_t startIdx);
 
+/**
+ * @brief Duplicate a given string
+ *
+ * @param o Location to fill with the duplicated string
+ * @param todup String to duplicate
+ */
 void dup_str(Str* o, Str* todup);
+
+/**
+ * @brief Obtain the libwapcaplet string version of a string
+ *
+ * @param si String to internalise/return existing `lwc_string`
+ *
+ * @return The lwc string equal to si
+ */
+lwc_string* get_lwc_string(Str* s);

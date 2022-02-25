@@ -6,9 +6,15 @@
  */
 #pragma once
 
+#include "doc-struct/ast.h"
 #include "ext-env.h"
+#include <stdbool.h>
 
-#define EM_IMPORT_STYLESHEET_FUNC_NAME "stylesheet"
-#define STYLER_LP_LOC				   "_em_styler"
+#define STYLER_LP_LOC "_em_styler"
 
-int ext_import_stylesheet(ExtensionState* s);
+void provide_styler(ExtensionEnv* e);
+
+void set_ext_style_globals(ExtensionState* s);
+int import_stylesheets_from_extensions(ExtensionState* s, Styler* styler, bool parse_css);
+
+int pack_style(ExtensionState* s, Style* style, DocTreeNode* node);

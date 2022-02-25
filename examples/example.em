@@ -119,7 +119,6 @@ Hello, the title is !title and this is fine.
 //	.get-var{x}
 //	fdsa
 
-#* Table of Contents
 .toc
 
 # This is a heading
@@ -322,7 +321,6 @@ antidisestablishmentarianism
 .cite{carlson2011you}
 .cite{non_existent_citation_2021}
 
-#* Bibliography
 .bib: example-bib.yml
 
 // This is a comment

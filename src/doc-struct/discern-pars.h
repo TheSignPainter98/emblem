@@ -8,4 +8,4 @@
 
 #include "doc-struct/ast.h"
 
-void discern_pars(Doc* doc);
+int introduce_foster_pars(DocTreeNode* node);

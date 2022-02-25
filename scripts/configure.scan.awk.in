@@ -27,6 +27,9 @@ FUNC_CHECKS
 	print "AC_CONFIG_MACRO_DIRS([m4])"
 	print "AM_CONDITIONAL([ANALYZER], [false])"
 	print "AC_CONFIG_FILES([Makefile])"
+	compgens("bash", "$datadir/bash-completion/completions")
+	compgens("zsh", "$datadir/zsh/site-functions")
+	compgens("fish", "$datadir/fish/vendor_completions.d")
 	print "LT_INIT"
 
 	# Perform libarry checks
@@ -61,4 +64,21 @@ $2 == "FIXME:" {
 
 END {
 	exit err
+}
+
+func compgens(shell, default_loc) {
+	SHELL = toupper(shell)
+	printf "AC_ARG_WITH([%s-completion-dir],", shell
+	printf "AS_HELP_STRING([--with-%s-completion-dir[=PATH]],\n", shell
+	printf "	[Install the %s auto-completion script in this directory @<:@default=yes@:>@]), [],\n", shell
+	printf "	[with_%s_completion_dir=yes])\n", shell
+	printf "if test \"x$with_%s_completion_dir\" = \"xyes\"; then\n", shell
+	printf "PKG_CHECK_MODULES([%s_COMPLETION], [%s-completion >= 2.0],\n", SHELL, shell
+	printf "	[%s_COMPLETION_DIR=\"`pkg-config --variable=completionsdir %s-completion`\"],\n", SHELL, shell
+	printf "	[%s_COMPLETION_DIR=\"%s\"])\n", SHELL, default_loc
+	print "else"
+	printf "	%s_COMPLETION_DIR=\"$with_%s_completion_dir\"\n", SHELL, shell
+	print "fi"
+	printf "AC_SUBST([%s_COMPLETION_DIR])\n", SHELL
+	printf "AM_CONDITIONAL([ENABLE_%s_COMPLETION],[test \"x$with_%s_completion_dir\" != \"xno\"])\n", SHELL, shell
 }

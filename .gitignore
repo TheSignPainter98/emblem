@@ -151,10 +151,13 @@ lua-constants.c
 *.loc
 .em-store.yml
 libtool
+completion/
 
 # Output files
 *.css
 *.html
 *.bb
 *.tex
+*.bib
 *.md
+*.txt

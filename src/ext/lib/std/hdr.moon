@@ -4,14 +4,14 @@
 -- @author Edward Jones
 -- @date 2021-09-17
 
-import Directive, em, eval_string from require 'std.base'
+import Directive, em, eval_string, stylesheet from require 'std.base'
 import Counter, SyncList from require 'std.events'
 import set_label from require 'std.ref'
 import extend from require 'std.util'
 import concat, insert from table
 import rep from string
 
--- stylesheet 'share/hdr.scss'
+stylesheet 'std/hdr.scss'
 
 ---
 -- @brief Represents a table of contents

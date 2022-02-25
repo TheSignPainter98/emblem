@@ -8,9 +8,12 @@ import len, lower from string
 import concat, insert from table
 
 import node_types from require 'std.constants'
+import GLUE_LEFT from node_flags
 import WORD, CALL, CONTENT from node_types
 
-base = { :eval, :include_file, :requires_reiter, :_log_err, :_log_err_at, :_log_warn, :_log_warn_at, :_log_info, :_log_debug, :_em_loc, :stylesheet }
+base = { :eval, :include_file, :requires_reiter, :_log_err, :_log_err_at, :_log_warn, :_log_warn_at, :_log_info, :_log_debug, :_em_loc, :stylesheet, :em_config_file, :__em_arguments }
+
+stylesheet 'std/base.scss'
 
 ---
 -- @brief Wrap the __get and __set methods into the __index and __newindex methods if available
@@ -137,35 +140,45 @@ base.em = em
 ---
 -- @brief Extracts the text beneath a given node
 -- @param n The node to convert into a string, must be a table
+-- @param pretty Whether use the pretty or raw form of words
 -- @return The text stored at and under the given node
-node_string = (n) ->
-	if n == nil
-		return nil
-	if 'table' != type n or ('table' == type n and n.type == nil)
-		return tostring n
-	switch n.type
-		when WORD
-			return n.word
-		when CALL
-			return node_string n.result
-		when CONTENT
-			ss = {}
-			for m in *n.content
-				if s = node_string m
-					insert ss, s
-			return concat ss, ' '
-		else
-			error "Unrecognised node type '#{n.type}'"
-			return nil
+node_string = (n, pretty=false) ->
+	str_parts = {}
+	node_string_parts = (n) ->
+		if n == nil
+			return
+		if 'table' != type n
+			insert str_parts, tostring n
+		switch n.type
+			when WORD
+				insert str_parts, pretty and n.pword or n.word
+			when CALL
+				node_string_parts n.result
+			when CONTENT
+				cs = n.content
+				cn = #cs
+				return if cn == 0
+				node_string_parts cs[1]
+				for i=2,cn
+					m = cs[i]
+					insert str_parts, ' ' if (m.flags & GLUE_LEFT) == 0
+					node_string_parts m
+			when nil
+				insert str_parts, tostring n
+			else
+				error "Unrecognised node type '#{n.type}'"
+	node_string_parts n
+	concat str_parts
 base.node_string = node_string
 
 ---
 -- @brief Evaluates a node pointer and extracts the text contained in and below it
 -- @param d The userdata pointer to evaluate and extract from
+-- @param pretty Whether use the pretty or raw form of words
 -- @return A string which represents all text at and beneath _d_
-eval_string = (d) ->
+eval_string = (d, pretty) ->
 	if 'userdata' == type d
-		return node_string eval d
+		return node_string (eval d), pretty
 	tostring d
 base.eval_string = eval_string
 

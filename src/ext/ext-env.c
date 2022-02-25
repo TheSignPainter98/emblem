@@ -16,9 +16,11 @@
 #include "lua-em-parser.h"
 #include "lua-lib-load.h"
 #include "lua.h"
+#include "setting-io.h"
 #include "style.h"
 #include <lauxlib.h>
 
+#define EM_CONFIG_FILE_NAME		      "em_config_file"
 #define EM_EVAL_NODE_FUNC_NAME		  "eval"
 #define EM_REQUIRE_RUNS_FUNC_NAME	  "requires_reiter"
 #define LUA_POINTER_GC_METATABLE_RKEY "emblem_core_pointer"
@@ -129,6 +131,7 @@ void invalidate_lua_pointer(LuaPointer* lp) { lp->valid = false; }
 
 int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 {
+	int rc;
 	ext->state			   = luaL_newstate();
 	ext->require_extra_run = true;
 	ext->iter_num		   = 0;
@@ -136,20 +139,16 @@ int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 
 	set_globals(ext, params);
 
-	int rc = load_libraries(ext->state, params);
-	if (rc)
+	load_arguments(ext, params->ext_args);
+
+	log_info("Loading standard library...");
+	if ((rc = load_libraries(ext->state, params)))
 		return rc;
 
 	return load_extensions(ext->state, params);
 }
 
 void dest_ext_env(ExtensionEnv* ext) { lua_close(ext->state); }
-
-void finalise_env_for_typesetting(ExtensionEnv* e)
-{
-	lua_pushnil(e->state);
-	lua_setglobal(e->state, STYLER_LP_LOC);
-}
 
 static void set_globals(ExtensionEnv* e, ExtParams* params)
 {
@@ -187,8 +186,13 @@ static void set_globals(ExtensionEnv* e, ExtParams* params)
 	new_lua_pointer(s, MT_NAMES_LIST, params->mt_names_list, false);
 	lua_setglobal(s, EM_MT_NAMES_LIST_VAR_NAME);
 
+	// Store the styler
 	new_lua_pointer(s, STYLER, params->styler, false);
 	lua_setglobal(e->state, STYLER_LP_LOC);
+
+	// Store the config file
+	lua_pushstring(s, params->config_file->str);
+	lua_setglobal(s, EM_CONFIG_FILE_NAME);
 }
 
 #define LOAD_LIBRARY_SET(lvl, s, lib)                                                                                  \
@@ -211,12 +215,13 @@ static int load_libraries(ExtensionState* s, ExtParams* params)
 static void load_em_std_functions(ExtensionState* s)
 {
 	lua_register(s, EM_EVAL_NODE_FUNC_NAME, ext_eval_tree);
-	lua_register(s, EM_IMPORT_STYLESHEET_FUNC_NAME, ext_import_stylesheet);
 	lua_register(s, EM_REQUIRE_RUNS_FUNC_NAME, ext_require_rerun);
 	lua_register(s, EM_INCLUDE_FILE_FUNC_NAME, ext_include_file);
 
 	set_ext_logging_globals(s);
 	set_ext_location_globals(s);
+	set_ext_style_globals(s);
+	set_ext_setting_globals(s);
 }
 
 static void load_library_set(ExtensionState* s, luaL_Reg* lib)

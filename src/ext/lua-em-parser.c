@@ -16,6 +16,7 @@
 #include "lua-ast-io.h"
 #include "lua.h"
 #include "parser/emblem-parser.h"
+#include "style.h"
 #include <lauxlib.h>
 #include <stdlib.h>
 
@@ -57,7 +58,14 @@ int ext_include_file(ExtensionState* s)
 		luaL_error(s, "Invalid internal value");
 	lua_pop(s, 1);
 
-	if (exec_lua_pass_on_node(s, included_root, env->iter_num))
+	lua_getglobal(s, STYLER_LP_LOC);
+	Styler* sty;
+	rc = to_userdata_pointer((void**)&sty, s, -1, STYLER);
+	if (rc)
+		luaL_error(s, "Invalid styler value");
+	lua_pop(s, 1);
+
+	if (exec_lua_pass_on_node(s, sty, included_root, env->iter_num, true))
 		lua_pushnil(s);
 	else
 		get_ast_lua_pointer(s, included_root);

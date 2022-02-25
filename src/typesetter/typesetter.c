@@ -10,8 +10,6 @@
 #include "ext/ext-params.h"
 #include "ext/lua-events.h"
 #include "ext/lua.h"
-#include "doc-struct/discern-pars.h"
-/* #include "ext/style.h" */
 #include "logs/logs.h"
 #include "style/css.h"
 
@@ -22,9 +20,7 @@ int typeset_doc(Doc* doc, Args* args, TypesettingSupport support)
 	if (do_lua_start_event(doc->ext->state))
 		return 1;
 
-	finalise_env_for_typesetting(doc->ext);
-
-	if (prepare_styler(doc->styler))
+	if (prepare_styler(doc->styler, doc->ext->state))
 		return 1;
 
 	do
@@ -37,7 +33,6 @@ int typeset_doc(Doc* doc, Args* args, TypesettingSupport support)
 		rc = exec_lua_pass(doc);
 		if (rc)
 			return rc;
-		discern_pars(doc);
 
 		if (support & TS_PLACEMENT)
 			log_info("Executing typesetting pass %d", doc->ext->iter_num);

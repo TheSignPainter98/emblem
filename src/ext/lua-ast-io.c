@@ -11,9 +11,10 @@
 
 #include "data/str.h"
 #include "doc-struct/ast.h"
+#include "ext-env.h"
 #include "logs/logs.h"
 #include "lua.h"
-#include "ext-env.h"
+#include "style.h"
 
 #include "debug.h"
 
@@ -39,7 +40,14 @@ int ext_eval_tree(ExtensionState* s)
 		luaL_error(s, "Invalid argument(s)");
 	lua_pop(s, 1);
 
-	int erc = exec_lua_pass_on_node(s, node, env->iter_num);
+	lua_getglobal(s, STYLER_LP_LOC);
+	Styler* sty;
+	rc = to_userdata_pointer((void**)&sty, s, -1, STYLER);
+	if (rc)
+		luaL_error(s, "Invalid styler value");
+	lua_pop(s, 1);
+
+	int erc = exec_lua_pass_on_node(s, sty, node, env->iter_num, false);
 	if (erc)
 		luaL_error(s, "Error while evaluating node");
 	else
@@ -61,14 +69,20 @@ int pack_tree(ExtensionState* s, DocTreeNode* node)
 	lua_pushinteger(s, node->flags & ACCEPTABLE_EXTENSION_FLAG_MASK);
 	lua_setfield(s, -2, "flags");
 
+	pack_style(s, node->style, node);
+	lua_setfield(s, -2, "style");
+
 	switch (node->content->type)
 	{
 		case WORD:
-			lua_pushstring(s, node->content->word->str);
+			Word* word = node->content->word;
+			lua_pushlstring(s, word->raw->str, word->raw->len);
 			lua_setfield(s, -2, "word");
+			lua_pushlstring(s, word->sanitised->str, word->sanitised->len);
+			lua_setfield(s, -2, "pword");
 			break;
 		case CALL:
-			lua_pushstring(s, node->name->str);
+			lua_pushlstring(s, node->name->str, node->name->len);
 			lua_setfield(s, -2, "name");
 
 			// Pack the arguments
@@ -96,6 +110,24 @@ int pack_tree(ExtensionState* s, DocTreeNode* node)
 			else
 				lua_pushnil(s);
 			lua_setfield(s, -2, "result");
+
+			if (node->content->call->attrs)
+			{
+				Attrs* attrs = node->content->call->attrs;
+				lua_createtable(s, 0, attrs->curr_stored);
+				MapIter mi;
+				make_map_iter(&mi, attrs);
+				Pair* kv;
+				while (iter_map(&kv, &mi))
+				{
+					Str* k = kv->p0;
+					Str* v = kv->p1;
+					lua_pushlstring(s, v->str, v->len);
+					lua_setfield(s, -2, k->str);
+				}
+				dest_map_iter(&mi);
+				lua_setfield(s, -2, "attrs");
+			}
 			break;
 		case CONTENT:
 		{
@@ -170,8 +202,8 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 		}
 		case LUA_TUSERDATA:
 		{
-			to_userdata_pointer((void**)result, s, -1, AST_NODE);
-			(*result)->parent = parentNode;
+			if (!to_userdata_pointer((void**)result, s, -1, AST_NODE))
+				connect_to_parent(*result, parentNode);
 			lua_pop(s, 1);
 			return 0;
 		}
@@ -193,7 +225,7 @@ static int unpack_single_value(DocTreeNode** result, Str* repr, DocTreeNode* par
 	*result = malloc(sizeof(DocTreeNode));
 	make_doc_tree_node_word(*result, repr, dup_loc(parentNode->src_loc));
 	(*result)->flags |= IS_GENERATED_NODE;
-	(*result)->parent = parentNode;
+	connect_to_parent(*result, parentNode);
 	return 0;
 }
 
@@ -209,7 +241,8 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 	{
 		int bad_flags = in_flags & ~ACCEPTABLE_EXTENSION_FLAG_MASK;
 		if (bad_flags)
-			if (log_warn_at(parentNode->src_loc, "Ignoring invalid flags when unpacking table-representation of a node: %x", bad_flags))
+			if (log_warn_at(parentNode->src_loc,
+					"Ignoring invalid flags when unpacking table-representation of a node: %x", bad_flags))
 				return 1;
 	}
 	int flags = IS_GENERATED_NODE | (ACCEPTABLE_EXTENSION_FLAG_MASK & lua_tointeger(s, -1));
@@ -232,7 +265,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			char* word	 = (char*)lua_tostring(s, -1);
 			Str* wordstr = malloc(sizeof(Str));
 			make_strc(wordstr, word);
-			rc = unpack_single_value(result, wordstr, parentNode);
+			rc				 = unpack_single_value(result, wordstr, parentNode);
 			(*result)->flags = flags;
 			lua_pop(s, 1);
 			break;
@@ -251,13 +284,13 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 				int rc = unpack_lua_result(&new_child, s, *result);
 				if (rc)
 					return rc; // NOLINT
-				append_doc_tree_node_child(*result, (*result)->content->content, new_child);
 			}
+			connect_to_parent(*result, parentNode);
 			lua_pop(s, 1);
 			rc = 0;
 			break;
 		case CALL:
-			*result = malloc(sizeof(DocTreeNode));
+			*result	   = malloc(sizeof(DocTreeNode));
 			CallIO* io = malloc(sizeof(CallIO));
 			make_call_io(io);
 
@@ -271,7 +304,8 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			lua_getfield(s, -1, "args");
 			if (lua_type(s, -1) != LUA_TTABLE)
 			{
-				log_err("Attempted to unpack 'args' field of a call, but got %s object (%s)", luaL_typename(s, -1), lua_tostring(s, -1));
+				log_err("Attempted to unpack 'args' field of a call, but got %s object (%s)", luaL_typename(s, -1),
+					lua_tostring(s, -1));
 				lua_pop(s, 1);
 				rc = 1;
 				break;
@@ -298,7 +332,28 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 				unpack_lua_result(&(*result)->content->call->result, s, *result);
 			else
 				(*result)->content->call->result = NULL;
-			lua_pop(s, 2);
+			connect_to_parent(*result, parentNode);
+			lua_pop(s, 1);
+
+			// Unpack attributes
+			Attrs* attrs = io->attrs = malloc(sizeof(Attrs));
+			make_attrs(attrs);
+			lua_getfield(s, -1, "attrs");
+			if (!lua_isnil(s, -1))
+			{
+				lua_pushnil(s);
+				while (lua_next(s, -2))
+				{
+					Str* k = malloc(sizeof(Str));
+					Str* v = malloc(sizeof(Str));
+					make_strc(k, lua_tostring(s, -2));
+					make_strc(v, lua_tostring(s, -1));
+					set_attr(attrs, k, v);
+					lua_pop(s, 1);
+				}
+			}
+			lua_pop(s, 1);
+
 			rc = 0;
 			break;
 		default:

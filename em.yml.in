@@ -88,8 +88,8 @@ args:
   - dest: extension_args
     short: -a
     long: --ext-arg
-    metaDest: extension.param=value
-    help: Pass parameter _param_ with value _value_ to extension _ext_
+    metaDest: path=value
+    help: Set the value of _path_ in the settings to _value_
     type: List
   - dest: driver
     short: -T
@@ -112,7 +112,7 @@ args:
     long: --class
     type: char*
     metaDest: style
-    default: '" DATA_DIR "/article'
+    default: article
     help: Set the output class
     doc: Holds the root style
   - dest: default_typeface
@@ -169,6 +169,20 @@ args:
     default: 4
     help: Max number of typesetting iterations allowed
     doc: Maximum number of permissible typesetting iterations
+  - dest: debug_scss_sources
+    short: -d
+    long: --debug-scss
+    help: Include debugging information in preprocessed CSS output
+    doc: Include debugging information in libsass output
+    type: flag
+    default: false
+  - dest: config
+    short: -@
+    long: --load-config
+    help: Load document settings from a file
+    doc: Document config file location
+    type: char*
+    default: 'emdoc.yml'
 env_vars:
   - name: EM_STYLE_PATH
     desc: >
@@ -182,14 +196,15 @@ dist:
       - libsass
       - lua
       - lua-argparse
-      - lua-htmlparser
+      # - lua-htmlparser
       - lua-lpeg
       - lua-lyaml
-      - moonscript
       - ncurses
     make-depends:
       - gcc
+      - moonscript
     check-depends:
+      - bash-bats
       - criterion
     opt-depends:
       - otf-bodoni
