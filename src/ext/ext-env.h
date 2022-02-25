@@ -19,7 +19,7 @@ extern const char* const lua_pointer_type_names[];
 
 typedef enum
 {
-	AST_NODE,
+	DOC_TREE_NODE,
 	STYLER,
 	EXT_ENV,
 	MT_NAMES_LIST,

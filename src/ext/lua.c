@@ -130,7 +130,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			make_list_iter(&li, node->content->call->args);
 			DocTreeNode* argNode;
 			while (iter_list((void**)&argNode, &li))
-				get_ast_lua_pointer(s, argNode);
+				get_doc_tree_node_lua_pointer(s, argNode);
 			dest_list_iter(&li);
 
 			// Open variable scope

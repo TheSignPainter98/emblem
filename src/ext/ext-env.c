@@ -26,7 +26,7 @@
 #define LUA_POINTER_GC_METATABLE_RKEY "emblem_core_pointer"
 
 const char* const lua_pointer_type_names[] = {
-	[AST_NODE]		= "AST node",
+	[DOC_TREE_NODE] = "doc-tree node",
 	[STYLER]		= "styler",
 	[EXT_ENV]		= "extension environment",
 	[MT_NAMES_LIST] = "mt-safe file-name list",
@@ -91,7 +91,7 @@ static int ext_dest_lua_pointer(ExtensionState* s)
 	// Destroy contents as necessary
 	switch (lp->type)
 	{
-		case AST_NODE:
+		case DOC_TREE_NODE:
 			dest_free_doc_tree_node(lp->data, false, LUA_POINTER_DEREFERENCE);
 			break;
 		default:

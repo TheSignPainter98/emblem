@@ -159,10 +159,10 @@ void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, DocTreeN
 	free(node);
 }
 
-LuaPointer* get_ast_lua_pointer(ExtensionState* s, DocTreeNode* node)
+LuaPointer* get_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node)
 {
 	if (!node->lp)
-		node->lp = new_lua_pointer(s, AST_NODE, node, true);
+		node->lp = new_lua_pointer(s, DOC_TREE_NODE, node, true);
 	return node->lp;
 }
 

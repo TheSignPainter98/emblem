@@ -27,7 +27,7 @@ int ext_eval_tree(ExtensionState* s)
 		return luaL_error(s, "Expected exactly 1 argument");
 
 	DocTreeNode* node;
-	int rc = to_userdata_pointer((void**)&node, s, -1, AST_NODE);
+	int rc = to_userdata_pointer((void**)&node, s, -1, DOC_TREE_NODE);
 	if (rc)
 		luaL_error(s, "Invalid argument(s)");
 	lua_pop(s, 1);
@@ -202,7 +202,7 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 		}
 		case LUA_TUSERDATA:
 		{
-			if (!to_userdata_pointer((void**)result, s, -1, AST_NODE))
+			if (!to_userdata_pointer((void**)result, s, -1, DOC_TREE_NODE))
 				connect_to_parent(*result, parentNode);
 			lua_pop(s, 1);
 			return 0;
