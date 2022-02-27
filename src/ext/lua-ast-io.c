@@ -13,7 +13,6 @@
 #include "doc-struct/ast.h"
 #include "ext-env.h"
 #include "logs/logs.h"
-#include "lua-pointers.h"
 #include "lua.h"
 #include "style.h"
 
@@ -28,7 +27,7 @@ int ext_eval_tree(ExtensionState* s)
 		return luaL_error(s, "Expected exactly 1 argument");
 
 	DocTreeNode* node;
-	int rc = to_userdata_pointer((void**)&node, s, -1, AST_NODE);
+	int rc = to_userdata_pointer((void**)&node, s, -1, DOC_TREE_NODE);
 	if (rc)
 		luaL_error(s, "Invalid argument(s)");
 	lua_pop(s, 1);
@@ -195,7 +194,7 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 		case LUA_TSTRING:
 		{
 			Str* repr = malloc(sizeof(Str));
-			make_strv(repr, (char*)lua_tostring(s, -1));
+			make_strc(repr, (char*)lua_tostring(s, -1));
 			rc = unpack_single_value(result, repr, parentNode);
 			lua_pop(s, 1);
 			log_debug("Popped string '%s'", repr->str);
@@ -203,16 +202,8 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 		}
 		case LUA_TUSERDATA:
 		{
-			LuaPointer* p = lua_touserdata(s, -1);
-			if (p->type != AST_NODE)
-			{
-				log_err("Could not unpack light user data %s, had type %d but expected %d", lua_tostring(s, -1),
-					p->type, AST_NODE);
-				return -1;
-			}
-			log_debug("Passing reference to %p", p->data);
-			*result = p->data;
-			connect_to_parent(*result, parentNode);
+			if (!to_userdata_pointer((void**)result, s, -1, DOC_TREE_NODE))
+				connect_to_parent(*result, parentNode);
 			lua_pop(s, 1);
 			return 0;
 		}
@@ -273,7 +264,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			lua_getfield(s, -1, "word");
 			char* word	 = (char*)lua_tostring(s, -1);
 			Str* wordstr = malloc(sizeof(Str));
-			make_strv(wordstr, word);
+			make_strc(wordstr, word);
 			rc				 = unpack_single_value(result, wordstr, parentNode);
 			(*result)->flags = flags;
 			lua_pop(s, 1);

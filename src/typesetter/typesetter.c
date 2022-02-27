@@ -39,6 +39,7 @@ int typeset_doc(Doc* doc, Args* args, TypesettingSupport support)
 
 		if (do_lua_iter_end_event(doc->ext->state))
 			return 1;
+		release_pass_local_lua_pointers(doc->ext);
 	} while (doc->ext->require_extra_run & (doc->ext->iter_num < args->max_iters));
 
 	if (doc->ext->iter_num == args->max_iters)

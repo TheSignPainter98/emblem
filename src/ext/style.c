@@ -9,7 +9,7 @@
 #include "data/str.h"
 #include "debug.h"
 #include "logs/logs.h"
-#include "lua-pointers.h"
+#include "ext-env.h"
 #include "lua.h"
 #include "pp/assert.h"
 #include "style/css.h"
@@ -33,12 +33,6 @@ static const int num_style_elements = 59;
 
 static int ext_declare_stylesheet(ExtensionState* s);
 static int pack_content(ExtensionState* s, const css_computed_content_item* content, DocTreeNode* node);
-
-void provide_styler(ExtensionEnv* e)
-{
-	lua_pushlightuserdata(e->state, e->styler);
-	lua_setglobal(e->state, STYLER_LP_LOC);
-}
 
 void set_ext_style_globals(ExtensionState* s)
 {

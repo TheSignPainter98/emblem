@@ -70,6 +70,7 @@ typedef struct DocTreeNode_s
 	struct DocTreeNode_s* parent;
 	struct DocTreeNode_s* prev_sibling;
 	Location* src_loc;
+	LuaPointer* lp;
 } DocTreeNode;
 
 typedef enum
@@ -118,15 +119,22 @@ typedef struct CallIO_s
 // List* items;
 // } ListContent;
 
+typedef enum
+{
+	CORE_POINTER_DEREFERENCE = 0,
+	LUA_POINTER_DEREFERENCE,
+} DocTreeNodeSharedDestructionMode;
+
 void make_doc(Doc* doc, DocTreeNode* root, Styler* styler, ExtensionEnv* ext);
 void dest_doc(Doc* doc);
 
 void make_doc_tree_node_word(DocTreeNode* node, Str* word, Location* src_loc);
 void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Location* src_loc);
 void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc);
-void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result);
+void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, DocTreeNodeSharedDestructionMode shared_mode);
 
-void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_result);
+void dest_doc_tree_node_content(
+	DocTreeNodeContent* content, bool processing_result, DocTreeNodeSharedDestructionMode shared_mode);
 
 void prepend_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child);
 void append_doc_tree_node_child(DocTreeNode* parent, List* child_list, DocTreeNode* new_child);
@@ -135,9 +143,11 @@ void make_word(Word* word, Str* raw, Location* src_loc);
 void dest_word(Word* word);
 
 void make_call_io(CallIO* call);
-void dest_call_io(CallIO* call, bool processing_result);
+void dest_call_io(CallIO* call, bool processing_result, DocTreeNodeSharedDestructionMode shared_mode);
 void prepend_call_io_arg(CallIO* call, DocTreeNode* arg);
 void append_call_io_arg(CallIO* call, DocTreeNode* arg);
+
+LuaPointer* get_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node);
 
 void make_attrs(Attrs* attrs);
 void dest_attrs(Attrs* attrs);

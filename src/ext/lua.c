@@ -80,7 +80,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 		{
 			// Remove old result if present
 			if (node->content->call->result)
-				dest_free_doc_tree_node(node->content->call->result, true);
+				dest_free_doc_tree_node(node->content->call->result, true, CORE_POINTER_DEREFERENCE);
 
 			lua_getglobal(s, EM_PUBLIC_TABLE);
 			lua_getfield(s, -1, node->name->str);
@@ -129,14 +129,8 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			ListIter li;
 			make_list_iter(&li, node->content->call->args);
 			DocTreeNode* argNode;
-			LuaPointer argPtrs[num_args];
-			int i = 0;
 			while (iter_list((void**)&argNode, &li))
-			{
-				make_lua_pointer(&argPtrs[i], AST_NODE, argNode);
-				lua_pushlightuserdata(s, &argPtrs[i]);
-				i++;
-			}
+				get_doc_tree_node_lua_pointer(s, argNode);
 			dest_list_iter(&li);
 
 			// Open variable scope
@@ -155,9 +149,8 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			// Update the location
 			lua_getglobal(s, "set_var");
 			lua_pushliteral(s, EM_LOC_NAME);
-			LuaPointer llp;
-			make_lua_pointer(&llp, LOCATION, node->src_loc);
-			lua_pushlightuserdata(s, &llp);
+			LuaPointer* locp = new_lua_pointer(s, LOCATION, node->src_loc, false);
+			dumpstack(s);
 			if (lua_pcall(s, 2, 0, 0) != LUA_OK)
 			{
 				log_err_at(node->src_loc, "Failed to set location information: %s", lua_tostring(s, -1));
@@ -194,6 +187,8 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 					rc |= -1;
 					break;
 			}
+
+			invalidate_lua_pointer(locp);
 
 			// Close variable scope
 			lua_getglobal(s, CLOSE_VAR_SCOPE_FUNC_NAME);
@@ -281,23 +276,5 @@ static int resolve_styling(DocTreeNode* node, Styler* sty)
 			return -1;
 	}
 
-	return 0;
-}
-
-int to_userdata_pointer(void** val, ExtensionState* s, int idx, LuaPointerType type)
-{
-	if (!lua_isuserdata(s, idx))
-	{
-		log_err("Expected userdata but got %s '%s'", luaL_typename(s, idx), luaL_tolstring(s, idx, NULL));
-		return 1;
-	}
-	LuaPointer* ptr = lua_touserdata(s, idx);
-	if (ptr->type != type)
-	{
-		log_err("Expected %s userdata (%d) but got %s userdata (%d)", lua_pointer_type_names[type], type,
-			lua_pointer_type_names[ptr->type], ptr->type);
-		return 1;
-	}
-	*val = ptr->data;
 	return 0;
 }
