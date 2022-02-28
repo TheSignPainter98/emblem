@@ -117,6 +117,7 @@ ignore_warning.h
 # Ignore editor files
 *.swp
 .vscode/
+.ackrc
 
 # Temporary caches (e.g. that used by clangd)
 .cache
