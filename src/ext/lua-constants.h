@@ -8,4 +8,4 @@
 
 #include "ext-env.h"
 
-void ext_set_global_constants(ExtensionState* s);
+void setup_lua_constants_api(ExtensionState* s);

@@ -24,6 +24,10 @@ BEGIN {
 	next
 }
 
+/^import .* from _G$/ {
+	next
+}
+
 {
 	if (NR > 1)
 		print str

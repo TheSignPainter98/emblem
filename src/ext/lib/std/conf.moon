@@ -4,9 +4,12 @@
 -- @author Edward Jones
 -- @date 2021-09-24
 
-import em_config_file, __em_arguments from require 'std.base'
+import em_config_file from require 'std.base'
 import log_warn from require 'std.log'
 import load from require 'lyaml'
+
+import __em from _G
+import __arguments from __em
 
 local open
 unless io.moduile_unavailable
@@ -40,7 +43,7 @@ export set_conf = (name, value) ->
 		c = c[parts[i]]
 	c[parts[n_parts]] = value
 
-for arg in *__em_arguments
+for arg in *__arguments
 	path, val = arg\match '([^=]+)=(.*)'
 	if path and val
 		set_conf path, val

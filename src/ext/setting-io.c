@@ -8,10 +8,10 @@
 #define SETTING_GETTER_FUNC_NAME "get_conf"
 #define SETTING_SETTER_FUNC_NAME "set_conf"
 #define USED_SETTINGS_RIDX		 "emblem_used_settings"
-#define EMBLEM_SETTING_LIST_NAME "__em_arguments"
+#define EMBLEM_SETTING_LIST_NAME "__arguments"
 #define INITIAL_MAX_PATH_PARTS	 10
 
-void set_ext_setting_globals(ExtensionState* s)
+void register_ext_setting(ExtensionState* s)
 {
 	lua_newtable(s);
 	lua_setfield(s, LUA_REGISTRYINDEX, USED_SETTINGS_RIDX);
@@ -20,6 +20,7 @@ void set_ext_setting_globals(ExtensionState* s)
 void load_arguments(ExtensionEnv* env, List* args)
 {
 	ExtensionState* s = env->state;
+
 	ListIter li;
 	make_list_iter(&li, args);
 	Str* arg;

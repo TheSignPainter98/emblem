@@ -30,12 +30,12 @@ int ext_include_file(ExtensionState* s)
 	lua_pop(s, 1);
 
 	// Get the arguments and file names list
-	lua_getglobal(s, EM_ARGS_VAR_NAME);
+	get_api_elem(s, EM_ARGS_VAR_NAME);
 	Args* args;
 	int rc = to_userdata_pointer((void**)&args, s, -1, PARSED_ARGS);
 	if (rc)
 		luaL_error(s, "Invalid argument(s)");
-	lua_getglobal(s, EM_MT_NAMES_LIST_VAR_NAME);
+	get_api_elem(s, EM_MT_NAMES_LIST_VAR_NAME);
 
 	Locked* mtNamesList;
 	rc = to_userdata_pointer((void**)&mtNamesList, s, -1, MT_NAMES_LIST);
@@ -51,14 +51,14 @@ int ext_include_file(ExtensionState* s)
 	DocTreeNode* included_root = mpf.just;
 	dest_maybe(&mpf, NULL);
 
-	lua_getglobal(s, EM_ENV_VAR_NAME);
+	get_api_elem(s, EM_ENV_VAR_NAME);
 	ExtensionEnv* env;
 	rc = to_userdata_pointer((void**)&env, s, -1, EXT_ENV);
 	if (rc)
 		luaL_error(s, "Invalid internal value");
 	lua_pop(s, 1);
 
-	lua_getglobal(s, STYLER_LP_LOC);
+	get_api_elem(s, EM_STYLER_LP_LOC);
 	Styler* sty;
 	rc = to_userdata_pointer((void**)&sty, s, -1, STYLER);
 	if (rc)

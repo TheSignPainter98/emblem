@@ -18,7 +18,7 @@ intermediate_moon_mod_file=${input%%.moon}__mod.moon
 intermediate_lua_file=${input%%.moon}.lua
 module_name=$(./scripts/module_name $input)
 
-[[ "$input" =~ (base|constants) ]] || moonc -l $input
+moonc -l $input
 awk -f scripts/moon-module-make.awk -v module_name="$module_name" < "$input" > "$intermediate_moon_mod_file"
 moonc -- < $intermediate_moon_mod_file > $intermediate_lua_file
 moonc -X $input | awk '{r=0}{ for (i=1;i<NF;i++) { t=match($i, /^[0-9]+:\[$/); if (t) { if (r) printf " "; r=1; printf "%s", $i; } } } r { print "" }' | sed 's/:\[//g' > "$loc_map_output"

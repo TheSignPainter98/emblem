@@ -34,12 +34,12 @@ static const int num_style_elements = 59;
 static int ext_declare_stylesheet(ExtensionState* s);
 static int pack_content(ExtensionState* s, const css_computed_content_item* content, DocTreeNode* node);
 
-void set_ext_style_globals(ExtensionState* s)
+void register_ext_style(ExtensionState* s)
 {
 	lua_newtable(s);
 	lua_setfield(s, LUA_REGISTRYINDEX, STYLESHEET_LIST_RIDX);
 
-	lua_register(s, EM_IMPORT_STYLESHEET_FUNC_NAME, ext_declare_stylesheet);
+	register_api_function(s, EM_IMPORT_STYLESHEET_FUNC_NAME, ext_declare_stylesheet);
 }
 
 static int ext_declare_stylesheet(ExtensionState* s)

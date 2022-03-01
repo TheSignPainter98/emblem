@@ -33,14 +33,14 @@ int ext_eval_tree(ExtensionState* s)
 	lua_pop(s, 1);
 	log_debug("Working on node %p", (void*)node);
 
-	lua_getglobal(s, EM_ENV_VAR_NAME);
+	get_api_elem(s, EM_ENV_VAR_NAME);
 	ExtensionEnv* env;
 	rc = to_userdata_pointer((void**)&env, s, -1, EXT_ENV);
 	if (rc)
 		luaL_error(s, "Invalid argument(s)");
 	lua_pop(s, 1);
 
-	lua_getglobal(s, STYLER_LP_LOC);
+	get_api_elem(s, EM_STYLER_LP_LOC);
 	Styler* sty;
 	rc = to_userdata_pointer((void**)&sty, s, -1, STYLER);
 	if (rc)

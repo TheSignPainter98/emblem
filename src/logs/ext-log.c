@@ -18,14 +18,14 @@ static int ext_log_warn_at(ExtensionState* s);
 static int ext_log_info(ExtensionState* s);
 static int ext_log_debug(ExtensionState* s);
 
-void set_ext_logging_globals(ExtensionState* s)
+void register_ext_logging(ExtensionState* s)
 {
-	lua_register(s, "_log_err", ext_log_err);
-	lua_register(s, "_log_err_at", ext_log_err_at);
-	lua_register(s, "_log_warn", ext_log_warn);
-	lua_register(s, "_log_warn_at", ext_log_warn_at);
-	lua_register(s, "_log_info", ext_log_info);
-	lua_register(s, "_log_debug", ext_log_debug);
+	register_api_function(s, "__log_err", ext_log_err);
+	register_api_function(s, "__log_err_at", ext_log_err_at);
+	register_api_function(s, "__log_warn", ext_log_warn);
+	register_api_function(s, "__log_warn_at", ext_log_warn_at);
+	register_api_function(s, "__log_info", ext_log_info);
+	register_api_function(s, "__log_debug", ext_log_debug);
 }
 
 #define ID(x) x

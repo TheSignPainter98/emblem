@@ -12,7 +12,7 @@
 #include <lua.h>
 #include <string.h>
 
-#define EM_COPY_LOC_FUNC_NAME "copy_loc"
+#define EM_COPY_LOC_FUNC_NAME "__copy_loc"
 
 static int ext_copy_location(ExtensionState* s);
 
@@ -23,7 +23,7 @@ Location* dup_loc(Location* todup)
 	return ret;
 }
 
-void set_ext_location_globals(ExtensionState* s) { lua_register(s, "_copy_loc", ext_copy_location); }
+void register_ext_location(ExtensionState* s) { register_api_function(s, EM_COPY_LOC_FUNC_NAME, ext_copy_location); }
 
 static int ext_copy_location(ExtensionState* s)
 {
