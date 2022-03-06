@@ -20,4 +20,4 @@ typedef struct
 } Location;
 
 Location* dup_loc(Location* todup);
-void set_ext_location_globals(ExtensionState* s);
+void register_ext_location(ExtensionState* s);

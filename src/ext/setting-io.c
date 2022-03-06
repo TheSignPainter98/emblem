@@ -8,10 +8,10 @@
 #define SETTING_GETTER_FUNC_NAME "get_conf"
 #define SETTING_SETTER_FUNC_NAME "set_conf"
 #define USED_SETTINGS_RIDX		 "emblem_used_settings"
-#define EMBLEM_SETTING_LIST_NAME "__em_arguments"
+#define EMBLEM_SETTING_LIST_NAME "__arguments"
 #define INITIAL_MAX_PATH_PARTS	 10
 
-void set_ext_setting_globals(ExtensionState* s)
+void register_ext_setting(ExtensionState* s)
 {
 	lua_newtable(s);
 	lua_setfield(s, LUA_REGISTRYINDEX, USED_SETTINGS_RIDX);
@@ -20,6 +20,7 @@ void set_ext_setting_globals(ExtensionState* s)
 void load_arguments(ExtensionEnv* env, List* args)
 {
 	ExtensionState* s = env->state;
+
 	ListIter li;
 	make_list_iter(&li, args);
 	Str* arg;
@@ -31,14 +32,14 @@ void load_arguments(ExtensionEnv* env, List* args)
 		lua_seti(s, -2, idx++);
 	}
 	dest_list_iter(&li);
-	lua_setglobal(s, EMBLEM_SETTING_LIST_NAME);
+	set_api_elem(s, -1, EMBLEM_SETTING_LIST_NAME);
 }
 
 int set_setting(ExtensionEnv* env, const char* name, const char* value)
 {
 	ExtensionState* s = env->state;
 
-	lua_getglobal(s, SETTING_SETTER_FUNC_NAME);
+	get_api_elem(s, SETTING_SETTER_FUNC_NAME);
 	lua_pushstring(s, name);
 	lua_pushstring(s, value);
 	if (lua_pcall(s, 2, 0, 0) != LUA_OK)
@@ -54,7 +55,7 @@ const char* get_setting(ExtensionEnv* env, const char* name)
 	ExtensionState* s = env->state;
 
 	// Get the setting
-	lua_getglobal(s, SETTING_GETTER_FUNC_NAME);
+	get_api_elem(s, SETTING_GETTER_FUNC_NAME);
 	lua_pushstring(s, name);
 	if (lua_pcall(s, 1, 1, 0) != LUA_OK)
 	{

@@ -4,16 +4,18 @@
 -- @author Edward Jones
 -- @date 2021-09-17
 
+import __em from _G
 import len, lower from string
 import concat, insert from table
 
-import node_types from require 'std.constants'
+import node_flags, node_types from require 'std.constants'
 import GLUE_LEFT from node_flags
 import WORD, CALL, CONTENT from node_types
+import __copy_loc, __eval, __log_warn from __em
 
-base = { :eval, :include_file, :requires_reiter, :_log_err, :_log_err_at, :_log_warn, :_log_warn_at, :_log_info, :_log_debug, :_em_loc, :stylesheet, :em_config_file, :__em_arguments }
+base = { k,v for k,v in pairs __em when not k\match '^__' }
 
-stylesheet 'std/base.scss'
+base.stylesheet 'std/base.scss'
 
 ---
 -- @brief Wrap the __get and __set methods into the __index and __newindex methods if available
@@ -125,17 +127,18 @@ class DirectivePublicTable
 		wrapped_func = (...) ->
 			nargs = select '#', ...
 			if nargs < v.nmand
-				_log_warn "Directive .#{k} requires at least #{v.nmand} arguments"
+				__log_warn "Directive .#{k} requires at least #{v.nmand} arguments"
 			elseif v.nopt > 0 and nargs > v.nmand + v.nopt
-				_log_warn "Directive .#{k} takes between #{v.nmand} and #{v.nmand + v.nopt} arguments"
+				__log_warn "Directive .#{k} takes between #{v.nmand} and #{v.nmand + v.nopt} arguments"
 			v.func ...
 		rawset @, k, wrapped_func
 		help[k] = DirectiveHelp k, v
 
-export em = DirectivePublicTable!
+em = DirectivePublicTable!
 ---
 -- @brief Stores directive functions, this table is indexed when evaluating directives to see whether any lua code is to be executed.
 base.em = em
+__em.em = em
 
 ---
 -- @brief Extracts the text beneath a given node
@@ -178,7 +181,7 @@ base.node_string = node_string
 -- @return A string which represents all text at and beneath _d_
 eval_string = (d, pretty) ->
 	if 'userdata' == type d
-		return node_string (eval d), pretty
+		return node_string (__eval d), pretty
 	tostring d
 base.eval_string = eval_string
 
@@ -190,7 +193,7 @@ em.help = Directive 1, 0, "Show documentation for a given directive", (dname) ->
 ---
 -- @brief Returns the number of the current iteration of the typesetting loop (starts at 1)
 -- @return The number of times the typesetting loop has been started this run
-base.iter_num = -> em_iter
+base.iter_num = -> __em.em_iter
 
 vars = {{}}
 ---
@@ -199,13 +202,15 @@ base.vars = vars
 
 ---
 -- @brief Opens a new variable scope
-export open_var_scope = -> insert vars, {}
+open_var_scope = -> insert vars, {}
 base.open_var_scope = open_var_scope
+__em.open_var_scope = open_var_scope
 
 ---
 -- @brief Closes the most recently-opened variable scope
-export close_var_scope = -> vars[#vars] = nil
+close_var_scope = -> vars[#vars] = nil
 base.close_var_scope = close_var_scope
+__em.close_var_scope = close_var_scope
 
 get_scope_widening = (n) -> len n\match '^!*'
 
@@ -214,7 +219,7 @@ get_scope_widening = (n) -> len n\match '^!*'
 -- @param rn The raw variable name as a string or core pointer
 -- @param d An optional default value to return if `rn` does not exist
 -- @return The value of variable `rn` in the current scope otherwise `d`
-export get_var = (rn, d) ->
+get_var = (rn, d) ->
 	wn = eval_string rn
 	widen_by = get_scope_widening wn
 	n = wn\sub 1 + widen_by
@@ -226,6 +231,7 @@ export get_var = (rn, d) ->
 			widen_by -= 1
 	d
 base.get_var = get_var
+__em.get_var = get_var
 em.get_var = Directive 1, 0, "Get the value of a variable in the current scope", get_var
 
 ---
@@ -233,7 +239,7 @@ em.get_var = Directive 1, 0, "Get the value of a variable in the current scope",
 -- @param n The name of the variable (string or code pointer)
 -- @param v The value to set (not changed by this operation)
 -- @param surrounding_scope If set to true, search is bumped up one scope (useful for the .set-var directive which would otherwise have the set value swallowed in its own scope)
-export set_var = (n, v, surrounding_scope=false, search=false) ->
+set_var = (n, v, surrounding_scope=false, search=false) ->
 	-- If widening, search for parent scopes
 	wn = eval_string n
 	name_widen = get_scope_widening wn
@@ -254,6 +260,7 @@ export set_var = (n, v, surrounding_scope=false, search=false) ->
 		idx = #vars > 1 and #vars - extra_widen or 1
 		vars[idx][n] = v
 base.set_var = set_var
+__em.set_var = set_var
 
 ---
 -- @brief Set a given variable to a given value as a string
@@ -273,6 +280,6 @@ base.em_loc = -> get_var 'em_loc'
 ---
 -- @brief Copy a source-code location
 -- @return A copy of the current source code location
-base.copy_loc = -> _copy_loc base.em_loc!
+base.copy_loc = -> __copy_loc base.em_loc!
 
 base

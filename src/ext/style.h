@@ -10,11 +10,11 @@
 #include "ext-env.h"
 #include <stdbool.h>
 
-#define STYLER_LP_LOC "_em_styler"
+#define EM_STYLER_LP_LOC "__em_styler"
 
 void provide_styler(ExtensionEnv* e);
 
-void set_ext_style_globals(ExtensionState* s);
+void register_ext_style(ExtensionState* s);
 int import_stylesheets_from_extensions(ExtensionState* s, Styler* styler, bool parse_css);
 
 int pack_style(ExtensionState* s, Style* style, DocTreeNode* node);

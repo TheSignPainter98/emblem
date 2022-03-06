@@ -20,8 +20,8 @@
 #include "style.h"
 #include <lauxlib.h>
 
-#define EM_CONFIG_FILE_NAME		      "em_config_file"
-#define EM_EVAL_NODE_FUNC_NAME		  "eval"
+#define EM_CONFIG_FILE_NAME			  "em_config_file"
+#define EM_EVAL_NODE_FUNC_NAME		  "__eval"
 #define EM_REQUIRE_RUNS_FUNC_NAME	  "requires_reiter"
 #define LUA_POINTER_GC_METATABLE_RKEY "emblem_core_pointer"
 
@@ -56,9 +56,11 @@ static luaL_Reg lua_std_libs_restriction_lvl_0[] = {
 };
 
 static int ext_dest_lua_pointer(ExtensionState* s);
-static void set_globals(ExtensionEnv* e, ExtParams* params);
-static void load_em_std_functions(ExtensionState* s);
+static void setup_api_table(ExtensionEnv* e, ExtParams* params);
+static void load_em_std_apis(ExtensionState* s);
 static int load_libraries(ExtensionState* s, ExtParams* params);
+static void resist_api_table_changes(ExtensionState* s);
+static int ext_api_table_reject_new_index(ExtensionState* s);
 static void load_library_set(ExtensionState* s, luaL_Reg* lib);
 static int ext_require_rerun(ExtensionState* s);
 
@@ -137,7 +139,7 @@ int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 	ext->iter_num		   = 0;
 	log_debug("Getting created ext state at %p in env %p", (void*)ext->state, (void*)ext);
 
-	set_globals(ext, params);
+	setup_api_table(ext, params);
 
 	load_arguments(ext, params->ext_args);
 
@@ -145,16 +147,23 @@ int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 	if ((rc = load_libraries(ext->state, params)))
 		return rc;
 
+	resist_api_table_changes(ext->state);
+
 	return load_extensions(ext->state, params);
 }
 
 void dest_ext_env(ExtensionEnv* ext) { lua_close(ext->state); }
 
-static void set_globals(ExtensionEnv* e, ExtParams* params)
+static void setup_api_table(ExtensionEnv* e, ExtParams* params)
 {
 	ExtensionState* s = e->state;
 
-	ext_set_global_constants(s);
+	// Store the Emblem API table
+	lua_newtable(s);
+	lua_pushstring(s, params->config_file->str);
+	lua_setfield(s, -2, EM_CONFIG_FILE_NAME);
+
+	setup_lua_constants_api(s);
 
 	// Garbage collector metatable for luapointers
 	luaL_newmetatable(s, LUA_POINTER_GC_METATABLE_RKEY);
@@ -172,27 +181,25 @@ static void set_globals(ExtensionEnv* e, ExtParams* params)
 
 	// Store the iteration number
 	lua_pushinteger(s, 0);
-	lua_setglobal(s, EM_ITER_NUM_VAR_NAME);
+	lua_setfield(s, -2, EM_ITER_NUM_VAR_NAME);
 
 	// Allow the environment to access itself
 	new_lua_pointer(s, EXT_ENV, e, false);
-	lua_setglobal(s, EM_ENV_VAR_NAME);
+	lua_setfield(s, -2, EM_ENV_VAR_NAME);
 
 	// Store the args in raw form
 	new_lua_pointer(s, PARSED_ARGS, params->args, false);
-	lua_setglobal(s, EM_ARGS_VAR_NAME);
+	lua_setfield(s, -2, EM_ARGS_VAR_NAME);
 
 	// Store the names list
 	new_lua_pointer(s, MT_NAMES_LIST, params->mt_names_list, false);
-	lua_setglobal(s, EM_MT_NAMES_LIST_VAR_NAME);
+	lua_setfield(s, -2, EM_MT_NAMES_LIST_VAR_NAME);
 
 	// Store the styler
 	new_lua_pointer(s, STYLER, params->styler, false);
-	lua_setglobal(e->state, STYLER_LP_LOC);
+	lua_setfield(s, -2, EM_STYLER_LP_LOC);
 
-	// Store the config file
-	lua_pushstring(s, params->config_file->str);
-	lua_setglobal(s, EM_CONFIG_FILE_NAME);
+	lua_setglobal(s, EM_API_TABLE_NAME);
 }
 
 #define LOAD_LIBRARY_SET(lvl, s, lib)                                                                                  \
@@ -207,21 +214,66 @@ static int load_libraries(ExtensionState* s, ExtParams* params)
 	LOAD_LIBRARY_SET(1, s, lua_std_libs_restriction_lvl_1);
 	LOAD_LIBRARY_SET(0, s, lua_std_libs_restriction_lvl_0);
 
-	load_em_std_functions(s);
+	load_em_std_apis(s);
 
 	return load_em_std_lib(s);
 }
 
-static void load_em_std_functions(ExtensionState* s)
+static void load_em_std_apis(ExtensionState* s)
 {
-	lua_register(s, EM_EVAL_NODE_FUNC_NAME, ext_eval_tree);
-	lua_register(s, EM_REQUIRE_RUNS_FUNC_NAME, ext_require_rerun);
-	lua_register(s, EM_INCLUDE_FILE_FUNC_NAME, ext_include_file);
+	lua_getglobal(s, EM_API_TABLE_NAME);
+	register_api_function(s, EM_EVAL_NODE_FUNC_NAME, ext_eval_tree);
+	register_api_function(s, EM_REQUIRE_RUNS_FUNC_NAME, ext_require_rerun);
+	register_api_function(s, EM_INCLUDE_FILE_FUNC_NAME, ext_include_file);
 
-	set_ext_logging_globals(s);
-	set_ext_location_globals(s);
-	set_ext_style_globals(s);
-	set_ext_setting_globals(s);
+	register_ext_logging(s);
+	register_ext_location(s);
+	register_ext_style(s);
+	register_ext_setting(s);
+	lua_pop(s, 1);
+}
+
+void get_api_elem(ExtensionState* s, const char* name)
+{
+	lua_getglobal(s, EM_API_TABLE_NAME);
+	lua_getfield(s, -1, name);
+	lua_rotate(s, -2, 1);
+	lua_pop(s, 1);
+}
+
+void set_api_elem(ExtensionState* s, int idx, const char* name)
+{
+	lua_getglobal(s, EM_API_TABLE_NAME);
+	lua_rotate(s, idx - 1, -1);
+	lua_setfield(s, -2, name);
+	lua_pop(s, 1);
+}
+
+void update_api_elem(ExtensionState* s, int idx, const char* name)
+{
+	lua_getglobal(s, EM_API_TABLE_NAME);
+	lua_pushstring(s, name);
+	lua_rotate(s, idx - 2, -1);
+	lua_rawset(s, -3);
+	lua_pop(s, 1);
+}
+
+static void resist_api_table_changes(ExtensionState* s)
+{
+	lua_createtable(s, 0, 0);
+	luaL_newmetatable(s, EM_API_TABLE_NAME);
+	lua_getglobal(s, EM_API_TABLE_NAME);
+	lua_setfield(s, -2, "__index");
+	lua_pushcfunction(s, ext_api_table_reject_new_index);
+	lua_setfield(s, -2, "__newindex");
+	lua_setmetatable(s, -2);
+	lua_setglobal(s, EM_API_TABLE_NAME);
+}
+
+static int ext_api_table_reject_new_index(ExtensionState* s)
+{
+	luaL_error(s, "The emblem API table should not be modified");
+	return 0;
 }
 
 static void load_library_set(ExtensionState* s, luaL_Reg* lib)
@@ -240,7 +292,7 @@ static int ext_require_rerun(ExtensionState* s)
 		if (log_warn("Arguments to %s are ignored", EM_REQUIRE_RUNS_FUNC_NAME))
 			luaL_error(s, "Warnings are fatal");
 
-	lua_getglobal(s, EM_ENV_VAR_NAME);
+	get_api_elem(s, EM_ENV_VAR_NAME);
 	ExtensionEnv* e;
 	int rc = to_userdata_pointer((void**)&e, s, -1, EXT_ENV);
 	lua_pop(s, 1);

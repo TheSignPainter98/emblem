@@ -93,14 +93,10 @@ unit_fmt = => "\tlua_pushliteral(s, \"#{(@name\gsub '^UNIT_', '')\lower!}\");\n\
 if elem {...}, '-c'
 	formatted_const_sources = concat [ "#include \"#{src}\"" for src in *constant_sources ], '\n'
 
-	const_domain_fmt = (n, d, scope='global') ->
+	const_domain_fmt = (n, d) ->
 		create_tab_call = "\tlua_createtable(s, 0, #{tab_len d});"
 		decls = concat [ tostring c for c in *d ], '\n'
-		local set_tab_call
-		if scope == 'field'
-			set_tab_call = "\tlua_setfield(s, -2, \"#{sanitise_name n}\");"
-		else -- scope == global
-			set_tab_call = "\tlua_setglobal(s, \"#{sanitise_name n}\");"
+		set_tab_call = "\tlua_setfield(s, -2, \"#{sanitise_name n}\");"
 		concat { create_tab_call, decls, set_tab_call, '' }, '\n'
 
 	formatted_constants = concat [ const_domain_fmt n, d for n,d in pairs constants ], '\n\n'
@@ -110,7 +106,7 @@ if elem {...}, '-c'
 	libcss_header_files = libcss_files LIBCSS_LOC
 	libcss_header_includes = concat (sorted [ "#include <libcss/#{hdr}>" for hdr in *libcss_header_files ]), '\n'
 	libcss_constants = get_libcss_constants libcss_header_files, LIBCSS_LOC
-	libcss_formatted_constants = concat [ const_domain_fmt n, d, 'field' for n,d in pairs libcss_constants ], '\n'
+	libcss_formatted_constants = concat [ const_domain_fmt n, d for n,d in pairs libcss_constants ], '\n'
 	libcss_formatted_unit_converter = concat [ unit_fmt unit for unit in *css_unit_domain ], '\n'
 
 	print "/**
@@ -129,8 +125,10 @@ if elem {...}, '-c'
  *
  * @param s Extension state into which the constants are added
  */
-void ext_set_global_constants(ExtensionState* s)
+void setup_lua_constants_api(ExtensionState* s)
 {
+	lua_createtable(s, 0, #{1 + #[1 for _ in pairs constants]});
+
 #{formatted_constants}
 
 	lua_createtable(s, 0, #{#libcss_constants});
@@ -138,8 +136,11 @@ void ext_set_global_constants(ExtensionState* s)
 	lua_createtable(s, #{#css_unit_domain}, 0);
 #{libcss_formatted_unit_converter}
 	lua_setfield(s, -2, \"unit_str\");
-	lua_setglobal(s, \"#{CSS_DOMAIN_NAME}\");
+	lua_setfield(s, -2, \"#{CSS_DOMAIN_NAME}\");
+
+	lua_setfield(s, -2, \"__constants\");
 }"
+
 elseif elem {...}, '-m'
 	insert domains, CSS_DOMAIN_NAME
 	print "---"
@@ -148,7 +149,10 @@ elseif elem {...}, '-m'
 	print "-- @author scripts/lua-constants"
 	print "-- @date 2021-09-17"
 	print ""
-	print "{ #{concat [ "#{d}: _G['#{d}']" for d in *domains ], ', '} }"
+	print "import __em from _G"
+	print "import __constants from __em"
+	print ""
+	print "{ #{concat [ "#{d}: __constants['#{d}']" for d in *domains ], ', '} }"
 else
 	import stderr from io
 	import exit from os
