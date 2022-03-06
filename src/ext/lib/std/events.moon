@@ -9,6 +9,7 @@ import show, ShowTable from require 'std.show'
 import do_nothing, filter_list from require 'std.func'
 import elem, eq, non_nil from require 'std.util'
 import concat, insert from table
+import __em from _G
 
 components = {}
 ---
@@ -27,7 +28,7 @@ events = {
 	'on_end'
 }
 for event in *events
-	_G[event] = (...) ->
+	__em[event] = (...) ->
 		for comp in *components
 			comp[event](comp, ...) if comp[event] != do_nothing
 

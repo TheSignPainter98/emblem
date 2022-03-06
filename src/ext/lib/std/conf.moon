@@ -24,7 +24,7 @@ if open
 
 conf_path_parts = (path) -> [ d for d in path\gmatch '([^.]*).?' ]
 
-export get_conf = (name) ->
+get_conf = (name) ->
 	c = settings
 	parts = conf_path_parts name
 	n_parts = #parts
@@ -33,8 +33,9 @@ export get_conf = (name) ->
 		if ('table' != type c) and i < n_parts
 			return nil
 	c
+__em.get_conf = get_conf
 
-export set_conf = (name, value) ->
+set_conf = (name, value) ->
 	error "Config path must be a string" unless 'string' == type name
 	c = settings
 	parts = conf_path_parts name
@@ -42,6 +43,7 @@ export set_conf = (name, value) ->
 	for i = 1, n_parts - 1
 		c = c[parts[i]]
 	c[parts[n_parts]] = value
+__em.set_conf = set_conf
 
 for arg in *__arguments
 	path, val = arg\match '([^=]+)=(.*)'

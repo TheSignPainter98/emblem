@@ -32,14 +32,14 @@ void load_arguments(ExtensionEnv* env, List* args)
 		lua_seti(s, -2, idx++);
 	}
 	dest_list_iter(&li);
-	lua_setglobal(s, EMBLEM_SETTING_LIST_NAME);
+	set_api_elem(s, -1, EMBLEM_SETTING_LIST_NAME);
 }
 
 int set_setting(ExtensionEnv* env, const char* name, const char* value)
 {
 	ExtensionState* s = env->state;
 
-	lua_getglobal(s, SETTING_SETTER_FUNC_NAME);
+	get_api_elem(s, SETTING_SETTER_FUNC_NAME);
 	lua_pushstring(s, name);
 	lua_pushstring(s, value);
 	if (lua_pcall(s, 2, 0, 0) != LUA_OK)
@@ -55,7 +55,7 @@ const char* get_setting(ExtensionEnv* env, const char* name)
 	ExtensionState* s = env->state;
 
 	// Get the setting
-	lua_getglobal(s, SETTING_GETTER_FUNC_NAME);
+	get_api_elem(s, SETTING_GETTER_FUNC_NAME);
 	lua_pushstring(s, name);
 	if (lua_pcall(s, 1, 1, 0) != LUA_OK)
 	{

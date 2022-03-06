@@ -18,6 +18,7 @@
 
 #define CLOSE_VAR_SCOPE_FUNC_NAME "close_var_scope"
 #define OPEN_VAR_SCOPE_FUNC_NAME  "open_var_scope"
+#define SET_VAR_FUNC_NAME		  "set_var"
 
 static bool is_callable(ExtensionState* s, int idx);
 static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_iter) __attribute__((nonnull(1)));
@@ -25,9 +26,9 @@ static int resolve_styling(DocTreeNode* node, Styler* sty) __attribute__((nonnul
 
 void inc_iter_num(Doc* doc)
 {
-	doc->ext->iter_num++;
-	lua_pushinteger(doc->ext->state, doc->ext->iter_num);
-	lua_setglobal(doc->ext->state, EM_ITER_NUM_VAR_NAME);
+	ExtensionState* s = doc->ext->state;
+	lua_pushinteger(s, ++doc->ext->iter_num);
+	update_api_elem(s, -1, EM_ITER_NUM_VAR_NAME);
 }
 
 int exec_lua_pass(Doc* doc)
@@ -82,7 +83,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			if (node->content->call->result)
 				dest_free_doc_tree_node(node->content->call->result, true, CORE_POINTER_DEREFERENCE);
 
-			lua_getglobal(s, EM_PUBLIC_TABLE);
+			get_api_elem(s, EM_PUBLIC_TABLE);
 			lua_getfield(s, -1, node->name->str);
 			if (lua_isnoneornil(s, -1) || node->flags & STYLE_DIRECTIVE_ONLY)
 			{
@@ -134,7 +135,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			dest_list_iter(&li);
 
 			// Open variable scope
-			lua_getglobal(s, OPEN_VAR_SCOPE_FUNC_NAME);
+			get_api_elem(s, OPEN_VAR_SCOPE_FUNC_NAME);
 			if (!is_callable(s, -1))
 			{
 				log_err("Variable " OPEN_VAR_SCOPE_FUNC_NAME " is not a callable. Something has changed this!");
@@ -147,7 +148,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			}
 
 			// Update the location
-			lua_getglobal(s, "set_var");
+			get_api_elem(s, SET_VAR_FUNC_NAME);
 			lua_pushliteral(s, EM_LOC_NAME);
 			LuaPointer* locp = new_lua_pointer(s, LOCATION, node->src_loc, false);
 			dumpstack(s);
@@ -191,7 +192,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			invalidate_lua_pointer(locp);
 
 			// Close variable scope
-			lua_getglobal(s, CLOSE_VAR_SCOPE_FUNC_NAME);
+			get_api_elem(s, CLOSE_VAR_SCOPE_FUNC_NAME);
 			if (!is_callable(s, -1))
 			{
 				log_err_at(node->src_loc,

@@ -13,6 +13,7 @@
 #include <string.h>
 
 #define EM_COPY_LOC_FUNC_NAME "__copy_loc"
+#define GET_VARIABLE_FUNC_NAME "get_var"
 
 static int ext_copy_location(ExtensionState* s);
 
@@ -27,7 +28,7 @@ void register_ext_location(ExtensionState* s) { register_api_function(s, EM_COPY
 
 static int ext_copy_location(ExtensionState* s)
 {
-	lua_getglobal(s, "get_var");
+	get_api_elem(s, GET_VARIABLE_FUNC_NAME);
 	lua_pushliteral(s, EM_LOC_NAME);
 	if (lua_pcall(s, 1, 1, 0) != LUA_OK)
 		luaL_error(s, "Failed to get " EM_LOC_NAME ": %s", lua_tostring(s, -1));

@@ -28,7 +28,7 @@ int do_lua_end_event(ExtensionState* s) { return do_event(s, ON_END_EVENT_NAME);
 static int do_event(ExtensionState* s, const char* event_name)
 {
 	log_debug("Executing event '%s'", event_name);
-	lua_getglobal(s, event_name);
+	get_api_elem(s, event_name);
 	int rc = lua_pcall(s, 0, 0, 0);
 	switch (rc)
 	{

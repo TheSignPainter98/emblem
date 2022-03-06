@@ -8,7 +8,7 @@ BEGIN {
 	}
 }
 
-/^stylesheet/ && !/,/ {
+/^((base|__em)\.)?stylesheet/ && !/,/ {
 	name = $2
 	gsub("['\"]", "", name)
 
@@ -18,7 +18,11 @@ BEGIN {
 	while ((getline line < stylesheet_loc) > 0)
 		stylesheet_content = stylesheet_content "\n" line
 	if (stylesheet_content)
-		printf "\nstylesheet '%s', '/* Internal stylesheet for module %s */%s'", stylesheet_loc, escape(module_name), escape(stylesheet_content)
+	{
+		if (NR > 1)
+			print str
+		str = sprintf("__em.stylesheet '%s', '/* Internal stylesheet for module %s */%s'", stylesheet_loc, escape(module_name), escape(stylesheet_content))
+	}
 	else
 		print $0
 	next
