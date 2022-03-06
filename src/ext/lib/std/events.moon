@@ -5,17 +5,19 @@
 -- @date 2021-09-17
 
 import requires_reiter from require 'std.base'
+import EphemeronTable from require 'std.data'
 import show, ShowTable from require 'std.show'
 import do_nothing, filter_list from require 'std.func'
 import elem, eq, non_nil from require 'std.util'
 import concat, insert from table
 import __em from _G
 
-components = {}
+components = EphemeronTable!
+
 ---
 -- @brief Represents a component of a document which can respond to typesetting events
 class Component
-	new: => insert components, @
+	new: => components[@] = true
 	on_start: do_nothing
 	on_iter_start: do_nothing
 	on_iter_end: do_nothing
@@ -29,7 +31,7 @@ events = {
 }
 for event in *events
 	__em[event] = (...) ->
-		for comp in *components
+		for comp,_ in pairs components
 			comp[event](comp, ...) if comp[event] != do_nothing
 
 ---
