@@ -30,6 +30,7 @@ import
 	__get_num_children
 	__get_parent
 	__get_raw_word
+	__get_result
 	__get_sanitised_word
 	__get_style
 	__new_call
@@ -55,6 +56,7 @@ funcs = {
 	'__get_num_children',
 	'__get_parent'
 	'__get_raw_word'
+	'__get_result',
 	'__get_sanitised_word'
 	'__get_style'
 	'__new_call'
@@ -132,6 +134,7 @@ class Call
 			.__get = @attrs
 			.__set = @attrs
 		wrap_indices @
+	result: => nodes[__get_result @_n]
 	__tostring: => super!
 
 class Word

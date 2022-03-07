@@ -482,6 +482,15 @@ static int ext_get_node_num_children(ExtensionState* s)
 	return 1;
 }
 
+static int ext_get_node_result(ExtensionState* s)
+{
+	DocTreeNode* node = ensure_first_arg_is_node(s);
+	if (node->content->type != CALL)
+		return luaL_error(s, "Cannot get result from %s node", node_tree_content_type_names[node->content->type]);
+	get_doc_tree_node_lua_pointer(s, node->content->call->result);
+	return 1;
+}
+
 void register_ext_node(ExtensionState* s)
 {
 	register_api_table(s, "__node", {
@@ -497,5 +506,6 @@ void register_ext_node(ExtensionState* s)
 		register_api_function(s, "__new_call", ext_new_call_node);
 		register_api_function(s, "__get_content_type", ext_get_node_content_type);
 		register_api_function(s, "__get_num_children", ext_get_node_num_children);
+		register_api_function(s, "__get_result", ext_get_node_result);
 	});
 }
