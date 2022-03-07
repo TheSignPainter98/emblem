@@ -363,3 +363,139 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 	lua_pop(s, 1);
 	return rc;
 }
+
+// TODO: complete re-implementation!
+
+static inline DocTreeNode* ensure_first_arg_is_node(ExtensionState* s)
+{
+	DocTreeNode* ret = NULL;
+	luaL_argcheck(s, true, !to_userdata_pointer((void**)&ret, s, 1, DOC_TREE_NODE), "Expected node argument");
+	return ret;
+}
+
+static int ext_get_node_flags(ExtensionState* s)
+{
+	DocTreeNodeFlags flags = ensure_first_arg_is_node(s)->flags;
+	lua_pushinteger(s, flags & ACCEPTABLE_EXTENSION_FLAG_MASK);
+	return 1;
+}
+
+static int ext_set_node_flags(ExtensionState* s)
+{
+	DocTreeNode* node = ensure_first_arg_is_node(s);
+	luaL_argcheck(s, true, lua_isinteger(s, 2), "Node flags must be an integer value");
+
+	DocTreeNodeFlags flags = lua_tointeger(s, 2);
+	{
+		DocTreeNodeFlags bad_flags = flags & ~ACCEPTABLE_EXTENSION_FLAG_MASK;
+		if (bad_flags)
+			if (log_warn("Ignoring invalid flags: %x", bad_flags))
+				return 1;
+	}
+
+	node->flags = (node->flags & ~ACCEPTABLE_EXTENSION_FLAG_MASK) | (flags & ACCEPTABLE_EXTENSION_FLAG_MASK);
+
+	return 0;
+}
+
+static int ext_get_node_name(ExtensionState* s)
+{
+	Str* name = ensure_first_arg_is_node(s)->name;
+	lua_pushlstring(s, name->str, name->len);
+	return 1;
+}
+
+static int ext_get_node_last_eval(ExtensionState* s)
+{
+	int last_eval = ensure_first_arg_is_node(s)->last_eval;
+	lua_pushinteger(s, last_eval);
+	return 1;
+}
+
+static int ext_get_node_parent(ExtensionState* s)
+{
+	DocTreeNode* parent = ensure_first_arg_is_node(s)->parent;
+	get_doc_tree_node_lua_pointer(s, parent);
+	return 1;
+}
+
+static int ext_get_node_raw_word(ExtensionState* s)
+{
+	DocTreeNode* node = ensure_first_arg_is_node(s);
+	if (node->content->type != WORD)
+		return luaL_error(s, "Cannot extract raw word from node of type %d", node->content->type);
+	Str* word = node->content->word->raw;
+	lua_pushlstring(s, word->str, word->len);
+	return 1;
+}
+
+static int ext_get_node_sanitised_word(ExtensionState* s)
+{
+	DocTreeNode* node = ensure_first_arg_is_node(s);
+	if (node->content->type != WORD)
+		return luaL_error(s, "Cannot extract raw word from node of type %d", node->content->type);
+	Str* word = node->content->word->sanitised;
+	lua_pushlstring(s, word->str, word->len);
+	return 1;
+}
+
+static int ext_new_content_node(ExtensionState* s)
+{
+	DocTreeNode* node;
+	make_doc_tree_node_content(node = malloc(sizeof(DocTreeNode)), NULL); // TODO: get the location!
+	get_doc_tree_node_lua_pointer(s, node);
+	return 1;
+}
+
+static int ext_new_word_node(ExtensionState* s)
+{
+	luaL_argcheck(s, true, lua_isstring(s, 1), "New word nodes need a string to represent");
+
+	Str* word;
+	const char* raw = lua_tostring(s, 1);
+	make_strc(word = malloc(sizeof(Str)), raw);
+	DocTreeNode* node;
+	make_doc_tree_node_word(node = malloc(sizeof(DocTreeNode)), word, NULL); // TODO: get the location!
+	get_doc_tree_node_lua_pointer(s, node);
+	return 1;
+}
+
+static int ext_new_call_node(ExtensionState* s)
+{
+	luaL_argcheck(s, true, lua_isstring(s, 1), "New call-nodes need a string call-name as the first argument");
+	// TODO: complete the implementation of this!
+	return 1;
+}
+
+static int ext_get_node_content_type(ExtensionState* s)
+{
+	lua_pushinteger(s, ensure_first_arg_is_node(s)->content->type);
+	return 1;
+}
+
+static int ext_get_node_num_children(ExtensionState* s)
+{
+	DocTreeNode* node = ensure_first_arg_is_node(s);
+	if (node->content->type != CONTENT)
+		return luaL_error(s, "Cannot get content from %s node", node_tree_content_type_names[node->content->type]);
+	lua_pushinteger(s, node->content->content->cnt);
+	return 1;
+}
+
+void register_ext_node(ExtensionState* s)
+{
+	register_api_table(s, "__node", {
+		register_api_function(s, "__get_flags", ext_get_node_flags);
+		register_api_function(s, "__set_flags", ext_set_node_flags);
+		register_api_function(s, "__get_name", ext_get_node_name);
+		register_api_function(s, "__get_last_eval", ext_get_node_last_eval);
+		register_api_function(s, "__get_sanitised_word", ext_get_node_sanitised_word);
+		register_api_function(s, "__get_raw_word", ext_get_node_raw_word);
+		register_api_function(s, "__get_parent", ext_get_node_parent);
+		register_api_function(s, "__new_word", ext_new_word_node);
+		register_api_function(s, "__new_content", ext_new_content_node);
+		register_api_function(s, "__new_call", ext_new_call_node);
+		register_api_function(s, "__get_content_type", ext_get_node_content_type);
+		register_api_function(s, "__get_num_children", ext_get_node_num_children);
+	});
+}

@@ -22,6 +22,13 @@
 		lua_setfield(s, -2, name);                                                                                     \
 	}
 
+#define register_api_table(s, name, api)                                                                               \
+	{                                                                                                                  \
+		lua_newtable(s);                                                                                               \
+		api;                                                                                                           \
+		lua_setfield(s, -2, name);                                                                                     \
+	}
+
 extern const char* const lua_pointer_type_names[];
 
 typedef enum

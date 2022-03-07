@@ -230,6 +230,7 @@ static void load_em_std_apis(ExtensionState* s)
 	register_ext_location(s);
 	register_ext_style(s);
 	register_ext_setting(s);
+	register_ext_node(s);
 	lua_pop(s, 1);
 }
 
