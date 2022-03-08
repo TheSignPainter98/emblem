@@ -120,6 +120,7 @@ class Content
 		super __new_content!
 		@append_child child for child in *children
 	append_child: (c) => __append_child @_n, c._n
+	child: (i) => __get_child @_n, i
 	len: => __get_num_children @_n
 	iter: => wrap -> yield __get_child @_n, i for i = 1,@len!
 	copy: =>
@@ -134,6 +135,7 @@ class Call
 			.__get = @attrs
 			.__set = @attrs
 		wrap_indices @
+	arg: (i) => __get_arg @_n, i
 	result: => nodes[__get_result @_n]
 	__tostring: => super!
 

@@ -491,6 +491,99 @@ static int ext_get_node_result(ExtensionState* s)
 	return 1;
 }
 
+static int ext_get_node_child(ExtensionState* s)
+{
+	DocTreeNode* node = ensure_first_arg_is_node(s);
+	luaL_argcheck(s, true, lua_isnumber(s, 2), "Index of child must be a number");
+	if (node->content->type != CONTENT)
+		return luaL_error(s, "Cannot get children of %s node", node_tree_content_type_names[node->content->type]);
+
+	Maybe m;
+	get_list_elem(&m, node->content->content, lua_tointeger(s, 2));
+	switch (m.type)
+	{
+		case NOTHING:
+			lua_pushnil(s);
+			break;
+		case JUST:
+			get_doc_tree_node_lua_pointer(s, (DocTreeNode*)m.just);
+			break;
+	}
+	return 1;
+}
+
+static int ext_get_node_arg(ExtensionState* s)
+{
+	DocTreeNode* node = ensure_first_arg_is_node(s);
+	luaL_argcheck(s, true, lua_isnumber(s, 2), "Index of argument must be a number");
+	if (node->content->type != CALL)
+		return luaL_error(s, "Cannot get arguments of %s node", node_tree_content_type_names[node->content->type]);
+
+	Maybe m;
+	get_list_elem(&m, node->content->call->args, lua_tointeger(s, 2));
+	switch (m.type)
+	{
+		case NOTHING:
+			lua_pushnil(s);
+			break;
+		case JUST:
+			get_doc_tree_node_lua_pointer(s, (DocTreeNode*)m.just);
+			break;
+	}
+	return 1;
+}
+
+static int ext_get_node_style(ExtensionState* s)
+{
+	DocTreeNode* node = ensure_first_arg_is_node(s);
+	pack_style(s, node->style, node);
+	return 1;
+}
+
+static int ext_get_node_attr(ExtensionState* s)
+{
+	DocTreeNode* node = ensure_first_arg_is_node(s);
+	luaL_argcheck(s, true, lua_isstring(s, 2), "Attribute-getting requires string key");
+	if (node->content->type != CALL)
+		return luaL_error(s, "Cannot get attributes from %s node", node_tree_content_type_names[node->content->type]);
+
+	Maybe m;
+	Str k;
+	make_strv(&k, lua_tostring(s, 2));
+	get_map(&m, node->content->call->attrs, &k);
+	switch (m.type)
+	{
+		case NOTHING:
+			lua_pushnil(s);
+			break;
+		case JUST:
+			lua_pushstring(s, ((Str*)m.just)->str);
+			break;
+	}
+	dest_str(&k);
+	return 1;
+}
+
+static int ext_set_node_attr(ExtensionState* s)
+{
+	DocTreeNode* node = ensure_first_arg_is_node(s);
+	luaL_argcheck(s, true, lua_isstring(s, 2), "Attribute setting requires string key");
+	luaL_argcheck(s, true, lua_isstring(s, 3), "Attibute values must be strings");
+	if (node->content->type != CALL)
+		return luaL_error(s, "Cannot set attributes of %s node", node_tree_content_type_names[node->content->type]);
+
+	Str* k;
+	Str* v;
+	make_strc(k = malloc(sizeof(Str)), lua_tostring(s, 2));
+	make_strc(k = malloc(sizeof(Str)), lua_tostring(s, 3));
+
+	Maybe m;
+	push_map(&m, node->content->call->attrs, k, v);
+	if (m.type == JUST)
+		dest_free_str((Str*)m.just);
+	return 0;
+}
+
 void register_ext_node(ExtensionState* s)
 {
 	register_api_table(s, "__node", {
@@ -507,5 +600,10 @@ void register_ext_node(ExtensionState* s)
 		register_api_function(s, "__get_content_type", ext_get_node_content_type);
 		register_api_function(s, "__get_num_children", ext_get_node_num_children);
 		register_api_function(s, "__get_result", ext_get_node_result);
+		register_api_function(s, "__get_child", ext_get_node_child);
+		register_api_function(s, "__get_arg", ext_get_node_arg);
+		register_api_function(s, "__get_style", ext_get_node_style);
+		register_api_function(s, "__get_attr", ext_get_node_attr);
+		register_api_function(s, "__set_attr", ext_set_node_attr);
 	});
 }

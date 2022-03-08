@@ -39,6 +39,21 @@ void dest_list(List* l, Destructor ed)
 
 void set_sublist(List* l, bool is_sublist) { l->own_mem = !is_sublist; }
 
+void get_list_elem(Maybe* mo, List* l, size_t idx)
+{
+	if (l->cnt <= idx)
+	{
+		make_maybe_nothing(mo);
+		return;
+	}
+
+	ListNode* curr = l->fst;
+	while (idx--)
+		curr = curr->nxt;
+
+	make_maybe_just(mo, curr->data);
+}
+
 void make_list_node(ListNode* ln, void* data)
 {
 	ln->nxt		 = NULL;

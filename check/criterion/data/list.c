@@ -27,6 +27,51 @@ Test(list, node_memory_life_cycle)
 	dest_list_node(&ln, NULL);
 }
 
+Test(list, get_elem_idx_present)
+{
+	List l;
+	make_list(&l);
+	for (size_t i = 0; i < 100; i++)
+		append_list(&l, (void*)(i * 2));
+
+	Maybe m;
+	for (size_t i = 0; i < 100; i++)
+	{
+		get_list_elem(&m,&l, i);
+		cr_assert(m.type == JUST, "List reported that it could not retrieve a valid index");
+		cr_assert((size_t)m.just == i * 2, "List-getting returned incorrect value at index %ld: expected %ld but got %ld", i, i * 2, (size_t)m.just);
+	}
+
+	dest_list(&l, NULL);
+}
+
+Test(list, get_elem_idx_empty)
+{
+	List l;
+	make_list(&l);
+
+	Maybe m;
+	get_list_elem(&m,&l, 1000);
+	cr_assert(m.type == NOTHING, "List reported that it could retrieve an invalid index");
+
+	dest_list(&l, NULL);
+}
+
+
+Test(list, get_elem_idx_absent)
+{
+	List l;
+	make_list(&l);
+	for (size_t i = 0; i < 100; i++)
+		append_list(&l, (void*)(i * 2));
+
+	Maybe m;
+	get_list_elem(&m,&l, 1000);
+	cr_assert(m.type == NOTHING, "List reported that it could retrieve an invalid index");
+
+	dest_list(&l, NULL);
+}
+
 Test(list, set_sub)
 {
 	List l;

@@ -106,6 +106,15 @@ void dest_list(List* l, Destructor ed);
 void set_sublist(List* l, bool is_sublist);
 
 /**
+ * @brief Get a particular element of a list
+ *
+ * @param mo Maybe object to contain the result, if the index is valid.
+ * @param l The list from which to fetch the element
+ * @param idx The index of the element to find.
+ */
+void get_list_elem(Maybe* mo, List* l, size_t idx);
+
+/**
  * @brief Initialise a list node
  *
  * @param ln Pointer to the memory to initialise
