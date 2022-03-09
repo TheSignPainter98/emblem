@@ -366,23 +366,23 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 
 // TODO: complete re-implementation!
 
-static inline DocTreeNode* ensure_first_arg_is_node(ExtensionState* s)
+static inline DocTreeNode* ensure_arg_is_node(ExtensionState* s, int idx)
 {
 	DocTreeNode* ret = NULL;
-	luaL_argcheck(s, true, !to_userdata_pointer((void**)&ret, s, 1, DOC_TREE_NODE), "Expected node argument");
+	luaL_argcheck(s, true, !to_userdata_pointer((void**)&ret, s, idx, DOC_TREE_NODE), "Expected node argument");
 	return ret;
 }
 
 static int ext_get_node_flags(ExtensionState* s)
 {
-	DocTreeNodeFlags flags = ensure_first_arg_is_node(s)->flags;
+	DocTreeNodeFlags flags = ensure_arg_is_node(s, 1)->flags;
 	lua_pushinteger(s, flags & ACCEPTABLE_EXTENSION_FLAG_MASK);
 	return 1;
 }
 
 static int ext_set_node_flags(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_first_arg_is_node(s);
+	DocTreeNode* node = ensure_arg_is_node(s, 1);
 	luaL_argcheck(s, true, lua_isinteger(s, 2), "Node flags must be an integer value");
 
 	DocTreeNodeFlags flags = lua_tointeger(s, 2);
@@ -400,28 +400,28 @@ static int ext_set_node_flags(ExtensionState* s)
 
 static int ext_get_node_name(ExtensionState* s)
 {
-	Str* name = ensure_first_arg_is_node(s)->name;
+	Str* name = ensure_arg_is_node(s, 1)->name;
 	lua_pushlstring(s, name->str, name->len);
 	return 1;
 }
 
 static int ext_get_node_last_eval(ExtensionState* s)
 {
-	int last_eval = ensure_first_arg_is_node(s)->last_eval;
+	int last_eval = ensure_arg_is_node(s, 1)->last_eval;
 	lua_pushinteger(s, last_eval);
 	return 1;
 }
 
 static int ext_get_node_parent(ExtensionState* s)
 {
-	DocTreeNode* parent = ensure_first_arg_is_node(s)->parent;
+	DocTreeNode* parent = ensure_arg_is_node(s, 1)->parent;
 	get_doc_tree_node_lua_pointer(s, parent);
 	return 1;
 }
 
 static int ext_get_node_raw_word(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_first_arg_is_node(s);
+	DocTreeNode* node = ensure_arg_is_node(s, 1);
 	if (node->content->type != WORD)
 		return luaL_error(s, "Cannot extract raw word from node of type %d", node->content->type);
 	Str* word = node->content->word->raw;
@@ -431,7 +431,7 @@ static int ext_get_node_raw_word(ExtensionState* s)
 
 static int ext_get_node_sanitised_word(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_first_arg_is_node(s);
+	DocTreeNode* node = ensure_arg_is_node(s, 1);
 	if (node->content->type != WORD)
 		return luaL_error(s, "Cannot extract raw word from node of type %d", node->content->type);
 	Str* word = node->content->word->sanitised;
@@ -469,13 +469,13 @@ static int ext_new_call_node(ExtensionState* s)
 
 static int ext_get_node_content_type(ExtensionState* s)
 {
-	lua_pushinteger(s, ensure_first_arg_is_node(s)->content->type);
+	lua_pushinteger(s, ensure_arg_is_node(s, 1)->content->type);
 	return 1;
 }
 
 static int ext_get_node_num_children(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_first_arg_is_node(s);
+	DocTreeNode* node = ensure_arg_is_node(s, 1);
 	if (node->content->type != CONTENT)
 		return luaL_error(s, "Cannot get content from %s node", node_tree_content_type_names[node->content->type]);
 	lua_pushinteger(s, node->content->content->cnt);
@@ -484,7 +484,7 @@ static int ext_get_node_num_children(ExtensionState* s)
 
 static int ext_get_node_result(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_first_arg_is_node(s);
+	DocTreeNode* node = ensure_arg_is_node(s, 1);
 	if (node->content->type != CALL)
 		return luaL_error(s, "Cannot get result from %s node", node_tree_content_type_names[node->content->type]);
 	get_doc_tree_node_lua_pointer(s, node->content->call->result);
@@ -493,7 +493,7 @@ static int ext_get_node_result(ExtensionState* s)
 
 static int ext_get_node_child(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_first_arg_is_node(s);
+	DocTreeNode* node = ensure_arg_is_node(s, 1);
 	luaL_argcheck(s, true, lua_isnumber(s, 2), "Index of child must be a number");
 	if (node->content->type != CONTENT)
 		return luaL_error(s, "Cannot get children of %s node", node_tree_content_type_names[node->content->type]);
@@ -514,7 +514,7 @@ static int ext_get_node_child(ExtensionState* s)
 
 static int ext_get_node_arg(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_first_arg_is_node(s);
+	DocTreeNode* node = ensure_arg_is_node(s, 1);
 	luaL_argcheck(s, true, lua_isnumber(s, 2), "Index of argument must be a number");
 	if (node->content->type != CALL)
 		return luaL_error(s, "Cannot get arguments of %s node", node_tree_content_type_names[node->content->type]);
@@ -535,14 +535,14 @@ static int ext_get_node_arg(ExtensionState* s)
 
 static int ext_get_node_style(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_first_arg_is_node(s);
+	DocTreeNode* node = ensure_arg_is_node(s, 1);
 	pack_style(s, node->style, node);
 	return 1;
 }
 
 static int ext_get_node_attr(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_first_arg_is_node(s);
+	DocTreeNode* node = ensure_arg_is_node(s, 1);
 	luaL_argcheck(s, true, lua_isstring(s, 2), "Attribute-getting requires string key");
 	if (node->content->type != CALL)
 		return luaL_error(s, "Cannot get attributes from %s node", node_tree_content_type_names[node->content->type]);
@@ -566,7 +566,7 @@ static int ext_get_node_attr(ExtensionState* s)
 
 static int ext_set_node_attr(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_first_arg_is_node(s);
+	DocTreeNode* node = ensure_arg_is_node(s, 1);
 	luaL_argcheck(s, true, lua_isstring(s, 2), "Attribute setting requires string key");
 	luaL_argcheck(s, true, lua_isstring(s, 3), "Attibute values must be strings");
 	if (node->content->type != CALL)
@@ -581,6 +581,17 @@ static int ext_set_node_attr(ExtensionState* s)
 	push_map(&m, node->content->call->attrs, k, v);
 	if (m.type == JUST)
 		dest_free_str((Str*)m.just);
+	return 0;
+}
+
+static int ext_append_node_child(ExtensionState* s)
+{
+	DocTreeNode* node = ensure_arg_is_node(s, 1);
+	DocTreeNodeContentType type = node->content->type;
+	if (type != CONTENT || type != CALL)
+		return luaL_error(s, "Can only append to node of type %s: got a %s", node_tree_content_type_names[CONTENT], node_tree_content_type_names[type]);
+	DocTreeNode* new_child = ensure_arg_is_node(s, 2);
+	connect_to_parent(new_child, node);
 	return 0;
 }
 
@@ -605,5 +616,7 @@ void register_ext_node(ExtensionState* s)
 		register_api_function(s, "__get_style", ext_get_node_style);
 		register_api_function(s, "__get_attr", ext_get_node_attr);
 		register_api_function(s, "__set_attr", ext_set_node_attr);
+		register_api_function(s, "__append_child", ext_append_node_child);
+		register_api_function(s, "__append_arg", ext_append_node_child);
 	});
 }
