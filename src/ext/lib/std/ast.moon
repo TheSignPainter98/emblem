@@ -39,44 +39,22 @@ import
 	__set_attr
 	__set_flags
 	from __em.__node
-import __unpack_loc from __em
 
-funcs = {
-	'__append_arg',
-	'__append_child',
-	'__copy',
-	'__get_arg',
-	'__get_attr'
-	'__get_child',
-	'__get_content_type',
-	'__get_flags'
-	'__get_last_eval'
-	'__get_loc'
-	'__get_name'
-	'__get_num_children',
-	'__get_parent'
-	'__get_raw_word'
-	'__get_result',
-	'__get_sanitised_word'
-	'__get_style'
-	'__new_call'
-	'__new_content'
-	'__new_word'
-	'__set_attr'
-	'__set_flags',
-}
-impld = 0
-for func in *funcs
-	print func, __em.__node[func]
-	impld += 1 if __em.__node[func] != nil
-print "Implemented interface functions: #{impld}/#{#funcs}"
-print "__unpack_loc is undefined!" unless __em.__unpack_loc
+class NodeTable
+	new: => rawset @, '_nodes', EphemeronTable!
+	__index: (n) =>
+		if r = @_nodes[n]
+			return r
+		rn = mk_raw_node n
+		rawset @_nodes, n, rn
+		rn
+	__newindex: -> error "Cannot set node table element!"
 
-nodes = EphemeronTable!
+nodes = NodeTable!
 
 class Node
 	new: (@_n) =>
-		nodes[_n] = @
+		rawset nodes, _n, @
 		@_loc = nil
 	flag: (f) => 0 != f & __get_flags @_n
 	set_flag: (f) => __set_flags @_n, f | __get_flags @_n
@@ -100,7 +78,7 @@ class Node
 
 class AttrTable
 	new: (@_n, attrs) =>
-		wrap_indices @ -- TODO: Check memory leak here
+		wrap_indices @
 		@[k] = v for k,v in ipairs attrs
 	__get: (k) => __get_attr @_n, k
 	__set: (k, v) => __set_attr @_n, k, v
@@ -115,21 +93,31 @@ class Location
 	__get: (k) => @unpack![k]
 	__set: => error "Location fields are read-only"
 
-class Content
+class Content extends Node
 	new: (children={}) =>
 		super __new_content!
 		@append_child child for child in *children
+		wrap_indices @
 	append_child: (c) => __append_child @_n, c._n
-	child: (i) => __get_child @_n, i
-	len: => __get_num_children @_n
-	iter: => wrap -> yield __get_child @_n, i for i = 1,@len!
+	__add: (c) =>
+		@append_child c
+		@
+	__len: => __get_num_children @_n
+	__pairs: =>
+		i,n = 0,#@
+		->
+			i += 1
+			i, nodes[__get_child @_n, i] if i <= n
+	__get: (i) => nodes[__get_child @_n, i]
+	iter: => wrap -> yield __get_child @_n, i for i = 1,#@
 	copy: =>
 		ret = Content!
 		ret\append_child c for c in @iter!
+	__tostring: => super!
 
-class Call
-	new: (name, attrs={}) =>
-		super __new_call name
+class Call extends Node
+	new: (name, args={}, attrs={}) =>
+		super __new_call name, args
 		@attrs = AttrTable @_n, attrs
 		with getmetatable @
 			.__get = @attrs
@@ -139,12 +127,12 @@ class Call
 	result: => nodes[__get_result @_n]
 	__tostring: => super!
 
-class Word
+class Word extends Node
 	new: (word) => super __new_word word
 	raw: => __get_raw_word @_n
 	sanitised: => __get_sanitised_word @_n
-	__tostring: => super!
 	repr: (sb=StringBuilder!) => sb .. @raw!
+	__tostring: => super!
 
 class Node
 	new: (@type, @flags=0) =>
