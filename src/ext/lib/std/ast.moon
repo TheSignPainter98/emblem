@@ -7,6 +7,7 @@
 import wrap_indices from require 'std.base'
 import node_types from require 'std.constants'
 import EphemeronTable from require 'std.data'
+import log_err_at, log_warn_at from require 'std.log'
 import show from require 'std.show'
 import is_list, StringBuilder from require 'std.util'
 import wrap, yield from coroutine
@@ -71,6 +72,8 @@ class Node
 		@_loc
 	type: => __get_content_type @_n
 	copy: => __copy @_n
+	error: (...) => log_err_at @loc! ...
+	warn: (...) => log_warn_at @loc! ...
 
 	__tostring: => @show!
 	show: => @repr!!
