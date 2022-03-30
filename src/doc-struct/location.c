@@ -21,6 +21,7 @@ Location* dup_loc(Location* todup)
 {
 	Location* ret = malloc(sizeof(Location));
 	memcpy(ret, todup, sizeof(Location));
+	ret->id			   = get_unique_id();
 	return ret;
 }
 

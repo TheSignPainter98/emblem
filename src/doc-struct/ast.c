@@ -38,6 +38,7 @@ void make_doc_tree_node_word(DocTreeNode* node, Str* raw, Location* src_loc)
 	content->word = malloc(sizeof(Word));
 	make_word(content->word, raw, src_loc);
 
+	node->id		   = get_unique_id();
 	node->flags		   = 0;
 	node->last_eval	   = -1;
 	node->name		   = malloc(sizeof(Str));
@@ -61,6 +62,7 @@ void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc)
 	content->type	 = CONTENT;
 	content->content = malloc(sizeof(List));
 
+	node->id		   = get_unique_id();
 	node->flags		   = 0;
 	node->last_eval	   = -1;
 	node->name		   = malloc(sizeof(Str));
@@ -85,6 +87,7 @@ void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Locatio
 	content->type = CALL;
 	content->call = call;
 
+	node->id		   = get_unique_id();
 	node->flags		   = 0;
 	node->last_eval	   = -1;
 	node->name		   = name;

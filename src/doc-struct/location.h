@@ -7,11 +7,15 @@
 #pragma once
 
 #include "data/str.h"
+#include "data/unique-id.h"
 #include "ext/ext-env.h"
 #include <stddef.h>
 
+#define LOC_ID(node) ((lua_Integer)node)
+
 typedef struct
 {
+	UniqueID id;
 	size_t first_line;
 	size_t first_column;
 	size_t last_line;

@@ -11,6 +11,7 @@
 #include "data/list.h"
 #include "data/map.h"
 #include "data/str.h"
+#include "data/unique-id.h"
 #include "ext/ext-env.h"
 #include "location.h"
 #include "style/css.h"
@@ -46,6 +47,8 @@ typedef uint_least16_t DocTreeNodeFlags;
 	(REQUIRES_RERUN | PARAGRAPH_CANDIDATE | DISQUALIFIED_PARAGRAPH | INCLUDED_FILE_ROOT | NO_FURTHER_EVAL              \
 		| STYLE_DIRECTIVE_ONLY | GLUE_RIGHT | NBSP_RIGHT | GLUE_LEFT | NBSP_LEFT)
 
+#define NODE_ID(node) ((lua_Integer)node->id)
+
 struct DocTreeNodeContent_s;
 struct DocTreeNode_s;
 struct CallIO_s;
@@ -60,6 +63,7 @@ typedef struct
 
 typedef struct DocTreeNode_s
 {
+	UniqueID id;
 	DocTreeNodeFlags flags;
 	Str* name;
 	Str* style_name;

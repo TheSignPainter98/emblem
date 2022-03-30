@@ -43,6 +43,7 @@ ignore_warning(INT_CONVERSION, int-conversion)
 ignore_warning(INT_TO_POINTER_CAST, int-to-pointer-cast, int-to-void-pointer-cast)
 ignore_warning(MALLOC_LEAK, analyzer-malloc-leak, NONE)
 ignore_warning(NON_ISO, pedantic, pedantic)
+ignore_warning(POINTER_ARITH, pointer-arith, NONE)
 ignore_warning(POINTER_TO_INT_CAST, pointer-to-int-cast, void-pointer-to-int-cast)
 ignore_warning(TYPE_PUN_DEREFERENCE, strict-aliasing)
 
