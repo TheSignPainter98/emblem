@@ -4,11 +4,12 @@
 -- @author Edward Jones
 -- @date 2021-09-17
 
-import wrap_indices from require 'std.base'
+import em_loc, unpack_loc, wrap_indices from require 'std.base'
 import node_types from require 'std.constants'
 import EphemeronTable, WeakValueTable from require 'std.data'
 import log_err_at, log_warn_at from require 'std.log'
 import show from require 'std.show'
+import unpack from table
 import is_list, StringBuilder from require 'std.util'
 import wrap, yield from coroutine
 import insert from table
@@ -21,6 +22,7 @@ import
 	__append_arg
 	__append_child
 	__copy
+	__eval
 	__get_arg
 	__get_attr
 	__get_child
@@ -29,6 +31,7 @@ import
 	__get_last_eval
 	__get_loc
 	__get_name
+	__get_num_args
 	__get_num_children
 	__get_parent
 	__get_raw_word
@@ -113,6 +116,9 @@ class Node
 	new: (@_n, flags=0) =>
 		__em.nodes[_n] = @
 		@_loc = nil
+		@set_flag flags if flags != 0
+	eval: => __eval @_n
+	id: => __get_node_id @_n
 	flag: (f) => 0 != f & __get_flags @_n
 	set_flag: (f) => __set_flags @_n, f | __get_flags @_n
 	flags: => __get_flags @_n
@@ -165,13 +171,20 @@ class Content extends Node
 		i,n = 0,#@
 		->
 			i += 1
-			i, nodes[__get_child @_n, i] if i <= n
-	__get: (i) => nodes[__get_child @_n, i]
-	iter: => wrap -> yield __get_child @_n, i for i = 1,#@
-	copy: =>
-		ret = Content!
-		ret\append_child c for c in @iter!
+			i, __em.nodes[__get_child @_n, i] if i <= n
+	__get: (i) => __em.nodes[__get_child @_n, i]
+	iter: => wrap -> yield i, __em.nodes[__get_child @_n, i] for i = 1,#@
 	__tostring: => super!
+	__call: (...) => super ...
+	_node_string: (sb, pretty) =>
+		first = true
+		for _,c in @iter!
+			unless first
+				sb .. ' '
+			else
+				first = false
+			c\_node_string sb, pretty
+		sb
 
 ---
 -- @brief Wrapper for call nodes, which can affect styling and which can cause extension functions to be called
@@ -194,6 +207,13 @@ class Call extends Node
 		else
 			nil
 	__tostring: => super!
+	__call: (...) => super ...
+	__len: => __get_num_args @_n
+	_node_string: (sb, pretty) =>
+		if r = @result!
+			r\_node_string sb, pretty
+		else
+			sb
 
 ---
 -- @brief Wrapper for word nodes, which represents single parts of text.
@@ -208,6 +228,8 @@ class Word extends Node
 	sanitised: => __get_sanitised_word @_n
 	repr: (sb=StringBuilder!) => sb .. @raw!
 	__tostring: => super!
+	__call: (...) => super ...
+	_node_string: (sb, pretty) => sb .. (pretty and @sanitised! or @raw!)
 
 with __em.nodes.raw_node_constructors
 	[WORD] = Word
@@ -215,6 +237,10 @@ with __em.nodes.raw_node_constructors
 	[CALL] = Call
 
 ---
+-- @brief Make word nodes
+-- @param words The text to split by whitespace to form words
+-- @return Returns the word nodes, each as a return value.
+mktext = (words) -> unpack [ Word w for w in words\gmatch '%s*([^%s]+)' ]
 
 ---
 -- @brief Make a function which constructs a call to a given directive
@@ -222,4 +248,4 @@ with __em.nodes.raw_node_constructors
 -- @return A function which takes arguments and returns a call upon those arguments
 mkcall = (name) -> (args) -> Call name, args
 
-{ :Call, :Content, :Word, :mkcall }
+{ :Call, :Content, :Word, :mkcall, :mktext }

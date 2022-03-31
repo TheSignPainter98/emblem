@@ -21,7 +21,7 @@
 static int unpack_single_value(DocTreeNode** result, Str* repr, DocTreeNode* parentNode);
 static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* parentNode);
 
-int ext_eval_tree(ExtensionState* s)
+static int ext_eval_tree(ExtensionState* s)
 {
 	if (lua_gettop(s) != 1)
 		return luaL_error(s, "Expected exactly 1 argument");
@@ -508,7 +508,7 @@ static int ext_new_word_node(ExtensionState* s)
 	const char* raw = lua_tostring(s, 1);
 	make_strc(word = malloc(sizeof(Str)), raw);
 	DocTreeNode* node;
-	make_doc_tree_node_word(node = malloc(sizeof(DocTreeNode)), word, NULL); // TODO: get the location!
+	make_doc_tree_node_word(node = malloc(sizeof(DocTreeNode)), word, loc);
 	push_doc_tree_node_lua_pointer(s, node);
 	return 1;
 }
@@ -556,6 +556,15 @@ static int ext_get_node_num_children(ExtensionState* s)
 	return 1;
 }
 
+static int ext_get_node_num_args(ExtensionState* s)
+{
+	DocTreeNode* node = to_node(s, 1);
+	if (node->content->type != CALL)
+		return luaL_error(s, "Cannot get args from %s node", node_tree_content_type_names[node->content->type]);
+	lua_pushinteger(s, node->content->call->args->cnt);
+	return 1;
+}
+
 static int ext_get_node_result(ExtensionState* s)
 {
 	DocTreeNode* node = to_node(s, 1);
@@ -577,7 +586,7 @@ static int ext_get_node_child(ExtensionState* s)
 		return luaL_error(s, "Cannot get children of %s node", node_tree_content_type_names[node->content->type]);
 
 	Maybe m;
-	get_list_elem(&m, node->content->content, lua_tointeger(s, 2));
+	get_list_elem(&m, node->content->content, lua_tointeger(s, 2) - 1);
 	switch (m.type)
 	{
 		case NOTHING:
@@ -671,6 +680,18 @@ static int ext_append_node_child(ExtensionState* s)
 	return 0;
 }
 
+static int ext_append_call_arg(ExtensionState* s)
+{
+	DocTreeNode* node			= to_node(s, 1);
+	DocTreeNodeContentType type = node->content->type;
+	if (type != CALL)
+		return luaL_error(s, "Can only append argument to %s node: got a %s", node_tree_content_type_names[CALL],
+			node_tree_content_type_names[type]);
+	DocTreeNode* new_arg = to_node(s, 2);
+	append_call_io_arg(node->content->call, new_arg);
+	return 0;
+}
+
 static int ext_get_node_location(ExtensionState* s)
 {
 	DocTreeNode* node = to_node(s, 1);
@@ -688,6 +709,7 @@ static int ext_copy_node(ExtensionState* s)
 void register_ext_node(ExtensionState* s)
 {
 	register_api_table(s, "__node", {
+		register_api_function(s, "__eval", ext_eval_tree);
 		register_api_function(s, "__get_flags", ext_get_node_flags);
 		register_api_function(s, "__set_flags", ext_set_node_flags);
 		register_api_function(s, "__get_name", ext_get_node_name);
@@ -699,6 +721,7 @@ void register_ext_node(ExtensionState* s)
 		register_api_function(s, "__new_content", ext_new_content_node);
 		register_api_function(s, "__new_call", ext_new_call_node);
 		register_api_function(s, "__get_content_type", ext_get_node_content_type);
+		register_api_function(s, "__get_num_args", ext_get_node_num_args);
 		register_api_function(s, "__get_num_children", ext_get_node_num_children);
 		register_api_function(s, "__get_result", ext_get_node_result);
 		register_api_function(s, "__get_child", ext_get_node_child);
@@ -707,7 +730,8 @@ void register_ext_node(ExtensionState* s)
 		register_api_function(s, "__get_attr", ext_get_node_attr);
 		register_api_function(s, "__set_attr", ext_set_node_attr);
 		register_api_function(s, "__append_child", ext_append_node_child);
-		register_api_function(s, "__append_arg", ext_append_node_child);
+		register_api_function(s, "__append_arg", ext_append_call_arg);
+		register_api_function(s, "__get_loc", ext_get_node_location);
 		register_api_function(s, "__copy", ext_copy_node);
 		register_api_function(s, "__get_id", ext_get_node_id);
 	});
