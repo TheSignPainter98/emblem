@@ -25,3 +25,4 @@ typedef struct
 
 Location* dup_loc(Location* todup);
 void register_ext_location(ExtensionState* s);
+void push_location_lua_pointer(ExtensionState* s, Location* loc);

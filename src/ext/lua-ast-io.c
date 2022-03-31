@@ -366,23 +366,73 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 
 // TODO: complete re-implementation!
 
-static inline DocTreeNode* ensure_arg_is_node(ExtensionState* s, int idx)
+static inline DocTreeNode* to_node(ExtensionState* s, int idx)
 {
 	DocTreeNode* ret = NULL;
-	luaL_argcheck(s, true, !to_userdata_pointer((void**)&ret, s, idx, DOC_TREE_NODE), "Expected node argument");
+	if (to_userdata_pointer((void**)&ret, s, idx, DOC_TREE_NODE))
+		return luaL_error(s, "Expected doc-tree node"), NULL;
 	return ret;
+}
+
+#define GET_LOCATION_IDX(s, idx, name)                                                                                 \
+	lua_getfield(s, idx, #name);                                                                                       \
+	size_t name = lua_tointeger(s, -1);                                                                                \
+	lua_pop(s, 1);
+
+static inline Location* to_location(ExtensionState* s, int idx)
+{
+	if (lua_isuserdata(s, idx))
+	{
+		Location* loc;
+		if (!to_userdata_pointer((void**)&loc, s, idx, LOCATION))
+			return dup_loc(loc);
+		else
+			return luaL_error(s, "Expected location"), NULL;
+	}
+
+	Location* ret;
+	if (lua_isnil(s, idx))
+	{
+		ret		 = malloc(sizeof(Location));
+		Str* src = malloc(sizeof(Str));
+		make_strv(src, "(extension-space)");
+		make_location(ret, 1, 1, 1, 1, src, true);
+	}
+	else if (lua_istable(s, idx))
+	{
+		ret = malloc(sizeof(Location));
+		GET_LOCATION_IDX(s, idx, first_line);
+		GET_LOCATION_IDX(s, idx, first_column);
+		GET_LOCATION_IDX(s, idx, last_line);
+		GET_LOCATION_IDX(s, idx, last_column);
+		Str* src_file = malloc(sizeof(Str));
+		lua_getfield(s, idx, "src_file");
+		make_strc(src_file, lua_tostring(s, -1));
+		lua_pop(s, 1);
+		make_location(ret, first_line, first_column, last_line, last_column, src_file, true);
+	}
+	else
+		return luaL_error(s, "Expected nil, userdata or table, got a %s", luaL_typename(s, idx)), NULL;
+	return ret;
+}
+
+static int ext_get_node_id(ExtensionState* s)
+{
+	DocTreeNode* node = to_node(s, 1);
+	lua_pushinteger(s, NODE_ID(node));
+	return 1;
 }
 
 static int ext_get_node_flags(ExtensionState* s)
 {
-	DocTreeNodeFlags flags = ensure_arg_is_node(s, 1)->flags;
+	DocTreeNodeFlags flags = to_node(s, 1)->flags;
 	lua_pushinteger(s, flags & ACCEPTABLE_EXTENSION_FLAG_MASK);
 	return 1;
 }
 
 static int ext_set_node_flags(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_arg_is_node(s, 1);
+	DocTreeNode* node = to_node(s, 1);
 	luaL_argcheck(s, true, lua_isinteger(s, 2), "Node flags must be an integer value");
 
 	DocTreeNodeFlags flags = lua_tointeger(s, 2);
@@ -400,28 +450,28 @@ static int ext_set_node_flags(ExtensionState* s)
 
 static int ext_get_node_name(ExtensionState* s)
 {
-	Str* name = ensure_arg_is_node(s, 1)->name;
+	Str* name = to_node(s, 1)->name;
 	lua_pushlstring(s, name->str, name->len);
 	return 1;
 }
 
 static int ext_get_node_last_eval(ExtensionState* s)
 {
-	int last_eval = ensure_arg_is_node(s, 1)->last_eval;
+	int last_eval = to_node(s, 1)->last_eval;
 	lua_pushinteger(s, last_eval);
 	return 1;
 }
 
 static int ext_get_node_parent(ExtensionState* s)
 {
-	DocTreeNode* parent = ensure_arg_is_node(s, 1)->parent;
-	get_doc_tree_node_lua_pointer(s, parent);
+	DocTreeNode* parent = to_node(s, 1)->parent;
+	push_doc_tree_node_lua_pointer(s, parent);
 	return 1;
 }
 
 static int ext_get_node_raw_word(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_arg_is_node(s, 1);
+	DocTreeNode* node = to_node(s, 1);
 	if (node->content->type != WORD)
 		return luaL_error(s, "Cannot extract raw word from node of type %d", node->content->type);
 	Str* word = node->content->word->raw;
@@ -431,7 +481,7 @@ static int ext_get_node_raw_word(ExtensionState* s)
 
 static int ext_get_node_sanitised_word(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_arg_is_node(s, 1);
+	DocTreeNode* node = to_node(s, 1);
 	if (node->content->type != WORD)
 		return luaL_error(s, "Cannot extract raw word from node of type %d", node->content->type);
 	Str* word = node->content->word->sanitised;
@@ -441,41 +491,65 @@ static int ext_get_node_sanitised_word(ExtensionState* s)
 
 static int ext_new_content_node(ExtensionState* s)
 {
+	Location* loc = to_location(s, 1);
+
 	DocTreeNode* node;
-	make_doc_tree_node_content(node = malloc(sizeof(DocTreeNode)), NULL); // TODO: get the location!
-	get_doc_tree_node_lua_pointer(s, node);
+	make_doc_tree_node_content(node = malloc(sizeof(DocTreeNode)), loc);
+	push_doc_tree_node_lua_pointer(s, node);
 	return 1;
 }
 
 static int ext_new_word_node(ExtensionState* s)
 {
 	luaL_argcheck(s, true, lua_isstring(s, 1), "New word nodes need a string to represent");
+	Location* loc = to_location(s, 2);
 
 	Str* word;
 	const char* raw = lua_tostring(s, 1);
 	make_strc(word = malloc(sizeof(Str)), raw);
 	DocTreeNode* node;
 	make_doc_tree_node_word(node = malloc(sizeof(DocTreeNode)), word, NULL); // TODO: get the location!
-	get_doc_tree_node_lua_pointer(s, node);
+	push_doc_tree_node_lua_pointer(s, node);
 	return 1;
 }
 
 static int ext_new_call_node(ExtensionState* s)
 {
-	luaL_argcheck(s, true, lua_isstring(s, 1), "New call-nodes need a string call-name as the first argument");
-	// TODO: complete the implementation of this!
+	luaL_argcheck(s, lua_isstring(s, 1), 1, "New call-nodes need a string call-name");
+	luaL_argcheck(s, lua_istable(s, 2), 2, "New call-nodes need a list of arguments");
+	Location* loc = to_location(s, 3);
+
+	DocTreeNode* node = malloc(sizeof(DocTreeNode));
+	Str* name		  = malloc(sizeof(Str));
+	make_strc(name, lua_tostring(s, 1));
+	CallIO* call = malloc(sizeof(CallIO));
+	make_call_io(call);
+	make_doc_tree_node_call(node, name, call, loc);
+
+	lua_len(s, 2);
+	int n_args = lua_tointeger(s, -1);
+	lua_pop(s, 1);
+	for (int i = 1; i <= n_args; i++)
+	{
+		lua_geti(s, 2, i);
+		lua_getfield(s, -1, "_n");
+		append_call_io_arg(call, to_node(s, -1));
+		lua_pop(s, 2);
+	}
+
+	push_doc_tree_node_lua_pointer(s, node);
 	return 1;
 }
 
 static int ext_get_node_content_type(ExtensionState* s)
 {
-	lua_pushinteger(s, ensure_arg_is_node(s, 1)->content->type);
+	lua_pushinteger(s, to_node(s, 1)->content->type);
 	return 1;
 }
 
 static int ext_get_node_num_children(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_arg_is_node(s, 1);
+	DocTreeNode* node = to_node(s, 1);
 	if (node->content->type != CONTENT)
 		return luaL_error(s, "Cannot get content from %s node", node_tree_content_type_names[node->content->type]);
 	lua_pushinteger(s, node->content->content->cnt);
@@ -484,16 +558,20 @@ static int ext_get_node_num_children(ExtensionState* s)
 
 static int ext_get_node_result(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_arg_is_node(s, 1);
+	DocTreeNode* node = to_node(s, 1);
 	if (node->content->type != CALL)
 		return luaL_error(s, "Cannot get result from %s node", node_tree_content_type_names[node->content->type]);
-	get_doc_tree_node_lua_pointer(s, node->content->call->result);
+	DocTreeNode* result = node->content->call->result;
+	if (result)
+		push_doc_tree_node_lua_pointer(s, result);
+	else
+		lua_pushnil(s);
 	return 1;
 }
 
 static int ext_get_node_child(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_arg_is_node(s, 1);
+	DocTreeNode* node = to_node(s, 1);
 	luaL_argcheck(s, true, lua_isnumber(s, 2), "Index of child must be a number");
 	if (node->content->type != CONTENT)
 		return luaL_error(s, "Cannot get children of %s node", node_tree_content_type_names[node->content->type]);
@@ -506,7 +584,7 @@ static int ext_get_node_child(ExtensionState* s)
 			lua_pushnil(s);
 			break;
 		case JUST:
-			get_doc_tree_node_lua_pointer(s, (DocTreeNode*)m.just);
+			push_doc_tree_node_lua_pointer(s, (DocTreeNode*)m.just);
 			break;
 	}
 	return 1;
@@ -514,7 +592,7 @@ static int ext_get_node_child(ExtensionState* s)
 
 static int ext_get_node_arg(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_arg_is_node(s, 1);
+	DocTreeNode* node = to_node(s, 1);
 	luaL_argcheck(s, true, lua_isnumber(s, 2), "Index of argument must be a number");
 	if (node->content->type != CALL)
 		return luaL_error(s, "Cannot get arguments of %s node", node_tree_content_type_names[node->content->type]);
@@ -527,7 +605,7 @@ static int ext_get_node_arg(ExtensionState* s)
 			lua_pushnil(s);
 			break;
 		case JUST:
-			get_doc_tree_node_lua_pointer(s, (DocTreeNode*)m.just);
+			push_doc_tree_node_lua_pointer(s, (DocTreeNode*)m.just);
 			break;
 	}
 	return 1;
@@ -566,9 +644,9 @@ static int ext_get_node_attr(ExtensionState* s)
 
 static int ext_set_node_attr(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_arg_is_node(s, 1);
-	luaL_argcheck(s, true, lua_isstring(s, 2), "Attribute setting requires string key");
-	luaL_argcheck(s, true, lua_isstring(s, 3), "Attibute values must be strings");
+	DocTreeNode* node = to_node(s, 1);
+	luaL_argcheck(s, lua_isstring(s, 2), 2, "Attribute setting requires string key");
+	luaL_argcheck(s, lua_isstring(s, 3), 3, "Attibute values must be strings");
 	if (node->content->type != CALL)
 		return luaL_error(s, "Cannot set attributes of %s node", node_tree_content_type_names[node->content->type]);
 
@@ -586,13 +664,21 @@ static int ext_set_node_attr(ExtensionState* s)
 
 static int ext_append_node_child(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_arg_is_node(s, 1);
+	DocTreeNode* node			= to_node(s, 1);
 	DocTreeNodeContentType type = node->content->type;
-	if (type != CONTENT || type != CALL)
-		return luaL_error(s, "Can only append to node of type %s: got a %s", node_tree_content_type_names[CONTENT], node_tree_content_type_names[type]);
-	DocTreeNode* new_child = ensure_arg_is_node(s, 2);
+	if (type != CONTENT)
+		return luaL_error(s, "Can only append to node of type %s: got a %s", node_tree_content_type_names[CONTENT],
+			node_tree_content_type_names[type]);
+	DocTreeNode* new_child = to_node(s, 2);
 	connect_to_parent(new_child, node);
 	return 0;
+}
+
+static int ext_get_node_location(ExtensionState* s)
+{
+	DocTreeNode* node = to_node(s, 1);
+	push_location_lua_pointer(s, node->src_loc);
+	return 1;
 }
 
 void register_ext_node(ExtensionState* s)
@@ -618,5 +704,6 @@ void register_ext_node(ExtensionState* s)
 		register_api_function(s, "__set_attr", ext_set_node_attr);
 		register_api_function(s, "__append_child", ext_append_node_child);
 		register_api_function(s, "__append_arg", ext_append_node_child);
+		register_api_function(s, "__get_id", ext_get_node_id);
 	});
 }

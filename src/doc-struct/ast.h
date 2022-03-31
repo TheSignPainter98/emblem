@@ -151,7 +151,7 @@ void dest_call_io(CallIO* call, bool processing_result, DocTreeNodeSharedDestruc
 void prepend_call_io_arg(CallIO* call, DocTreeNode* arg);
 void append_call_io_arg(CallIO* call, DocTreeNode* arg);
 
-LuaPointer* get_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node);
+void push_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node);
 
 void make_attrs(Attrs* attrs);
 void dest_attrs(Attrs* attrs);

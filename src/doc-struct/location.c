@@ -62,3 +62,34 @@ static int ext_copy_location(ExtensionState* s)
 	lua_setfield(s, -2, "src_file");
 	return 1;
 }
+
+static int ext_get_location_id(ExtensionState* s)
+{
+	luaL_argcheck(s, lua_isuserdata(s, 1), 1, "Expected location");
+	Location* loc;
+	if (to_userdata_pointer((void**)&loc, s, 1, LOCATION))
+		return luaL_error(s, "Failed to unpack lua pointer");
+	lua_pushinteger(s, LOC_ID(loc));
+	return 1;
+}
+
+void push_location_lua_pointer(ExtensionState* s, Location* loc)
+{
+	get_api_elem(s, "locs");
+	lua_pushinteger(s, LOC_ID(loc));
+	lua_gettable(s, -2);
+	if (lua_isnil(s, -1))
+	{
+		loc->refs++;
+		new_lua_pointer(s, LOCATION, loc, true);
+
+		// Save into loc ptr table
+		lua_rotate(s, -2, 1);
+		lua_settable(s, -3);
+
+		// Return the loc obj
+		lua_pushinteger(s, LOC_ID(loc));
+		lua_gettable(s, -2);
+	}
+	lua_remove(s, -2);
+}

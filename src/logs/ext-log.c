@@ -11,6 +11,8 @@
 #include <lauxlib.h>
 #include <lua.h>
 
+#define DEFAULT_LOC "(extension-space)"
+
 static int ext_log_err(ExtensionState* s);
 static int ext_log_err_at(ExtensionState* s);
 static int ext_log_warn(ExtensionState* s);
@@ -35,6 +37,8 @@ void register_ext_logging(ExtensionState* s)
 #define EXT_LOG_AT_FUNC(lvl, err_handler)                                                                              \
 	static int ext_log_##lvl##_at(ExtensionState* s)                                                                   \
 	{                                                                                                                  \
+		Str fname;                                                                                                     \
+		Location loc2;                                                                                                 \
 		if (lua_gettop(s) < 2)                                                                                         \
 		{                                                                                                              \
 			if (log_warn("Expected two arguments to _log_" #lvl " but %d have been given", lua_gettop(s)))             \
@@ -46,6 +50,12 @@ void register_ext_logging(ExtensionState* s)
                                                                                                                        \
 		Location* loc;                                                                                                 \
 		bool pop_table_vals = false;                                                                                   \
+		if (lua_isnil(s, -2))                                                                                          \
+		{                                                                                                              \
+			loc = &loc2;                                                                                               \
+			make_strv(&fname, DEFAULT_LOC);                                                                            \
+			make_location(loc, 1, 1, 1, 1, &fname, false);                                                             \
+		}                                                                                                              \
 		if (lua_isuserdata(s, -2))                                                                                     \
 		{                                                                                                              \
 			LuaPointer* locp = lua_touserdata(s, -2);                                                                  \
@@ -56,28 +66,23 @@ void register_ext_logging(ExtensionState* s)
 		}                                                                                                              \
 		else if (lua_istable(s, -2))                                                                                   \
 		{                                                                                                              \
+			loc			   = &loc2;                                                                                    \
 			pop_table_vals = true;                                                                                     \
-			Location loc2;                                                                                             \
-			Str fname;                                                                                                 \
 			lua_getfield(s, -2, "first_line");                                                                         \
 			lua_getfield(s, -3, "first_column");                                                                       \
 			lua_getfield(s, -4, "last_line");                                                                          \
 			lua_getfield(s, -5, "last_column");                                                                        \
 			lua_getfield(s, -6, "src_file");                                                                           \
-			loc2.first_line	  = lua_tointeger(s, -5);                                                                  \
-			loc2.first_column = lua_tointeger(s, -4);                                                                  \
-			loc2.last_line	  = lua_tointeger(s, -3);                                                                  \
-			loc2.last_column  = lua_tointeger(s, -2);                                                                  \
-			loc2.src_file	  = &fname;                                                                                \
-			char* rawfname	  = (char*)lua_tostring(s, -1);                                                            \
-			make_strv(&fname, rawfname ? rawfname : "(UNSPECIFIED LOCATION)");                                         \
-			loc = &loc2;                                                                                               \
+			make_location(loc, lua_tointeger(s, -5), lua_tointeger(s, -4), lua_tointeger(s, -3), lua_tointeger(s, -2), \
+				&fname, false);                                                                                        \
+			char* rawfname = (char*)lua_tostring(s, -1);                                                               \
+			make_strv(&fname, rawfname ? rawfname : DEFAULT_LOC);                                                      \
 		}                                                                                                              \
 		else                                                                                                           \
 		{                                                                                                              \
 			const char* msg = luaL_tolstring(s, -1, NULL);                                                             \
-			luaL_error(s, "Location value is not a userdata pointer or a table, failed while logging '%s'", msg);      \
-			return 0; /* never happens */                                                                              \
+			return luaL_error(                                                                                         \
+				s, "Location value is not nil, a userdata pointer or a table, failed while logging '%s'", msg);        \
 		}                                                                                                              \
 		err_handler(log_##lvl##_at(loc, "%s", msg));                                                                   \
                                                                                                                        \

@@ -6,7 +6,7 @@
 
 import wrap_indices from require 'std.base'
 import node_types from require 'std.constants'
-import EphemeronTable from require 'std.data'
+import EphemeronTable, WeakValueTable from require 'std.data'
 import log_err_at, log_warn_at from require 'std.log'
 import show from require 'std.show'
 import is_list, StringBuilder from require 'std.util'
@@ -16,6 +16,7 @@ import insert from table
 import WORD, CALL, CONTENT from node_types
 
 import __em from _G
+import __get_loc_id from __em
 import
 	__append_arg
 	__append_child
@@ -41,21 +42,76 @@ import
 	__set_flags
 	from __em.__node
 
-class NodeTable
-	new: => rawset @, '_nodes', EphemeronTable!
-	__index: (n) =>
-		if r = @_nodes[n]
-			return r
-		rn = mk_raw_node n
-		rawset @_nodes, n, rn
-		rn
-	__newindex: -> error "Cannot set node table element!"
+{__get_id: __get_node_id } = __em.__node
 
-nodes = NodeTable!
+---
+-- @brief A cache for core pointers and their representations, maps unique IDs to Lua-objects, which are created as necessary. As pointers are stored weakly, there is no guarantee getting two values from the map will return the same object, if that previously-gotten object has been garbage-collected.
+class CorePointerMap
+	new: => wrap_indices @
+	_id_ptrs: WeakValueTable!
+	_ptr_vals: EphemeronTable!
 
+	get_ud_id: -> error "Not implemented gui", 2
+	mk_obj: -> error "Not implemented mo", 2
+
+	__set: (ptr, obj=@mk_obj ptr) =>
+		@_ptr_vals[ptr] = obj
+		@_id_ptrs[obj\id!] = ptr
+	__get: (k) =>
+		id = switch type k
+			when 'number'
+				k
+			when 'userdata'
+				@get_ud_id k
+			when 'table'
+				k\id!
+			else
+				error "Index to #{@@__name} must be a number, userdata or a table"
+		@_ptr_vals[@_id_ptrs[id]]
+	__tostring: => @@__name
+
+---
+-- @brief Wrapper for a core location pointer
+class Location
+	new: (_loc) =>
+		rawset @, '_loc', _loc
+		wrap_indices @
+	unpack: =>
+		rawset @, '_unpacked', unpack_loc @_loc unless rawget @, '_unpacked'
+		@_unpacked
+	id: => __get_loc_id @_loc
+	__get: (k) => @unpack![k]
+	__set: (k,v) => error "Location fields are read-only, #{k}, #{v}", 2
+	__tostring: => show @unpack!
+
+---
+-- @brief Cache for location objects
+class LocMap extends CorePointerMap
+	__tostring: => super!
+	get_ud_id: (u) => __get_loc_id u
+	mk_obj: (p) => Location p
+
+---
+-- @brief Location cache
+__em.locs = LocMap!
+
+---
+-- @brief Cache for node objects
+class NodeMap extends CorePointerMap
+	__tostring: => super!
+	get_ud_id: (u) => __get_node_id u
+	raw_node_constructors: {}
+	mk_obj: (p) => @raw_node_constructors[__get_content_type p] p
+
+---
+-- @brief Node cache
+__em.nodes = NodeMap!
+
+---
+-- @brief Base class for wrappers for core node pointers
 class Node
-	new: (@_n) =>
-		rawset nodes, _n, @
+	new: (@_n, flags=0) =>
+		__em.nodes[_n] = @
 		@_loc = nil
 	flag: (f) => 0 != f & __get_flags @_n
 	set_flag: (f) => __set_flags @_n, f | __get_flags @_n
@@ -66,40 +122,39 @@ class Node
 		@_name = __get_name @_n unless @_name
 		@_name
 	style: => __get_style @_n
-	parent: => nodes[__get_parent @_n]
 	loc: =>
 		@_loc = __get_loc @_n unless @_loc
 		@_loc
 	type: => __get_content_type @_n
 	copy: => __copy @_n
-	error: (...) => log_err_at @loc! ...
-	warn: (...) => log_warn_at @loc! ...
+	error: (...) => log_err_at @loc!, ...
+	warn: (...) => log_warn_at @loc!, ...
 
-	__tostring: => @show!
+	__tostring: => @node_string true
+	node_string: (pretty=false) => (@_node_string StringBuilder!, pretty)!
 	show: => @repr!!
-	repr: (sb=StringBuilder!) => sb .. "{Node #{@_n}}"
+	repr: (sb=StringBuilder!) => sb .. "{Node #{@_n} (type=#{@type!})}"
+	__call: => @eval!
 
+---
+-- @brief Proxy for call attributes
 class AttrTable
-	new: (@_n, attrs) =>
+	new: (_n, attrs) =>
+		rawset @, '_n', _n
+		__get_attr @_n, k, v for k,v in ipairs attrs
 		wrap_indices @
-		@[k] = v for k,v in ipairs attrs
-	__get: (k) => __get_attr @_n, k
-	__set: (k, v) => __set_attr @_n, k, v
+	__get: (k) => __get_attr (rawget @, '_n'), k
+	__set: (k, v) => __set_attr (rawget @, '_n'), k, v
 
-class Location
-	new: (@_loc) =>
-		@_unpacked = nil
-		wrap_indices @
-	unpack: =>
-		@_unpacked = __unpack_loc @_loc
-		@_unpacked
-	__get: (k) => @unpack![k]
-	__set: => error "Location fields are read-only"
-
+---
+-- @brief Wrapper for content nodes (those which can have other nodes beneath them without affecting styling or calling extension funcionality
 class Content extends Node
 	new: (children={}) =>
-		super __new_content!
-		@append_child child for child in *children
+		if 'userdata' == type children
+			super children
+		else
+			super __new_content em_loc!
+			@append_child child for child in *children
 		wrap_indices @
 	append_child: (c) => __append_child @_n, c._n
 	__add: (c) =>
@@ -118,83 +173,47 @@ class Content extends Node
 		ret\append_child c for c in @iter!
 	__tostring: => super!
 
+---
+-- @brief Wrapper for call nodes, which can affect styling and which can cause extension functions to be called
 class Call extends Node
 	new: (name, args={}, attrs={}) =>
-		super __new_call name, args
-		@attrs = AttrTable @_n, attrs
+		switch type name
+			when 'userdata'
+				super name
+			else
+				super __new_call name, args, em_loc!
 		with getmetatable @
 			.__get = @attrs
 			.__set = @attrs
 		wrap_indices @
 	arg: (i) => __get_arg @_n, i
-	result: => nodes[__get_result @_n]
+	result: =>
+		if r = __get_result @_n
+			__em.nodes[r]
+		else
+			nil
 	__tostring: => super!
 
+---
+-- @brief Wrapper for word nodes, which represents single parts of text.
 class Word extends Node
-	new: (word) => super __new_word word
+	new: (word) =>
+		switch type word
+			when 'userdata'
+				super word
+			else
+				super __new_word word, em_loc!
 	raw: => __get_raw_word @_n
 	sanitised: => __get_sanitised_word @_n
 	repr: (sb=StringBuilder!) => sb .. @raw!
 	__tostring: => super!
 
-class Node
-	new: (@type, @flags=0) =>
-	__tostring: => show @
-
-sanitise_concat_input = (x) ->
-	return {} if x == nil
-	return {x} if ('table' != type x) or x.type == WORD or x.type == CALL
-	return x.content if x.type == CONTENT
-	error "Unrecognised concatenation input: #{show x}"
-
-local Word
-sanitise_content_item = (x) ->
-	return Word x if 'table' != type x
-	x
-
-local Content
-concat_ast_nodes = (as, bs) ->
-	as2 = sanitise_concat_input as
-	bs2 = sanitise_concat_input bs
-	newlist = [ sanitise_content_item a for a in *as2 ]
-	insert newlist, sanitise_content_item b for b in *bs2
-	flags = nil
-	if ('table' == type as) and ('table' == type bs) and as.type == bs.type and bs.type == CONTENT
-		flags = as.flags
-		if flags == nil
-			flags = bs.flags
-		elseif bs.flags != nil
-			flags |= bs.flags
-	Content newlist, flags
+with __em.nodes.raw_node_constructors
+	[WORD] = Word
+	[CONTENT] = Content
+	[CALL] = Call
 
 ---
--- @brief Represents a word node
-class Word extends Node
-	new: (@word, ...) => super WORD, ...
-	__tostring: => show @
-	__concat: concat_ast_nodes
-
----
--- @brief Represents a content node (which has no content itself but rather stores other nodes beneath it)
-class Content extends Node
-	new: (@content, ...) => super CONTENT, ...
-	__tostring: => show @
-	__concat: concat_ast_nodes
-
----
--- @brief Represents a call to a directive
-class Call extends Node
-	new: (@name, @args, ...) =>
-		super CALL, ...
-		@args = {@args} if not is_list @args
-	__tostring: => show @
-	__concat: concat_ast_nodes
-	__mul: (c, a) ->
-		if 'table' != type c or c.type != CALL
-			error "Left operand to an argument-append must be a call, instead got #{show c}"
-		newargs = [ arg for arg in *c.args ]
-		insert newargs, a
-		Call c.name, newargs, c.flags
 
 ---
 -- @brief Make a function which constructs a call to a given directive

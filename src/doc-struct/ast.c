@@ -162,11 +162,25 @@ void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, DocTreeN
 	free(node);
 }
 
-LuaPointer* get_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node)
+void push_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node)
 {
-	if (!node->lp)
-		node->lp = new_lua_pointer(s, DOC_TREE_NODE, node, true);
-	return node->lp;
+	get_api_elem(s, "nodes");
+	lua_pushinteger(s, NODE_ID(node));
+	lua_gettable(s, -2);
+	if (lua_isnil(s, -1))
+	{
+		lua_rotate(s, -2, 1);
+		node->refs++;
+		new_lua_pointer(s, DOC_TREE_NODE, node, true);
+
+		// Save into node ptr table
+		lua_copy(s, -1, -3);
+		lua_pushnil(s);
+		lua_settable(s, -3);
+		lua_pop(s, 1);
+	}
+	else
+		lua_remove(s, -2);
 }
 
 void dest_doc_tree_node_content(
