@@ -23,29 +23,26 @@ base.stylesheet 'std/base.scss'
 -- @param object (table) to wrap
 -- @return nil
 base.wrap_indices = =>
-	mt = getmetatable @
-
-	-- Handle __index
-	old_index = mt.__index
-	new_index = mt.__get
-	call__index = (idx, cls, k) ->
-		if 'function' == type idx
-			idx cls, k
-		else
-			idx[k]
-	if new_index
-		if old_index
-			mt.__index = (k) =>
-				ret = call__index old_index, @, k
-				if ret != nil
-					ret
+	with getmetatable @
+		-- Handle __index
+		if new_index = .__get
+			call__index = (idx, cls, k) ->
+				if 'function' == type idx
+					idx cls, k
 				else
-					call__index new_index, @, k
-		else
-			mt.__index = new_index
+					idx[k]
+			if old_index = .__index
+				.__index = (k) =>
+					ret = call__index old_index, @, k
+					if ret != nil
+						ret
+					else
+						call__index new_index, @, k
+			else
+				.__index = new_index
 
-	-- Handle __newindex
-	mt.__newindex = mt.__set if mt.__set
+		-- Handle __newindex
+		.__newindex = .__set if .__set
 
 class UnimplementedLuaStandardModule
 	new: (@mod_name) => base.wrap_indices @
@@ -55,10 +52,8 @@ class UnimplementedLuaStandardModule
 		error "Module #{rawget @, 'mod_name'} is not available at this sandbox level (trap activated when importing '#{k}')" unless k == 'module_unavailable'
 		rawget @, k
 
-if not io
-	export io = UnimplementedLuaStandardModule 'io'
-if not os
-	export os = UnimplementedLuaStandardModule 'os'
+export io = UnimplementedLuaStandardModule 'io' unless io
+export os = UnimplementedLuaStandardModule 'os' unless os
 
 ---
 -- @brief Stores the necessary information for a directive which may be called
