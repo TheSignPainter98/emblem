@@ -302,12 +302,18 @@ void make_attrs(Attrs* attrs) { make_map(attrs, hash_str, cmp_strs, (Destructor)
 
 void dest_attrs(Attrs* attrs) { dest_map(attrs, (Destructor)dest_free_str); }
 
-void dest_free_attrs(Attrs* attrs) { dest_attrs(attrs); free(attrs); }
-
-int set_attr(Attrs* attrs, Str* k, Str* v)
+void dest_free_attrs(Attrs* attrs)
 {
-	if (!attrs)
-		return 1;
+	dest_attrs(attrs);
+	free(attrs);
+}
+
+int set_attr(Attrs** attrsp, Str* k, Str* v)
+{
+	if (!*attrsp)
+		make_attrs(*attrsp = malloc(sizeof(Attrs)));
+
+	Attrs* attrs = *attrsp;
 	int rc = 0;
 	Maybe old;
 	push_map(&old, attrs, k, v);

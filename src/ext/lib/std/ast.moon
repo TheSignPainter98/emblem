@@ -141,10 +141,10 @@ class Node
 class AttrTable
 	new: (_n, attrs) =>
 		rawset @, '_n', _n
-		__get_attr @_n, k, v for k,v in ipairs attrs
+		__set_attr @_n, k, v for k,v in ipairs attrs
 		wrap_indices @
-	__get: (k) => __get_attr (rawget @, '_n'), k
-	__set: (k, v) => __set_attr (rawget @, '_n'), k, v
+	__get: (k) => __get_attr @_n, k
+	__set: (k, v) => __set_attr @_n, k, v
 
 ---
 -- @brief Wrapper for content nodes (those which can have other nodes beneath them without affecting styling or calling extension funcionality
@@ -182,9 +182,10 @@ class Call extends Node
 				super name
 			else
 				super __new_call name, args, em_loc!
+		@attrs = AttrTable @_n, attrs
 		with getmetatable @
 			.__get = @attrs
-			.__set = @attrs
+			-- .__set = @attrs
 		wrap_indices @
 	arg: (i) => __get_arg @_n, i
 	result: =>

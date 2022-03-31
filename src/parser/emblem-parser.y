@@ -320,7 +320,7 @@ attributes
 	: %empty { make_attrs($$ = malloc(sizeof(Attrs))); }
 	| attributes T_ATTRIBUTE T_ATTRIBUTES_ASSIGN T_ATTRIBUTE
 		{
-			if (set_attr($1, $2, $4))
+			if (set_attr(&$1, $2, $4))
 				yywarn(&@$, data, "Redefined attribute");
 		}
 	;

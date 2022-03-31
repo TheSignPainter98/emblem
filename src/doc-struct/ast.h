@@ -156,7 +156,7 @@ void push_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node);
 void make_attrs(Attrs* attrs);
 void dest_attrs(Attrs* attrs);
 void dest_free_attrs(Attrs* attrs);
-int set_attr(Attrs* attrs, Str* k, Str* v);
+int set_attr(Attrs** attrs, Str* k, Str* v);
 void get_attr(Maybe* ret, Attrs* attrs, Str* k);
 
 void connect_to_parent(DocTreeNode* restrict child, DocTreeNode* restrict parent);

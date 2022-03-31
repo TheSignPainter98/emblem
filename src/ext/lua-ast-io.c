@@ -348,7 +348,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 					Str* v = malloc(sizeof(Str));
 					make_strc(k, lua_tostring(s, -2));
 					make_strc(v, lua_tostring(s, -1));
-					set_attr(attrs, k, v);
+					set_attr(&attrs, k, v);
 					lua_pop(s, 1);
 				}
 			}
@@ -613,22 +613,22 @@ static int ext_get_node_arg(ExtensionState* s)
 
 static int ext_get_node_style(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_arg_is_node(s, 1);
+	DocTreeNode* node = to_node(s, 1);
 	pack_style(s, node->style, node);
 	return 1;
 }
 
 static int ext_get_node_attr(ExtensionState* s)
 {
-	DocTreeNode* node = ensure_arg_is_node(s, 1);
-	luaL_argcheck(s, true, lua_isstring(s, 2), "Attribute-getting requires string key");
+	DocTreeNode* node = to_node(s, 1);
+	luaL_argcheck(s, lua_isstring(s, 2), 2, "Attribute-getting requires string key");
 	if (node->content->type != CALL)
 		return luaL_error(s, "Cannot get attributes from %s node", node_tree_content_type_names[node->content->type]);
 
 	Maybe m;
 	Str k;
 	make_strv(&k, lua_tostring(s, 2));
-	get_map(&m, node->content->call->attrs, &k);
+	get_attr(&m, node->content->call->attrs, &k);
 	switch (m.type)
 	{
 		case NOTHING:
@@ -653,12 +653,9 @@ static int ext_set_node_attr(ExtensionState* s)
 	Str* k;
 	Str* v;
 	make_strc(k = malloc(sizeof(Str)), lua_tostring(s, 2));
-	make_strc(k = malloc(sizeof(Str)), lua_tostring(s, 3));
+	make_strc(v = malloc(sizeof(Str)), lua_tostring(s, 3));
 
-	Maybe m;
-	push_map(&m, node->content->call->attrs, k, v);
-	if (m.type == JUST)
-		dest_free_str((Str*)m.just);
+	set_attr(&node->content->call->attrs, k, v);
 	return 0;
 }
 
