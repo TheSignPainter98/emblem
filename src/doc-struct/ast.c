@@ -13,6 +13,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+static DocTreeNode* copy_doc_tree_node_word(DocTreeNode* node);
+static DocTreeNode* copy_doc_tree_node_content(DocTreeNode* node);
+static DocTreeNode* copy_doc_tree_node_call(DocTreeNode* node);
+
 const char* const node_tree_content_type_names[] = {
 	[WORD]	  = "word",
 	[CALL]	  = "call",
@@ -246,6 +250,42 @@ void make_call_io(CallIO* call)
 	make_list(call->args);
 }
 
+CallIO* dup_call_io(CallIO* call)
+{
+	CallIO* call2 = malloc(sizeof(CallIO));
+	make_call_io(call2);
+	// Copy args
+	ListIter li;
+	make_list_iter(&li, call->args);
+	DocTreeNode* arg;
+	while (iter_list((void**)&arg, &li))
+		append_call_io_arg(call2, copy_doc_tree_node(arg));
+	dest_list_iter(&li);
+
+	// Copy attrs
+	MapIter mi;
+	Pair* kv;
+	if (call->attrs)
+	{
+		make_map_iter(&mi, call->attrs);
+		while (iter_map(&kv, &mi))
+		{
+			Str* k = malloc(sizeof(Str));
+			dup_str(k, kv->p0);
+			Str* v = malloc(sizeof(Str));
+			dup_str(v, kv->p1);
+			set_attr(&call2->attrs, k, v);
+		}
+		dest_map_iter(&mi);
+	}
+
+	// Copy result
+	if (call->result)
+		call2->result = copy_doc_tree_node(call->result);
+
+	return call2;
+}
+
 void prepend_call_io_arg(CallIO* call, DocTreeNode* arg)
 {
 	arg->flags |= IS_CALL_PARAM;
@@ -303,4 +343,60 @@ void dest_call_io(CallIO* call, bool processing_result, DocTreeNodeSharedDestruc
 		dest_free_doc_tree_node(call->result, true, shared_mode);
 	dest_list(call->args, ed);
 	free(call->args);
+}
+
+DocTreeNode* copy_doc_tree_node(DocTreeNode* node)
+{
+	switch (node->content->type)
+	{
+		case WORD:
+			return copy_doc_tree_node_word(node);
+		case CONTENT:
+			return copy_doc_tree_node_content(node);
+		case CALL:
+			return copy_doc_tree_node_call(node);
+		default:
+			log_err("Unknown doc tree node type: %d", node->content->type);
+			exit(1);
+	}
+}
+
+static DocTreeNode* copy_doc_tree_node_word(DocTreeNode* node)
+{
+	Str* name2 = malloc(sizeof(Str));
+	dup_str(node->name, name2);
+	Location* loc2 = dup_loc(node->src_loc);
+
+	DocTreeNode* copy;
+	make_doc_tree_node_word(copy = malloc(sizeof(DocTreeNode)), name2, loc2);
+	return copy;
+}
+
+static DocTreeNode* copy_doc_tree_node_content(DocTreeNode* node)
+{
+	DocTreeNode* copy;
+	make_doc_tree_node_content(copy = malloc(sizeof(DocTreeNode)), dup_loc(node->src_loc));
+
+	ListIter li;
+	make_list_iter(&li, node->content->content);
+	DocTreeNode* child;
+	while (iter_list((void**)&child, &li))
+		connect_to_parent(copy_doc_tree_node(child), copy);
+	dest_list_iter(&li);
+
+	return copy;
+}
+
+static DocTreeNode* copy_doc_tree_node_call(DocTreeNode* node)
+{
+	DocTreeNode* copy;
+	Str* name2 = malloc(sizeof(Str));
+	dup_str(name2, node->name);
+	CallIO* call2  = dup_call_io(node->content->call);
+	Location* loc2 = dup_loc(node->src_loc);
+	make_doc_tree_node_call(copy = malloc(sizeof(DocTreeNode)), name2, call2, loc2);
+
+	copy->flags = node->flags;
+
+	return copy;
 }

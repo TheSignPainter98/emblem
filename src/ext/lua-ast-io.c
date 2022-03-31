@@ -681,6 +681,13 @@ static int ext_get_node_location(ExtensionState* s)
 	return 1;
 }
 
+static int ext_copy_node(ExtensionState* s)
+{
+	DocTreeNode* node = to_node(s, 1);
+	push_doc_tree_node_lua_pointer(s, copy_doc_tree_node(node));
+	return 1;
+}
+
 void register_ext_node(ExtensionState* s)
 {
 	register_api_table(s, "__node", {
@@ -704,6 +711,7 @@ void register_ext_node(ExtensionState* s)
 		register_api_function(s, "__set_attr", ext_set_node_attr);
 		register_api_function(s, "__append_child", ext_append_node_child);
 		register_api_function(s, "__append_arg", ext_append_node_child);
+		register_api_function(s, "__copy", ext_copy_node);
 		register_api_function(s, "__get_id", ext_get_node_id);
 	});
 }

@@ -160,3 +160,5 @@ int set_attr(Attrs* attrs, Str* k, Str* v);
 void get_attr(Maybe* ret, Attrs* attrs, Str* k);
 
 void connect_to_parent(DocTreeNode* restrict child, DocTreeNode* restrict parent);
+
+DocTreeNode* copy_doc_tree_node(DocTreeNode* node);
