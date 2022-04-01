@@ -16,13 +16,56 @@
 #define EM_UNPACK_LOC_FUNC_NAME "unpack_loc"
 #define EM_GET_LOC_ID_FUNC_NAME "__get_loc_id"
 
-static int ext_copy_location(ExtensionState* s);
+static int ext_unpack_location(ExtensionState* s);
+static int ext_get_location_id(ExtensionState* s);
 
-Location* dup_loc(Location* todup)
+void make_location(Location* loc, size_t first_line, size_t first_column, size_t last_line, size_t last_column,
+	Str* src_file, bool owns_src_file)
+{
+	loc->id			   = get_unique_id();
+	loc->first_line	   = first_line;
+	loc->first_column  = first_column;
+	loc->last_line	   = last_line;
+	loc->last_column   = last_column;
+	loc->src_file	   = src_file;
+	loc->has_lp		   = false;
+	loc->has_node_ref  = false;
+	loc->owns_src_file = owns_src_file;
+}
+
+void dest_free_location(Location* loc, SharedDestructionMode shared_mode)
+{
+	if (shared_mode == CORE_POINTER_DEREFERENCE)
+		loc->has_node_ref = false;
+	else
+		loc->has_lp = false;
+
+	if (loc->has_lp || loc->has_node_ref)
+		return;
+
+	if (loc->owns_src_file)
+		dest_free_str(loc->src_file);
+	free(loc);
+}
+
+Location* node_loc_ref(Location* loc) { return loc->has_node_ref = true, loc; }
+
+Location* dup_loc(Location* todup, bool force_dup_src_file)
 {
 	Location* ret = malloc(sizeof(Location));
 	memcpy(ret, todup, sizeof(Location));
-	ret->id			   = get_unique_id();
+	ret->id			  = get_unique_id();
+	ret->has_lp		  = false;
+	ret->has_node_ref = false;
+	ret->owns_src_file |= force_dup_src_file;
+
+	if (ret->owns_src_file)
+	{
+		Str* new_src_file = malloc(sizeof(Str));
+		dup_str(new_src_file, ret->src_file);
+		ret->src_file = new_src_file;
+	}
+
 	return ret;
 }
 
@@ -70,7 +113,7 @@ void push_location_lua_pointer(ExtensionState* s, Location* loc)
 	lua_gettable(s, -2);
 	if (lua_isnil(s, -1))
 	{
-		loc->refs++;
+		loc->has_lp = true;
 		new_lua_pointer(s, LOCATION, loc, true);
 
 		// Save into loc ptr table

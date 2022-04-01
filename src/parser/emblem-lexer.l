@@ -300,13 +300,8 @@ static void handle_llerror(EM_LTYPE* yyloc, LexerData* data, const char* err, ..
 	++*data->nerrs;
 	va_list va;
 	va_start(va, err);
-	Location loc = {
-		.first_line = yyloc->first_line,
-		.first_column = yyloc->first_column,
-		.last_line = yyloc->last_line,
-		.last_column = yyloc->last_column,
-		.src_file = data->ifn,
-	};
+	Location loc;
+	make_location(&loc, yyloc->first_line, yyloc->first_column, yyloc->last_line, yyloc->last_column, data->ifn, false);
 	vlog_err_at(&loc, err, va);
 	va_end(va);
 }
@@ -315,13 +310,8 @@ static void handle_llwarn(EM_LTYPE* yyloc, LexerData* data, const char* warn, ..
 {
 	va_list va;
 	va_start(va, warn);
-	Location loc = {
-		.first_line = yyloc->first_line,
-		.first_column = yyloc->first_column,
-		.last_line = yyloc->last_line,
-		.last_column = yyloc->last_column,
-		.src_file = data->ifn,
-	};
+	Location loc;
+	make_location(&loc, yyloc->first_line, yyloc->first_column, yyloc->last_line, yyloc->last_column, data->ifn, false);
 	if (vlog_warn_at(&loc, warn, va))
 		++*data->nerrs;
 	va_end(va);

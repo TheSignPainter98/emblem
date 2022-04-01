@@ -52,7 +52,7 @@ void make_doc_tree_node_word(DocTreeNode* node, Str* raw, Location* src_loc)
 	node->content	   = content;
 	node->parent	   = NULL;
 	node->prev_sibling = NULL;
-	node->src_loc	   = src_loc;
+	node->src_loc	   = node_loc_ref(src_loc);
 	node->lp		   = NULL;
 
 	make_strc(node->name, NODE_NAME_WORD);
@@ -76,7 +76,7 @@ void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc)
 	node->content	   = content;
 	node->parent	   = NULL;
 	node->prev_sibling = NULL;
-	node->src_loc	   = src_loc;
+	node->src_loc	   = node_loc_ref(src_loc);
 	node->lp		   = NULL;
 
 	make_list(content->content);
@@ -101,7 +101,7 @@ void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Locatio
 	node->content	   = content;
 	node->parent	   = NULL;
 	node->prev_sibling = NULL;
-	node->src_loc	   = src_loc;
+	node->src_loc	   = node_loc_ref(src_loc);
 	node->lp		   = NULL;
 
 	const char* s = name->str;
@@ -155,7 +155,7 @@ void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, DocTreeN
 	free(node->style_data);
 	dest_doc_tree_node_content(node->content, processing_result, CORE_POINTER_DEREFERENCE);
 	free(node->content);
-	free(node->src_loc);
+	dest_free_location(node->src_loc, CORE_POINTER_DEREFERENCE);
 	if (node->style_name != node->name)
 	{
 		dest_str(node->style_name);
@@ -187,8 +187,7 @@ void push_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node)
 		lua_remove(s, -2);
 }
 
-void dest_doc_tree_node_content(
-	DocTreeNodeContent* content, bool processing_result, DocTreeNodeSharedDestructionMode shared_mode)
+void dest_doc_tree_node_content(DocTreeNodeContent* content, bool processing_result, SharedDestructionMode shared_mode)
 {
 	NON_ISO(Destructor ed
 		= ilambda(void, (void* v), { dest_free_doc_tree_node((DocTreeNode*)v, processing_result, shared_mode); }));
@@ -314,7 +313,7 @@ int set_attr(Attrs** attrsp, Str* k, Str* v)
 		make_attrs(*attrsp = malloc(sizeof(Attrs)));
 
 	Attrs* attrs = *attrsp;
-	int rc = 0;
+	int rc		 = 0;
 	Maybe old;
 	push_map(&old, attrs, k, v);
 	if (old.type == JUST)
@@ -339,7 +338,7 @@ void dest_word(Word* word)
 	dest_free_str(word->sanitised);
 }
 
-void dest_call_io(CallIO* call, bool processing_result, DocTreeNodeSharedDestructionMode shared_mode)
+void dest_call_io(CallIO* call, bool processing_result, SharedDestructionMode shared_mode)
 {
 	NON_ISO(Destructor ed
 		= ilambda(void, (void* v), { dest_free_doc_tree_node((DocTreeNode*)v, processing_result, shared_mode); }));
@@ -365,13 +364,15 @@ DocTreeNode* copy_doc_tree_node(DocTreeNode* node)
 			log_err("Unknown doc tree node type: %d", node->content->type);
 			exit(1);
 	}
+
+	node->flags &= ~HAS_LP;
 }
 
 static DocTreeNode* copy_doc_tree_node_word(DocTreeNode* node)
 {
 	Str* name2 = malloc(sizeof(Str));
 	dup_str(node->name, name2);
-	Location* loc2 = dup_loc(node->src_loc);
+	Location* loc2 = dup_loc(node->src_loc, false);
 
 	DocTreeNode* copy;
 	make_doc_tree_node_word(copy = malloc(sizeof(DocTreeNode)), name2, loc2);
@@ -381,7 +382,7 @@ static DocTreeNode* copy_doc_tree_node_word(DocTreeNode* node)
 static DocTreeNode* copy_doc_tree_node_content(DocTreeNode* node)
 {
 	DocTreeNode* copy;
-	make_doc_tree_node_content(copy = malloc(sizeof(DocTreeNode)), dup_loc(node->src_loc));
+	make_doc_tree_node_content(copy = malloc(sizeof(DocTreeNode)), dup_loc(node->src_loc, false));
 
 	ListIter li;
 	make_list_iter(&li, node->content->content);
@@ -399,7 +400,7 @@ static DocTreeNode* copy_doc_tree_node_call(DocTreeNode* node)
 	Str* name2 = malloc(sizeof(Str));
 	dup_str(name2, node->name);
 	CallIO* call2  = dup_call_io(node->content->call);
-	Location* loc2 = dup_loc(node->src_loc);
+	Location* loc2 = dup_loc(node->src_loc, false);
 	make_doc_tree_node_call(copy = malloc(sizeof(DocTreeNode)), name2, call2, loc2);
 
 	copy->flags = node->flags;

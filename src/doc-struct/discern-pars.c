@@ -67,7 +67,7 @@ static void apply_par_node(ListNode* containingNode, DocTreeNode* node)
 	DocTreeNode* pnode = malloc(sizeof(DocTreeNode));
 	Str* pcall		   = malloc(sizeof(Str));
 	make_strv(pcall, "p");
-	Location* loc	= dup_loc(node->src_loc);
+	Location* loc	= dup_loc(node->src_loc, false);
 	CallIO* call_io = malloc(sizeof(CallIO));
 	make_call_io(call_io);
 

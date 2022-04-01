@@ -131,7 +131,7 @@ static void init_word_sanitiser(void)
 	}
 }
 
-void sanitise_word(Word* word_lit, Location* loc) // TODO: move this to always be run when a word node is created!
+void sanitise_word(Word* word_lit, Location* loc)
 {
 	const char* word = word_lit->raw->str;
 	size_t len		 = word_lit->raw->len;
@@ -162,13 +162,9 @@ void sanitise_word(Word* word_lit, Location* loc) // TODO: move this to always b
 				// Warn of unknown escape characters
 				if (!is_valid_escape_char(word[i]))
 				{
-					Location eloc = {
-						.first_line	  = loc->first_line,
-						.first_column = loc->first_column + i,
-						.last_line	  = loc->last_line,
-						.last_column  = loc->first_column + i + 1,
-						.src_file	  = loc->src_file,
-					};
+					Location eloc;
+					make_location(&eloc, loc->first_line, loc->first_column + i, loc->last_line,
+						loc->first_column + i + 1, loc->src_file, false);
 
 					if (log_warn_at(&eloc, "Unrecognised character escape '\\%c' (%#02x)", word[i] ? word[i] : '0',
 							word[i] & ONE_CHAR_MASK))

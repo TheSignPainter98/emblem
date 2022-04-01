@@ -65,20 +65,16 @@ void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args, const char* input)
 		make_strv(tname_str, dialect);
 		make_strv(call_name, "include");
 
-		loc->first_line	  = 0;
-		loc->first_column = 0;
-		loc->last_line	  = 1;
-		loc->last_column  = 0;
-		loc->src_file	  = src_name;
+		make_location(loc, 0, 0, 1, 0, src_name, false);
 
 		make_doc_tree_node_word(fname_node, fname_str, loc);
-		make_doc_tree_node_word(tname_node, tname_str, dup_loc(loc));
+		make_doc_tree_node_word(tname_node, tname_str, dup_loc(loc, false));
 
 		make_call_io(call);
 		append_call_io_arg(call, fname_node);
 		append_call_io_arg(call, tname_node);
 
-		make_doc_tree_node_call(root, call_name, call, dup_loc(loc));
+		make_doc_tree_node_call(root, call_name, call, dup_loc(loc, false));
 
 		make_maybe_just(mo, root);
 	}
@@ -96,5 +92,5 @@ static void foster_body_node(DocTreeNode** root)
 	make_strv(body_str, ROOT_NODE_NAME);
 	make_call_io(call);
 	append_call_io_arg(call, old_root);
-	make_doc_tree_node_call(*root, body_str, call, dup_loc(old_root->src_loc));
+	make_doc_tree_node_call(*root, body_str, call, dup_loc(old_root->src_loc, false));
 }

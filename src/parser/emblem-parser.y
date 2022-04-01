@@ -330,25 +330,15 @@ attributes
 static void yyerror(YYLTYPE* yyloc, ParserData* params, const char* err)
 {
 	++*params->nerrs;
-	Location loc = {
-		.first_line   = yyloc->first_line,
-		.first_column = yyloc->first_column,
-		.last_line    = yyloc->last_line,
-		.last_column  = yyloc->last_column,
-		.src_file     = *params->ifn,
-	};
+	Location loc;
+	make_location(&loc, yyloc->first_line, yyloc->first_column, yyloc->last_line, yyloc->last_column, *params->ifn, false);
 	log_err_at(&loc, "%s", err);
 }
 
 static void yywarn(YYLTYPE* yyloc, ParserData* params, const char* err)
 {
-	Location loc = {
-		.first_line   = yyloc->first_line,
-		.first_column = yyloc->first_column,
-		.last_line    = yyloc->last_line,
-		.last_column  = yyloc->last_column,
-		.src_file     = *params->ifn,
-	};
+	Location loc;
+	make_location(&loc, yyloc->first_line, yyloc->first_column, yyloc->last_line, yyloc->last_column, *params->ifn, false);
 	if (log_warn_at(&loc, "%s", err))
 		++*params->nerrs;
 }
@@ -356,12 +346,7 @@ static void yywarn(YYLTYPE* yyloc, ParserData* params, const char* err)
 static Location* alloc_assign_loc(EM_LTYPE yyloc, Str** ifn)
 {
 	Location* ret = malloc(sizeof(Location));
-
-	ret->first_line = yyloc.first_line;
-	ret->first_column = yyloc.first_column;
-	ret->last_line = yyloc.last_line;
-	ret->last_column = yyloc.last_column;
-	ret->src_file = *ifn;
+	make_location(ret, yyloc.first_line, yyloc.first_column, yyloc.last_line, yyloc.last_column, *ifn, false);
 
 	return ret;
 }
@@ -391,7 +376,7 @@ static void make_variable_retrieval(DocTreeNode* node, Str* var, Location* loc)
 	DocTreeNode* var_node = malloc(sizeof(DocTreeNode));
 	make_doc_tree_node_word(var_node, var, loc);
 	prepend_call_io_arg(args, var_node);
-	make_doc_tree_node_call(node, get_call_name, args, dup_loc(loc));
+	make_doc_tree_node_call(node, get_call_name, args, dup_loc(loc, false));
 }
 
 static void make_variable_assignment(DocTreeNode* node, Str* assignment, Str* var, DocTreeNode* val, Location* loc)
@@ -402,7 +387,7 @@ static void make_variable_assignment(DocTreeNode* node, Str* assignment, Str* va
 	make_call_io(args);
 	prepend_call_io_arg(args, val);
 	prepend_call_io_arg(args, var_node);
-	make_doc_tree_node_call(node, assignment, args, dup_loc(loc));
+	make_doc_tree_node_call(node, assignment, args, dup_loc(loc, false));
 }
 
 static void make_simple_syntactic_sugar_call(DocTreeNode* node, SimpleSugar ssugar, Location* loc)
@@ -412,7 +397,7 @@ static void make_simple_syntactic_sugar_call(DocTreeNode* node, SimpleSugar ssug
 	DocTreeNode* arg_node = malloc(sizeof(DocTreeNode));
 	make_doc_tree_node_word(arg_node, ssugar.arg, loc);
 	prepend_call_io_arg(io, arg_node);
-	make_doc_tree_node_call(node, ssugar.call, io, dup_loc(loc));
+	make_doc_tree_node_call(node, ssugar.call, io, dup_loc(loc, false));
 }
 
 static void dest_preprocessor_data(PreProcessorData* preproc)
@@ -507,14 +492,9 @@ unsigned int parse_file(Maybe* mo, Locked* mtNamesList, Args* args, const char* 
 		.args = args,
 		.preproc = { 0 },
 		.undo_loc = true,
-		.prev_loc = {
-			.first_line = 0,
-			.first_column = 0,
-			.last_line = 1,
-			.last_column = 0,
-			.src_file = ifn,
-		},
+		/* .prev_loc = { 0 }, */ // Initialised below.
 	};
+	make_location(&ld.prev_loc, 0, 0, 1, 0, ifn, false);
 	yyscan_t scanner;
 	em_lex_init(&scanner);
 	em_set_extra(&ld, scanner);

@@ -105,7 +105,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 
 				log_debug("Putting args into lines node for result");
 				DocTreeNode* resultNode = malloc(sizeof(DocTreeNode));
-				make_doc_tree_node_content(resultNode, dup_loc(node->src_loc));
+				make_doc_tree_node_content(resultNode, dup_loc(node->src_loc, false));
 				resultNode->flags |= IS_GENERATED_NODE;
 				ListIter li;
 				make_list_iter(&li, node->content->call->args);
@@ -131,7 +131,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			make_list_iter(&li, node->content->call->args);
 			DocTreeNode* argNode;
 			while (iter_list((void**)&argNode, &li))
-				get_doc_tree_node_lua_pointer(s, argNode);
+				push_doc_tree_node_lua_pointer(s, argNode);
 			dest_list_iter(&li);
 
 			// Open variable scope
@@ -150,7 +150,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			// Update the location
 			get_api_elem(s, SET_VAR_FUNC_NAME);
 			lua_pushliteral(s, EM_LOC_NAME);
-			LuaPointer* locp = new_lua_pointer(s, LOCATION, node->src_loc, false);
+			push_location_lua_pointer(s, node->src_loc);
 			dumpstack(s);
 			if (lua_pcall(s, 2, 0, 0) != LUA_OK)
 			{
@@ -188,8 +188,6 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 					rc |= -1;
 					break;
 			}
-
-			invalidate_lua_pointer(locp);
 
 			// Close variable scope
 			get_api_elem(s, CLOSE_VAR_SCOPE_FUNC_NAME);

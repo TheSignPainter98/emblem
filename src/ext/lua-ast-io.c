@@ -223,7 +223,7 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 static int unpack_single_value(DocTreeNode** result, Str* repr, DocTreeNode* parentNode)
 {
 	*result = malloc(sizeof(DocTreeNode));
-	make_doc_tree_node_word(*result, repr, dup_loc(parentNode->src_loc));
+	make_doc_tree_node_word(*result, repr, dup_loc(parentNode->src_loc, false));
 	(*result)->flags |= IS_GENERATED_NODE;
 	connect_to_parent(*result, parentNode);
 	return 0;
@@ -271,7 +271,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 			break;
 		case CONTENT:
 			*result = malloc(sizeof(DocTreeNode));
-			make_doc_tree_node_content(*result, dup_loc(parentNode->src_loc));
+			make_doc_tree_node_content(*result, dup_loc(parentNode->src_loc, false));
 			(*result)->flags = flags;
 			// Iterate over the 'content' field list, unpacking at each level
 			lua_getfield(s, -1, "content");
@@ -310,7 +310,7 @@ static int unpack_table_result(DocTreeNode** result, ExtensionState* s, DocTreeN
 				rc = 1;
 				break;
 			}
-			make_doc_tree_node_call(*result, call_name, io, dup_loc(parentNode->src_loc));
+			make_doc_tree_node_call(*result, call_name, io, dup_loc(parentNode->src_loc, false));
 			(*result)->flags = flags;
 			dumpstack(s);
 			lua_len(s, -1);
@@ -385,7 +385,7 @@ static inline Location* to_location(ExtensionState* s, int idx)
 	{
 		Location* loc;
 		if (!to_userdata_pointer((void**)&loc, s, idx, LOCATION))
-			return dup_loc(loc);
+			return dup_loc(loc, false);
 		else
 			return luaL_error(s, "Expected location"), NULL;
 	}
