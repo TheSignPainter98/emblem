@@ -53,7 +53,6 @@ void make_doc_tree_node_word(DocTreeNode* node, Str* raw, Location* src_loc)
 	node->parent	   = NULL;
 	node->prev_sibling = NULL;
 	node->src_loc	   = node_loc_ref(src_loc);
-	node->lp		   = NULL;
 
 	make_strc(node->name, NODE_NAME_WORD);
 	make_style_data(node->style_data, node->style_name, node);
@@ -77,7 +76,6 @@ void make_doc_tree_node_content(DocTreeNode* node, Location* src_loc)
 	node->parent	   = NULL;
 	node->prev_sibling = NULL;
 	node->src_loc	   = node_loc_ref(src_loc);
-	node->lp		   = NULL;
 
 	make_list(content->content);
 	make_strc(node->name, NODE_NAME_CONTENT);
@@ -102,7 +100,6 @@ void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Locatio
 	node->parent	   = NULL;
 	node->prev_sibling = NULL;
 	node->src_loc	   = node_loc_ref(src_loc);
-	node->lp		   = NULL;
 
 	const char* s = name->str;
 	char* t = malloc(1 + name->len);
@@ -134,19 +131,24 @@ void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Locatio
 	}
 }
 
-void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, DocTreeNodeSharedDestructionMode shared_mode)
+void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, SharedDestructionMode shared_mode)
 {
-	if (shared_mode == LUA_POINTER_DEREFERENCE)
-		node->lp = NULL;
-	else // shared_mode == CORE_POINTER_DEREFERENCE
+	const bool core_deref = shared_mode == CORE_POINTER_DEREFERENCE;
+	if (core_deref)
 		node->parent = NULL;
+	else // shared_mode == CORE_POINTER_DEREFERENCE
+		node->flags &= ~HAS_LP;
 
-	// Only free orphaned nodes which aren't referenced from ext-space
-	if (node->lp || node->parent)
-		return;
+	if (node->flags & IS_CALL_PARAM)
+	{
+		// Don't free if processing a result or if the call parameter is being freed from extension space
+		if (processing_result || !core_deref)
+			return;
+		node->flags &= ~IS_CALL_PARAM; // Unmark as call param, so treated normally in further calls.
+	}
 
-	// Call parameters are freed from the call node itself
-	if (processing_result && node->flags & IS_CALL_PARAM)
+	// Don't destroy if in use. It is assumed that the root node is never passed to Lua space
+	if (node->parent || node->flags & HAS_LP)
 		return;
 
 	if (node->style)
@@ -174,7 +176,7 @@ void push_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node)
 	if (lua_isnil(s, -1))
 	{
 		lua_rotate(s, -2, 1);
-		node->refs++;
+		node->flags |= HAS_LP;
 		new_lua_pointer(s, DOC_TREE_NODE, node, true);
 
 		// Save into node ptr table
