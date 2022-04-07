@@ -54,20 +54,35 @@ static int ext_eval_tree(ExtensionState* s)
 
 int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* parentNode)
 {
-	log_debug("Unpacking lua result, stack is:");
+	log_debug("Unpacking lua result");
 	int rc;
 	switch (lua_type(s, -1))
 	{
+		case LUA_TTABLE:
+		{
+			lua_getfield(s, -1, "_n");
+			if (!lua_isuserdata(s, -1))
+			{
+				if (log_warn_at(parentNode->src_loc, "Directive result '_n' field did not contain a pointer"))
+					return 1;
+				*result = NULL;
+			}
+
+			rc = to_userdata_pointer((void**)result, s, -1, DOC_TREE_NODE);
+			lua_pop(s, 2);
+			return rc;
+		}
 		case LUA_TNIL:
 			*result = NULL;
 			lua_pop(s, 1);
 			return 0;
-		case LUA_TBOOLEAN:
+		case LUA_TSTRING:
 		{
 			Str* repr = malloc(sizeof(Str));
-			make_strv(repr, lua_toboolean(s, -1) ? "true" : "false");
+			make_strc(repr, (char*)lua_tostring(s, -1));
 			rc = unpack_single_value(result, repr, parentNode);
 			lua_pop(s, 1);
+			log_debug("Popped string '%s'", repr->str);
 			return rc;
 		}
 		case LUA_TNUMBER:
@@ -93,13 +108,12 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 			lua_pop(s, 1);
 			return rc;
 		}
-		case LUA_TSTRING:
+		case LUA_TBOOLEAN:
 		{
 			Str* repr = malloc(sizeof(Str));
-			make_strc(repr, (char*)lua_tostring(s, -1));
+			make_strv(repr, lua_toboolean(s, -1) ? "true" : "false");
 			rc = unpack_single_value(result, repr, parentNode);
 			lua_pop(s, 1);
-			log_debug("Popped string '%s'", repr->str);
 			return rc;
 		}
 		case LUA_TUSERDATA:
@@ -109,18 +123,6 @@ int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* pare
 			lua_pop(s, 1);
 			return rc;
 		}
-		case LUA_TTABLE:
-			lua_getfield(s, -1, "_n");
-			if (!lua_isuserdata(s, -1))
-			{
-				if (log_warn_at(parentNode->src_loc, "Directive result '_n' field did not contain a pointer"))
-					return 1;
-				*result = NULL;
-			}
-
-			rc = to_userdata_pointer((void**)result, s, -1, DOC_TREE_NODE);
-			lua_pop(s, 2);
-			return rc;
 		default:
 		{
 			const char* repr = lua_tostring(s, -1);
