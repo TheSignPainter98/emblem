@@ -10,8 +10,5 @@
 #include "doc-struct/ast.h"
 #include "ext-params.h"
 
-int get_ast_type_name(ExtensionState* s);
-
-int pack_tree(ExtensionState* s, DocTreeNode* node);
 int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* parentNode);
 void register_ext_node(ExtensionState* s);
