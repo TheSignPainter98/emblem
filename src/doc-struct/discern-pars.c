@@ -76,7 +76,8 @@ static void apply_par_node(ListNode* containingNode, DocTreeNode* node)
 	prepend_call_io_arg(call_io, node);
 	make_doc_tree_node_call(pnode, pcall, call_io, loc);
 	containingNode->data = pnode;
-	pnode->parent		 = tmp_parent;
+	pnode->parent		 = tmp_parent == node ? pnode : tmp_parent;
+	node->parent		 = pnode;
 	call_io->result		 = node;
 	pnode->flags |= IS_GENERATED_NODE;
 

@@ -14,6 +14,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#define NOT_ROOT(node)		   (node != node->parent)
+#define NOT_NULL_OR_ROOT(node) (node && NOT_ROOT(node))
+
 typedef struct
 {
 	Str* base;
@@ -49,7 +52,7 @@ int compute_style(Styler* s, DocTreeNode* node)
 	if ((rc = css_select_style(eng->ctx, node, &eng->media, NULL, &eng->handler, NULL, &node->style)))
 		return rc;
 
-	if (s->compose_styles && node->parent)
+	if (s->compose_styles && node->parent && NOT_ROOT(node))
 	{
 		Style* new_styles = malloc(sizeof(css_select_results));
 		for (int i = 0; i < CSS_PSEUDO_ELEMENT_COUNT; i++)
@@ -371,7 +374,7 @@ static css_error named_ancestor_node(
 	DocTreeNode* node  = n;
 	DocTreeNode* anode = node->parent;
 	bool match		   = false;
-	while (anode && !(match = STR_LWC_EQ(anode->style_name, qname->name)))
+	while (NOT_NULL_OR_ROOT(anode) && !(match = STR_LWC_EQ(anode->style_name, qname->name)))
 		anode = anode->parent;
 	*ancestor = match ? anode : NULL;
 	return CSS_OK;
@@ -383,7 +386,7 @@ static css_error named_parent_node(
 	LOG_FUNC_NAME("named_parent_node");
 	UNUSED(pw);
 	DocTreeNode* node = n;
-	if (node->parent && STR_LWC_EQ(node->style_name, qname->name))
+	if (NOT_ROOT(node) && STR_LWC_EQ(node->style_name, qname->name))
 		*parent = node->parent;
 	else
 		*parent = NULL;
@@ -394,9 +397,9 @@ static css_error named_generic_sibling_node(void* pw, void* n, const css_qname* 
 {
 	LOG_FUNC_NAME("named_generic_sibling_node(%s)", lwc_string_data(qname->name));
 	UNUSED(pw);
-	DocTreeNode* node = n;
-	DocTreeNode* restrict sib  = node->prev_sibling;
-	bool match		  = false;
+	DocTreeNode* node		  = n;
+	DocTreeNode* restrict sib = node->prev_sibling;
+	bool match				  = false;
 	while (sib && !(match = STR_LWC_EQ(node->style_name, qname->name)))
 		sib = sib->prev_sibling;
 	*sibling = match ? sib : NULL;
@@ -425,7 +428,7 @@ static css_error parent_node(void* pw, void* n, void** parent) // Done
 {
 	UNUSED(pw);
 	DocTreeNode* node = n;
-	*parent			  = node->parent;
+	*parent			  = NOT_ROOT(node) ? node->parent : NULL;
 	LOG_FUNC_NAME(
 		"parent_node %s |-> %s", node->style_name->str, node->parent ? node->parent->style_name->str : "(n/a)");
 	return CSS_OK;
@@ -556,7 +559,7 @@ static css_error node_is_root(void* pw, void* n, bool* match) // Done
 	LOG_FUNC_NAME("node_is_root");
 	UNUSED(pw);
 	DocTreeNode* node = n;
-	*match			  = !node->parent;
+	*match			  = node == node->parent;
 	return CSS_OK;
 }
 
@@ -570,7 +573,7 @@ static css_error node_count_siblings(
 	UNUSED(after);
 	DocTreeNode* node	= n;
 	DocTreeNode* parent = node->parent;
-	if (parent)
+	if (parent && NOT_ROOT(node))
 		switch (parent->content->type)
 		{
 			case CONTENT:

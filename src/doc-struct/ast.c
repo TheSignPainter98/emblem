@@ -147,7 +147,7 @@ void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, SharedDe
 		node->flags &= ~IS_CALL_PARAM; // Unmark as call param, so treated normally in further calls.
 	}
 
-	// Don't destroy if in use. It is assumed that the root node is never passed to Lua space
+	// Don't destroy if in use
 	if (node->parent || node->flags & HAS_LP)
 		return;
 

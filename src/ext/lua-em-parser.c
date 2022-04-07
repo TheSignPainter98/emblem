@@ -68,7 +68,7 @@ int ext_include_file(ExtensionState* s)
 	if (exec_lua_pass_on_node(s, sty, included_root, env->iter_num, true))
 		lua_pushnil(s);
 	else
-		get_doc_tree_node_lua_pointer(s, included_root);
+		push_doc_tree_node_lua_pointer(s, included_root);
 
 	return 1;
 }

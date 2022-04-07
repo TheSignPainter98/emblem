@@ -73,7 +73,7 @@ typedef struct DocTreeNode_s
 	StyleData* style_data;
 	int last_eval;
 	struct DocTreeNodeContent_s* content;
-	struct DocTreeNode_s* parent;
+	struct DocTreeNode_s* parent; // The root's parent is itself.
 	struct DocTreeNode_s* prev_sibling;
 	Location* src_loc;
 } DocTreeNode;

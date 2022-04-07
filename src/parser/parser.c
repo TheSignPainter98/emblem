@@ -79,8 +79,13 @@ void parse_doc(Maybe* mo, Locked* mtNamesList, Args* args, const char* input)
 		make_maybe_just(mo, root);
 	}
 
-	if (mo->type == JUST)
-		foster_body_node((DocTreeNode**)&mo->just);
+	if (mo->type == NOTHING)
+		return;
+	DocTreeNode* root = mo->just;
+
+	foster_body_node(&root);
+
+	root->parent = root;
 }
 
 static void foster_body_node(DocTreeNode** root)

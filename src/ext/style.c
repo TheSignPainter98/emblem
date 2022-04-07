@@ -8,8 +8,8 @@
 
 #include "data/str.h"
 #include "debug.h"
-#include "logs/logs.h"
 #include "ext-env.h"
+#include "logs/logs.h"
 #include "lua.h"
 #include "pp/assert.h"
 #include "style/css.h"
@@ -292,7 +292,7 @@ int pack_style(ExtensionState* s, Style* style, DocTreeNode* node)
 	lwc_string** str_list;
 	int32_t integer;
 	css_fixed fixed;
-	bool root = !node->parent;
+	bool root = node == node->parent;
 	int rc	  = 0;
 
 	lua_createtable(s, 0, num_style_elements + CSS_PSEUDO_ELEMENT_COUNT - 1);

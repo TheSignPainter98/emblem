@@ -43,7 +43,6 @@ int exec_lua_pass(Doc* doc)
 	return rc;
 }
 
-#include "debug.h"
 int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int curr_iter, bool foster_paragraphs)
 {
 	if (!node)
@@ -151,7 +150,6 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			get_api_elem(s, SET_VAR_FUNC_NAME);
 			lua_pushliteral(s, EM_LOC_NAME);
 			push_location_lua_pointer(s, node->src_loc);
-			dumpstack(s);
 			if (lua_pcall(s, 2, 0, 0) != LUA_OK)
 			{
 				log_err_at(node->src_loc, "Failed to set location information: %s", lua_tostring(s, -1));
@@ -160,20 +158,17 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 
 			// Call function
 			log_debug("Pre-call stack:");
-			dumpstack(s);
 			log_debug("(Pcalling %s with %ld arguments...)", node->name->str, num_args);
 			switch (lua_pcall(s, num_args, 1, 0))
 			{
 				case LUA_OK:
-					log_debug("returned: %s", luaL_typename(s, -1));
-					dumpstack(s);
+					log_debug("Calling %s returned a %s", node->name->str, luaL_typename(s, -1));
 					rc = unpack_lua_result(&node->content->call->result, s, node);
 					log_debug("Unpacked result into %p", (void*)node->content->call->result);
 					if (!rc)
 						rc = evaluate_directives(s, node->content->call->result, curr_iter);
 					if (!rc)
 						lua_pop(s, 1); // Pop the public table
-					dumpstack(s);
 					break;
 				case LUA_YIELD:
 				{
