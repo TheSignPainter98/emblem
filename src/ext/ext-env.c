@@ -21,7 +21,6 @@
 #include <lauxlib.h>
 
 #define EM_CONFIG_FILE_NAME			  "em_config_file"
-#define EM_EVAL_NODE_FUNC_NAME		  "__eval"
 #define EM_REQUIRE_RUNS_FUNC_NAME	  "requires_reiter"
 #define LUA_POINTER_GC_METATABLE_RKEY "emblem_core_pointer"
 
@@ -222,7 +221,6 @@ static int load_libraries(ExtensionState* s, ExtParams* params)
 static void load_em_std_apis(ExtensionState* s)
 {
 	lua_getglobal(s, EM_API_TABLE_NAME);
-	register_api_function(s, EM_EVAL_NODE_FUNC_NAME, ext_eval_tree);
 	register_api_function(s, EM_REQUIRE_RUNS_FUNC_NAME, ext_require_rerun);
 	register_api_function(s, EM_INCLUDE_FILE_FUNC_NAME, ext_include_file);
 

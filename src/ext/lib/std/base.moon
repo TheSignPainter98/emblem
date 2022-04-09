@@ -11,7 +11,8 @@ import concat, insert from table
 import node_flags, node_types from require 'std.constants'
 import GLUE_LEFT from node_flags
 import WORD, CALL, CONTENT from node_types
-import __copy_loc, __eval, __log_warn from __em
+import __copy_loc, __log_warn from __em
+import __eval from __em.__node
 
 base = { k,v for k,v in pairs __em when not k\match '^__' }
 
