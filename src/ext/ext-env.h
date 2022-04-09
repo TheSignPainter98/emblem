@@ -45,8 +45,6 @@ typedef struct
 {
 	LuaPointerType type;
 	void* data;
-	bool valid;
-	bool destruction_permitted;
 } LuaPointer;
 
 typedef lua_State ExtensionState;
@@ -59,9 +57,8 @@ typedef struct
 
 int make_ext_env(ExtensionEnv* ext, ExtParams* params);
 void dest_ext_env(ExtensionEnv* ext);
-LuaPointer* new_lua_pointer(ExtensionState* s, LuaPointerType type, void* data, bool destruction_permitted);
+LuaPointer* new_lua_pointer(ExtensionState* s, LuaPointerType type, void* data);
 void release_pass_local_lua_pointers(ExtensionEnv* e);
-void invalidate_lua_pointer(LuaPointer* lp);
 int to_userdata_pointer(void** val, ExtensionState* s, int idx, LuaPointerType type);
 
 void get_api_elem(ExtensionState* s, const char* name);

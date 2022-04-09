@@ -63,13 +63,11 @@ static int ext_api_table_reject_new_index(ExtensionState* s);
 static void load_library_set(ExtensionState* s, luaL_Reg* lib);
 static int ext_require_rerun(ExtensionState* s);
 
-LuaPointer* new_lua_pointer(ExtensionState* s, LuaPointerType type, void* data, bool destruction_permitted)
+LuaPointer* new_lua_pointer(ExtensionState* s, LuaPointerType type, void* data)
 {
 	LuaPointer* ret			   = lua_newuserdatauv(s, sizeof(LuaPointer), 1);
 	ret->type				   = type;
 	ret->data				   = data;
-	ret->valid				   = true;
-	ret->destruction_permitted = destruction_permitted; // TODO: check that the destruction_permitted is honoured.
 
 	lua_getfield(s, LUA_REGISTRYINDEX, LUA_POINTER_GC_METATABLE_RKEY);
 	lua_setmetatable(s, -2);
@@ -85,19 +83,17 @@ static int ext_dest_lua_pointer(ExtensionState* s)
 		luaL_error(
 			s, "Expected userdata value to finalise, instead got %s (%s)", luaL_typename(s, -1), lua_tostring(s, -1));
 
-	LuaPointer* lp = lua_touserdata(s, -1);
-	if (!lp->valid || !lp->destruction_permitted)
-		return 0;
-
 	// Destroy contents as necessary
+	LuaPointer* lp = lua_touserdata(s, -1);
 	switch (lp->type)
 	{
 		case DOC_TREE_NODE:
 			dest_free_doc_tree_node(lp->data, false, LUA_POINTER_DEREFERENCE);
 			break;
-		default:
-			log_warn("No destructor for lua pointer of type %d", lp->type);
+		case LOCATION:
+			dest_free_location(lp->data, LUA_POINTER_DEREFERENCE);
 			break;
+		default:
 	}
 
 	return 0;
@@ -111,11 +107,6 @@ int to_userdata_pointer(void** val, ExtensionState* s, int idx, LuaPointerType t
 		return 1;
 	}
 	LuaPointer* ptr = lua_touserdata(s, idx);
-	if (!ptr->valid)
-	{
-		log_err("Attempted to dereference an invalid lua pointer of type %s", lua_pointer_type_names[type]);
-		return 1;
-	}
 	if (ptr->type != type)
 	{
 		log_err("Expected %s userdata (%d) but got %s userdata (%d)", lua_pointer_type_names[type], type,
@@ -127,8 +118,6 @@ int to_userdata_pointer(void** val, ExtensionState* s, int idx, LuaPointerType t
 }
 
 void release_pass_local_lua_pointers(ExtensionEnv* e) { lua_gc(e->state, LUA_GCCOLLECT); }
-
-void invalidate_lua_pointer(LuaPointer* lp) { lp->valid = false; }
 
 int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 {
@@ -183,19 +172,19 @@ static void setup_api_table(ExtensionEnv* e, ExtParams* params)
 	lua_setfield(s, -2, EM_ITER_NUM_VAR_NAME);
 
 	// Allow the environment to access itself
-	new_lua_pointer(s, EXT_ENV, e, false);
+	new_lua_pointer(s, EXT_ENV, e);
 	lua_setfield(s, -2, EM_ENV_VAR_NAME);
 
 	// Store the args in raw form
-	new_lua_pointer(s, PARSED_ARGS, params->args, false);
+	new_lua_pointer(s, PARSED_ARGS, params->args);
 	lua_setfield(s, -2, EM_ARGS_VAR_NAME);
 
 	// Store the names list
-	new_lua_pointer(s, MT_NAMES_LIST, params->mt_names_list, false);
+	new_lua_pointer(s, MT_NAMES_LIST, params->mt_names_list);
 	lua_setfield(s, -2, EM_MT_NAMES_LIST_VAR_NAME);
 
 	// Store the styler
-	new_lua_pointer(s, STYLER, params->styler, false);
+	new_lua_pointer(s, STYLER, params->styler);
 	lua_setfield(s, -2, EM_STYLER_LP_LOC);
 
 	lua_setglobal(s, EM_API_TABLE_NAME);

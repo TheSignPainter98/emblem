@@ -114,7 +114,7 @@ void push_location_lua_pointer(ExtensionState* s, Location* loc)
 	if (lua_isnil(s, -1))
 	{
 		loc->has_lp = true;
-		new_lua_pointer(s, LOCATION, loc, true);
+		new_lua_pointer(s, LOCATION, loc);
 
 		// Save into loc ptr table
 		lua_rotate(s, -2, 1);

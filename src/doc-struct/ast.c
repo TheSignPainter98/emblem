@@ -177,7 +177,7 @@ void push_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node)
 	{
 		lua_rotate(s, -2, 1);
 		node->flags |= HAS_LP;
-		new_lua_pointer(s, DOC_TREE_NODE, node, true);
+		new_lua_pointer(s, DOC_TREE_NODE, node);
 
 		// Save into node ptr table
 		lua_copy(s, -1, -3);
