@@ -102,7 +102,7 @@ void make_doc_tree_node_call(DocTreeNode* node, Str* name, CallIO* call, Locatio
 	node->src_loc	   = node_loc_ref(src_loc);
 
 	const char* s = name->str;
-	char* t = malloc(1 + name->len);
+	char* t		  = malloc(1 + name->len);
 	{
 		size_t i = 0;
 		while (*s)
