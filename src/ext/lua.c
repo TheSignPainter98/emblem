@@ -31,10 +31,10 @@ void inc_iter_num(Doc* doc)
 	update_api_elem(s, -1, EM_ITER_NUM_VAR_NAME);
 }
 
-int exec_lua_pass(Doc* doc)
+int exec_ext_pass(Doc* doc)
 {
 	int rc
-		= exec_lua_pass_on_node(doc->ext->state, doc->styler, doc->root, doc->ext->iter_num, doc->ext->iter_num == 1);
+		= exec_ext_pass_on_node(doc->ext->state, doc->styler, doc->root, doc->ext->iter_num, doc->ext->iter_num == 1);
 #ifdef DEBUG
 	if (lua_gettop(doc->ext->state) != 0)
 		log_err("NON-EMPTY LUA STACK AFTER PASS!");
@@ -43,7 +43,7 @@ int exec_lua_pass(Doc* doc)
 	return rc;
 }
 
-int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int curr_iter, bool foster_paragraphs)
+int exec_ext_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int curr_iter, bool foster_paragraphs)
 {
 	if (!node)
 		return 0;
@@ -130,7 +130,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			make_list_iter(&li, node->content->call->args);
 			DocTreeNode* argNode;
 			while (iter_list((void**)&argNode, &li))
-				push_doc_tree_node_lua_pointer(s, argNode);
+				push_doc_tree_node(s, argNode);
 			dest_list_iter(&li);
 
 			// Open variable scope
@@ -149,7 +149,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			// Update the location
 			get_api_elem(s, SET_VAR_FUNC_NAME);
 			lua_pushliteral(s, EM_LOC_NAME);
-			push_location_lua_pointer(s, node->src_loc);
+			push_location(s, node->src_loc);
 			if (lua_pcall(s, 2, 0, 0) != LUA_OK)
 			{
 				log_err_at(node->src_loc, "Failed to set location information: %s", lua_tostring(s, -1));
@@ -163,7 +163,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 			{
 				case LUA_OK:
 					log_debug("Calling %s returned a %s", node->name->str, luaL_typename(s, -1));
-					rc = unpack_lua_result(&node->content->call->result, s, node);
+					rc = unpack_ext_result(&node->content->call->result, s, node);
 					log_debug("Unpacked result into %p", (void*)node->content->call->result);
 					if (!rc)
 						rc = evaluate_directives(s, node->content->call->result, curr_iter);
@@ -172,7 +172,7 @@ static int evaluate_directives(ExtensionState* s, DocTreeNode* node, int curr_it
 					break;
 				case LUA_YIELD:
 				{
-					rc |= log_warn_at(node->src_loc, "Lua function em.%s yielded instead of returned", node->name->str);
+					rc |= log_warn_at(node->src_loc, "Extension function em.%s yielded instead of returned", node->name->str);
 					lua_pop(s, 1); // Pop the public table
 					break;
 				}

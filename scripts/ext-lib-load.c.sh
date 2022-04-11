@@ -5,12 +5,12 @@ extension_lib_loaders=$(for f in ${libs[@]}; do echo "#include \"${f#src/ext/}\"
 
 cat << EOF
 /**
-* @file lua-lib-load.c.sh
+* @file ext-lib-load.c.sh
 * @brief Implements the standard Lua library loader function
 * @author Edward Jones
 * @date 2021-09-17
 */
-#include "lua-lib-load.h"
+#include "ext-lib-load.h"
 
 #include "ext-params.h"
 #include "logs/logs.h"

@@ -23,7 +23,7 @@ typedef struct
 	size_t last_line;
 	size_t last_column;
 	Str* src_file;
-	bool has_lp;
+	bool has_ep;
 	bool has_node_ref;
 	bool owns_src_file;
 } Location;
@@ -35,4 +35,4 @@ void dest_free_location(Location* loc, SharedDestructionMode shared_mode);
 Location* dup_loc(Location* todup, bool force_dup_src_file);
 void register_ext_location(ExtensionState* s);
 Location* node_loc_ref(Location* loc);
-void push_location_lua_pointer(ExtensionState* s, Location* loc);
+void push_location(ExtensionState* s, Location* loc);

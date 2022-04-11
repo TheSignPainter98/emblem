@@ -28,7 +28,7 @@ void make_location(Location* loc, size_t first_line, size_t first_column, size_t
 	loc->last_line	   = last_line;
 	loc->last_column   = last_column;
 	loc->src_file	   = src_file;
-	loc->has_lp		   = false;
+	loc->has_ep		   = false;
 	loc->has_node_ref  = false;
 	loc->owns_src_file = owns_src_file;
 }
@@ -38,9 +38,9 @@ void dest_free_location(Location* loc, SharedDestructionMode shared_mode)
 	if (shared_mode == CORE_POINTER_DEREFERENCE)
 		loc->has_node_ref = false;
 	else
-		loc->has_lp = false;
+		loc->has_ep = false;
 
-	if (loc->has_lp || loc->has_node_ref)
+	if (loc->has_ep || loc->has_node_ref)
 		return;
 
 	if (loc->owns_src_file)
@@ -55,7 +55,7 @@ Location* dup_loc(Location* todup, bool force_dup_src_file)
 	Location* ret = malloc(sizeof(Location));
 	memcpy(ret, todup, sizeof(Location));
 	ret->id			  = get_unique_id();
-	ret->has_lp		  = false;
+	ret->has_ep		  = false;
 	ret->has_node_ref = false;
 	ret->owns_src_file |= force_dup_src_file;
 
@@ -106,15 +106,15 @@ static int ext_get_location_id(ExtensionState* s)
 	return 1;
 }
 
-void push_location_lua_pointer(ExtensionState* s, Location* loc)
+void push_location(ExtensionState* s, Location* loc)
 {
 	get_api_elem(s, "locs");
 	lua_pushinteger(s, LOC_ID(loc));
 	lua_gettable(s, -2);
 	if (lua_isnil(s, -1))
 	{
-		loc->has_lp = true;
-		new_lua_pointer(s, LOCATION, loc);
+		loc->has_ep = true;
+		new_ext_pointer(s, LOCATION, loc);
 
 		// Save into loc ptr table
 		lua_rotate(s, -2, 1);

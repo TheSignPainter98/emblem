@@ -8,13 +8,13 @@
 
 #include "doc-struct/ast.h"
 #include "doc-struct/location.h"
+#include "ext-constants.h"
+#include "ext-em-parser.h"
+#include "ext-lib-load.h"
 #include "ext-loader.h"
 #include "logs/ext-log.h"
 #include "logs/logs.h"
 #include "lua-ast-io.h"
-#include "lua-constants.h"
-#include "lua-em-parser.h"
-#include "lua-lib-load.h"
 #include "lua.h"
 #include "setting-io.h"
 #include "style.h"
@@ -22,9 +22,9 @@
 
 #define EM_CONFIG_FILE_NAME			  "em_config_file"
 #define EM_REQUIRE_RUNS_FUNC_NAME	  "requires_reiter"
-#define LUA_POINTER_GC_METATABLE_RKEY "emblem_core_pointer"
+#define EXT_POINTER_GC_METATABLE_RKEY "emblem_core_pointer"
 
-const char* const lua_pointer_type_names[] = {
+const char* const ext_pointer_type_names[] = {
 	[DOC_TREE_NODE] = "doc-tree node",
 	[STYLER]		= "styler",
 	[EXT_ENV]		= "extension environment",
@@ -54,7 +54,7 @@ static luaL_Reg lua_std_libs_restriction_lvl_0[] = {
 	{ NULL, NULL },
 };
 
-static int ext_dest_lua_pointer(ExtensionState* s);
+static int ext_dest_pointer(ExtensionState* s);
 static void setup_api_table(ExtensionEnv* e, ExtParams* params);
 static void load_em_std_apis(ExtensionState* s);
 static int load_libraries(ExtensionState* s, ExtParams* params);
@@ -63,19 +63,19 @@ static int ext_api_table_reject_new_index(ExtensionState* s);
 static void load_library_set(ExtensionState* s, luaL_Reg* lib);
 static int ext_require_rerun(ExtensionState* s);
 
-LuaPointer* new_lua_pointer(ExtensionState* s, LuaPointerType type, void* data)
+ExtPointer* new_ext_pointer(ExtensionState* s, ExtPointerType type, void* data)
 {
-	LuaPointer* ret			   = lua_newuserdatauv(s, sizeof(LuaPointer), 1);
-	ret->type				   = type;
-	ret->data				   = data;
+	ExtPointer* ret = lua_newuserdatauv(s, sizeof(ExtPointer), 1);
+	ret->type		= type;
+	ret->data		= data;
 
-	lua_getfield(s, LUA_REGISTRYINDEX, LUA_POINTER_GC_METATABLE_RKEY);
+	lua_getfield(s, LUA_REGISTRYINDEX, EXT_POINTER_GC_METATABLE_RKEY);
 	lua_setmetatable(s, -2);
 
 	return ret;
 }
 
-static int ext_dest_lua_pointer(ExtensionState* s)
+static int ext_dest_pointer(ExtensionState* s)
 {
 	if (lua_gettop(s) < 1)
 		luaL_error(s, "Expected one argument to the lua pointer finaliser function");
@@ -84,14 +84,14 @@ static int ext_dest_lua_pointer(ExtensionState* s)
 			s, "Expected userdata value to finalise, instead got %s (%s)", luaL_typename(s, -1), lua_tostring(s, -1));
 
 	// Destroy contents as necessary
-	LuaPointer* lp = lua_touserdata(s, -1);
-	switch (lp->type)
+	ExtPointer* ep = lua_touserdata(s, -1);
+	switch (ep->type)
 	{
 		case DOC_TREE_NODE:
-			dest_free_doc_tree_node(lp->data, false, LUA_POINTER_DEREFERENCE);
+			dest_free_doc_tree_node(ep->data, false, LUA_POINTER_DEREFERENCE);
 			break;
 		case LOCATION:
-			dest_free_location(lp->data, LUA_POINTER_DEREFERENCE);
+			dest_free_location(ep->data, LUA_POINTER_DEREFERENCE);
 			break;
 		default:
 	}
@@ -99,25 +99,25 @@ static int ext_dest_lua_pointer(ExtensionState* s)
 	return 0;
 }
 
-int to_userdata_pointer(void** val, ExtensionState* s, int idx, LuaPointerType type)
+int to_userdata_pointer(void** val, ExtensionState* s, int idx, ExtPointerType type)
 {
 	if (!lua_isuserdata(s, idx))
 	{
 		log_err("Expected userdata but got %s '%s'", luaL_typename(s, idx), luaL_tolstring(s, idx, NULL));
 		return 1;
 	}
-	LuaPointer* ptr = lua_touserdata(s, idx);
+	ExtPointer* ptr = lua_touserdata(s, idx);
 	if (ptr->type != type)
 	{
-		log_err("Expected %s userdata (%d) but got %s userdata (%d)", lua_pointer_type_names[type], type,
-			lua_pointer_type_names[ptr->type], ptr->type);
+		log_err("Expected %s userdata (%d) but got %s userdata (%d)", ext_pointer_type_names[type], type,
+			ext_pointer_type_names[ptr->type], ptr->type);
 		return 1;
 	}
 	*val = ptr->data;
 	return 0;
 }
 
-void release_pass_local_lua_pointers(ExtensionEnv* e) { lua_gc(e->state, LUA_GCCOLLECT); }
+void release_pass_local_ext_pointers(ExtensionEnv* e) { lua_gc(e->state, LUA_GCCOLLECT); }
 
 int make_ext_env(ExtensionEnv* ext, ExtParams* params)
 {
@@ -151,14 +151,14 @@ static void setup_api_table(ExtensionEnv* e, ExtParams* params)
 	lua_pushstring(s, params->config_file->str);
 	lua_setfield(s, -2, EM_CONFIG_FILE_NAME);
 
-	setup_lua_constants_api(s);
+	setup_ext_constants_api(s);
 
-	// Garbage collector metatable for luapointers
-	luaL_newmetatable(s, LUA_POINTER_GC_METATABLE_RKEY);
+	// Garbage collector metatable for ExtPointers
+	luaL_newmetatable(s, EXT_POINTER_GC_METATABLE_RKEY);
 	/* lua_createtable(s, 0, 1); */
-	lua_pushcfunction(s, ext_dest_lua_pointer);
+	lua_pushcfunction(s, ext_dest_pointer);
 	lua_setfield(s, -2, "__gc");
-	/* lua_setfield(s, LUA_REGISTRYINDEX, LUA_POINTER_GC_METATABLE_RKEY); */
+	/* lua_setfield(s, LUA_REGISTRYINDEX, EXT_POINTER_GC_METATABLE_RKEY); */
 	lua_pop(s, 1);
 
 	/* // Garbage collection preventors for lua pointers */
@@ -172,19 +172,19 @@ static void setup_api_table(ExtensionEnv* e, ExtParams* params)
 	lua_setfield(s, -2, EM_ITER_NUM_VAR_NAME);
 
 	// Allow the environment to access itself
-	new_lua_pointer(s, EXT_ENV, e);
+	new_ext_pointer(s, EXT_ENV, e);
 	lua_setfield(s, -2, EM_ENV_VAR_NAME);
 
 	// Store the args in raw form
-	new_lua_pointer(s, PARSED_ARGS, params->args);
+	new_ext_pointer(s, PARSED_ARGS, params->args);
 	lua_setfield(s, -2, EM_ARGS_VAR_NAME);
 
 	// Store the names list
-	new_lua_pointer(s, MT_NAMES_LIST, params->mt_names_list);
+	new_ext_pointer(s, MT_NAMES_LIST, params->mt_names_list);
 	lua_setfield(s, -2, EM_MT_NAMES_LIST_VAR_NAME);
 
 	// Store the styler
-	new_lua_pointer(s, STYLER, params->styler);
+	new_ext_pointer(s, STYLER, params->styler);
 	lua_setfield(s, -2, EM_STYLER_LP_LOC);
 
 	lua_setglobal(s, EM_API_TABLE_NAME);

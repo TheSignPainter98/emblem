@@ -46,13 +46,13 @@ static int ext_eval_tree(ExtensionState* s)
 		luaL_error(s, "Invalid styler value");
 	lua_pop(s, 1);
 
-	int erc = exec_lua_pass_on_node(s, sty, node, env->iter_num, false);
+	int erc = exec_ext_pass_on_node(s, sty, node, env->iter_num, false);
 	if (erc)
 		luaL_error(s, "Error while evaluating node");
 	return 1;
 }
 
-int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* parentNode)
+int unpack_ext_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* parentNode)
 {
 	log_debug("Unpacking lua result");
 	int rc;
@@ -244,7 +244,7 @@ static int ext_get_node_last_eval(ExtensionState* s)
 static int ext_get_node_parent(ExtensionState* s)
 {
 	DocTreeNode* parent = to_node(s, 1)->parent;
-	push_doc_tree_node_lua_pointer(s, parent);
+	push_doc_tree_node(s, parent);
 	return 1;
 }
 
@@ -274,7 +274,7 @@ static int ext_new_content_node(ExtensionState* s)
 
 	DocTreeNode* node;
 	make_doc_tree_node_content(node = malloc(sizeof(DocTreeNode)), loc);
-	push_doc_tree_node_lua_pointer(s, node);
+	push_doc_tree_node(s, node);
 	return 1;
 }
 
@@ -288,7 +288,7 @@ static int ext_new_word_node(ExtensionState* s)
 	make_strc(word = malloc(sizeof(Str)), raw);
 	DocTreeNode* node;
 	make_doc_tree_node_word(node = malloc(sizeof(DocTreeNode)), word, loc);
-	push_doc_tree_node_lua_pointer(s, node);
+	push_doc_tree_node(s, node);
 	return 1;
 }
 
@@ -316,7 +316,7 @@ static int ext_new_call_node(ExtensionState* s)
 		lua_pop(s, 2);
 	}
 
-	push_doc_tree_node_lua_pointer(s, node);
+	push_doc_tree_node(s, node);
 	return 1;
 }
 
@@ -351,7 +351,7 @@ static int ext_get_node_result(ExtensionState* s)
 		return luaL_error(s, "Cannot get result from %s node", node_tree_content_type_names[node->content->type]);
 	DocTreeNode* result = node->content->call->result;
 	if (result)
-		push_doc_tree_node_lua_pointer(s, result);
+		push_doc_tree_node(s, result);
 	else
 		lua_pushnil(s);
 	return 1;
@@ -372,7 +372,7 @@ static int ext_get_node_child(ExtensionState* s)
 			lua_pushnil(s);
 			break;
 		case JUST:
-			push_doc_tree_node_lua_pointer(s, (DocTreeNode*)m.just);
+			push_doc_tree_node(s, (DocTreeNode*)m.just);
 			break;
 	}
 	return 1;
@@ -393,7 +393,7 @@ static int ext_get_node_arg(ExtensionState* s)
 			lua_pushnil(s);
 			break;
 		case JUST:
-			push_doc_tree_node_lua_pointer(s, (DocTreeNode*)m.just);
+			push_doc_tree_node(s, (DocTreeNode*)m.just);
 			break;
 	}
 	return 1;
@@ -474,14 +474,14 @@ static int ext_append_call_arg(ExtensionState* s)
 static int ext_get_node_location(ExtensionState* s)
 {
 	DocTreeNode* node = to_node(s, 1);
-	push_location_lua_pointer(s, node->src_loc);
+	push_location(s, node->src_loc);
 	return 1;
 }
 
 static int ext_copy_node(ExtensionState* s)
 {
 	DocTreeNode* node = to_node(s, 1);
-	push_doc_tree_node_lua_pointer(s, copy_doc_tree_node(node));
+	push_doc_tree_node(s, copy_doc_tree_node(node));
 	return 1;
 }
 

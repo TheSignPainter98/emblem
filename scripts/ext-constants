@@ -115,7 +115,7 @@ if elem {...}, '-c'
  * @author auto-generatad by lua-constants
  * @date 2021-09-17
  */
-#include \"ext/lua-constants.h\"
+#include \"ext/ext-constants.h\"
 
 #{formatted_const_sources}
 #{libcss_header_includes}
@@ -125,7 +125,7 @@ if elem {...}, '-c'
  *
  * @param s Extension state into which the constants are added
  */
-void setup_lua_constants_api(ExtensionState* s)
+void setup_ext_constants_api(ExtensionState* s)
 {
 	lua_createtable(s, 0, #{1 + #[1 for _ in pairs constants]});
 

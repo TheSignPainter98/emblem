@@ -17,13 +17,13 @@
 
 static int do_event(ExtensionState* s, const char* event_name);
 
-int do_lua_start_event(ExtensionState* s) { return do_event(s, ON_START_EVENT_NAME); }
+int do_ext_start_event(ExtensionState* s) { return do_event(s, ON_START_EVENT_NAME); }
 
-int do_lua_iter_start_event(ExtensionState* s) { return do_event(s, ON_ITER_START_EVENT_NAME); }
+int do_ext_iter_start_event(ExtensionState* s) { return do_event(s, ON_ITER_START_EVENT_NAME); }
 
-int do_lua_iter_end_event(ExtensionState* s) { return do_event(s, ON_ITER_END_EVENT_NAME); }
+int do_ext_iter_end_event(ExtensionState* s) { return do_event(s, ON_ITER_END_EVENT_NAME); }
 
-int do_lua_end_event(ExtensionState* s) { return do_event(s, ON_END_EVENT_NAME); }
+int do_ext_end_event(ExtensionState* s) { return do_event(s, ON_END_EVENT_NAME); }
 
 static int do_event(ExtensionState* s, const char* event_name)
 {

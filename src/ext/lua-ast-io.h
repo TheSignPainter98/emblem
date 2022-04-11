@@ -10,5 +10,5 @@
 #include "doc-struct/ast.h"
 #include "ext-params.h"
 
-int unpack_lua_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* parentNode);
+int unpack_ext_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* parentNode);
 void register_ext_node(ExtensionState* s);

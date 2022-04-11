@@ -126,7 +126,7 @@ static int run_extension_driver(OutputDriver* driver, Doc* doc, ExtensionEnv* e,
 	lua_getfield(s, LUA_REGISTRYINDEX, OUTPUT_DRIVER_RIDX);
 	lua_getfield(s, -1, "output");
 	lua_rotate(s, -2, 1);
-	push_doc_tree_node_lua_pointer(s, doc->root);
+	push_doc_tree_node(s, doc->root);
 	lua_pushboolean(s, driver->use_stdout);
 	lua_pushlstring(s, driver->output_stem->str, driver->output_stem->len);
 	lua_pushlstring(s, time_str->str, time_str->len);

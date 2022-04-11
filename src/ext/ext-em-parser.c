@@ -4,7 +4,7 @@
  * @author Edward Jones
  * @date 2021-09-17
  */
-#include "lua-em-parser.h"
+#include "ext-em-parser.h"
 
 #include "argp.h"
 #include "data/list.h"
@@ -65,10 +65,10 @@ int ext_include_file(ExtensionState* s)
 		luaL_error(s, "Invalid styler value");
 	lua_pop(s, 1);
 
-	if (exec_lua_pass_on_node(s, sty, included_root, env->iter_num, true))
+	if (exec_ext_pass_on_node(s, sty, included_root, env->iter_num, true))
 		lua_pushnil(s);
 	else
-		push_doc_tree_node_lua_pointer(s, included_root);
+		push_doc_tree_node(s, included_root);
 
 	return 1;
 }

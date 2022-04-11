@@ -146,7 +146,7 @@ emdoc.*
 clang-tidy-info.json
 lua-lib-load.c
 constants.moon
-lua-constants.c
+ext-constants.c
 *.lua
 *__mod.moon
 *.loc

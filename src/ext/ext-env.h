@@ -29,7 +29,7 @@
 		lua_setfield(s, -2, name);                                                                                     \
 	}
 
-extern const char* const lua_pointer_type_names[];
+extern const char* const ext_pointer_type_names[];
 
 typedef enum
 {
@@ -39,13 +39,13 @@ typedef enum
 	MT_NAMES_LIST,
 	PARSED_ARGS,
 	LOCATION,
-} LuaPointerType;
+} ExtPointerType;
 
 typedef struct
 {
-	LuaPointerType type;
+	ExtPointerType type;
 	void* data;
-} LuaPointer;
+} ExtPointer;
 
 typedef lua_State ExtensionState;
 typedef struct
@@ -57,9 +57,9 @@ typedef struct
 
 int make_ext_env(ExtensionEnv* ext, ExtParams* params);
 void dest_ext_env(ExtensionEnv* ext);
-LuaPointer* new_lua_pointer(ExtensionState* s, LuaPointerType type, void* data);
-void release_pass_local_lua_pointers(ExtensionEnv* e);
-int to_userdata_pointer(void** val, ExtensionState* s, int idx, LuaPointerType type);
+ExtPointer* new_ext_pointer(ExtensionState* s, ExtPointerType type, void* data);
+void release_pass_local_ext_pointers(ExtensionEnv* e);
+int to_userdata_pointer(void** val, ExtensionState* s, int idx, ExtPointerType type);
 
 void get_api_elem(ExtensionState* s, const char* name);
 void set_api_elem(ExtensionState* s, int idx, const char* name);

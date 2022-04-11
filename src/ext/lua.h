@@ -14,5 +14,5 @@
 
 void inc_iter_num(Doc* doc);
 
-int exec_lua_pass(Doc* doc);
-int exec_lua_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int curr_iter, bool foster_paragraphs) __attribute__((nonnull(1, 2)));
+int exec_ext_pass(Doc* doc);
+int exec_ext_pass_on_node(ExtensionState* s, Styler* sty, DocTreeNode* node, int curr_iter, bool foster_paragraphs) __attribute__((nonnull(1, 2)));

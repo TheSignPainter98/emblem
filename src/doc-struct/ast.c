@@ -137,7 +137,7 @@ void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, SharedDe
 	if (core_deref)
 		node->parent = NULL;
 	else // shared_mode == CORE_POINTER_DEREFERENCE
-		node->flags &= ~HAS_LP;
+		node->flags &= ~HAS_EXT_PTR;
 
 	if (node->flags & IS_CALL_PARAM)
 	{
@@ -148,7 +148,7 @@ void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, SharedDe
 	}
 
 	// Don't destroy if in use
-	if (node->parent || node->flags & HAS_LP)
+	if (node->parent || node->flags & HAS_EXT_PTR)
 		return;
 
 	if (node->style)
@@ -168,7 +168,7 @@ void dest_free_doc_tree_node(DocTreeNode* node, bool processing_result, SharedDe
 	free(node);
 }
 
-void push_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node)
+void push_doc_tree_node(ExtensionState* s, DocTreeNode* node)
 {
 	get_api_elem(s, "nodes");
 	lua_pushinteger(s, NODE_ID(node));
@@ -176,8 +176,8 @@ void push_doc_tree_node_lua_pointer(ExtensionState* s, DocTreeNode* node)
 	if (lua_isnil(s, -1))
 	{
 		lua_rotate(s, -2, 1);
-		node->flags |= HAS_LP;
-		new_lua_pointer(s, DOC_TREE_NODE, node);
+		node->flags |= HAS_EXT_PTR;
+		new_ext_pointer(s, DOC_TREE_NODE, node);
 
 		// Save into node ptr table
 		lua_copy(s, -1, -3);
@@ -367,7 +367,7 @@ DocTreeNode* copy_doc_tree_node(DocTreeNode* node)
 			exit(1);
 	}
 
-	node->flags &= ~HAS_LP;
+	node->flags &= ~HAS_EXT_PTR;
 }
 
 static DocTreeNode* copy_doc_tree_node_word(DocTreeNode* node)

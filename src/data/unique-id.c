@@ -4,8 +4,8 @@
 #include "pp/assert.h"
 #include <lualib.h>
 
-static void check_lua_int_widths(void) __attribute__((constructor));
-static void check_lua_int_widths(void) { ASSERT(sizeof(lua_Integer) >= sizeof(void*)); }
+static void check_ext_int_widths(void) __attribute__((constructor));
+static void check_ext_int_widths(void) { ASSERT(sizeof(lua_Integer) >= sizeof(void*)); }
 
 static UniqueID id = (UniqueID)1;
 

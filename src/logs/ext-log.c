@@ -58,7 +58,7 @@ void register_ext_logging(ExtensionState* s)
 		}                                                                                                              \
 		if (lua_isuserdata(s, -2))                                                                                     \
 		{                                                                                                              \
-			LuaPointer* locp = lua_touserdata(s, -2);                                                                  \
+			ExtPointer* locp = lua_touserdata(s, -2);                                                                  \
 			if (locp->type != LOCATION)                                                                                \
 				luaL_error(s, "Location pointer has been changed! Expected pointer of type %d but got one of type %d", \
 					LOCATION, locp->type);                                                                             \
