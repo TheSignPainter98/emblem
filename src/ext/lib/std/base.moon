@@ -6,7 +6,7 @@
 
 import __em from _G
 import len, lower from string
-import concat, insert from table
+import concat, insert, unpack from table
 
 import node_flags, node_types from require 'std.constants'
 import GLUE_LEFT from node_flags
@@ -114,6 +114,12 @@ class Directive
 		else
 			@func = func
 			@msg = msg_or_func
+		@func = @func_wrap @func
+	func_wrap: (f) => (...) ->
+		args = {...}
+		args[i] = __em.nodes[args[i]] for i=1, select '#', ...
+		f unpack args
+
 base.Directive = Directive
 
 class DirectiveHelp
