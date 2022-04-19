@@ -18,40 +18,88 @@ base = { k,v for k,v in pairs __em when not k\match '^__' }
 
 base.stylesheet 'std/base.scss'
 
----
--- @brief Wrap the __get and __set methods into the __index and __newindex methods if available
--- Calling wrap_indices @ in a constructor before the end seems to be able to cause a memory leak.
--- @param object (table) to wrap
--- @return nil
-base.wrap_indices = =>
-	with getmetatable @
-		-- Handle __index
-		if new_index = .__get
-			call__index = (idx, cls, k) ->
-				if 'function' == type idx
-					idx cls, k
-				else
-					idx[k]
-			if old_index = .__index
-				.__index = (k) =>
-					ret = call__index old_index, @, k
-					if ret != nil
-						ret
-					else
-						call__index new_index, @, k
-			else
-				.__index = new_index
+wrapper_applied = setmetatable {}, __mode: 'k'
+meta_methods = {
+	-- Ops
+	'__add'
+	'__sub'
+	'__mul'
+	'__div'
+	'__mod'
+	'__pow'
+	'__unm'
+	'__idiv'
+	'__band'
+	'__bxor'
+	'__bnot'
+	'__shl'
+	'__shr'
+	'__concat'
+	'__len'
+	'__eq'
+	'__lt'
+	'__le'
+	'__call'
+	-- Special Lua standard lib
+	'__tostring'
+	'__metatable'
+	'__pairs'
+	-- Special internal
+	'__mode'
+	'__gc'
+	'__close'
+	'__name'
+}
 
-		-- Handle __newindex
-		.__newindex = .__set if .__set
+---
+-- @brief Give new-instances of a given class (and its subclasses) a metatable
+-- which allows inheritance of metamethods. Special __get and __set functions
+-- may be defined to override the behaviour of __index and __newindex where the
+-- given key does is not an (inherited) field
+-- @param @ A class (table) to wrap
+-- @return nil
+base.meta_wrap = =>
+	return if wrapper_applied[@]
+	wrapper_applied[@] = true
+	with getmetatable @
+		-- Auto-wrap subclasses
+		old_inherited = @__inherited
+		@__inherited = (cls) =>
+			old_inherited @, cls if old_inherited
+			base.meta_wrap cls
+
+		-- Add custom metatable to the new-instance call result
+		old_call = .__call
+		.__call = (... using old_call, meta_methods) =>
+			ret = old_call @, ...
+			mt = getmetatable ret
+			wrapper_mt = with {}
+				for meta_method_name in *meta_methods
+					if meta_method = mt[meta_method_name]
+						[meta_method_name] = meta_method
+				if get = mt.__get
+					error "Only functions are supported for the __get field" unless 'function' == type get
+					.__index = (k) =>
+						r = mt[k]
+						return r unless r == nil
+						get @, k
+				else
+					.__index = mt
+				if set = mt.__set
+					.__newindex = (k, v) =>
+						return rawset @, k, v unless mt[k] == nil
+						set @, k, v
+			setmetatable wrapper_mt, mt
+			setmetatable ret, wrapper_mt
+			ret
 
 class UnimplementedLuaStandardModule
-	new: (@mod_name) => base.wrap_indices @
+	new: (@mod_name) =>
 	module_unavailable: true
 	__tostring: => "Unimplemented module '#{@mod_name}'"
-	__get: (k) =>
-		error "Module #{rawget @, 'mod_name'} is not available at this sandbox level (trap activated when importing '#{k}')" unless k == 'module_unavailable'
-		rawget @, k
+	__get: (k) => error "Module #{@mod_name} is not available at this sandbox level (trap activated when importing '#{k}')", 2
+	__set: (k,v) => error "Module #{@mod_name} is not available at this sandbox level and is hence immutable (trap activated when changing '#{k}')", 2
+base.meta_wrap UnimplementedLuaStandardModule
 
 export io = UnimplementedLuaStandardModule 'io' unless io
 export os = UnimplementedLuaStandardModule 'os' unless os
@@ -75,15 +123,10 @@ class DirectiveHelp
 ---
 -- @brief Represents a table which makes no distinction between upper/lower case and _/- in its keys
 class SanitisedKeyTable
-	new: => base.wrap_indices @
-	__tostring: show
-	_sanitise_key: (k) -> lower k\gsub '_', '-'
-	__get: (k) =>
-		k = (rawget (getmetatable @), '_sanitise_key') k
-		rawget @, k
-	__set: (k, v) =>
-		k = (rawget (getmetatable @), '_sanitise_key') k
-		rawset @, k, v
+	_sanitise_key: (k) => lower k\gsub '_', '-'
+	__get: (k) => rawget @, @_sanitise_key k
+	__set: (k, v) => rawset @, (@_sanitise_key k), v
+base.meta_wrap SanitisedKeyTable
 base.SanitisedKeyTable = SanitisedKeyTable
 
 help = SanitisedKeyTable!
@@ -108,15 +151,12 @@ is_instance = (cls, obj) ->
 base.is_instance = is_instance
 
 class DirectivePublicTable
-	new: => base.wrap_indices @
-	__tostring: show
-	_sanitise_key: (k) -> lower k\gsub '_', '-'
-	__get: (k) =>
-		k = (rawget (getmetatable @), '_sanitise_key') k
-		rawget @, k
+	__tostring: => @@__name
+	_sanitise_key: (k) => lower k\gsub '_', '-'
+	__get: (k) => rawget @, @_sanitise_key k
 	__set: (k, v) =>
 		error "Failed to declare directive #{k}, value is not an instance of Directive" if not is_instance 'Directive', v
-		k = (rawget (getmetatable @), '_sanitise_key') k
+		k = @_sanitise_key k
 		if v == nil
 			rawset @, k, nil
 			help[k] = nil
@@ -129,6 +169,7 @@ class DirectivePublicTable
 			v.func ...
 		rawset @, k, wrapped_func
 		help[k] = DirectiveHelp k, v
+base.meta_wrap DirectivePublicTable
 
 em = DirectivePublicTable!
 ---

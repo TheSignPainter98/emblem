@@ -4,7 +4,7 @@
 -- @author Edward Jones
 -- @date 2021-09-17
 
-import em_loc, unpack_loc, wrap_indices from require 'std.base'
+import em_loc, unpack_loc, meta_wrap from require 'std.base'
 import node_types from require 'std.constants'
 import EphemeronTable, WeakValueTable from require 'std.data'
 import log_err_at, log_warn_at from require 'std.log'
@@ -50,7 +50,6 @@ import
 ---
 -- @brief A cache for core pointers and their representations, maps unique IDs to Lua-objects, which are created as necessary. As pointers are stored weakly, there is no guarantee getting two values from the map will return the same object, if that previously-gotten object has been garbage-collected.
 class CorePointerMap
-	new: => wrap_indices @
 	_id_ptrs: WeakValueTable!
 	_ptr_vals: EphemeronTable!
 
@@ -72,6 +71,7 @@ class CorePointerMap
 				error "Index to #{@@__name} must be a number, userdata or a table"
 		@_ptr_vals[@_id_ptrs[id]]
 	__tostring: => @@__name
+meta_wrap CorePointerMap
 
 ---
 -- @brief Wrapper for a core location pointer
@@ -86,6 +86,7 @@ class Location
 	__get: (k) => @unpack![k]
 	__set: (k,v) => error "Location fields are read-only, #{k}, #{v}", 2
 	__tostring: => show @unpack!
+meta_wrap Location
 
 ---
 -- @brief Cache for location objects
@@ -145,12 +146,11 @@ class Node
 ---
 -- @brief Proxy for call attributes
 class AttrTable
-	new: (_n, attrs) =>
-		rawset @, '_n', _n
+	new: (@_n, attrs) =>
 		__set_attr @_n, k, v for k,v in ipairs attrs
-		wrap_indices @
 	__get: (k) => __get_attr @_n, k
 	__set: (k, v) => __set_attr @_n, k, v
+meta_wrap AttrTable
 
 ---
 -- @brief Wrapper for content nodes (those which can have other nodes beneath them without affecting styling or calling extension funcionality
@@ -161,7 +161,6 @@ class Content extends Node
 		else
 			super __new_content em_loc!
 			@append_child child for child in *children
-		wrap_indices @
 	append_child: (c) => __append_child @_n, c._n
 	__add: (c) =>
 		@append_child c
@@ -185,6 +184,7 @@ class Content extends Node
 				first = false
 			c\_node_string sb, pretty
 		sb
+meta_wrap Content
 
 ---
 -- @brief Wrapper for call nodes, which can affect styling and which can cause extension functions to be called

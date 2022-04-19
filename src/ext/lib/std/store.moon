@@ -7,7 +7,7 @@
 import dump, load from require 'lyaml'
 import Component from require 'std.events'
 import log_err, log_warn from require 'std.log'
-import Directive, em, wrap_indices from require 'std.base'
+import Directive, em, meta_wrap from require 'std.base'
 
 local open
 if not io.module_unavailable
@@ -20,29 +20,27 @@ EM_STORE_FILE_DEFAULT = '.em-store.yml'
 class Store extends Component
 	new: (@store_loc=EM_STORE_FILE_DEFAULT) =>
 		super!
-		@curr_store = nil
-		wrap_indices @
+		@curr_store = false
 	ensure_has_store: =>
 		if not open
 			log_warn "Store unavailable due to sandbox level"
-			rawset @, 'curr_store', {}
-		elseif not rawget @, 'curr_store'
-			f = open (rawget @, 'store_loc'), 'r'
+			@curr_store = {}
+		elseif not @curr_store
+			f = open @store_loc, 'r'
 			if not f
-				rawset @, 'curr_store', {}
+				@curr_store = {}
 			else
 				local lines
 				with f
 					lines = \read '*all'
 					\close!
-				curr_store = load lines
-				rawset @, 'curr_store', curr_store or {}
+				@curr_store = (load lines) or {}
 	__get: (k, d) =>
-		(rawget (getmetatable @), 'ensure_has_store') @
-		(rawget (rawget @, 'curr_store'), k) or d
+		@ensure_has_store!
+		@curr_store[k] or d
 	__set: (k, v) =>
-		(rawget (getmetatable @), 'ensure_has_store') @
-		(rawget @, 'curr_store')[k] = v
+		@ensure_has_store!
+		@curr_store[k] = v
 	on_end: =>
 		if @curr_store and open
 			curr_store_rep = dump {@curr_store}
@@ -52,6 +50,7 @@ class Store extends Component
 			with f
 				\write curr_store_rep
 				\close!
+meta_wrap Store
 
 ---
 -- @brief The current score

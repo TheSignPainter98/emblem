@@ -41,7 +41,7 @@ typedef uint_least16_t DocTreeNodeFlags;
 #define NBSP_RIGHT			   (1 << 11)
 #define GLUE_LEFT			   (1 << 12)
 #define NBSP_LEFT			   (1 << 13)
-#define HAS_EP				   (1 << 14)
+#define HAS_EXT_PTR			   (1 << 14)
 
 #define RIGHT_GLUE_TO_LEFT(f) ((f) << 2)
 
