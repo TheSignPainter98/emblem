@@ -145,7 +145,7 @@ static int unpack_single_value(DocTreeNode** result, Str* repr, DocTreeNode* par
 
 // TODO: complete re-implementation!
 
-static inline DocTreeNode* to_node(ExtensionState* s, int idx)
+DocTreeNode* to_node(ExtensionState* s, int idx)
 {
 	DocTreeNode* ret = NULL;
 	if (to_userdata_pointer((void**)&ret, s, idx, DOC_TREE_NODE))

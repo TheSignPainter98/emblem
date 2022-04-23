@@ -46,6 +46,8 @@ typedef struct StylePreprocessorParams_s
 } StylePreprocessorParams;
 
 typedef css_select_results Style;
+typedef css_computed_style PseudoElemStyle;
+typedef css_pseudo_element PseudoElemType;
 
 typedef struct
 {

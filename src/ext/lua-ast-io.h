@@ -11,4 +11,5 @@
 #include "ext-params.h"
 
 int unpack_ext_result(DocTreeNode** result, ExtensionState* s, DocTreeNode* parentNode);
+DocTreeNode* to_node(ExtensionState* s, int idx);
 void register_ext_node(ExtensionState* s);

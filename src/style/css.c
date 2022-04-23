@@ -63,6 +63,10 @@ void make_styler(Styler* styler, Args* args)
 
 	styler->prep_params = malloc(sizeof(StylePreprocessorParams));
 	make_style_preprocessor_params(styler->prep_params, args);
+
+	// These get filled in once the output driver has been loaded
+	styler->process_css = false;
+	styler->process_scss = false;
 }
 
 void dest_styler(Styler* styler)

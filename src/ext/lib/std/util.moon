@@ -4,7 +4,7 @@
 -- @author Edward Jones
 -- @date 2021-09-17
 
-import eval_string, iter_num from require 'std.base'
+import eval_string, iter_num, meta_wrap from require 'std.base'
 import wrap, yield from coroutine
 import maxinteger, mininteger from math
 import len from string
@@ -182,5 +182,19 @@ class util.StringBuilder
 				insert flattened, o if o != nil and o != ''
 		flatten @content
 		concat flattened
+
+class util.Proxy
+	new: (@_getters={}, @_setters={}) =>
+	__get: (k) =>
+		if getter = @getter k
+			getter @, k
+	getter: (k) => @_getters[k]
+	__set: (k,v) =>
+		if setter = @setter k
+			setter @, k, v
+		else
+			error "Could not set proxy key '#{k}': unknown key"
+	setter: (k) => @_setters[k]
+meta_wrap util.Proxy
 
 util
