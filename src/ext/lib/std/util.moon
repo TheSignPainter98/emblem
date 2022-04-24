@@ -167,7 +167,9 @@ class util.StringBuilder
 				insert @content, cs[i]
 		else
 			insert @content, c for c in *cs
-	__concat: (s) => insert @content, s
+	__concat: (s) =>
+		insert @content, s
+		@
 	__call: =>
 		flattened = {}
 		flatten = (o) ->
