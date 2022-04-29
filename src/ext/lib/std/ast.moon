@@ -363,7 +363,9 @@ __em.nodes = NodeMap!
 -- @brief Base class for wrappers for core node pointers
 class Node
 	new: (@_n, flags=0) =>
-		__em.nodes[_n] = @
+		unless 'userdata' == type _n
+			error "Node requires a core pointer, got a #{type _n}: #{_n}", 2
+		__em.nodes[_n] = @ unless __em.nodes[_n]
 		@_loc = nil
 		@set_flag flags if flags != 0
 		@style = Style _n
