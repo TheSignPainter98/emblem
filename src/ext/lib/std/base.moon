@@ -11,7 +11,7 @@ import concat, insert, unpack from table
 import node_flags, node_types from require 'std.constants'
 import GLUE_LEFT from node_flags
 import WORD, CALL, CONTENT from node_types
-import __copy_loc, __log_warn from __em
+import unpack_loc, __log_warn from __em
 import __eval from __em.__node
 
 base = { k,v for k,v in pairs __em when not k\match '^__' }
@@ -21,34 +21,13 @@ base.stylesheet 'std/base.scss'
 wrapper_applied = setmetatable {}, __mode: 'k'
 meta_methods = {
 	-- Ops
-	'__add'
-	'__sub'
-	'__mul'
-	'__div'
-	'__mod'
-	'__pow'
-	'__unm'
-	'__idiv'
-	'__band'
-	'__bxor'
-	'__bnot'
-	'__shl'
-	'__shr'
-	'__concat'
-	'__len'
-	'__eq'
-	'__lt'
-	'__le'
-	'__call'
+	'__add', '__sub', '__mul', '__div', '__mod', '__pow', '__unm', '__idiv',
+	'__band', '__bxor', '__bnot', '__shl', '__shr', '__concat', '__len',
+	'__eq', '__lt', '__le', '__call',
 	-- Special Lua standard lib
-	'__tostring'
-	'__metatable'
-	'__pairs'
+	'__tostring', '__metatable', '__pairs',
 	-- Special internal
-	'__mode'
-	'__gc'
-	'__close'
-	'__name'
+	'__mode', '__gc', '__close', '__name',
 }
 
 ---
@@ -58,40 +37,47 @@ meta_methods = {
 -- given key does is not an (inherited) field
 -- @param @ A class (table) to wrap
 -- @return nil
-base.meta_wrap = =>
+meta_wrap = (using wrapper_applied, meta_methods, meta_wrap) =>
+	-- Wrap once only
 	return if wrapper_applied[@]
 	wrapper_applied[@] = true
-	with getmetatable @
-		-- Auto-wrap subclasses
-		old_inherited = @__inherited
-		@__inherited = (cls) =>
-			old_inherited @, cls if old_inherited
-			base.meta_wrap cls
 
-		-- Add custom metatable to the new-instance call result
+	-- Auto-wrap subclasses
+	old_inherited = @__inherited
+	@__inherited = (cls) =>
+		old_inherited @, cls if old_inherited
+		meta_wrap cls
+
+	-- Create new wrapper metatable to pass-through to the base
+	base = @__base
+	wrapper_mt = with {}
+		-- Copy metamethods
+		for meta_method_name in *meta_methods
+			if meta_method = base[meta_method_name]
+				[meta_method_name] = meta_method
+		-- Patch/copy .__index
+		if get = base.__get
+			unless 'function' == type get
+				error "Only functions are supported for the __get field"
+			.__index = (k) =>
+				r = base[k]
+				return r unless r == nil
+				get @, k
+		else
+			.__index = base
+		-- Patch .__newindex
+		if set = base.__set
+			unless 'function' == type set
+				error "Only functions are supported for the __set field"
+			.__newindex = (k, v) =>
+				return rawset @, k, v unless base[k] == nil
+				set @, k, v
+	setmetatable wrapper_mt, base
+
+	with getmetatable @
 		old_call = .__call
-		.__call = (... using old_call, meta_methods) =>
-			ret = old_call @, ...
-			mt = getmetatable ret
-			wrapper_mt = with {}
-				for meta_method_name in *meta_methods
-					if meta_method = mt[meta_method_name]
-						[meta_method_name] = meta_method
-				if get = mt.__get
-					error "Only functions are supported for the __get field" unless 'function' == type get
-					.__index = (k) =>
-						r = mt[k]
-						return r unless r == nil
-						get @, k
-				else
-					.__index = mt
-				if set = mt.__set
-					.__newindex = (k, v) =>
-						return rawset @, k, v unless mt[k] == nil
-						set @, k, v
-			setmetatable wrapper_mt, mt
-			setmetatable ret, wrapper_mt
-			ret
+		.__call = (...) -> setmetatable (old_call ...), wrapper_mt
+base.meta_wrap = meta_wrap
 
 class UnimplementedLuaStandardModule
 	new: (@mod_name) =>
@@ -99,7 +85,7 @@ class UnimplementedLuaStandardModule
 	__tostring: => "Unimplemented module '#{@mod_name}'"
 	__get: (k) => error "Module #{@mod_name} is not available at this sandbox level (trap activated when importing '#{k}')", 2
 	__set: (k,v) => error "Module #{@mod_name} is not available at this sandbox level and is hence immutable (trap activated when changing '#{k}')", 2
-base.meta_wrap UnimplementedLuaStandardModule
+meta_wrap UnimplementedLuaStandardModule
 
 export io = UnimplementedLuaStandardModule 'io' unless io
 export os = UnimplementedLuaStandardModule 'os' unless os
@@ -132,7 +118,7 @@ class SanitisedKeyTable
 	_sanitise_key: (k) => lower k\gsub '_', '-'
 	__get: (k) => rawget @, @_sanitise_key k
 	__set: (k, v) => rawset @, (@_sanitise_key k), v
-base.meta_wrap SanitisedKeyTable
+meta_wrap SanitisedKeyTable
 base.SanitisedKeyTable = SanitisedKeyTable
 
 help = SanitisedKeyTable!
@@ -175,7 +161,7 @@ class DirectivePublicTable
 			v.func ...
 		rawset @, k, wrapped_func
 		help[k] = DirectiveHelp k, v
-base.meta_wrap DirectivePublicTable
+meta_wrap DirectivePublicTable
 
 em = DirectivePublicTable!
 ---
