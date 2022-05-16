@@ -6,7 +6,7 @@
 
 import em_loc, unpack_loc, meta_wrap from require 'std.base'
 import node_types from require 'std.constants'
-import EphemeronTable, WeakValueTable from require 'std.data'
+import EphemeronTable, Set, WeakValueTable from require 'std.data'
 import log_err_at, log_warn_at from require 'std.log'
 import show from require 'std.show'
 import unpack from table
@@ -61,7 +61,7 @@ class CorePointerMap
 
 	__set: (ptr, obj=@mk_obj ptr) =>
 		@_ptr_vals[ptr] = obj
-		@_id_ptrs[obj\id!] = ptr
+		@_id_ptrs[@get_ud_id ptr] = ptr
 	__get: (k) =>
 		id = switch type k
 			when 'number'
@@ -69,9 +69,11 @@ class CorePointerMap
 			when 'userdata'
 				@get_ud_id k
 			when 'table'
-				k\id!
+				k.id
+			when 'nil'
+				return nil
 			else
-				error "Index to #{@@__name} must be a number, userdata or a table"
+				error "Index to #{@@__name} must be a number, userdata, table or nil, got a #{type k}: #{k}"
 		@_ptr_vals[@_id_ptrs[id]]
 	__tostring: => @@__name
 meta_wrap CorePointerMap
@@ -101,22 +103,24 @@ class LocMap extends CorePointerMap
 __em.locs = LocMap!
 
 class NodeProxy
-	new: (@_n, @_get_proxies, @_set_proxies={}) =>
-	asdf: => 'fdsa'
+	new: (@_n, @_get_proxies={}, @_set_proxies={}, _cache_fields={}) =>
+		@_cache = {}
+		@_cache_fields = Set _cache_fields
 	__get: (k) =>
-		print '>> FDHJKFHDSJKFLHD'
+		if v = @_cache[k]
+			return v
 		if f = @_get_proxies[k]
-			f @_n
+			v = f @_n
+			@_cache[k] = v if @_cache_fields[k]
+			v
 		else
-			print "Unknown proxy field '#{k}', expected one of: #{concat [ k for k,_ in pairs @_get_proxies ], ', '}"
-			nil
-			-- error "Unknown proxy field '#{k}', expected one of: #{concat [ k for k,_ in pairs @_get_proxies ], ', '}"
+			error "Unknown proxy field '#{k}', expected one of: #{concat [ k for k,_ in pairs @_get_proxies ], ', '}"
 	__set: (k, v) =>
+		@_cache[k] = nil
 		if f = @_set_proxies[k]
 			f @_n, v
 		else
 			rawset @, k, v
-			-- error "Unknown proxy field '#{k}', expected one of: #{concat [ k for k in pairs @_set_proxies ], ', '}"
 	__pairs: => wrap -> yield k, f @_n for k,f in pairs @_get_proxies
 meta_wrap NodeProxy
 
@@ -361,16 +365,23 @@ __em.nodes = NodeMap!
 
 ---
 -- @brief Base class for wrappers for core node pointers
-class Node
+class Node extends NodeProxy
 	new: (@_n, flags=0) =>
+		super @_n, @proxy_get_fields, nil, @proxy_cache_fields
 		unless 'userdata' == type _n
 			error "Node requires a core pointer, got a #{type _n}: #{_n}", 2
 		__em.nodes[_n] = @ unless __em.nodes[_n]
-		@_loc = nil
 		@set_flag flags if flags != 0
 		@style = Style _n
+		@_name = false
+		@_loc = false
+	proxy_get_fields: {
+		id: (n) -> __get_node_id n
+	}
+	proxy_cache_fields: {
+		'id',
+	}
 	eval: => __eval @_n
-	id: => __get_node_id @_n
 	flag: (f) => 0 != f & __get_flags @_n
 	set_flag: (f) => __set_flags @_n, f | __get_flags @_n
 	flags: => __get_flags @_n
@@ -434,7 +445,6 @@ class Content extends Node
 				first = false
 			c\_node_string sb, pretty
 		sb
-meta_wrap Content
 
 ---
 -- @brief Wrapper for call nodes, which can affect styling and which can cause extension functions to be called
@@ -443,14 +453,13 @@ class Call extends Node
 		switch type name
 			when 'userdata'
 				super name
+			when 'table'
+				error "Trying to construct a node out of a table doesn't work!"
 			else
 				super __new_call name, args, em_loc!
 		@attrs = AttrTable @_n, attrs
-		with getmetatable @
-			.__get = @attrs
-			-- .__set = @attrs
-		wrap_indices @
-	arg: (i) => __get_arg @_n, i
+	arg: (i) => __em.nodes[__get_arg @_n, i]
+	args: => [ __em.nodes[__get_arg @_n, i] for i=1,#@ ]
 	result: =>
 		if r = __get_result @_n
 			__em.nodes[r]
