@@ -189,6 +189,7 @@ node_string = (n, pretty=false) ->
 			return
 		if 'table' != type n
 			insert str_parts, tostring n
+			return
 		switch n.type
 			when WORD
 				insert str_parts, pretty and n.pretty or n.raw
@@ -217,8 +218,8 @@ base.node_string = node_string
 -- @param pretty Whether use the pretty or raw form of words
 -- @return A string which represents all text at and beneath _d_
 eval_string = (d, pretty) ->
-	if 'userdata' == type d
-		return node_string (__eval d), pretty
+	error "What are you doing with a userdata?", 2 if 'userdata' == type d
+	return d\eval_string pretty if 'table' == type d and is_instance 'Node'
 	tostring d
 base.eval_string = eval_string
 

@@ -397,6 +397,9 @@ class Node extends NodeProxy
 	warn: (...) => log_warn_at (__get_loc @_n), ...
 
 	__tostring: => @node_string true
+	eval_string: (pretty=false) =>
+		@eval!
+		@node_string pretty
 	node_string: (pretty=false) => (@_node_string StringBuilder!, pretty)!
 	show: => @repr!!
 	repr: (sb=StringBuilder!) => sb .. "{Node #{@_n} (type=#{__get_content_type @_n})}"

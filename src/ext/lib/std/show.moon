@@ -21,11 +21,13 @@ show = (v) ->
 		when 'string'
 			"'#{v}'"
 		when 'table'
+			if 'function' == type v.show
+				return v\show!
 			if is_list v
 				return '[' .. (concat [ show e for e in *v ], ',') .. ']'
-			'{' .. (concat [ (show e) .. ':' .. show val for e,val in pairs v ], ',') .. '}'
-			else
-				print 'Unknown type', type v
+			return '{' .. (concat [ (show e) .. ':' .. show val for e,val in pairs v ], ',') .. '}'
+		else
+			error 'Unknown type', type v
 
 ---
 -- @brief Construct a prettier string-representation of an object
