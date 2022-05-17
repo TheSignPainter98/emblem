@@ -10,7 +10,7 @@ import EphemeronTable, Set, WeakValueTable from require 'std.data'
 import log_err_at, log_warn_at from require 'std.log'
 import show from require 'std.show'
 import unpack from table
-import is_list, StringBuilder, Proxy from require 'std.util'
+import is_list, StringBuilder, Proxy, unite from require 'std.util'
 import wrap, yield from coroutine
 import concat, insert from table
 
@@ -103,7 +103,7 @@ class LocMap extends CorePointerMap
 __em.locs = LocMap!
 
 class NodeProxy
-	new: (@_n, @_get_proxies={}, @_set_proxies={}, _cache_fields={}) =>
+	new: (@_n, @_get_proxies={}, _cache_fields={}, @_set_proxies={}) =>
 		@_cache = {}
 		@_cache_fields = Set _cache_fields
 	__get: (k) =>
@@ -114,7 +114,7 @@ class NodeProxy
 			@_cache[k] = v if @_cache_fields[k]
 			v
 		else
-			error "Unknown proxy field '#{k}', expected one of: #{concat [ k for k,_ in pairs @_get_proxies ], ', '}"
+			error "Unknown proxy field '#{k}', expected one of: #{concat [ k for k,_ in pairs @_get_proxies ], ', '}", 2
 	__set: (k, v) =>
 		@_cache[k] = nil
 		if f = @_set_proxies[k]
@@ -124,7 +124,6 @@ class NodeProxy
 	__pairs: => wrap -> yield k, f @_n for k,f in pairs @_get_proxies
 meta_wrap NodeProxy
 
-__em.__css = {} unless __em.__css -- TODO: remove me!
 import
 	__get_align_content
 	__get_align_items
@@ -366,42 +365,41 @@ __em.nodes = NodeMap!
 ---
 -- @brief Base class for wrappers for core node pointers
 class Node extends NodeProxy
-	new: (@_n, flags=0) =>
-		super @_n, @proxy_get_fields, nil, @proxy_cache_fields
+	new: (@_n, get_fields, cache_fields, set_fields) =>
+		super @_n, (unite @node_get_fields, get_fields), (unite @node_cache_fields, cache_fields), unite @node_set_fields, set_fields
 		unless 'userdata' == type _n
 			error "Node requires a core pointer, got a #{type _n}: #{_n}", 2
 		__em.nodes[_n] = @ unless __em.nodes[_n]
-		@set_flag flags if flags != 0
 		@style = Style _n
-		@_name = false
-		@_loc = false
-	proxy_get_fields: {
-		id: (n) -> __get_node_id n
+	node_get_fields: {
+		flags: __get_flags
+		id: __get_node_id
+		last_eval: __get_last_eval
+		loc: __get_loc
+		name: __get_name
+		type: __get_content_type
 	}
-	proxy_cache_fields: {
-		'id',
+	node_set_fields: {
+		flags: __set_flags
+	}
+	node_cache_fields: {
+		'id'
+		'loc'
+		'name'
+		'type'
 	}
 	eval: => __eval @_n
 	flag: (f) => 0 != f & __get_flags @_n
 	set_flag: (f) => __set_flags @_n, f | __get_flags @_n
-	flags: => __get_flags @_n
 	set_flags: (f) => __set_flags @_n, f
-	last_eval: => __get_last_eval @_n
-	name: =>
-		@_name = __get_name @_n unless @_name
-		@_name
-	loc: =>
-		@_loc = __get_loc @_n unless @_loc
-		@_loc
-	type: => __get_content_type @_n
 	copy: => __copy @_n
-	error: (...) => log_err_at @loc!, ...
-	warn: (...) => log_warn_at @loc!, ...
+	error: (...) => log_err_at (__get_loc @_n), ...
+	warn: (...) => log_warn_at (__get_loc @_n), ...
 
 	__tostring: => @node_string true
 	node_string: (pretty=false) => (@_node_string StringBuilder!, pretty)!
 	show: => @repr!!
-	repr: (sb=StringBuilder!) => sb .. "{Node #{@_n} (type=#{@type!})}"
+	repr: (sb=StringBuilder!) => sb .. "{Node #{@_n} (type=#{__get_content_type @_n})}"
 	__call: => @eval!
 
 ---
@@ -432,7 +430,9 @@ class Content extends Node
 		->
 			i += 1
 			i, __em.nodes[__get_child @_n, i] if i <= n
-	__get: (i) => __em.nodes[__get_child @_n, i]
+	__getidx: (i) =>
+		return nil unless 1 <= i and i <= @__len!
+		__em.nodes[__get_child @_n, i]
 	iter: => wrap -> yield i, __em.nodes[__get_child @_n, i] for i = 1,#@
 	__tostring: => super!
 	__call: (...) => super ...
@@ -452,25 +452,25 @@ class Call extends Node
 	new: (name, args={}, attrs={}) =>
 		switch type name
 			when 'userdata'
-				super name
+				super name, @call_get_fields
 			when 'table'
 				error "Trying to construct a node out of a table doesn't work!"
 			else
-				super __new_call name, args, em_loc!
+				super (__new_call name, args, em_loc!), @call_get_fields
 		@attrs = AttrTable @_n, attrs
-	arg: (i) => __em.nodes[__get_arg @_n, i]
-	args: => [ __em.nodes[__get_arg @_n, i] for i=1,#@ ]
-	result: =>
-		if r = __get_result @_n
-			__em.nodes[r]
-		else
-			nil
+	call_get_fields: {
+		args: (n) -> [ __em.nodes[__get_arg n, i] for i = 1, __get_num_args n ]
+		result: (n) ->
+			if r = __get_result n
+				__em.nodes[r]
+	}
+	__getidx: (i) => __em.nodes[__get_arg @_n, i]
 	__tostring: => super!
 	__call: (...) => super ...
 	__len: => __get_num_args @_n
 	_node_string: (sb, pretty) =>
-		if r = @result!
-			r\_node_string sb, pretty
+		if r = __get_result @_n
+			__em.nodes[r]\_node_string sb, pretty
 		else
 			sb
 
@@ -480,15 +480,21 @@ class Word extends Node
 	new: (word) =>
 		switch type word
 			when 'userdata'
-				super word
+				super word, @word_get_fields, @word_cache_fields
 			else
-				super __new_word word, em_loc!
-	raw: => __get_raw_word @_n
-	sanitised: => __get_sanitised_word @_n
-	repr: (sb=StringBuilder!) => sb .. @raw!
+				super (__new_word word, em_loc!), @word_get_fields, @word_cache_fields
+	word_get_fields: {
+		raw: __get_raw_word
+		pretty: __get_sanitised_word
+	}
+	word_cache_fields: {
+		'raw'
+		'pretty'
+	}
+	repr: (sb=StringBuilder!) => sb .. @raw
 	__tostring: => super!
 	__call: (...) => super ...
-	_node_string: (sb, pretty) => sb .. (pretty and @sanitised! or @raw!)
+	_node_string: (sb, pretty) => sb .. (pretty and @pretty or @raw)
 
 with __em.nodes.raw_node_constructors
 	[WORD] = Word

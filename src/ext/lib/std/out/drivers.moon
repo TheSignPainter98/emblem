@@ -11,6 +11,7 @@ import SanitisedKeyTable from require 'std.base'
 import log_err, log_warn from require 'std.log'
 import sorted, StringBuilder from require 'std.util'
 import concat from table
+import __em from _G
 
 local open
 if not io.module_unavailable
@@ -37,6 +38,7 @@ class OutputDriver
 			log_warn "Extension-space output drivers unavailable due to sandbox level"
 			return
 		fname = stem .. '.' .. @output_extension
+		doc = __em.nodes[doc]
 		output = @format doc
 
 		if use_stdout
@@ -70,15 +72,15 @@ class ContextFreeOutputDriver extends OutputDriver
 			return '' unless n
 			switch n.type
 				when WORD
-					@sanitise n.pword or n.word
+					@sanitise n.pretty
 				when CALL
 					result = format n.result, false
 					return '' if result == ''
 					@enclose_tag n.name, result, n.args
 				when CONTENT
 					ret = {}
-					for i = 1, 2 * #n.content - 1
-						m = n.content[1 + i // 2]
+					for i = 1, 2 * #n - 1
+						m = n[1 + i // 2]
 						if i % 2 == 1
 							ret[i] = format m
 						else if (m.flags & GLUE_LEFT) != 0
@@ -125,7 +127,7 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 			switch n.type
 				when WORD
 					@have_output = true
-					{ delimiter, @sanitise n.pword or n.word }
+					{ delimiter, @sanitise n.pretty }
 				when CALL
 					result = format n.result, false
 					if result == ''
@@ -135,7 +137,7 @@ class TextualMarkupOutputDriver extends ContextFreeOutputDriver
 						@next_delimiter = post_delimiter
 						r
 				when CONTENT
-					{ delimiter, [ format n.content[i], 1 < i for i=1,#n.content ] }
+					{ delimiter, [ format n[i], 1 < i for i=1,#n ] }
 				else
 					error "Unknown node type #{n.type}"
 		ret = StringBuilder format doc, false, false

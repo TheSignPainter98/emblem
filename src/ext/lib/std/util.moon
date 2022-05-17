@@ -199,4 +199,10 @@ class util.Proxy
 	setter: (k) => @_setters[k]
 meta_wrap util.Proxy
 
+util.unite = (m, ...) ->
+	with { k,v for k,v in pairs m }
+		for i = 1, select '#', ...
+			if t = select i, ...
+				[k] = v for k,v in pairs t
+
 util

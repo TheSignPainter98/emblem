@@ -59,10 +59,18 @@ meta_wrap = (using wrapper_applied, meta_methods, meta_wrap) =>
 		if get = base.__get
 			unless 'function' == type get
 				error "Only functions are supported for the __get field"
-			.__index = (k) =>
-				r = base[k]
-				return r unless r == nil
-				get @, k
+			if idxget = base.__getidx
+				.__index = (k) =>
+					r = base[k]
+					return r unless r == nil
+					r = idxget @, k if 'number' == type k
+					return r unless r == nil
+					get @, k
+			else
+				.__index = (k) =>
+					r = base[k]
+					return r unless r == nil
+					get @, k
 		else
 			.__index = base
 		-- Patch .__newindex
@@ -183,7 +191,7 @@ node_string = (n, pretty=false) ->
 			insert str_parts, tostring n
 		switch n.type
 			when WORD
-				insert str_parts, pretty and n.pword or n.word
+				insert str_parts, pretty and n.pretty or n.raw
 			when CALL
 				node_string_parts n.result
 			when CONTENT

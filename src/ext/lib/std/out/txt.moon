@@ -24,12 +24,12 @@ class RawOutputDriver extends OutputDriver
 			switch n.type
 				when WORD
 					sb .. delimiter if delimiter
-					sb .. (n.pword or n.word)
+					sb .. n.pretty
 					delimiter = ' '
 				when CALL
 					format n.result
 				when CONTENT
-					format c for c in *n.content
+					format c for c in *n
 				else
 					error "Unknown node type #{n.type}"
 		format doc
