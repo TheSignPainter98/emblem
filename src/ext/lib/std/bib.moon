@@ -8,7 +8,7 @@ import Call, Content, Word from require 'std.ast'
 import copy_loc, Directive, em, eval_string, iter_num from require 'std.base'
 import SyncBox, SyncSet from require 'std.events'
 import map, value_list from require 'std.func'
-import log_warn_here, log_warn_at_loc from require 'std.log'
+import log_warn_here, log_warn_at from require 'std.log'
 import stylers from require 'std.style'
 import eq, sorted from require 'std.util'
 import concat, insert, sort from table
@@ -78,7 +78,7 @@ class Bib extends SyncSet
 	on_end: =>
 		super!
 		if not eq @unknown_citations, {}
-			log_warn_at_loc u.loc, "Non-existant citation '#{u.ref}'" for u in *sorted @unknown_citations
+			log_warn_at u.loc, "Non-existant citation '#{u.ref}'" for u in *sorted @unknown_citations
 	add: (c) =>
 		c = eval_string c
 		super c

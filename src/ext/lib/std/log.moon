@@ -23,11 +23,11 @@ for log_func in *{ 'log_err', 'log_err_at', 'log_warn', 'log_warn_at', 'log_info
 
 	if log_func\match '_at$'
 		log_func_here_name = log_func\gsub '_at$', '_here'
-		log[log_func .. '_loc'] = (loc, ...) ->
+		log[log_func] = (loc, ...) ->
 			__em['__' .. log_func] loc, handle_log_args ...
 			afterop!
 		log[log_func_here_name] = (...) ->
-			log[log_func .. '_loc'] em_loc!, ...
+			log[log_func] em_loc!, ...
 			afterop!
 		log[log_func .. '_on'] = on_iter_wrap log[log_func_here_name]
 	else
