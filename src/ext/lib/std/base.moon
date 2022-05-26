@@ -315,9 +315,4 @@ em.find_set_var = Directive 2, 0, "Set the value of a variable in the current sc
 -- @return A pointer to the current source location
 base.em_loc = -> get_var 'em_loc'
 
----
--- @brief Copy a source-code location
--- @return A copy of the current source code location
-base.copy_loc = -> __copy_loc base.em_loc!
-
 base

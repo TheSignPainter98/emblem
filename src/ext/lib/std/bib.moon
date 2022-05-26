@@ -4,8 +4,8 @@
 -- @author Edward Jones
 -- @date 2021-09-17
 
-import Call, Content, Word from require 'std.ast'
-import copy_loc, Directive, em, eval_string, iter_num from require 'std.base'
+import Call, Content, mktext, Word from require 'std.ast'
+import em_loc, Directive, em, eval_string, iter_num from require 'std.base'
 import SyncBox, SyncSet from require 'std.events'
 import map, value_list from require 'std.func'
 import log_warn_here, log_warn_at from require 'std.log'
@@ -59,8 +59,7 @@ class BibItem
 		i1[fields[#fields]] < i2[fields[#fields]]
 
 class UnknownCitation
-	new: (@ref) =>
-		@loc = copy_loc!
+	new: (@ref) => @loc = em_loc!
 	__lt: (u, v) -> u.ref < v.ref
 	__tostring: => @ref
 
@@ -121,8 +120,10 @@ class Bib extends SyncSet
 		included_bib = sorted [ itm for ref,itm in pairs @bib when @contents[ref] ]
 		itm\set_bib_idx i for i,itm in pairs included_bib
 
-		bib_table = Content [ (Word itm\cite!) .. (itm.author .. ',') .. (it itm.title .. ',') .. itm.year for itm in *included_bib ]
-		(Call 'h1*', @bib_name) .. bib_table
+		(Call 'h1*', @bib_name) .. Content with {}
+			for i = 1, #included_bib
+				itm = included_bib[i]
+				[i] = Call 'bib-item', { mktext "#{itm\cite!}, #{itm.author}, #{itm.title}, #{itm.year}" }
 	records: => { k,v for k,v in pairs @raw_bib }
 
 bib = Bib!

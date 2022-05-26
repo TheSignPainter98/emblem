@@ -4,7 +4,9 @@
 -- @author Edward Jones
 -- @date 2021-09-17
 
-import em_loc, unpack_loc, meta_wrap from require 'std.base'
+local Node, Word, Content, mktext
+
+import em_loc, is_instance, unpack_loc, meta_wrap from require 'std.base'
 import node_types from require 'std.constants'
 import EphemeronTable, Set, WeakValueTable from require 'std.data'
 import log_err_at, log_warn_at from require 'std.log'
@@ -405,6 +407,25 @@ class Node extends NodeProxy
 	repr: (sb=StringBuilder!) => sb .. "{Node #{@_n} (type=#{__get_content_type @_n})}"
 	__call: => @eval!
 
+	sanitise_concat_arg: (a) =>
+		switch type a
+			when 'table'
+				if is_instance Node, a
+					return a
+				else if is_list a
+					return Content { @sanitise_concat_arg a2 for a2 in *a }
+		as = { mktext a }
+		return as[1] if #as == 1
+		Content as
+	__concat: (a,b) ->
+		a = Node\sanitise_concat_arg a
+		b = Node\sanitise_concat_arg b
+		if is_instance Content, a
+			unless is_instance Content, b
+				a\append_child b
+				return b
+		Content {a, b}
+
 ---
 -- @brief Proxy for call attributes
 class AttrTable
@@ -448,11 +469,18 @@ class Content extends Node
 				first = false
 			c\_node_string sb, pretty
 		sb
+	repr: (sb=StringBuilder!) =>
+		sb .. "{Content ["
+		for i = 1, @__len!
+			sb .. ', ' unless i == 1
+			sb .. (__get_child @_n, i)\repr sb
+		sb .. ']}'
 
 ---
 -- @brief Wrapper for call nodes, which can affect styling and which can cause extension functions to be called
 class Call extends Node
 	new: (name, args={}, attrs={}) =>
+		args = { mktext args } if 'string' == type args
 		switch type name
 			when 'userdata'
 				super name, @call_get_fields
@@ -476,6 +504,12 @@ class Call extends Node
 			__em.nodes[r]\_node_string sb, pretty
 		else
 			sb
+	repr: (sb=StringBuilder!) =>
+		sb .. "{Call:#{__get_name @_n}("
+		sb .. ')->{'
+		if r = __get_result @_n
+			sb .. __em.nodes[r]\repr sb
+		sb .. '}}'
 
 ---
 -- @brief Wrapper for word nodes, which represents single parts of text.
@@ -494,7 +528,7 @@ class Word extends Node
 		'raw'
 		'pretty'
 	}
-	repr: (sb=StringBuilder!) => sb .. @raw
+	repr: (sb=StringBuilder!) => sb .. "{Word<#{__get_raw_word @_n}>}"
 	__tostring: => super!
 	__call: (...) => super ...
 	_node_string: (sb, pretty) => sb .. (pretty and @pretty or @raw)
@@ -508,7 +542,7 @@ with __em.nodes.raw_node_constructors
 -- @brief Make word nodes
 -- @param words The text to split by whitespace to form words
 -- @return Returns the word nodes, each as a return value.
-mktext = (words) -> unpack [ Word w for w in words\gmatch '%s*([^%s]+)' ]
+mktext = (words) -> unpack [ Word w for w in (tostring words)\gmatch '%s*([^%s]+)' ]
 
 ---
 -- @brief Make a function which constructs a call to a given directive
