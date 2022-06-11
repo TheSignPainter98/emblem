@@ -386,7 +386,7 @@ static int ext_get_node_arg(ExtensionState* s)
 		return luaL_error(s, "Cannot get arguments of %s node", node_tree_content_type_names[node->content->type]);
 
 	Maybe m;
-	get_list_elem(&m, node->content->call->args, lua_tointeger(s, 2));
+	get_list_elem(&m, node->content->call->args, lua_tointeger(s, 2) - 1);
 	switch (m.type)
 	{
 		case NOTHING:
