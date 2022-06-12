@@ -9,12 +9,13 @@ local Node, Word, Content, mktext
 import em_loc, is_instance, unpack_loc, meta_wrap from require 'std.base'
 import node_types from require 'std.constants'
 import EphemeronTable, Set, WeakValueTable from require 'std.data'
+import unknown_x_msg from require 'std.edit'
+import key_list from require 'std.func'
 import log_err_at, log_warn_at from require 'std.log'
 import show from require 'std.show'
 import unpack from table
 import is_list, StringBuilder, Proxy, unite from require 'std.util'
 import wrap, yield from coroutine
-import concat, insert from table
 
 import WORD, CALL, CONTENT from node_types
 
@@ -115,7 +116,7 @@ class NodeProxy
 			@_cache[k] = v if @_cache_fields[k]
 			v
 		else
-			error "Unknown proxy field '#{k}', expected one of: #{concat [ k for k,_ in pairs @_get_proxies ], ', '}", 2
+			error unknown_x_msg 'proxy field', k, key_list @_get_proxies
 	__set: (k, v) =>
 		@_cache[k] = nil
 		if f = @_set_proxies[k]
