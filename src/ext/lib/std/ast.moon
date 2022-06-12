@@ -35,7 +35,6 @@ import
 	__get_name
 	__get_num_args
 	__get_num_children
-	__get_parent
 	__get_raw_word
 	__get_result
 	__get_sanitised_word

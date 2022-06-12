@@ -241,13 +241,6 @@ static int ext_get_node_last_eval(ExtensionState* s)
 	return 1;
 }
 
-static int ext_get_node_parent(ExtensionState* s)
-{
-	DocTreeNode* parent = to_node(s, 1)->parent;
-	push_doc_tree_node(s, parent);
-	return 1;
-}
-
 static int ext_get_node_raw_word(ExtensionState* s)
 {
 	DocTreeNode* node = to_node(s, 1);
@@ -495,7 +488,6 @@ void register_ext_node(ExtensionState* s)
 		register_api_function(s, "__get_last_eval", ext_get_node_last_eval);
 		register_api_function(s, "__get_sanitised_word", ext_get_node_sanitised_word);
 		register_api_function(s, "__get_raw_word", ext_get_node_raw_word);
-		register_api_function(s, "__get_parent", ext_get_node_parent);
 		register_api_function(s, "__new_word", ext_new_word_node);
 		register_api_function(s, "__new_content", ext_new_content_node);
 		register_api_function(s, "__new_call", ext_new_call_node);
