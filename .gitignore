@@ -162,3 +162,7 @@ completion/
 *.bib
 *.md
 *.txt
+
+# Added by cargo
+
+/target
