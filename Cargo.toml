@@ -1,8 +1,27 @@
 [package]
 name = "emblem"
-version = "0.1.0"
+authors = [ "kcza" ]
+description = "A minimalist, format-agnostic typesetter"
+documentation = "https://kcza.net/emblem"
+license = "GPL-3.0-or-later"
+readme = "README.md"
+version = "0.0.0"
 edition = "2021"
+
+[[bin]]
+name = "em"
+path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+clap = { version = "4.0.12", features = ["derive", "env", "wrap_help"] }
+clap-verbosity-flag = "2.0.0"
+num_enum = "0.5.7"
+
+[build-dependencies]
+clap = { version = "4.0.12", features = ["derive", "env", "wrap_help"] }
+clap-verbosity-flag = "2.0.0"
+clap_complete = "4.0.2"
+clap_mangen = "0.2.2"
+num_enum = "0.5.7"

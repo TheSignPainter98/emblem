@@ -1,3 +1,6 @@
+mod args;
+
 fn main() {
-    println!("Hello, emblem!");
+    let args = args::parse();
+    println!("{:#?}", args);
 }
