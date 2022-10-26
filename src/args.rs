@@ -1,4 +1,5 @@
 use clap::{
+    builder::{StringValueParser, TypedValueParser},
     error,
     ArgAction::{Append, Count, Help, Version},
     CommandFactory, Parser, ValueEnum,
@@ -27,8 +28,8 @@ pub fn parse() -> Args {
 #[command(author, version, about, long_about=LONG_ABOUT, disable_help_flag=true, disable_version_flag=true)]
 pub struct Args {
     /// Pass variable into extension-space
-    #[arg(short='a', action=Append, value_name="var=value")]
-    pub extension_args: Vec<String>,
+    #[arg(short = 'a', action = Append, value_parser = StringValueParser::new().try_map(ExtArg::try_parse),  value_name="var=value")]
+    pub extension_args: Vec<ExtArg>,
 
     /// Colourise log messages
     #[arg(long, value_enum, default_value_t, value_name = "when")]
@@ -136,4 +137,34 @@ pub enum ColouriseOutput {
     #[default]
     Auto,
     Always,
+}
+
+/// Command-line arg declaration
+#[derive(Clone, Debug)]
+pub struct ExtArg {
+    /// Name of the variable to assign
+    pub name: String,
+
+    /// Value to pass to the given variable
+    pub value: String,
+}
+
+impl ExtArg {
+    fn try_parse(raw: String) -> Result<Self, error::Error> {
+        let raw = raw.to_owned();
+        match raw.chars().position(|c| c == '=') {
+            Some(0) => {
+                let mut cmd = Args::command();
+                Err(cmd.error(error::ErrorKind::InvalidValue, "var name must not be empty"))
+            }
+            Some(loc) => Ok(Self {
+                name: raw[..loc].into(),
+                value: raw[loc + 1..].into(),
+            }),
+            None => {
+                let mut cmd = Args::command();
+                Err(cmd.error(error::ErrorKind::InvalidValue, "need '=' in variable def"))
+            }
+        }
+    }
 }
