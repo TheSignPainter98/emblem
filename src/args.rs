@@ -9,6 +9,7 @@ use num_enum::FromPrimitive;
 
 const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format. Extensions can be used to include arbitrary functionality; device drivers are also extensions.";
 
+/// Parse command-line arguments
 pub fn parse() -> Args {
     let mut args = Args::parse();
 
