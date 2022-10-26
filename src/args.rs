@@ -24,8 +24,15 @@ pub fn parse() -> Args {
     args
 }
 
+#[test]
+fn test_cmd() {
+    Args::command().debug_assert();
+}
+
+/// Parsed command-line arguments
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about=LONG_ABOUT, disable_help_flag=true, disable_version_flag=true)]
+#[warn(missing_docs)]
 pub struct Args {
     /// Pass variable into extension-space
     #[arg(short = 'a', action = Append, value_parser = StringValueParser::new().try_map(ExtArg::try_parse),  value_name="var=value")]
@@ -79,6 +86,7 @@ pub struct Args {
     #[arg(short, action=Count, default_value_t=0, value_name = "level")]
     verbosity_ctr: u8,
 
+    /// Parsed output verbosity
     #[clap(skip)]
     pub verbosity: Verbosity,
 
