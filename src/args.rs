@@ -12,7 +12,7 @@ const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it 
 
 #[test]
 fn test_cmd() {
-    Args::command().debug_assert();
+    Args::command().debug_assert()
 }
 
 /// Parsed command-line arguments
