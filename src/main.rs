@@ -1,6 +1,8 @@
 mod args;
 
+use args::Args;
+
 fn main() {
-    let args = args::parse();
+    let args = Args::new();
     println!("{:#?}", args);
 }

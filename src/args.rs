@@ -6,24 +6,9 @@ use clap::{
     ValueHint::{AnyPath, FilePath},
 };
 use num_enum::FromPrimitive;
+use std::ffi::OsString;
 
 const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format. Extensions can be used to include arbitrary functionality; device drivers are also extensions.";
-
-/// Parse command-line arguments
-pub fn parse() -> Args {
-    let mut args = Args::parse();
-
-    if args.verbosity_ctr >= 3 {
-        let mut cmd = Args::command();
-        let err = cmd.error(error::ErrorKind::TooManyValues, "too verbose");
-        err.exit();
-    }
-    if let Ok(v) = Verbosity::try_from(args.verbosity_ctr) {
-        args.verbosity = v;
-    }
-
-    args
-}
 
 #[test]
 fn test_cmd() {
@@ -36,7 +21,7 @@ fn test_cmd() {
 #[warn(missing_docs)]
 pub struct Args {
     /// Pass variable into extension-space
-    #[arg(short = 'a', action = Append, value_parser = StringValueParser::new().try_map(ExtArg::try_parse),  value_name="var=value")]
+    #[arg(short = 'a', action = Append, value_parser = ExtArg::parser(),  value_name="arg=value")]
     pub extension_args: Vec<ExtArg>,
 
     /// Colourise log messages
@@ -104,6 +89,55 @@ pub struct Args {
     pub extension_path: Vec<String>,
 }
 
+impl Args {
+    /// Parse command-line arguments
+    pub fn new() -> Self {
+        Args::parse().sanitised()
+    }
+
+    /// Validate and infer argument values
+    fn sanitised(mut self) -> Self {
+        if self.verbosity_ctr >= 3 {
+            let mut cmd = Args::command();
+            let err = cmd.error(error::ErrorKind::TooManyValues, "too verbose");
+            err.exit();
+        }
+        if let Ok(v) = Verbosity::try_from(self.verbosity_ctr) {
+            self.verbosity = v;
+        }
+        self
+    }
+}
+
+impl<T, I> From<I> for Args
+where
+    T: Into<OsString> + Clone,
+    I: IntoIterator<Item = T>,
+{
+    fn from(itr: I) -> Self {
+        Args::parse_from(itr).sanitised()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn verbosity() {
+        assert_eq!(
+            {
+                let empty: [&str; 0] = [];
+                Args::from(empty).verbosity
+            },
+            Verbosity::Terse
+        );
+        assert_eq!(Args::from(["em"]).verbosity, Verbosity::Terse);
+        assert_eq!(Args::from(["em", "-v"]).verbosity, Verbosity::Verbose);
+        assert_eq!(Args::from(["em", "-vv"]).verbosity, Verbosity::Debug);
+    }
+}
+
 #[derive(ValueEnum, Clone, Debug)]
 pub enum RequestedInfo {
     InputFormats,
@@ -112,7 +146,7 @@ pub enum RequestedInfo {
     OutputExtensions,
 }
 
-#[derive(ValueEnum, Clone, Debug, Default, FromPrimitive)]
+#[derive(ValueEnum, Clone, Debug, Default, FromPrimitive, Eq, PartialEq)]
 #[repr(u8)]
 pub enum Verbosity {
     /// Output errors and warnings
@@ -159,6 +193,10 @@ pub struct ExtArg {
 }
 
 impl ExtArg {
+    pub fn parser() -> impl TypedValueParser {
+        StringValueParser::new().try_map(ExtArg::try_parse)
+    }
+
     fn try_parse(raw: String) -> Result<Self, error::Error> {
         let raw = raw.to_owned();
         match raw.chars().position(|c| c == '=') {
