@@ -7,7 +7,7 @@
 [![GitHub license](https://img.shields.io/github/license/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/blob/master/LICENSE)
 
 <centre>
-    <h1>Currently being reimplemented in rust</h1>
+    <span style="font-size: 2em">Currently being reimplemented in rust</span>
 </centre>
 
 An elegant, extensible typesetter with a friendly interface and decent output.
