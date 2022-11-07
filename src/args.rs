@@ -245,6 +245,22 @@ mod test {
     }
 
     #[test]
+    fn extension_args() {
+        assert_eq!(Args::from(&["em"]).extension_args, vec![]);
+
+        {
+            let valid_ext_args = Args::from(&["em", "-ak=v", "-ak2=v2", "-ak3="]).extension_args;
+            assert_eq!(valid_ext_args.len(), 3);
+            assert_eq!(valid_ext_args[0].name(), "k");
+            assert_eq!(valid_ext_args[0].value(), "v");
+            assert_eq!(valid_ext_args[1].name(), "k2");
+            assert_eq!(valid_ext_args[1].value(), "v2");
+            assert_eq!(valid_ext_args[2].name(), "k3");
+            assert_eq!(valid_ext_args[2].value(), "");
+        }
+    }
+
+    #[test]
     fn extension_path() {
         assert_eq!(Args::from(&["em"]).extension_path, None);
         assert_eq!(
@@ -367,33 +383,34 @@ pub enum ColouriseOutput {
 /// Command-line arg declaration
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtArg {
-    /// Name of the variable to assign
-    pub name: String,
-
-    /// Value to pass to the given variable
-    pub value: String,
+    raw: String,
+    loc: usize,
 }
 
 impl ExtArg {
     pub fn parser() -> impl TypedValueParser {
-        StringValueParser::new().try_map(ExtArg::try_parse)
+        StringValueParser::new().try_map(Self::try_parse)
     }
 
     fn try_parse(raw: String) -> Result<Self, error::Error> {
-        let raw = raw.to_owned();
         match raw.chars().position(|c| c == '=') {
             Some(0) => {
                 let mut cmd = Args::command();
-                Err(cmd.error(error::ErrorKind::InvalidValue, "var name must not be empty"))
+                Err(cmd.error(error::ErrorKind::InvalidValue, "need argument name"))
             }
-            Some(loc) => Ok(Self {
-                name: raw[..loc].into(),
-                value: raw[loc + 1..].into(),
-            }),
+            Some(loc) => Ok(Self { raw, loc }),
             None => {
                 let mut cmd = Args::command();
-                Err(cmd.error(error::ErrorKind::InvalidValue, "need '=' in variable def"))
+                Err(cmd.error(error::ErrorKind::InvalidValue, "need a value"))
             }
         }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.raw[..self.loc]
+    }
+
+    pub fn value(&self) -> &str {
+        &self.raw[self.loc + 1..]
     }
 }
