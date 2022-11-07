@@ -48,6 +48,10 @@ pub struct Args {
     #[arg(long = "list", value_enum, value_name = "what")]
     pub list_info: Option<RequestedInfo>,
 
+    /// Restrict memory available to the extension environment
+    #[arg(long, value_parser = MemoryLimit::parser(), value_name = "amount")]
+    pub max_mem: Option<MemoryLimit>,
+
     /// Override detected output format
     #[arg(short, value_name = "format")]
     pub output_driver: Option<String>,
@@ -183,6 +187,27 @@ mod test {
     }
 
     #[test]
+    fn max_mem() {
+        assert_eq!(Args::from(&["em"]).max_mem, None);
+        assert_eq!(
+            Args::from(&["em", "--max-mem", "25"]).max_mem,
+            Some(MemoryLimit(25))
+        );
+        assert_eq!(
+            Args::from(&["em", "--max-mem", "25K"]).max_mem,
+            Some(MemoryLimit(25 * 1024))
+        );
+        assert_eq!(
+            Args::from(&["em", "--max-mem", "25M"]).max_mem,
+            Some(MemoryLimit(25 * 1024 * 1024))
+        );
+        assert_eq!(
+            Args::from(&["em", "--max-mem", "25G"]).max_mem,
+            Some(MemoryLimit(25 * 1024 * 1024 * 1024))
+        );
+    }
+
+    #[test]
     fn style() {
         assert_eq!(Args::from(&["em"]).style, None);
         assert_eq!(
@@ -270,6 +295,82 @@ mod test {
                 "house".to_owned()
             ]))
         );
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MemoryLimit(usize);
+
+impl MemoryLimit {
+    fn parser() -> impl TypedValueParser {
+        StringValueParser::new().try_map(Self::try_from)
+    }
+}
+
+impl TryFrom<String> for MemoryLimit {
+    type Error = error::Error;
+    fn try_from(raw: String) -> Result<Self, Self::Error> {
+        if raw.len() == 0 {
+            let mut cmd = Args::command();
+            return Err(cmd.error(error::ErrorKind::InvalidValue, "need amount"));
+        }
+
+        let (raw_amt, unit): (String, String) = raw.chars().partition(|c| c.is_numeric());
+
+        let amt: usize = match raw_amt.parse() {
+            Ok(a) => a,
+            Err(e) => {
+                let mut cmd = Args::command();
+                return Err(cmd.error(error::ErrorKind::InvalidValue, e));
+            }
+        };
+
+        let multiplier: usize = {
+            match &unit[..] {
+                "K" => 1 << 10,
+                "M" => 1 << 20,
+                "G" => 1 << 30,
+                "" => 1,
+                _ => {
+                    let mut cmd = Args::command();
+                    return Err(cmd.error(
+                        error::ErrorKind::InvalidValue,
+                        format!("unrecognised unit: {}", unit),
+                    ));
+                }
+            }
+        };
+
+        Ok(Self(amt * multiplier))
+    }
+}
+
+#[cfg(test)]
+mod test_memory_limit {
+    use super::*;
+
+    #[test]
+    fn try_from() {
+        assert!(MemoryLimit::try_from("".to_owned()).is_err());
+
+        assert_eq!(
+            MemoryLimit::try_from("10".to_owned()).unwrap(),
+            MemoryLimit(10)
+        );
+        assert_eq!(
+            MemoryLimit::try_from("10K".to_owned()).unwrap(),
+            MemoryLimit(10 * 1024)
+        );
+        assert_eq!(
+            MemoryLimit::try_from("10M".to_owned()).unwrap(),
+            MemoryLimit(10 * 1024 * 1024)
+        );
+        assert_eq!(
+            MemoryLimit::try_from("10G".to_owned()).unwrap(),
+            MemoryLimit(10 * 1024 * 1024 * 1024)
+        );
+
+        assert!(MemoryLimit::try_from("10Q".to_owned()).is_err());
     }
 }
 
