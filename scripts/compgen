@@ -1,3 +1,0 @@
-#!/bin/bash
-
-moon scripts/compgen.moon $@ | grep -v completion

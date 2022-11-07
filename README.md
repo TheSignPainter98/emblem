@@ -8,6 +8,12 @@
 
 An elegant, extensible typesetter with a friendly interface and decent output.
 
+# Currently being reimplemented in Rust
+
+This repo is currently transitioning from a C implementation to a Rust one.
+Some features may be broken or not-yet reimplemented.
+The Emblem file format will remain largely identical, however.
+
 ## Table of Contents
 
 <!-- vim-markdown-toc GFM -->
