@@ -6,11 +6,13 @@
 [![GitHub issues](https://img.shields.io/github/issues/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/issues)
 [![GitHub license](https://img.shields.io/github/license/TheSignPainter98/emblem)](https://github.com/TheSignPainter98/emblem/blob/master/LICENSE)
 
-<centre>
-    <span style="font-size: 2em">Currently being reimplemented in rust</span>
-</centre>
-
 An elegant, extensible typesetter with a friendly interface and decent output.
+
+# Currently being reimplemented in Rust
+
+This repo is currently transitioning from a C implementation to a Rust one.
+Some features may be broken or not-yet reimplemented.
+The Emblem file format will remain largely identical, however.
 
 ## Table of Contents
 
