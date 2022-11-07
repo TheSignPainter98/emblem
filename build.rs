@@ -15,13 +15,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 fn mangen() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=src/args.rs");
+
     let out_dir = env::var("OUT_DIR").unwrap();
     let dest_file = Path::new(&out_dir).join("em.1");
 
     let mut file = fs::File::create(dest_file)?;
     Man::new(Args::command()).render(&mut file)?;
     drop(file);
-    // Man::new(Args::command()).render(&mut std::io::stdout())?;
     Ok(())
 }
 
