@@ -282,6 +282,14 @@ impl SearchPath {
     fn parser() -> impl TypedValueParser {
         StringValueParser::new().map(Self::from)
     }
+
+    // pub fn search(&self, target: &str) -> Result<&str, error::Error> {
+    //  TODO(kcza): complete me!
+    // }
+
+    // pub fn open(&self, target: &str, cwd: Option<&str>) -> io::File {
+    //  TODO(kcza): complete me!
+    // }
 }
 
 impl Default for SearchPath {
