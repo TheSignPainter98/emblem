@@ -65,8 +65,8 @@ pub struct Args {
     pub sandbox: SandboxLevel,
 
     /// Style search-path, colon-separated
-    #[arg(long, env = "EM_STYLE_PATH", value_name = "path")]
-    pub style_path: Option<String>,
+    #[arg(long, env = "EM_STYLE_PATH", value_parser = SearchPath::parser(), value_name = "path")]
+    pub style_path: Option<SearchPath>,
 
     /// Set output verbosity
     #[arg(short, action=Count, default_value_t=0, value_name = "level")]
@@ -85,8 +85,8 @@ pub struct Args {
     pub extensions: Vec<String>,
 
     /// Extension search-path, colon-separated
-    #[arg(long, action=Append, value_name = "ext")]
-    pub extension_path: Vec<String>,
+    #[arg(long, env = "EM_EXT_PATH", value_parser = SearchPath::parser(), value_name = "ext")]
+    pub extension_path: Option<SearchPath>,
 }
 
 impl Args {
@@ -124,6 +124,103 @@ mod test {
     use super::*;
 
     #[test]
+    fn colourise_output() {
+        assert_eq!(Args::from(&["em"]).colour, ColouriseOutput::Auto);
+        assert_eq!(
+            Args::from(&["em", "--colour", "never"]).colour,
+            ColouriseOutput::Never
+        );
+        assert_eq!(
+            Args::from(&["em", "--colour", "auto"]).colour,
+            ColouriseOutput::Auto
+        );
+        assert_eq!(
+            Args::from(&["em", "--colour", "always"]).colour,
+            ColouriseOutput::Always
+        );
+    }
+
+    #[test]
+    fn fatal_warnings() {
+        assert!(!Args::from(&["em"]).fatal_warnings);
+        assert!(Args::from(&["em", "-E"]).fatal_warnings);
+    }
+
+    #[test]
+    fn input_driver() {
+        assert_eq!(Args::from(&["em"]).input_driver, None);
+        assert_eq!(
+            Args::from(&["em", "-i", "chickens"]).input_driver,
+            Some("chickens".to_owned())
+        );
+    }
+
+    #[test]
+    fn output_driver() {
+        assert_eq!(Args::from(&["em"]).output_driver, None);
+        assert_eq!(
+            Args::from(&["em", "-o", "pies"]).output_driver,
+            Some("pies".to_owned())
+        );
+    }
+
+    #[test]
+    fn input_file() {
+        assert_eq!(Args::from(&["em"]).input_file, None);
+        assert_eq!(
+            Args::from(&["em", "chickens"]).input_file,
+            Some("chickens".to_owned())
+        );
+    }
+
+    #[test]
+    fn output_file() {
+        assert_eq!(Args::from(&["em"]).output_file, None);
+        assert_eq!(
+            Args::from(&["em", "_", "pies"]).output_file,
+            Some("pies".to_owned())
+        );
+    }
+
+    #[test]
+    fn style() {
+        assert_eq!(Args::from(&["em"]).style, None);
+        assert_eq!(
+            Args::from(&["em", "-s", "funk"]).style,
+            Some("funk".to_owned())
+        );
+    }
+
+    #[test]
+    fn sandbox() {
+        assert_eq!(Args::from(&["em"]).sandbox, SandboxLevel::Standard);
+        assert_eq!(
+            Args::from(&["em", "--sandbox", "unrestricted"]).sandbox,
+            SandboxLevel::Unrestricted
+        );
+        assert_eq!(
+            Args::from(&["em", "--sandbox", "standard"]).sandbox,
+            SandboxLevel::Standard
+        );
+        assert_eq!(
+            Args::from(&["em", "--sandbox", "strict"]).sandbox,
+            SandboxLevel::Strict
+        );
+    }
+
+    #[test]
+    fn style_path() {
+        assert_eq!(Args::from(&["em"]).style_path, None);
+        assert_eq!(
+            Args::from(&["em", "--style-path", "club:house"]).style_path,
+            Some(SearchPath::from(vec![
+                "club".to_owned(),
+                "house".to_owned()
+            ]))
+        );
+    }
+
+    #[test]
     fn verbosity() {
         assert_eq!(
             {
@@ -135,6 +232,91 @@ mod test {
         assert_eq!(Args::from(["em"]).verbosity, Verbosity::Terse);
         assert_eq!(Args::from(["em", "-v"]).verbosity, Verbosity::Verbose);
         assert_eq!(Args::from(["em", "-vv"]).verbosity, Verbosity::Debug);
+    }
+
+    #[test]
+    fn extensions() {
+        let empty: [&str; 0] = [];
+        assert_eq!(Args::from(["em"]).extensions, empty);
+        assert_eq!(
+            Args::from(["em", "-x", "foo", "-x", "bar", "-x", "baz"]).extensions,
+            ["foo".to_owned(), "bar".to_owned(), "baz".to_owned()]
+        );
+    }
+
+    #[test]
+    fn extension_path() {
+        assert_eq!(Args::from(&["em"]).extension_path, None);
+        assert_eq!(
+            Args::from(&["em", "--extension-path", "club:house"]).extension_path,
+            Some(SearchPath::from(vec![
+                "club".to_owned(),
+                "house".to_owned()
+            ]))
+        );
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SearchPath {
+    path: Vec<String>,
+}
+
+impl SearchPath {
+    fn parser() -> impl TypedValueParser {
+        StringValueParser::new().map(Self::from)
+    }
+}
+
+impl Default for SearchPath {
+    fn default() -> Self {
+        Self { path: vec![] }
+    }
+}
+
+impl From<String> for SearchPath {
+    fn from(raw: String) -> Self {
+        Self::from(&raw[..])
+    }
+}
+
+impl From<&str> for SearchPath {
+    fn from(raw: &str) -> Self {
+        Self {
+            path: raw
+                .split(':')
+                .filter(|s| s.len() != 0)
+                .map(|s| s.to_owned())
+                .collect(),
+        }
+    }
+}
+
+impl From<Vec<String>> for SearchPath {
+    fn from(path: Vec<String>) -> Self {
+        Self { path }
+    }
+}
+
+#[cfg(test)]
+mod test_search_path {
+    use super::*;
+
+    #[test]
+    fn from() {
+        assert_eq!(
+            SearchPath::from("foo:bar::baz"),
+            SearchPath {
+                path: vec!["foo".to_owned(), "bar".to_owned(), "baz".to_owned()],
+            }
+        );
+
+        assert_eq!(
+            SearchPath::from("foo:bar::baz".to_owned()),
+            SearchPath {
+                path: vec!["foo".to_owned(), "bar".to_owned(), "baz".to_owned()],
+            }
+        );
     }
 }
 
@@ -160,7 +342,7 @@ pub enum Verbosity {
     Debug,
 }
 
-#[derive(ValueEnum, Clone, Debug, Default)]
+#[derive(ValueEnum, Clone, Debug, Default, PartialEq, Eq)]
 pub enum SandboxLevel {
     /// Extensions have no restrictions placed upon them.
     Unrestricted,
@@ -174,7 +356,7 @@ pub enum SandboxLevel {
     Strict,
 }
 
-#[derive(ValueEnum, Clone, Debug, Default)]
+#[derive(ValueEnum, Clone, Debug, Default, PartialEq, Eq)]
 pub enum ColouriseOutput {
     Never,
     #[default]
@@ -183,7 +365,7 @@ pub enum ColouriseOutput {
 }
 
 /// Command-line arg declaration
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtArg {
     /// Name of the variable to assign
     pub name: String,
