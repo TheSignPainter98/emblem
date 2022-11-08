@@ -1,5 +1,5 @@
 use clap::{
-    builder::{StringValueParser, TypedValueParser},
+    builder::{OsStr, StringValueParser, TypedValueParser},
     error,
     ArgAction::{Append, Count, Help, Version},
     CommandFactory, Parser, ValueEnum,
@@ -48,9 +48,9 @@ pub struct Args {
     #[arg(long = "list", value_enum, value_name = "what")]
     pub list_info: Option<RequestedInfo>,
 
-    /// Restrict memory available to the extension environment
-    #[arg(long, value_parser = MemoryLimit::parser(), value_name = "amount")]
-    pub max_mem: Option<MemoryLimit>,
+    /// Limit lua memory usage
+    #[arg(long, value_parser = MemoryLimit::parser(), default_value = "unlimited", value_name = "amount")]
+    pub max_mem: MemoryLimit,
 
     /// Override detected output format
     #[arg(short, value_name = "format")]
@@ -69,8 +69,8 @@ pub struct Args {
     pub sandbox: SandboxLevel,
 
     /// Style search-path, colon-separated
-    #[arg(long, env = "EM_STYLE_PATH", value_parser = SearchPath::parser(), value_name = "path")]
-    pub style_path: Option<SearchPath>,
+    #[arg(long, env = "EM_STYLE_PATH", value_parser = SearchPath::parser(), default_value = "", value_name = "path")]
+    pub style_path: SearchPath,
 
     /// Set output verbosity
     #[arg(short, action=Count, default_value_t=0, value_name = "level")]
@@ -89,8 +89,8 @@ pub struct Args {
     pub extensions: Vec<String>,
 
     /// Extension search-path, colon-separated
-    #[arg(long, env = "EM_EXT_PATH", value_parser = SearchPath::parser(), value_name = "ext")]
-    pub extension_path: Option<SearchPath>,
+    #[arg(long, env = "EM_EXT_PATH", value_parser = SearchPath::parser(), default_value = "", value_name = "path")]
+    pub extension_path: SearchPath,
 }
 
 impl Args {
@@ -188,22 +188,22 @@ mod test {
 
     #[test]
     fn max_mem() {
-        assert_eq!(Args::from(&["em"]).max_mem, None);
+        assert_eq!(Args::from(&["em"]).max_mem, MemoryLimit::Unlimited);
         assert_eq!(
             Args::from(&["em", "--max-mem", "25"]).max_mem,
-            Some(MemoryLimit(25))
+            MemoryLimit::Limited(25)
         );
         assert_eq!(
             Args::from(&["em", "--max-mem", "25K"]).max_mem,
-            Some(MemoryLimit(25 * 1024))
+            MemoryLimit::Limited(25 * 1024)
         );
         assert_eq!(
             Args::from(&["em", "--max-mem", "25M"]).max_mem,
-            Some(MemoryLimit(25 * 1024 * 1024))
+            MemoryLimit::Limited(25 * 1024 * 1024)
         );
         assert_eq!(
             Args::from(&["em", "--max-mem", "25G"]).max_mem,
-            Some(MemoryLimit(25 * 1024 * 1024 * 1024))
+            MemoryLimit::Limited(25 * 1024 * 1024 * 1024)
         );
     }
 
@@ -235,13 +235,10 @@ mod test {
 
     #[test]
     fn style_path() {
-        assert_eq!(Args::from(&["em"]).style_path, None);
+        assert_eq!(Args::from(&["em"]).style_path, SearchPath::default());
         assert_eq!(
             Args::from(&["em", "--style-path", "club:house"]).style_path,
-            Some(SearchPath::from(vec![
-                "club".to_owned(),
-                "house".to_owned()
-            ]))
+            SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
         );
     }
 
@@ -287,19 +284,19 @@ mod test {
 
     #[test]
     fn extension_path() {
-        assert_eq!(Args::from(&["em"]).extension_path, None);
+        assert_eq!(Args::from(&["em"]).extension_path, SearchPath::default());
         assert_eq!(
             Args::from(&["em", "--extension-path", "club:house"]).extension_path,
-            Some(SearchPath::from(vec![
-                "club".to_owned(),
-                "house".to_owned()
-            ]))
+            SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
         );
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MemoryLimit(usize);
+pub enum MemoryLimit {
+    Limited(usize),
+    Unlimited,
+}
 
 impl MemoryLimit {
     fn parser() -> impl TypedValueParser {
@@ -307,12 +304,47 @@ impl MemoryLimit {
     }
 }
 
+impl Default for MemoryLimit {
+    fn default() -> Self {
+        Self::Unlimited
+    }
+}
+
+impl TryFrom<OsStr> for MemoryLimit {
+    type Error = error::Error;
+
+    fn try_from(raw: OsStr) -> Result<Self, Self::Error> {
+        if let Some(s) = raw.to_str() {
+            return Self::try_from(s);
+        }
+
+        let mut cmd = Args::command();
+        return Err(cmd.error(
+            error::ErrorKind::InvalidValue,
+            format!("could not convert '{:?}' to an OS string", raw),
+        ));
+    }
+}
+
 impl TryFrom<String> for MemoryLimit {
     type Error = error::Error;
+
     fn try_from(raw: String) -> Result<Self, Self::Error> {
+        Self::try_from(&raw[..])
+    }
+}
+
+impl TryFrom<&str> for MemoryLimit {
+    type Error = error::Error;
+
+    fn try_from(raw: &str) -> Result<Self, Self::Error> {
         if raw.len() == 0 {
             let mut cmd = Args::command();
             return Err(cmd.error(error::ErrorKind::InvalidValue, "need amount"));
+        }
+
+        if raw == "unlimited" {
+            return Ok(Self::Unlimited);
         }
 
         let (raw_amt, unit): (String, String) = raw.chars().partition(|c| c.is_numeric());
@@ -341,36 +373,7 @@ impl TryFrom<String> for MemoryLimit {
             }
         };
 
-        Ok(Self(amt * multiplier))
-    }
-}
-
-#[cfg(test)]
-mod test_memory_limit {
-    use super::*;
-
-    #[test]
-    fn try_from() {
-        assert!(MemoryLimit::try_from("".to_owned()).is_err());
-
-        assert_eq!(
-            MemoryLimit::try_from("10".to_owned()).unwrap(),
-            MemoryLimit(10)
-        );
-        assert_eq!(
-            MemoryLimit::try_from("10K".to_owned()).unwrap(),
-            MemoryLimit(10 * 1024)
-        );
-        assert_eq!(
-            MemoryLimit::try_from("10M".to_owned()).unwrap(),
-            MemoryLimit(10 * 1024 * 1024)
-        );
-        assert_eq!(
-            MemoryLimit::try_from("10G".to_owned()).unwrap(),
-            MemoryLimit(10 * 1024 * 1024 * 1024)
-        );
-
-        assert!(MemoryLimit::try_from("10Q".to_owned()).is_err());
+        Ok(Self::Limited(amt * multiplier))
     }
 }
 
@@ -498,10 +501,22 @@ pub struct ExtArg {
 
 impl ExtArg {
     pub fn parser() -> impl TypedValueParser {
-        StringValueParser::new().try_map(Self::try_parse)
+        StringValueParser::new().try_map(Self::try_from)
     }
 
-    fn try_parse(raw: String) -> Result<Self, error::Error> {
+    pub fn name(&self) -> &str {
+        &self.raw[..self.loc]
+    }
+
+    pub fn value(&self) -> &str {
+        &self.raw[self.loc + 1..]
+    }
+}
+
+impl TryFrom<String> for ExtArg {
+    type Error = error::Error;
+
+    fn try_from(raw: String) -> Result<Self, Self::Error> {
         match raw.chars().position(|c| c == '=') {
             Some(0) => {
                 let mut cmd = Args::command();
@@ -513,13 +528,5 @@ impl ExtArg {
                 Err(cmd.error(error::ErrorKind::InvalidValue, "need a value"))
             }
         }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.raw[..self.loc]
-    }
-
-    pub fn value(&self) -> &str {
-        &self.raw[self.loc + 1..]
     }
 }
