@@ -5,6 +5,7 @@ use clap::{
     CommandFactory, Parser, ValueEnum,
     ValueHint::{AnyPath, FilePath},
 };
+use derive_new::new;
 use num_enum::FromPrimitive;
 use std::ffi::OsString;
 use std::{fs, io, path};
@@ -241,10 +242,7 @@ impl SearchPath {
             if let Ok(f) = fs::File::open(&localpath) {
                 if let Ok(metadata) = f.metadata() {
                     if metadata.is_file() {
-                        return Ok(SearchResult {
-                            path: localpath,
-                            file: f,
-                        });
+                        return Ok(SearchResult::new(localpath, f));
                     }
                 }
             }
@@ -266,10 +264,7 @@ impl SearchPath {
             if let Ok(f) = fs::File::open(&needle) {
                 if let Ok(metadata) = f.metadata() {
                     if metadata.is_file() {
-                        return Ok(SearchResult {
-                            path: needle,
-                            file: f,
-                        });
+                        return Ok(SearchResult::new(needle, f));
                     }
                 }
             }
@@ -333,7 +328,7 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, new)]
 pub struct SearchResult {
     path: path::PathBuf,
     file: fs::File,
@@ -812,10 +807,7 @@ mod test {
             let mut file = fs::File::create(&path)?;
             file.write(b"asdf")?;
 
-            let s = SearchResult {
-                path: path.clone(),
-                file: file.try_clone()?,
-            };
+            let s = SearchResult::new(path.clone(), file.try_clone()?);
 
             assert_eq!(s.path(), &path);
             assert_eq!(
