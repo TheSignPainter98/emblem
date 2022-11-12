@@ -412,9 +412,9 @@ impl SearchPath {
 
         let localpath = path::PathBuf::from(&src).join(target);
         if localpath.starts_with(&src) {
-            if let Ok(metadata) = fs::metadata(&localpath) {
-                if metadata.is_file() {
-                    if let Ok(f) = fs::File::open(&localpath) {
+            if let Ok(f) = fs::File::open(&localpath) {
+                if let Ok(metadata) = f.metadata() {
+                    if metadata.is_file() {
                         return Ok(SearchResult {
                             path: localpath,
                             file: f,
@@ -437,9 +437,9 @@ impl SearchPath {
                 continue;
             }
 
-            if let Ok(metadata) = fs::metadata(&needle) {
-                if metadata.is_file() {
-                    if let Ok(f) = fs::File::open(&needle) {
+            if let Ok(f) = fs::File::open(&needle) {
+                if let Ok(metadata) = f.metadata() {
+                    if metadata.is_file() {
                         return Ok(SearchResult {
                             path: needle,
                             file: f,
