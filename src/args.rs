@@ -7,6 +7,7 @@ use clap::{
 };
 use num_enum::FromPrimitive;
 use std::ffi::OsString;
+use std::{fs, io, path};
 
 const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format. Extensions can be used to include arbitrary functionality; device drivers are also extensions.";
 
@@ -379,7 +380,7 @@ impl TryFrom<&str> for MemoryLimit {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SearchPath {
-    path: Vec<String>,
+    path: Vec<path::PathBuf>,
 }
 
 impl SearchPath {
@@ -387,18 +388,91 @@ impl SearchPath {
         StringValueParser::new().map(Self::from)
     }
 
-    // pub fn search(&self, target: &str) -> Result<&str, error::Error> {
-    //  TODO(kcza): complete me!
-    // }
+    fn normalised(&self) -> Self {
+        Self {
+            path: self.path.iter().flat_map(|d| d.canonicalize()).collect(),
+        }
+    }
 
-    // pub fn open(&self, target: &str, cwd: Option<&str>) -> io::File {
-    //  TODO(kcza): complete me!
-    // }
+    pub fn open<S, T>(&self, src: S, target: T) -> Result<SearchResult, io::Error>
+    where
+        S: Into<path::PathBuf>,
+        T: AsRef<path::Path>,
+    {
+        let target = target.as_ref();
+
+        if target.is_absolute() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("Absolute paths are forbidden: got {:?}", target,),
+            ));
+        }
+
+        let src = src.into().canonicalize()?;
+
+        let localpath = path::PathBuf::from(&src).join(target);
+        if localpath.starts_with(&src) {
+            if let Ok(metadata) = fs::metadata(&localpath) {
+                if metadata.is_file() {
+                    if let Ok(f) = fs::File::open(&localpath) {
+                        return Ok(SearchResult {
+                            path: localpath,
+                            file: f,
+                        });
+                    }
+                }
+            }
+        }
+
+        for dir in self.normalised().path {
+            let needle = {
+                let p = path::PathBuf::from(&dir).join(target);
+                match p.canonicalize() {
+                    Ok(p) => p,
+                    _ => continue,
+                }
+            };
+
+            if !needle.starts_with(&dir) {
+                continue;
+            }
+
+            if let Ok(metadata) = fs::metadata(&needle) {
+                if metadata.is_file() {
+                    if let Ok(f) = fs::File::open(&needle) {
+                        return Ok(SearchResult {
+                            path: needle,
+                            file: f,
+                        });
+                    }
+                }
+            }
+        }
+
+        Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            format!(
+                "Could not find file {:?} along path \"{}\"",
+                target.as_os_str(),
+                self.to_string()
+            ),
+        ))
+    }
 }
 
 impl Default for SearchPath {
     fn default() -> Self {
         Self { path: vec![] }
+    }
+}
+
+impl ToString for SearchPath {
+    fn to_string(&self) -> String {
+        self.path
+            .iter()
+            .map(|dir| dir.to_str().unwrap_or("?"))
+            .collect::<Vec<&str>>()
+            .join(":")
     }
 }
 
@@ -414,20 +488,29 @@ impl From<&str> for SearchPath {
             path: raw
                 .split(':')
                 .filter(|s| s.len() != 0)
-                .map(|s| s.to_owned())
+                .map(|s| s.into())
                 .collect(),
         }
     }
 }
 
-impl From<Vec<String>> for SearchPath {
-    fn from(path: Vec<String>) -> Self {
+impl<S> From<Vec<S>> for SearchPath
+where
+    S: Into<path::PathBuf>,
+{
+    fn from(raw: Vec<S>) -> Self {
+        let mut path = vec![];
+        for p in raw {
+            path.push(p.into());
+        }
         Self { path }
     }
 }
 
 #[cfg(test)]
 mod test_search_path {
+    use std::io::Read;
+
     use super::*;
 
     #[test]
@@ -435,16 +518,229 @@ mod test_search_path {
         assert_eq!(
             SearchPath::from("foo:bar::baz"),
             SearchPath {
-                path: vec!["foo".to_owned(), "bar".to_owned(), "baz".to_owned()],
+                path: vec!["foo", "bar", "baz"].iter().map(|d| d.into()).collect()
             }
         );
 
         assert_eq!(
             SearchPath::from("foo:bar::baz".to_owned()),
             SearchPath {
-                path: vec!["foo".to_owned(), "bar".to_owned(), "baz".to_owned()],
+                path: vec!["foo", "bar", "baz"].iter().map(|d| d.into()).collect()
             }
         );
+
+        assert_eq!(
+            SearchPath::from(
+                vec!["foo", "bar", "baz"]
+                    .iter()
+                    .map(|d| path::PathBuf::from(d))
+                    .collect::<Vec<_>>()
+            ),
+            SearchPath {
+                path: vec!["foo", "bar", "baz"].iter().map(|d| d.into()).collect()
+            }
+        );
+    }
+
+    #[test]
+    fn to_string() {
+        let path = SearchPath::from("asdf:fdsa: ::q");
+        assert_eq!(path.to_string(), "asdf:fdsa: :q");
+    }
+
+    fn make_file(tmppath: &path::Path, filepath: &str, content: &str) -> Result<(), io::Error> {
+        let path = path::PathBuf::from(tmppath).join(filepath);
+
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        fs::write(path, content)
+    }
+
+    #[test]
+    fn open() -> Result<(), io::Error> {
+        let tmpdir = tempfile::tempdir()?;
+        let tmppath = tmpdir.path().canonicalize()?;
+
+        make_file(&tmppath, "a.txt", "a")?;
+        make_file(&tmppath, "B/b.txt", "b")?;
+        make_file(&tmppath, "C1/C2/c.txt", "c")?;
+        make_file(&tmppath, "D/d.txt", "c")?;
+        make_file(&tmppath, "x.txt", "x")?;
+
+        let raw_path: Vec<path::PathBuf> = vec!["B", "C1", "D"]
+            .iter()
+            .map(|s| path::PathBuf::from(&tmppath).join(s))
+            .collect();
+        let path = SearchPath::from(raw_path).normalised();
+
+        {
+            let a = path.open(&tmppath, "a.txt");
+            assert!(a.is_ok(), "{:?}", a);
+            let mut content = String::new();
+            let found = a.unwrap();
+            assert_eq!(found.path(), tmppath.join("a.txt"));
+            found.file().read_to_string(&mut content)?;
+            assert_eq!(content, "a");
+        }
+
+        {
+            let b = path.open(&tmppath, "b.txt");
+            assert!(b.is_ok(), "{:?}", b);
+            let found = b.unwrap();
+            assert_eq!(found.path(), tmppath.join("B/b.txt"));
+            let mut content = String::new();
+            found.file().read_to_string(&mut content)?;
+            assert_eq!(content, "b");
+        }
+
+        {
+            let c = path.open(&tmppath, "C2/c.txt");
+            assert!(c.is_ok());
+            let found = c.unwrap();
+            assert_eq!(found.path(), tmppath.join("C1/C2/c.txt"));
+            let mut content = String::new();
+            found.file().read_to_string(&mut content)?;
+            assert_eq!(content, "c");
+        }
+
+        {
+            let c = path.open(&tmppath, "D/d.txt");
+            assert!(c.is_ok());
+            let found = c.unwrap();
+            assert_eq!(found.path(), tmppath.join("D/d.txt"));
+            let mut content = String::new();
+            found.file().read_to_string(&mut content)?;
+            assert_eq!(content, "c");
+        }
+
+        {
+            let abs_path = tmppath.join("a.txt");
+            let abs_result = path.open(&tmppath, &path::PathBuf::from(&abs_path).canonicalize()?);
+            assert!(abs_result.is_err());
+            let err = abs_result.unwrap_err();
+            assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
+            assert_eq!(
+                err.to_string(),
+                format!("Absolute paths are forbidden: got {:?}", abs_path,)
+            );
+        }
+
+        {
+            let dir_result = path.open(&tmppath, "D");
+            assert!(dir_result.is_err());
+            let err = dir_result.unwrap_err();
+            assert_eq!(err.kind(), io::ErrorKind::NotFound);
+            assert_eq!(
+                err.to_string(),
+                format!(
+                    "Could not find file \"D\" along path \"{}\"",
+                    path.to_string()
+                )
+            );
+        }
+
+        {
+            let dir_result = path.open(&tmppath, "C2");
+            assert!(dir_result.is_err());
+            let err = dir_result.unwrap_err();
+            assert_eq!(err.kind(), io::ErrorKind::NotFound);
+            assert_eq!(
+                err.to_string(),
+                format!(
+                    "Could not find file \"C2\" along path \"{}\"",
+                    path.to_string()
+                )
+            );
+        }
+
+        {
+            let inaccessible = path.open(&tmppath, "c.txt");
+            assert!(inaccessible.is_err());
+            let err = inaccessible.unwrap_err();
+            assert_eq!(err.kind(), io::ErrorKind::NotFound);
+            assert_eq!(
+                err.to_string(),
+                format!(
+                    "Could not find file \"c.txt\" along path \"{}\"",
+                    path.to_string()
+                )
+            );
+        }
+
+        {
+            let inaccessible = path.open(&tmppath, "../a.txt");
+            assert!(inaccessible.is_err());
+            let abs_file = inaccessible.unwrap_err();
+            assert_eq!(abs_file.kind(), io::ErrorKind::NotFound);
+            assert_eq!(
+                abs_file.to_string(),
+                format!(
+                    "Could not find file \"../a.txt\" along path \"{}\"",
+                    path.to_string()
+                )
+            );
+        }
+
+        {
+            let non_existent = path.open(&tmppath, "non-existent.txt");
+            assert!(non_existent.is_err());
+            let non_existent = non_existent.unwrap_err();
+            assert_eq!(non_existent.kind(), io::ErrorKind::NotFound);
+            assert_eq!(
+                non_existent.to_string(),
+                format!(
+                    "Could not find file \"non-existent.txt\" along path \"{}\"",
+                    path.to_string()
+                )
+            );
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct SearchResult {
+    path: path::PathBuf,
+    file: fs::File,
+}
+
+impl SearchResult {
+    pub fn path(&self) -> &path::Path {
+        &self.path
+    }
+
+    pub fn file(&self) -> &fs::File {
+        &self.file
+    }
+}
+
+#[cfg(test)]
+mod test_search_result {
+    use super::*;
+    use io::Write;
+
+    #[test]
+    fn fields() -> io::Result<()> {
+        let tmpdir = tempfile::tempdir()?;
+        let path = tmpdir.path().join("fields.txt");
+        let mut file = fs::File::create(&path)?;
+        file.write(b"asdf")?;
+
+        let s = SearchResult {
+            path: path.clone(),
+            file: file.try_clone()?,
+        };
+
+        assert_eq!(s.path(), &path);
+        assert_eq!(
+            s.file().metadata().unwrap().len(),
+            file.metadata().unwrap().len()
+        );
+
+        Ok(())
     }
 }
 
