@@ -110,6 +110,12 @@ impl Args {
     }
 }
 
+impl Default for Args {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T, I> From<I> for Args
 where
     T: Into<OsString> + Clone,
@@ -147,10 +153,10 @@ impl TryFrom<OsStr> for MemoryLimit {
         }
 
         let mut cmd = Args::command();
-        return Err(cmd.error(
+        Err(cmd.error(
             error::ErrorKind::InvalidValue,
             format!("could not convert '{:?}' to an OS string", raw),
-        ));
+        ))
     }
 }
 
@@ -166,7 +172,7 @@ impl TryFrom<&str> for MemoryLimit {
     type Error = error::Error;
 
     fn try_from(raw: &str) -> Result<Self, Self::Error> {
-        if raw.len() == 0 {
+        if raw.is_empty() {
             let mut cmd = Args::command();
             return Err(cmd.error(error::ErrorKind::InvalidValue, "need amount"));
         }
@@ -205,7 +211,7 @@ impl TryFrom<&str> for MemoryLimit {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SearchPath {
     path: Vec<path::PathBuf>,
 }
@@ -281,12 +287,6 @@ impl SearchPath {
     }
 }
 
-impl Default for SearchPath {
-    fn default() -> Self {
-        Self { path: vec![] }
-    }
-}
-
 impl ToString for SearchPath {
     fn to_string(&self) -> String {
         self.path
@@ -308,7 +308,7 @@ impl From<&str> for SearchPath {
         Self {
             path: raw
                 .split(':')
-                .filter(|s| s.len() != 0)
+                .filter(|s| !s.is_empty())
                 .map(|s| s.into())
                 .collect(),
         }
