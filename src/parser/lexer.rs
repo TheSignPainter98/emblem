@@ -6,7 +6,6 @@ use std::{
     fmt::{self, Display},
 };
 
-
 macro_rules! token_patterns {
     ( $(let $name:ident = $pattern:literal);* $(;)? ) => {
         lazy_static! {
@@ -159,9 +158,9 @@ impl<'input> Iterator for Lexer<'input> {
                     Ok(Tok::NestedCommentClose)
                 }
             },
-            COMMAND              => |s:&'input str| Ok(Tok::Command(&s[1..])),
-            WORD                 => |s:&'input str| Ok(Tok::Word(s)),
-            WHITESPACE           => |s:&'input str| Ok(Tok::Whitespace(s)),
+            COMMAND    => |s:&'input str| Ok(Tok::Command(&s[1..])),
+            WORD       => |s:&'input str| Ok(Tok::Word(s)),
+            WHITESPACE => |s:&'input str| Ok(Tok::Whitespace(s)),
         }
     }
 }
