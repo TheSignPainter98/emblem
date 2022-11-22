@@ -85,7 +85,7 @@ impl<'input> Iterator for Lexer<'input> {
                 else {
                     self.failed = true;
                     Some(Err(LexicalError {
-                        reason: LexicalErrorReason::UnexpectedChar,
+                        reason: LexicalErrorReason::UnexpectedChar(self.input.chars().next().unwrap_or('\0')),
                     }))
                 }
             };
@@ -248,14 +248,14 @@ impl Error for LexicalError {
 
 #[derive(Debug)]
 enum LexicalErrorReason {
-    UnexpectedChar,
+    UnexpectedChar(char),
     UnmatchedCommentClose,
 }
 
 impl LexicalErrorReason {
     fn description(&self) -> &str {
         match self {
-            LexicalErrorReason::UnexpectedChar => "unexpected character",
+            LexicalErrorReason::UnexpectedChar(_) => "unexpected character",
             LexicalErrorReason::UnmatchedCommentClose => "no comment to close",
         }
     }
