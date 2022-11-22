@@ -1,56 +1,269 @@
-#[derive(Debug, Default, PartialEq, Eq, Ord, PartialOrd)]
-struct IndentLevel {
-    tabs: u32,
-    spaces: u32,
-}
+use crate::parser::Location;
+use lazy_static::lazy_static;
+use regex::Regex;
+use std::{
+    error::Error,
+    fmt::{self, Display},
+};
 
-const SPACES_PER_TAB: u32 = 4;
 
-impl IndentLevel {
-    fn level(&self) -> u32 {
-        self.tabs + (self.spaces as f32 / SPACES_PER_TAB as f32).ceil() as u32
+macro_rules! token_patterns {
+    ( $(let $name:ident = $pattern:literal);* $(;)? ) => {
+        lazy_static! {
+            $(static ref $name: Regex = Regex::new(concat!("^", $pattern)).unwrap();)*
+        }
     }
 }
 
-impl From<&str> for IndentLevel {
-    fn from(other: &str) -> Self {
-        let mut asdf = Self { tabs: 0, spaces: 0 };
+token_patterns! {
+    let WORD               = r"[^ \t\r\n}]+";
+    let WHITESPACE         = r"[ \t]+";
+    // let PAR_BRK            = r"[ \t]+";
+    let LN                 = r"(\n|\r\n|\r)";
+    let COLON              = r":";
+    let DOUBLE_COLON       = r"::";
+    let INITIAL_INDENT     = r"[ \t]*";
+    let COMMAND            = r"\.[^ \t{}]+";
+    let BRACE_LEFT         = r"\{";
+    let BRACE_RIGHT        = r"\}";
+    let COMMENT            = r"//[^\r\n]*";
 
-        for chr in other.chars() {
-            match chr {
-                ' ' => asdf.spaces += 1,
-                '\t' => asdf.tabs += 1,
-                _ => {}
+    let NESTED_COMMENT_OPEN  = r"/\*";
+    let NESTED_COMMENT_CLOSE = r"\*/";
+    let NESTED_COMMENT_PART  = r"([^*/]|\*[^/]|/[^*])+";
+}
+
+pub struct Lexer<'input> {
+    input: &'input str,
+    failed: bool,
+    current_indent: u32,
+    target_indent: u32,
+    curr_loc: Location<'input>,
+    comment_depth: u32,
+}
+
+impl<'input> Lexer<'input> {
+    pub fn new(file: &'input str, input: &'input str) -> Self {
+        Self {
+            input,
+            failed: false,
+            current_indent: 0,
+            target_indent: 0,
+            curr_loc: Location::new(file),
+            comment_depth: 0,
+        }
+    }
+
+    fn try_consume(&mut self, re: &Regex) -> Option<&'input str> {
+        if let Some(mat) = re.find(self.input) {
+            self.input = &self.input[mat.end()..];
+            Some(mat.as_str())
+        } else {
+            None
+        }
+    }
+}
+
+impl<'input> Iterator for Lexer<'input> {
+    type Item = Result<Tok<'input>, LexicalError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.failed {
+            return None;
+        }
+
+        macro_rules! match_token {
+            ( $($re:expr => $to_tok:expr),* $(,)? ) => {
+                if false { None }
+                $(else if let Some(mat) = $re.find(self.input) {
+                    let tok_result = $to_tok(mat.as_str());
+                    self.input = &self.input[mat.end()..];
+                    Some(tok_result)
+                })*
+                else {
+                    self.failed = true;
+                    Some(Err(LexicalError {
+                        reason: LexicalErrorReason::UnexpectedChar,
+                    }))
+                }
+            };
+        }
+
+        if self.comment_depth > 0 {
+            return match_token![
+                NESTED_COMMENT_OPEN  => |_| {
+                    self.comment_depth += 1;
+                    Ok(Tok::NestedCommentOpen)
+                },
+                NESTED_COMMENT_CLOSE => |_| {
+                    self.comment_depth -= 1;
+                    Ok(Tok::NestedCommentClose)
+                },
+                NESTED_COMMENT_PART  => |s: &'input str| Ok(Tok::Comment(s.trim())),
+            ];
+        }
+
+        if self.input.is_empty() {
+            self.target_indent = 0;
+        } else if self.try_consume(&LN).is_some() {
+            let mat = self.try_consume(&INITIAL_INDENT).unwrap();
+            self.target_indent = indent_level(mat);
+        }
+
+        if self.current_indent != self.target_indent {
+            if self.current_indent < self.target_indent {
+                self.current_indent += 1;
+                return Some(Ok(Tok::Indent));
+            } else {
+                self.current_indent -= 1;
+                return Some(Ok(Tok::Dedent));
             }
         }
 
-        asdf
+        if self.input.is_empty() {
+            return None;
+        }
+
+        match_token! {
+            COMMENT              => |s: &'input str| Ok(Tok::Comment(s[2..].trim())),
+            DOUBLE_COLON         => |_| Ok(Tok::DoubleColon),
+            COLON                => |_| Ok(Tok::Colon),
+            BRACE_LEFT           => |_| Ok(Tok::LBrace),
+            BRACE_RIGHT          => |_| Ok(Tok::RBrace),
+            NESTED_COMMENT_OPEN  => |_| {
+                self.comment_depth += 1;
+                Ok(Tok::NestedCommentOpen)
+            },
+            NESTED_COMMENT_CLOSE => |_| {
+                if self.comment_depth == 0 {
+                    self.failed = true;
+                    Err(LexicalError{
+                        reason: LexicalErrorReason::UnmatchedCommentClose,
+                    })
+                } else {
+                    Ok(Tok::NestedCommentClose)
+                }
+            },
+            COMMAND              => |s:&'input str| Ok(Tok::Command(&s[1..])),
+            WORD                 => |s:&'input str| Ok(Tok::Word(s)),
+            WHITESPACE           => |s:&'input str| Ok(Tok::Whitespace(s)),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Tok<'input> {
+    Indent,
+    Dedent,
+    Colon,
+    DoubleColon,
+    LBrace,
+    RBrace,
+    Command(&'input str),
+    ParBreak,
+    Word(&'input str),
+    Whitespace(&'input str),
+    NestedCommentOpen,
+    NestedCommentClose,
+    Comment(&'input str),
+}
+
+impl ToString for Tok<'_> {
+    fn to_string(&self) -> String {
+        match self {
+            Tok::Indent => "indent",
+            Tok::Dedent => "dedent",
+            Tok::Colon => ":",
+            Tok::DoubleColon => "::",
+            Tok::LBrace => "{",
+            Tok::RBrace => "}",
+            Tok::Command(_) => "command",
+            Tok::ParBreak => "par-break",
+            Tok::Word(_) => "word",
+            Tok::Whitespace(_) => "whitespace",
+            Tok::NestedCommentOpen => "/*",
+            Tok::NestedCommentClose => "*/",
+            Tok::Comment(_) => "comment",
+        }
+        .to_owned()
+    }
+}
+
+fn indent_level(s: &str) -> u32 {
+    let mut tabs = 0;
+    let mut spaces = 0;
+
+    for chr in s.chars() {
+        match chr {
+            ' ' => spaces += 1,
+            '\t' => tabs += 1,
+            _ => {}
+        }
+    }
+
+    tabs + (spaces as f32 / 4_f32).ceil() as u32
+}
+
+#[derive(Debug)]
+pub struct LexicalError {
+    reason: LexicalErrorReason,
+    // loc: Location<'input>,
+}
+
+// impl<'input> LexicalError<'input> {
+//     pub fn location(&self) -> &Location {
+//         &self.loc
+//     }
+// }
+
+impl Display for LexicalError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "lexical error: {}", self.reason)
+        // write!(f, "{}: lexical error: {:?}", self.loc, self.reason)
+    }
+}
+
+impl Error for LexicalError {
+    fn description(&self) -> &str {
+        self.reason.description()
+    }
+}
+
+#[derive(Debug)]
+enum LexicalErrorReason {
+    UnexpectedChar,
+    UnmatchedCommentClose,
+}
+
+impl LexicalErrorReason {
+    fn description(&self) -> &str {
+        match self {
+            LexicalErrorReason::UnexpectedChar => "unexpected character",
+            LexicalErrorReason::UnmatchedCommentClose => "no comment to close",
+        }
+    }
+}
+
+impl Display for LexicalErrorReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.description())
     }
 }
 
 #[cfg(test)]
 mod test {
-    mod indent_level {
-        use super::super::*;
-        #[test]
-        fn default() {
-            assert_eq!(IndentLevel { tabs: 0, spaces: 0 }, IndentLevel::default());
-        }
+    use super::*;
 
-        #[test]
-        fn level() {
-            assert_eq!(0, IndentLevel{ tabs: 0, spaces: 0}.level());
-            assert_eq!(1, IndentLevel{ tabs: 0, spaces: 1}.level());
-            assert_eq!(1, IndentLevel{ tabs: 1, spaces: 0}.level());
-            assert_eq!(2, IndentLevel{ tabs: 1, spaces: 1}.level());
-        }
-
-        #[test]
-        fn from() {
-            assert_eq!(IndentLevel { tabs: 0, spaces: 0 }, IndentLevel::from(""));
-            assert_eq!(IndentLevel { tabs: 0, spaces: 1 }, IndentLevel::from(" "));
-            assert_eq!(IndentLevel { tabs: 1, spaces: 0 }, IndentLevel::from("\t"));
-            assert_eq!(IndentLevel { tabs: 1, spaces: 1 }, IndentLevel::from(" \t"));
-        }
+    #[test]
+    fn indent_level_counting() {
+        assert_eq!(0, indent_level(""));
+        assert_eq!(1, indent_level(" "));
+        assert_eq!(1, indent_level("\t"));
+        assert_eq!(1, indent_level("    "));
+        assert_eq!(2, indent_level("\t "));
+        assert_eq!(2, indent_level(" \t "));
+        assert_eq!(2, indent_level("\t\t"));
+        assert_eq!(2, indent_level("        "));
+        assert_eq!(3, indent_level("    \t    "));
     }
 }
