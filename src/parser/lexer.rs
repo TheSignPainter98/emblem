@@ -18,7 +18,7 @@ macro_rules! token_patterns {
 token_patterns! {
     let WORD               = r"[^ \t\r\n}]+";
     let WHITESPACE         = r"[ \t]+";
-    // let PAR_BRK            = r"[ \t]+";
+    let PAR_BREAKS         = r"([ \t]*(\n|\r\n|\r))+";
     let LN                 = r"(\n|\r\n|\r)";
     let COLON              = r":";
     let DOUBLE_COLON       = r"::";
@@ -36,6 +36,7 @@ token_patterns! {
 pub struct Lexer<'input> {
     input: &'input str,
     failed: bool,
+    insert_par_break: bool,
     current_indent: u32,
     target_indent: u32,
     curr_loc: Location<'input>,
@@ -47,6 +48,7 @@ impl<'input> Lexer<'input> {
         Self {
             input,
             failed: false,
+            insert_par_break: false,
             current_indent: 0,
             target_indent: 0,
             curr_loc: Location::new(file),
@@ -106,8 +108,15 @@ impl<'input> Iterator for Lexer<'input> {
         if self.input.is_empty() {
             self.target_indent = 0;
         } else if self.try_consume(&LN).is_some() {
+            self.insert_par_break = self.try_consume(&PAR_BREAKS).is_some();
+
             let mat = self.try_consume(&INITIAL_INDENT).unwrap();
             self.target_indent = indent_level(mat);
+
+            if self.insert_par_break && self.current_indent < self.target_indent {
+                self.insert_par_break = false;
+                return Some(Ok(Tok::ParBreak));
+            }
         }
 
         if self.current_indent != self.target_indent {
@@ -122,6 +131,11 @@ impl<'input> Iterator for Lexer<'input> {
 
         if self.input.is_empty() {
             return None;
+        }
+
+        if self.insert_par_break {
+            self.insert_par_break = false;
+            return Some(Ok(Tok::ParBreak));
         }
 
         match_token! {
