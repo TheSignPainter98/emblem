@@ -30,7 +30,7 @@ token_patterns! {
 
     let NESTED_COMMENT_OPEN  = r"/\*";
     let NESTED_COMMENT_CLOSE = r"\*/";
-    let NESTED_COMMENT_PART  = r"([^*/]|\*[^/]|/[^*])+";
+    let NESTED_COMMENT_PART  = r"([^*/\n\r]|\*[^/\n\r]|/[^*\n\r])+";
 }
 
 pub struct Lexer<'input> {
@@ -93,6 +93,8 @@ impl<'input> Iterator for Lexer<'input> {
 
         if self.comment_depth > 0 {
             return match_token![
+                NESTED_COMMENT_PART  => |s: &'input str| Ok(Tok::Comment(s.trim())),
+                LN                   => |_| Ok(Tok::Newline),
                 NESTED_COMMENT_OPEN  => |_| {
                     self.comment_depth += 1;
                     Ok(Tok::NestedCommentOpen)
@@ -101,7 +103,6 @@ impl<'input> Iterator for Lexer<'input> {
                     self.comment_depth -= 1;
                     Ok(Tok::NestedCommentClose)
                 },
-                NESTED_COMMENT_PART  => |s: &'input str| Ok(Tok::Comment(s.trim())),
             ];
         }
 
@@ -180,6 +181,7 @@ pub enum Tok<'input> {
     NestedCommentOpen,
     NestedCommentClose,
     Comment(&'input str),
+    Newline,
 }
 
 impl ToString for Tok<'_> {
@@ -197,6 +199,7 @@ impl ToString for Tok<'_> {
             Tok::Whitespace(_) => "whitespace",
             Tok::NestedCommentOpen => "/*",
             Tok::NestedCommentClose => "*/",
+            Tok::Newline => "newline",
             Tok::Comment(_) => "comment",
         }
         .to_owned()
