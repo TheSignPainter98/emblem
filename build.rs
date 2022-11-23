@@ -15,6 +15,7 @@ use std::path::Path;
 fn main() -> Result<(), Box<dyn Error>> {
     complgen()?;
     mangen()?;
+    parsergen()?;
     Ok(())
 }
 
@@ -50,5 +51,11 @@ fn complgen() -> Result<(), Box<dyn Error>> {
     for shell in shells {
         clap_complete::generate_to(shell, &mut RawArgs::command(), "em", dest_dir.clone())?;
     }
+    Ok(())
+}
+
+fn parsergen() -> Result<(), Box<dyn Error>> {
+    println!("cargo:rerun-if-changed=src/parser/parser.lalrpop");
+    lalrpop::process_root().unwrap();
     Ok(())
 }

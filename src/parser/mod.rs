@@ -51,6 +51,10 @@ impl<'input> Location<'input> {
         ret
     }
 
+    fn shift(&mut self, text: &str) {
+        // TODO(kcza): complete me!
+    }
+
     fn incr_line(&mut self) {
         self.col = 1;
         self.line += 1;

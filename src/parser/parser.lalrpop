@@ -1,0 +1,39 @@
+use std::str::FromStr;
+
+grammar<'input>(input: &'input str);
+
+pub File: Result<ast::File, LexicalError> = {
+	FileContent => <>
+	Error => <ll:
+};
+
+FileContent: ast::File = {
+	Par (ParBreak Par)* => <>
+};
+
+Par: ast::Par = {
+	Content Content* => <>
+};
+
+Content: ast::Content = {
+	<w:Word> => {}
+	<c:Comment>+ => {}
+};
+
+extern {
+	type Location = ast::Location;
+	type Error = LexicalError;
+
+	enum lexer::Tok<'input> {
+		Indent => lexer::Tok::Indent,
+		Dedent => lexer::Tok::Dedent,
+		":" => lexer::Tok::Colon,
+		"::" => lexer::Tok::DoubleColon,
+		"{" => lexer::Tok::LBrace,
+		"}" => lexer::Tok::RBrace,
+		Comment => lexer::Tok::Comment(<&'input str>),
+		Command => lexer::Tok::Command(<&'input str>),
+		ParBreak => lexer::Tok::Par,
+		Word => lexer::Tok::Word(<&'input str>),
+	}
+}
