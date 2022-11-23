@@ -27,12 +27,12 @@ struct File<'input> {
     root: ast::Node<'input>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Location<'input> {
-    text: &'input str,
-    file: &'input str,
-    line: usize,
-    col: usize,
+    pub text: &'input str,
+    pub file: &'input str,
+    pub line: usize,
+    pub col: usize,
 }
 
 impl<'input> Location<'input> {
@@ -44,10 +44,77 @@ impl<'input> Location<'input> {
             col: 0,
         }
     }
+
+    fn with_text(&self, text: &'input str) -> Self {
+        let mut ret = self.clone();
+        ret.text = text;
+        ret
+    }
+
+    fn incr_line(&mut self) {
+        self.col = 1;
+        self.line += 1;
+    }
+
+    fn incr_col(&mut self) {
+        self.col += 1;
+    }
 }
 
 impl Display for Location<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}:{}:", self.file, self.line, self.col)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    mod location {
+        use super::super::*;
+        #[test]
+        fn new() {
+            assert_eq!("asdf", Location::new("asdf").file);
+        }
+
+        #[test]
+        fn with_text() {
+            let original = Location::new("fname");
+            let new = original.with_text("hello, world");
+
+            assert_eq!(new.file, original.file);
+            assert_eq!(new.text, "hello, world");
+            assert_eq!(new.col, original.col);
+            assert_eq!(new.line, original.line);
+        }
+
+        #[test]
+        fn incr() {
+            let mut loc = Location::new("");
+
+            loc.incr_col();
+            assert_eq!((loc.line, loc.col), (1, 1));
+
+            for _ in 0..10 {
+                loc.incr_col();
+            }
+
+            assert_eq!((loc.line, loc.col), (1, 11));
+
+            loc.incr_line();
+
+            assert_eq!((loc.line, loc.col), (2, 1));
+
+            for _ in 0..10 {
+                loc.incr_line()
+            }
+
+            assert_eq!((loc.line, loc.col), (12, 1));
+
+            for _ in 0..10 {
+                loc.incr_col();
+            }
+
+            assert_eq!((loc.line, loc.col), (12, 11));
+        }
     }
 }

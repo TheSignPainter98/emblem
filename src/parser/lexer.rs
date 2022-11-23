@@ -66,7 +66,7 @@ impl<'input> Lexer<'input> {
 }
 
 impl<'input> Iterator for Lexer<'input> {
-    type Item = Result<Tok<'input>, LexicalError>;
+    type Item = Result<Tok<'input>, LexicalError<'input>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.failed {
@@ -85,6 +85,7 @@ impl<'input> Iterator for Lexer<'input> {
                     self.failed = true;
                     Some(Err(LexicalError {
                         reason: LexicalErrorReason::UnexpectedChar(self.input.chars().next().unwrap_or('\0')),
+                        loc: self.curr_loc.with_text(&self.input[0..self.input.char_indices().nth(1).unwrap().0])
                     }))
                 }
             };
@@ -148,11 +149,12 @@ impl<'input> Iterator for Lexer<'input> {
                 self.comment_depth += 1;
                 Ok(Tok::NestedCommentOpen)
             },
-            NESTED_COMMENT_CLOSE => |_| {
+            NESTED_COMMENT_CLOSE => |s: &'input str| {
                 if self.comment_depth == 0 {
                     self.failed = true;
                     Err(LexicalError{
                         reason: LexicalErrorReason::UnmatchedCommentClose,
+                        loc: self.curr_loc.with_text(s)
                     })
                 } else {
                     Ok(Tok::NestedCommentClose)
@@ -221,25 +223,25 @@ fn indent_level(s: &str) -> u32 {
 }
 
 #[derive(Debug)]
-pub struct LexicalError {
+pub struct LexicalError<'input> {
     reason: LexicalErrorReason,
-    // loc: Location<'input>,
+    loc: Location<'input>,
 }
 
-// impl<'input> LexicalError<'input> {
-//     pub fn location(&self) -> &Location {
-//         &self.loc
-//     }
-// }
+impl<'input> LexicalError<'input> {
+    pub fn location(&self) -> &Location {
+        &self.loc
+    }
+}
 
-impl Display for LexicalError {
+impl Display for LexicalError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "lexical error: {}", self.reason)
         // write!(f, "{}: lexical error: {:?}", self.loc, self.reason)
     }
 }
 
-impl Error for LexicalError {
+impl Error for LexicalError<'_> {
     fn description(&self) -> &str {
         self.reason.description()
     }
