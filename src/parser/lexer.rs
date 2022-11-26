@@ -39,6 +39,7 @@ pub struct Lexer<'input> {
     current_indent: u32,
     target_indent: u32,
     curr_loc: Location<'input>,
+    prev_loc: Location<'input>,
     comment_depth: u32,
 }
 
@@ -50,7 +51,8 @@ impl<'input> Lexer<'input> {
             insert_par_break: false,
             current_indent: 0,
             target_indent: 0,
-            curr_loc: Location::new(file),
+            curr_loc: Location::new(file, input),
+            prev_loc: Location::new(file, input),
             comment_depth: 0,
         }
     }
@@ -58,6 +60,10 @@ impl<'input> Lexer<'input> {
     fn try_consume(&mut self, re: &Regex) -> Option<&'input str> {
         if let Some(mat) = re.find(self.input) {
             self.input = &self.input[mat.end()..];
+
+            self.prev_loc = self.curr_loc;
+            self.curr_loc = self.curr_loc.shift(mat.as_str());
+
             Some(mat.as_str())
         } else {
             None
@@ -65,27 +71,34 @@ impl<'input> Lexer<'input> {
     }
 }
 
+pub type SpannedTok<'input> =
+    Result<(Location<'input>, Tok<'input>, Location<'input>), LexicalError<'input>>;
+
 impl<'input> Iterator for Lexer<'input> {
-    type Item = Result<Tok<'input>, LexicalError<'input>>;
+    type Item = SpannedTok<'input>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.failed {
             return None;
         }
 
+        macro_rules! span {
+            ($tok:expr) => {
+                (self.prev_loc.clone(), $tok, self.curr_loc.clone())
+            };
+        }
+
         macro_rules! match_token {
             ( $($re:expr => $to_tok:expr),* $(,)? ) => {
                 if false { None }
-                $(else if let Some(mat) = $re.find(self.input) {
-                    let tok_result = $to_tok(mat.as_str());
-                    self.input = &self.input[mat.end()..];
-                    Some(tok_result)
+                $(else if let Some(mat) = self.try_consume(&$re) {
+                    Some($to_tok(mat).map(|t| span!(t)))
                 })*
                 else {
                     self.failed = true;
                     Some(Err(LexicalError {
                         reason: LexicalErrorReason::UnexpectedChar(self.input.chars().next().unwrap_or('\0')),
-                        loc: self.curr_loc.with_text(&self.input[0..self.input.char_indices().nth(1).unwrap().0])
+                        loc: self.curr_loc.clone(),
                     }))
                 }
             };
@@ -116,17 +129,17 @@ impl<'input> Iterator for Lexer<'input> {
 
             if self.insert_par_break && self.current_indent < self.target_indent {
                 self.insert_par_break = false;
-                return Some(Ok(Tok::ParBreak));
+                return Some(Ok(span!(Tok::ParBreak)));
             }
         }
 
         if self.current_indent != self.target_indent {
             if self.current_indent < self.target_indent {
                 self.current_indent += 1;
-                return Some(Ok(Tok::Indent));
+                return Some(Ok(span!(Tok::Indent)));
             } else {
                 self.current_indent -= 1;
-                return Some(Ok(Tok::Dedent));
+                return Some(Ok(span!(Tok::Dedent)));
             }
         }
 
@@ -136,7 +149,7 @@ impl<'input> Iterator for Lexer<'input> {
 
         if self.insert_par_break {
             self.insert_par_break = false;
-            return Some(Ok(Tok::ParBreak));
+            return Some(Ok(span!(Tok::ParBreak)));
         }
 
         match_token! {
@@ -149,12 +162,12 @@ impl<'input> Iterator for Lexer<'input> {
                 self.comment_depth += 1;
                 Ok(Tok::NestedCommentOpen)
             },
-            NESTED_COMMENT_CLOSE => |s: &'input str| {
+            NESTED_COMMENT_CLOSE => |_| {
                 if self.comment_depth == 0 {
                     self.failed = true;
                     Err(LexicalError{
                         reason: LexicalErrorReason::UnmatchedCommentClose,
-                        loc: self.curr_loc.with_text(s)
+                        loc: self.curr_loc.clone(),
                     })
                 } else {
                     Ok(Tok::NestedCommentClose)

@@ -1,13 +1,19 @@
 pub mod lexer;
 
 use crate::ast;
+use lazy_static::lazy_static;
 use lexer::Lexer;
+use regex::Regex;
 use std::error::Error;
 use std::path::Path;
 use std::{
     fmt::{self, Display},
     fs, io,
 };
+
+lazy_static! {
+    static ref NEWLINE: Regex = Regex::new("(\n|\r\n|\r)").unwrap();
+}
 
 pub fn parse<'input, S: Into<&'input Path>>(fname: S) -> Result<(), io::Error> {
     let path = fname.into();
@@ -27,47 +33,56 @@ struct File<'input> {
     root: ast::Node<'input>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Location<'input> {
-    pub text: &'input str,
-    pub file: &'input str,
+    pub file_name: &'input str,
+    src: &'input str,
+    offset: usize,
     pub line: usize,
     pub col: usize,
 }
 
 impl<'input> Location<'input> {
-    fn new(file: &'input str) -> Self {
+    fn new(fname: &'input str, src: &'input str) -> Self {
         Self {
-            text: "",
-            file,
+            file_name: fname,
+            src,
+            offset: 0,
             line: 1,
             col: 0,
         }
     }
 
-    fn with_text(&self, text: &'input str) -> Self {
-        let mut ret = self.clone();
-        ret.text = text;
-        ret
+    fn shift(mut self, text: &'input str) -> Self {
+        self.offset += text.len();
+
+        let mut line_count = 0;
+        let mut last_line = None;
+
+        for line in NEWLINE.split(text) {
+            last_line = Some(line);
+            line_count += 1;
+        }
+
+        self.line += line_count - 1;
+
+        let last_line_chars = last_line.unwrap().chars().count();
+        if line_count > 1 {
+            self.col = last_line_chars;
+        } else {
+            self.col += last_line_chars;
+        }
+        self
     }
 
-    fn shift(&mut self, text: &str) {
-        // TODO(kcza): complete me!
-    }
-
-    fn incr_line(&mut self) {
-        self.col = 1;
-        self.line += 1;
-    }
-
-    fn incr_col(&mut self) {
-        self.col += 1;
+    pub fn text_upto(&self, other: &Location) -> &'input str {
+        &self.src[self.offset..other.offset]
     }
 }
 
 impl Display for Location<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}:{}:", self.file, self.line, self.col)
+        write!(f, "{}:{}:{}", self.file_name, self.line, self.col)
     }
 }
 
@@ -77,48 +92,41 @@ mod test {
         use super::super::*;
         #[test]
         fn new() {
-            assert_eq!("asdf", Location::new("asdf").file);
+            let loc = Location::new("fname", "content");
+            assert_eq!("fname", loc.file_name);
+            assert_eq!(0, loc.col);
+            assert_eq!(1, loc.line);
         }
 
         #[test]
-        fn with_text() {
-            let original = Location::new("fname");
-            let new = original.with_text("hello, world");
+        fn shift_single_line() {
+            let start = Location::new("fname", "my name is methos");
+            let mid = start.shift("my name is ");
+            let end = mid.shift("methos");
 
-            assert_eq!(new.file, original.file);
-            assert_eq!(new.text, "hello, world");
-            assert_eq!(new.col, original.col);
-            assert_eq!(new.line, original.line);
+            assert_eq!(mid.file_name, "fname");
+            assert_eq!(mid.col, 11);
+            assert_eq!(mid.line, 1);
+
+            assert_eq!(start.file_name, end.file_name);
+            assert_eq!(17, end.col);
+            assert_eq!(1, end.line);
+
+            assert_eq!("my name is ", start.text_upto(&mid));
+            assert_eq!("methos", mid.text_upto(&end));
+            assert_eq!("my name is methos", start.text_upto(&end));
         }
 
         #[test]
-        fn incr() {
-            let mut loc = Location::new("");
+        fn shift_multi_line() {
+            let src = "Welcome! Welcome to City 17! You have chosen, or been chosen, to relocate to one of our finest remaining urban centres";
+            let lines = src.replace(" ", "\n");
+            let start = Location::new("fname", &lines);
+            let end = start.clone().shift(&lines);
 
-            loc.incr_col();
-            assert_eq!((loc.line, loc.col), (1, 1));
-
-            for _ in 0..10 {
-                loc.incr_col();
-            }
-
-            assert_eq!((loc.line, loc.col), (1, 11));
-
-            loc.incr_line();
-
-            assert_eq!((loc.line, loc.col), (2, 1));
-
-            for _ in 0..10 {
-                loc.incr_line()
-            }
-
-            assert_eq!((loc.line, loc.col), (12, 1));
-
-            for _ in 0..10 {
-                loc.incr_col();
-            }
-
-            assert_eq!((loc.line, loc.col), (12, 11));
+            assert_eq!(21, end.line);
+            assert_eq!(7, end.col);
+            assert_eq!(lines, start.text_upto(&end));
         }
     }
 }
