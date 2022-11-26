@@ -49,7 +49,7 @@ impl<'input> Location<'input> {
             src,
             offset: 0,
             line: 1,
-            col: 0,
+            col: 1,
         }
     }
 
@@ -68,7 +68,7 @@ impl<'input> Location<'input> {
 
         let last_line_chars = last_line.unwrap().chars().count();
         if line_count > 1 {
-            self.col = last_line_chars;
+            self.col = 1 + last_line_chars;
         } else {
             self.col += last_line_chars;
         }
@@ -94,7 +94,7 @@ mod test {
         fn new() {
             let loc = Location::new("fname", "content");
             assert_eq!("fname", loc.file_name);
-            assert_eq!(0, loc.col);
+            assert_eq!(1, loc.col);
             assert_eq!(1, loc.line);
         }
 
@@ -105,11 +105,11 @@ mod test {
             let end = mid.shift("methos");
 
             assert_eq!(mid.file_name, "fname");
-            assert_eq!(mid.col, 11);
+            assert_eq!(mid.col, 12);
             assert_eq!(mid.line, 1);
 
             assert_eq!(start.file_name, end.file_name);
-            assert_eq!(17, end.col);
+            assert_eq!(18, end.col);
             assert_eq!(1, end.line);
 
             assert_eq!("my name is ", start.text_upto(&mid));
@@ -125,7 +125,7 @@ mod test {
             let end = start.clone().shift(&lines);
 
             assert_eq!(21, end.line);
-            assert_eq!(7, end.col);
+            assert_eq!(8, end.col);
             assert_eq!(lines, start.text_upto(&end));
         }
     }
