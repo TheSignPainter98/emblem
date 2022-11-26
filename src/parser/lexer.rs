@@ -69,30 +69,25 @@ impl<'input> Lexer<'input> {
             None
         }
     }
+
+    fn span(&self, tok: Tok<'input>) -> SpannedTok<'input> {
+        (self.prev_loc.clone(), tok, self.curr_loc.clone())
+    }
 }
 
-pub type SpannedTok<'input> =
-    Result<(Location<'input>, Tok<'input>, Location<'input>), LexicalError<'input>>;
-
 impl<'input> Iterator for Lexer<'input> {
-    type Item = SpannedTok<'input>;
+    type Item = Result<SpannedTok<'input>, LexicalError<'input>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.failed {
             return None;
         }
 
-        macro_rules! span {
-            ($tok:expr) => {
-                (self.prev_loc.clone(), $tok, self.curr_loc.clone())
-            };
-        }
-
         macro_rules! match_token {
             ( $($re:expr => $to_tok:expr),* $(,)? ) => {
                 if false { None }
                 $(else if let Some(mat) = self.try_consume(&$re) {
-                    Some($to_tok(mat).map(|t| span!(t)))
+                    Some($to_tok(mat).map(|t| self.span(t)))
                 })*
                 else {
                     self.failed = true;
@@ -129,17 +124,17 @@ impl<'input> Iterator for Lexer<'input> {
 
             if self.insert_par_break && self.current_indent < self.target_indent {
                 self.insert_par_break = false;
-                return Some(Ok(span!(Tok::ParBreak)));
+                return Some(Ok(self.span(Tok::ParBreak)));
             }
         }
 
         if self.current_indent != self.target_indent {
             if self.current_indent < self.target_indent {
                 self.current_indent += 1;
-                return Some(Ok(span!(Tok::Indent)));
+                return Some(Ok(self.span(Tok::Indent)));
             } else {
                 self.current_indent -= 1;
-                return Some(Ok(span!(Tok::Dedent)));
+                return Some(Ok(self.span(Tok::Dedent)));
             }
         }
 
@@ -149,7 +144,7 @@ impl<'input> Iterator for Lexer<'input> {
 
         if self.insert_par_break {
             self.insert_par_break = false;
-            return Some(Ok(span!(Tok::ParBreak)));
+            return Some(Ok(self.span(Tok::ParBreak)));
         }
 
         match_token! {
@@ -234,6 +229,8 @@ fn indent_level(s: &str) -> u32 {
 
     tabs + (spaces as f32 / 4_f32).ceil() as u32
 }
+
+pub type SpannedTok<'input> = (Location<'input>, Tok<'input>, Location<'input>);
 
 #[derive(Debug)]
 pub struct LexicalError<'input> {
