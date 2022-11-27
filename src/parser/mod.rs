@@ -37,9 +37,8 @@ struct File<'input> {
 pub struct Location<'input> {
     pub file_name: &'input str,
     src: &'input str,
-    offset: usize,
+    pub index: usize,
     pub line: usize,
-    pub col: usize,
 }
 
 impl<'input> Location<'input> {
@@ -47,42 +46,19 @@ impl<'input> Location<'input> {
         Self {
             file_name: fname,
             src,
-            offset: 0,
+            index: 0,
             line: 1,
-            col: 1,
         }
     }
 
     fn shift(mut self, text: &'input str) -> Self {
-        self.offset += text.len();
-
-        let mut line_count = 0;
-        let mut last_line = None;
-
-        for line in NEWLINE.split(text) {
-            last_line = Some(line);
-            line_count += 1;
-        }
-
-        self.line += line_count - 1;
-
-        let last_line_chars = last_line.unwrap().chars().count();
-        if line_count > 1 {
-            self.col = 1 + last_line_chars;
-        } else {
-            self.col += last_line_chars;
-        }
+        self.index += text.len();
+        self.line += NEWLINE.split(text).count() - 1;
         self
     }
 
     pub fn text_upto(&self, other: &Location) -> &'input str {
-        &self.src[self.offset..other.offset]
-    }
-}
-
-impl Display for Location<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}:{}", self.file_name, self.line, self.col)
+        &self.src[self.index..other.index]
     }
 }
 
@@ -94,7 +70,7 @@ mod test {
         fn new() {
             let loc = Location::new("fname", "content");
             assert_eq!("fname", loc.file_name);
-            assert_eq!(1, loc.col);
+            assert_eq!(0, loc.index);
             assert_eq!(1, loc.line);
         }
 
@@ -105,11 +81,11 @@ mod test {
             let end = mid.shift("methos");
 
             assert_eq!(mid.file_name, "fname");
-            assert_eq!(mid.col, 12);
+            assert_eq!(mid.index, 11);
             assert_eq!(mid.line, 1);
 
             assert_eq!(start.file_name, end.file_name);
-            assert_eq!(18, end.col);
+            assert_eq!(17, end.index);
             assert_eq!(1, end.line);
 
             assert_eq!("my name is ", start.text_upto(&mid));
@@ -125,7 +101,7 @@ mod test {
             let end = start.clone().shift(&lines);
 
             assert_eq!(21, end.line);
-            assert_eq!(8, end.col);
+            assert_eq!(118, end.index);
             assert_eq!(lines, start.text_upto(&end));
         }
     }
