@@ -21,7 +21,7 @@ pub fn parse<'input, S: Into<&'input Path>>(fname: S) -> Result<(), io::Error> {
 
     println!("Start of toks in {:?}:\n===========", path.to_owned());
     for tok in Lexer::new(path.as_os_str().to_str().unwrap(), &raw) {
-        println!("Read tok: {:?}", tok);
+        println!("Read tok: {}", tok.unwrap().0);
     }
     println!("===========\nEnd of toks in {:?}:", path.to_owned());
 
