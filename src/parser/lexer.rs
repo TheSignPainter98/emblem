@@ -4,6 +4,7 @@ use std::{
     error::Error,
     fmt::{self, Display},
 };
+use crate::parser::location::Location;
 
 macro_rules! token_patterns {
     ( $(let $name:ident = $pattern:literal);* $(;)? ) => {
