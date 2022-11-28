@@ -72,15 +72,15 @@ mod test {
 
     #[test]
     fn shift_multi_line() {
-        let src = "Welcome! Welcome to City 17! You have chosen, or been chosen, to relocate to one of our finest remaining urban centres";
-        let lines = src.replace(" ", "\n");
-        let start = Location::new("file_name", &lines);
-        let end = start.clone().shift(&lines);
+        let raw_src = "Welcome! Welcome to City 17! You have chosen, or been chosen, to relocate to one of our finest remaining urban centres";
+        let src = raw_src.replace(" ", "\n");
+        let start = Location::new("file_name", &src);
+        let end = start.clone().shift(&src);
 
         assert_eq!("file_name", end.file_name);
         assert_eq!(src, end.src);
         assert_eq!(21, end.line);
         assert_eq!(118, end.index);
-        assert_eq!(lines, start.text_upto(&end));
+        assert_eq!(src, start.text_upto(&end));
     }
 }
