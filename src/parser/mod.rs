@@ -1,19 +1,12 @@
 pub mod lexer;
+pub mod location;
+
+pub use crate::parser::location::Location;
 
 use crate::ast;
-use lazy_static::lazy_static;
 use lexer::Lexer;
-use regex::Regex;
-use std::error::Error;
 use std::path::Path;
-use std::{
-    fmt::{self, Display},
-    fs, io,
-};
-
-lazy_static! {
-    static ref NEWLINE: Regex = Regex::new("(\n|\r\n|\r)").unwrap();
-}
+use std::{fs, io};
 
 pub fn parse<'input, S: Into<&'input Path>>(fname: S) -> Result<(), io::Error> {
     let path = fname.into();
@@ -21,9 +14,10 @@ pub fn parse<'input, S: Into<&'input Path>>(fname: S) -> Result<(), io::Error> {
 
     println!("Start of toks in {:?}:\n===========", path.to_owned());
     for tok in Lexer::new(path.as_os_str().to_str().unwrap(), &raw) {
-        println!("Read tok: {}", tok.unwrap().0);
+        let tok = tok.unwrap();
+        println!("Read tok: {:?}", tok.1);
     }
-    println!("===========\nEnd of toks in {:?}:", path.to_owned());
+    println!("===========\nEnd of toks in {:?}.", path.to_owned());
 
     Ok(())
 }
