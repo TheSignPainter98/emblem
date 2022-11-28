@@ -19,18 +19,13 @@ use std::{
 
 /// Parsed command-line arguments
 #[derive(Debug)]
+#[warn(missing_docs)]
 pub struct Args {
     /// Action to take
     pub command: Command,
 
-    /// Colourise log messages
-    pub colour: bool,
-
-    /// Make warnings fatal
-    pub fatal_warnings: bool,
-
-    /// Output verbosity
-    pub verbosity: Verbosity,
+    /// Logger arguments
+    pub log: LogArgs,
 }
 
 impl Args {
@@ -57,22 +52,43 @@ impl TryFrom<RawArgs> for Args {
     fn try_from(raw: RawArgs) -> Result<Self, Self::Error> {
         let RawArgs {
             command,
-            colour,
-            fatal_warnings,
+            log,
             help: _,
-            verbosity,
             version: _,
         } = raw;
 
         let command = command.unwrap_or_default();
-        let colour = colour.into();
-        let verbosity = verbosity.try_into()?;
+        let log = log.try_into()?;
 
-        Ok(Self {
-            command,
+        Ok(Self { command, log })
+    }
+}
+
+#[derive(Debug)]
+pub struct LogArgs {
+    /// Colourise log messages
+    pub colour: bool,
+
+    /// Make warnings fatal
+    pub fatal_warnings: bool,
+
+    /// Output verbosity
+    pub verbosity: Verbosity,
+}
+
+impl TryFrom<RawLogArgs> for LogArgs {
+    type Error = clap::Error;
+
+    fn try_from(raw: RawLogArgs) -> Result<Self, Self::Error> {
+        let RawLogArgs {
             colour,
             fatal_warnings,
             verbosity,
+        } = raw;
+        Ok(Self {
+            colour: colour.into(),
+            fatal_warnings,
+            verbosity: verbosity.try_into()?,
         })
     }
 }
@@ -87,6 +103,21 @@ pub struct RawArgs {
     #[command(subcommand)]
     command: Option<Command>,
 
+    #[command(flatten)]
+    #[allow(missing_docs)]
+    pub log: RawLogArgs,
+
+    /// Print help information, use `--help` for more detail
+    #[arg(short, long, action=Help, global=true)]
+    help: Option<bool>,
+
+    /// Print version info
+    #[arg(long, action=Version)]
+    version: Option<bool>,
+}
+
+#[derive(Debug, Parser)]
+pub struct RawLogArgs {
     /// Colourise log messages
     #[arg(long, value_enum, default_value_t, value_name = "when", global = true)]
     colour: ColouriseOutput,
@@ -95,17 +126,9 @@ pub struct RawArgs {
     #[arg(short = 'E', default_value_t = false, global = true)]
     fatal_warnings: bool,
 
-    /// Print help information, use `--help` for more detail
-    #[arg(short, long, action=Help, global=true)]
-    help: Option<bool>,
-
     /// Set output verbosity
     #[arg(short, action=Count, default_value_t=0, value_name = "level", global=true)]
     verbosity: u8,
-
-    /// Print version info
-    #[arg(long, action=Version)]
-    version: Option<bool>,
 }
 
 /// What emblem will do this execution
@@ -924,12 +947,14 @@ mod test {
                 assert_eq!(
                     Args::try_parse_from(&["em", "--colour", "never"])
                         .unwrap()
+                        .log
                         .colour,
                     false
                 );
                 assert!(
                     Args::try_parse_from(&["em", "--colour", "always"])
                         .unwrap()
+                        .log
                         .colour
                 );
 
@@ -938,8 +963,13 @@ mod test {
 
             #[test]
             fn fatal_warnings() {
-                assert!(!Args::try_parse_from(&["em"]).unwrap().fatal_warnings);
-                assert!(Args::try_parse_from(&["em", "-E"]).unwrap().fatal_warnings);
+                assert!(!Args::try_parse_from(&["em"]).unwrap().log.fatal_warnings);
+                assert!(
+                    Args::try_parse_from(&["em", "-E"])
+                        .unwrap()
+                        .log
+                        .fatal_warnings
+                );
             }
 
             #[test]
@@ -947,20 +977,20 @@ mod test {
                 assert_eq!(
                     {
                         let empty: [&str; 0] = [];
-                        Args::try_parse_from(empty).unwrap().verbosity
+                        Args::try_parse_from(empty).unwrap().log.verbosity
                     },
                     Verbosity::Terse
                 );
                 assert_eq!(
-                    Args::try_parse_from(["em"]).unwrap().verbosity,
+                    Args::try_parse_from(["em"]).unwrap().log.verbosity,
                     Verbosity::Terse
                 );
                 assert_eq!(
-                    Args::try_parse_from(["em", "-v"]).unwrap().verbosity,
+                    Args::try_parse_from(["em", "-v"]).unwrap().log.verbosity,
                     Verbosity::Verbose
                 );
                 assert_eq!(
-                    Args::try_parse_from(["em", "-vv"]).unwrap().verbosity,
+                    Args::try_parse_from(["em", "-vv"]).unwrap().log.verbosity,
                     Verbosity::Debug
                 );
                 assert!(Args::try_parse_from(["em", "-vvv"]).is_err());

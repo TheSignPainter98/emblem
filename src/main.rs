@@ -3,6 +3,7 @@ mod ast;
 mod build;
 mod context;
 mod init;
+mod log;
 mod parser;
 mod repo;
 
@@ -15,6 +16,8 @@ fn main() {
 }
 
 fn exec(args: Args) -> Result<(), Box<dyn Error>> {
+    log::init(args.log);
+
     match args.command {
         Command::Build(args) => build::build(args),
         Command::Format(_) => panic!("fmt not implemented"),
