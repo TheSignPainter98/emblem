@@ -1,7 +1,7 @@
 pub mod lexer;
 pub mod location;
 
-pub use crate::parser::location::Location;
+pub use location::Location;
 
 use crate::ast;
 use lexer::Lexer;
