@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -31,6 +32,12 @@ impl<'input> Location<'input> {
 
     pub fn text_upto(&self, other: &Location) -> &'input str {
         &self.src[self.index..other.index]
+    }
+}
+
+impl<'input> Display for Location<'input> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}:({})", self.file_name, self.line, self.index)
     }
 }
 
