@@ -201,6 +201,7 @@ dependencies = [
  "derive-new",
  "git2",
  "lalrpop",
+ "lalrpop-util",
  "lazy_static",
  "regex",
  "supports-color",

@@ -175,7 +175,7 @@ impl<'input> Iterator for Lexer<'input> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Tok<'input> {
     Indent,
     Dedent,

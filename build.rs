@@ -55,7 +55,10 @@ fn complgen() -> Result<(), Box<dyn Error>> {
 }
 
 fn parsergen() -> Result<(), Box<dyn Error>> {
-    println!("cargo:rerun-if-changed=src/parser/parser.lalrpop");
-    lalrpop::process_root().unwrap();
-    Ok(())
+    lalrpop::Configuration::new()
+        .emit_report(true)
+        .emit_rerun_directives(true)
+        .emit_comments(true)
+        .process_current_dir()
+        .into()
 }

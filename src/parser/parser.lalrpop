@@ -1,28 +1,21 @@
 use std::str::FromStr;
+use crate::parser::{self, LexicalError, lexer};
+use crate::ast;
 
 grammar<'input>(input: &'input str);
 
-pub File: Result<ast::File, LexicalError> = {
-	FileContent => <>
-	Error => <ll:
+pub File: &'input str = {
+	Indented<Command>
 };
 
-FileContent: ast::File = {
-	Par (ParBreak Par)* => <>
-};
-
-Par: ast::Par = {
-	Content Content* => <>
-};
-
-Content: ast::Content = {
-	<w:Word> => {}
-	<c:Comment>+ => {}
-};
+Indented<T>: T = {
+	Indent <Indented<T>> Dedent,
+	T,
+}
 
 extern {
-	type Location = ast::Location;
-	type Error = LexicalError;
+	type Location = parser::Location<'input>;
+	type Error = LexicalError<'input>;
 
 	enum lexer::Tok<'input> {
 		Indent => lexer::Tok::Indent,
@@ -31,9 +24,13 @@ extern {
 		"::" => lexer::Tok::DoubleColon,
 		"{" => lexer::Tok::LBrace,
 		"}" => lexer::Tok::RBrace,
-		Comment => lexer::Tok::Comment(<&'input str>),
 		Command => lexer::Tok::Command(<&'input str>),
-		ParBreak => lexer::Tok::Par,
+		ParBreak => lexer::Tok::ParBreak,
 		Word => lexer::Tok::Word(<&'input str>),
+		Whitespace => lexer::Tok::Whitespace(<&'input str>),
+		"/*" => lexer::Tok::NestedCommentOpen,
+		"*/" => lexer::Tok::NestedCommentClose,
+		"\n" => lexer::Tok::Newline,
+		"//..." => lexer::Tok::Comment(<&'input str>),
 	}
 }
