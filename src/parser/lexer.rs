@@ -126,6 +126,10 @@ impl<'input> Iterator for Lexer<'input> {
                 self.insert_par_break = false;
                 return Some(Ok(self.span(Tok::ParBreak)));
             }
+        } else if self.curr_loc.index == 0 {
+            if let Some(mat) = self.try_consume(&INITIAL_INDENT) {
+                self.target_indent = indent_level(mat);
+            }
         }
 
         if self.current_indent != self.target_indent {
