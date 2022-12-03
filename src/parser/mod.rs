@@ -31,15 +31,41 @@ pub fn parse<'input, S: Into<&'input Path>>(fname: S) -> Result<(), io::Error> {
     match parser.parse(&raw, lexer) {
         Ok(ast) => println!(":D {:?}", ast),
         Err(err) => match err {
-            ParseError::UnrecognizedEOF { .. } => println!("Unexpected EOF"),
+            ParseError::UnrecognizedEOF { location, expected } => println!(
+                "{}: Unexpected EOF, expected one of {}",
+                location,
+                pretty_tok_list(expected),
+            ),
             ParseError::UnrecognizedToken {
-                token: (loc, tok, _), expected, ..
-            } => println!("{}:{}:({}): unexpected token: expected one of {}, got {:?}", loc.file_name, loc.line, loc.index, expected.join(", "), tok),
-            e => panic!("{:?}", e),
+                token: (loc, tok, _),
+                expected,
+            } => println!(
+                "{}: expected {}, before {:?} token",
+                loc,
+                pretty_tok_list(expected),
+                tok
+            ),
+            ParseError::User { error: err } => println!("{}: {}", err.location(), err),
+            ParseError::InvalidToken { location } => println!("{}: invalid token", location),
+            ParseError::ExtraToken {
+                token: (loc, tok, _),
+            } => println!("{}: unexpected extra token: {}", loc, tok.to_string()),
         },
     };
 
     Ok(())
+}
+
+fn pretty_tok_list(list: Vec<String>) -> String {
+    let len = list.len();
+    let mut pretty_list = Vec::new();
+    for (i, e) in list.iter().enumerate() {
+        if i > 0 {
+            pretty_list.push(if i < len-1 { ", " } else { " or " })
+        }
+        pretty_list.push(e);
+    }
+    pretty_list.concat()
 }
 
 struct File<'input> {
