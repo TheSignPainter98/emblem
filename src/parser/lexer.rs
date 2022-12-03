@@ -203,7 +203,7 @@ impl ToString for Tok<'_> {
             Tok::LBrace => "{",
             Tok::RBrace => "}",
             Tok::Command(_) => "command",
-            Tok::ParBreak => "par-break",
+            Tok::ParBreak => "paragraph break",
             Tok::Word(_) => "word",
             Tok::Whitespace(_) => "whitespace",
             Tok::NestedCommentOpen => "/*",
