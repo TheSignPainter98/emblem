@@ -250,8 +250,7 @@ impl<'input> LexicalError<'input> {
 
 impl Display for LexicalError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "lexical error: {}", self.reason)
-        // write!(f, "{}: lexical error: {:?}", self.loc, self.reason)
+        self.reason.fmt(f)
     }
 }
 
