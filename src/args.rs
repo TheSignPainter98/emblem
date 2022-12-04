@@ -392,7 +392,7 @@ pub enum ColouriseOutput {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtArg {
     raw: String,
-    loc: usize,
+    eq_idx: usize,
 }
 
 impl ExtArg {
@@ -401,11 +401,11 @@ impl ExtArg {
     }
 
     pub fn name(&self) -> &str {
-        &self.raw[..self.loc]
+        &self.raw[..self.eq_idx]
     }
 
     pub fn value(&self) -> &str {
-        &self.raw[self.loc + 1..]
+        &self.raw[self.eq_idx + 1..]
     }
 }
 
@@ -418,7 +418,7 @@ impl TryFrom<String> for ExtArg {
                 let mut cmd = Args::command();
                 Err(cmd.error(error::ErrorKind::InvalidValue, "need argument name"))
             }
-            Some(loc) => Ok(Self { raw, loc }),
+            Some(loc) => Ok(Self { raw, eq_idx: loc }),
             None => {
                 let mut cmd = Args::command();
                 Err(cmd.error(error::ErrorKind::InvalidValue, "need a value"))
