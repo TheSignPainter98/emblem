@@ -32,11 +32,12 @@ impl<'input> Location<'input> {
 
         self.line += num_lines - 1;
 
-        let last_line_len = lines[num_lines-1].len();
+        let last_line = lines[num_lines-1];
+        let last_line_width = last_line.len() + 3 * last_line.chars().filter(|c| *c == '\t').count();
         self.col = if num_lines > 1 {
-            last_line_len
+            last_line_width
         } else {
-            self.col + last_line_len
+            self.col + last_line_width
         };
 
         self.index += text.len();
@@ -92,6 +93,16 @@ mod test {
         assert_eq!("my name is ", start.text_upto(&mid));
         assert_eq!("methos", mid.text_upto(&end));
         assert_eq!("my name is methos", start.text_upto(&end));
+    }
+
+    #[test]
+    fn tabs() {
+        let src = "\thello,\tworld";
+        let start = Location::new("fname", src);
+        let end = start.shift(src);
+
+        assert_eq!(13, end.index);
+        assert_eq!(19, end.col);
     }
 
     #[test]
