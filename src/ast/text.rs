@@ -1,7 +1,7 @@
 use core::fmt::{self, Display, Formatter};
 
 #[derive(Debug)]
-enum Text<'t> {
+pub enum Text<'t> {
     Owned(String),
     Borrowed(&'t str),
 }
