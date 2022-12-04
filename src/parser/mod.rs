@@ -9,6 +9,7 @@ use lalrpop_util::{lalrpop_mod, ParseError};
 use lexer::Lexer;
 use std::path::Path;
 use std::{fs, io};
+use ast::region::Region;
 
 lalrpop_mod!(parser, "/parser/parser.rs");
 
@@ -19,8 +20,8 @@ pub fn parse<'input, S: Into<&'input Path>>(fname: S) -> Result<(), io::Error> {
     println!("Start of toks in {:?}:\n===========", path.to_owned());
     for tok in Lexer::new(path.as_os_str().to_str().unwrap(), &raw) {
         match tok {
-            Ok(tok) => println!("Read tok: {:?}", tok.1),
-            Err(ref err) => println!("Lexical error: {:?}", tok),
+            Ok(tok) => println!("Read tok {}: {:?}", Region::new(&tok.0, &tok.2), tok.1),
+            Err(ref err) => println!("Lexical error: {:?}", err),
         }
     }
     println!("===========\nEnd of toks in {:?}.", path.to_owned());
