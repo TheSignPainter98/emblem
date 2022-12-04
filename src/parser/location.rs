@@ -10,8 +10,9 @@ lazy_static! {
 pub struct Location<'input> {
     pub file_name: &'input str,
     pub src: &'input str,
-    pub index: usize,
     pub line: usize,
+    pub col: usize,
+    pub index: usize,
 }
 
 impl<'input> Location<'input> {
@@ -21,12 +22,25 @@ impl<'input> Location<'input> {
             src,
             index: 0,
             line: 1,
+            col: 0,
         }
     }
 
     pub fn shift(mut self, text: &'input str) -> Self {
+        let lines: Vec<&str> = NEWLINE.split(text).into_iter().collect();
+        let num_lines = lines.len();
+
+        self.line += num_lines - 1;
+
+        let last_line_len = lines[num_lines-1].len();
+        self.col = if num_lines > 1 {
+            last_line_len
+        } else {
+            self.col + last_line_len
+        };
+
         self.index += text.len();
-        self.line += NEWLINE.split(text).count() - 1;
+
         self
     }
 
@@ -53,6 +67,7 @@ mod test {
         assert_eq!(src, loc.src);
         assert_eq!(0, loc.index);
         assert_eq!(1, loc.line);
+        assert_eq!(0, loc.col);
     }
 
     #[test]
@@ -66,11 +81,13 @@ mod test {
         assert_eq!(src, mid.src);
         assert_eq!(11, mid.index);
         assert_eq!(1, mid.line);
+        assert_eq!(11, mid.col);
 
         assert_eq!("fname", end.file_name);
         assert_eq!(src, end.src);
         assert_eq!(17, end.index);
         assert_eq!(1, end.line);
+        assert_eq!(17, end.col);
 
         assert_eq!("my name is ", start.text_upto(&mid));
         assert_eq!("methos", mid.text_upto(&end));
@@ -88,6 +105,8 @@ mod test {
         assert_eq!(src, end.src);
         assert_eq!(21, end.line);
         assert_eq!(118, end.index);
+        assert_eq!(7, end.col);
+
         assert_eq!(src, start.text_upto(&end));
     }
 }
