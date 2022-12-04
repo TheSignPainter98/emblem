@@ -1,3 +1,5 @@
+use core::fmt::{self, Display, Formatter};
+
 #[derive(Debug)]
 enum Text<'t> {
     Owned(String),
@@ -31,5 +33,11 @@ impl<'t> From<&'t str> for Text<'t> {
 impl From<String> for Text<'_> {
     fn from(s: String) -> Self {
         Self::Owned(s)
+    }
+}
+
+impl Display for Text<'_> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        self.as_ref().fmt(f)
     }
 }
