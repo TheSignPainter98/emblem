@@ -1,6 +1,5 @@
 use std::str::FromStr;
 use crate::parser::{self, LexicalError, lexer};
-use crate::ast;
 
 grammar<'input>(input: &'input str);
 

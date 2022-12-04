@@ -68,8 +68,3 @@ fn pretty_tok_list(list: Vec<String>) -> String {
     }
     pretty_list.concat()
 }
-
-struct File<'input> {
-    name: String,
-    root: ast::Node<'input>,
-}
