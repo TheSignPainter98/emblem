@@ -4,7 +4,7 @@ enum Text<'t> {
     Borrowed(&'t str),
 }
 
-impl<'t> AsRef<str> for Text<'t> {
+impl AsRef<str> for Text<'_> {
     fn as_ref(&self) -> &str {
         match self {
             Text::Owned(s) => &s,
@@ -13,7 +13,7 @@ impl<'t> AsRef<str> for Text<'t> {
     }
 }
 
-impl<'t> Into<String> for Text<'t> {
+impl Into<String> for Text<'_> {
     fn into(self) -> String {
         match self {
             Text::Owned(s) => s,
