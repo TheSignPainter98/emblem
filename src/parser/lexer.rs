@@ -219,6 +219,7 @@ impl ToString for Tok<'_> {
     }
 }
 
+/// Compute the level of indentation for the given whitespace string.
 fn indent_level(s: &str) -> u32 {
     let mut tabs = 0;
     let mut spaces = 0;

@@ -13,6 +13,7 @@ use ast::region::Region;
 
 lalrpop_mod!(parser, "/parser/parser.rs");
 
+/// Parse an emblem source file at the given location.
 pub fn parse<'input, S: Into<&'input Path>>(fname: S) -> Result<(), io::Error> {
     let path = fname.into();
     let raw = fs::read_to_string(path)?;
@@ -57,6 +58,7 @@ pub fn parse<'input, S: Into<&'input Path>>(fname: S) -> Result<(), io::Error> {
     Ok(())
 }
 
+/// Create a string representation of a list of tokens which will fit in with surrounding text.
 fn pretty_tok_list(list: Vec<String>) -> String {
     let len = list.len();
     let mut pretty_list = Vec::new();
