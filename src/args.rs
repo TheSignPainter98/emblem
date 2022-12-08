@@ -26,7 +26,7 @@ pub struct Args {
     pub input_driver: Option<String>,
 
     /// File to typeset
-    pub input_file: SourcePath,
+    pub input_file: ArgPath,
 
     /// Print info and exit
     pub list_info: Option<RequestedInfo>,
@@ -38,7 +38,7 @@ pub struct Args {
     pub output_driver: Option<String>,
 
     /// Output file path
-    pub output_file: UnresolvedSourcePath,
+    pub output_file: InferrableArgPath,
 
     /// Set root stylesheet
     pub style: Option<String>,
@@ -106,7 +106,7 @@ impl TryFrom<RawArgs> for Args {
             colour,
             fatal_warnings,
             input_driver,
-            input_file: input_file.resolve_input(),
+            input_file: input_file.infer_input(),
             list_info,
             max_mem,
             output_driver,
@@ -149,8 +149,8 @@ struct RawArgs {
     help: Option<bool>,
 
     /// File to typeset
-    #[arg(value_name = "in-file", value_hint = FilePath, default_value_t = UnresolvedSourcePath::default(), value_parser = UnresolvedSourcePath::parser())]
-    input_file: UnresolvedSourcePath,
+    #[arg(value_name = "in-file", value_hint = FilePath, default_value_t = InferrableArgPath::default(), value_parser = InferrableArgPath::parser())]
+    input_file: InferrableArgPath,
 
     /// Print info and exit
     #[arg(long = "list", value_enum, value_name = "what")]
@@ -165,8 +165,8 @@ struct RawArgs {
     output_driver: Option<String>,
 
     /// Output file path
-    #[arg(value_name = "out-file", value_hint = AnyPath, default_value_t=UnresolvedSourcePath::default(), value_parser = UnresolvedSourcePath::parser())]
-    output_file: UnresolvedSourcePath,
+    #[arg(value_name = "out-file", value_hint = AnyPath, default_value_t=InferrableArgPath::default(), value_parser = InferrableArgPath::parser())]
+    output_file: InferrableArgPath,
 
     /// Set root stylesheet
     #[arg(short, value_name = "style")]
@@ -198,39 +198,39 @@ struct RawArgs {
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub enum UnresolvedSourcePath {
+pub enum InferrableArgPath {
     #[default]
     Infer,
     Stdio,
     Path(path::PathBuf),
 }
 
-impl UnresolvedSourcePath {
+impl InferrableArgPath {
     fn parser() -> impl TypedValueParser {
         StringValueParser::new().try_map(Self::try_from)
     }
 
-    fn resolve_input(&self) -> SourcePath {
+    fn infer_input(&self) -> ArgPath {
         match self {
-            Self::Infer => SourcePath::Path(path::PathBuf::from("main.em")),
-            Self::Stdio => SourcePath::Stdio,
-            Self::Path(p) => SourcePath::Path(p.clone()),
+            Self::Infer => ArgPath::Path(path::PathBuf::from("main.em")),
+            Self::Stdio => ArgPath::Stdio,
+            Self::Path(p) => ArgPath::Path(p.clone()),
         }
     }
 
-    fn resolve_output(&self, input: &SourcePath, ext: &str) -> SourcePath {
+    fn infer_output(&self, input: &ArgPath) -> ArgPath {
         match self {
             Self::Infer => match input {
-                SourcePath::Stdio => SourcePath::Stdio,
-                SourcePath::Path(s) => SourcePath::Path(path::PathBuf::from(s).with_extension(ext)),
+                ArgPath::Stdio => ArgPath::Stdio,
+                ArgPath::Path(s) => ArgPath::Path(s.clone()),
             },
-            Self::Stdio => SourcePath::Stdio,
-            Self::Path(s) => SourcePath::Path(s.clone()),
+            Self::Stdio => ArgPath::Stdio,
+            Self::Path(s) => ArgPath::Path(s.clone()),
         }
     }
 }
 
-impl Display for UnresolvedSourcePath {
+impl Display for InferrableArgPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let repr = match self {
             Self::Infer => "??",
@@ -241,7 +241,7 @@ impl Display for UnresolvedSourcePath {
     }
 }
 
-impl TryFrom<OsStr> for UnresolvedSourcePath {
+impl TryFrom<OsStr> for InferrableArgPath {
     type Error = error::Error;
 
     fn try_from(raw: OsStr) -> Result<Self, Self::Error> {
@@ -255,7 +255,7 @@ impl TryFrom<OsStr> for UnresolvedSourcePath {
     }
 }
 
-impl TryFrom<String> for UnresolvedSourcePath {
+impl TryFrom<String> for InferrableArgPath {
     type Error = error::Error;
 
     fn try_from(raw: String) -> Result<Self, Self::Error> {
@@ -263,7 +263,7 @@ impl TryFrom<String> for UnresolvedSourcePath {
     }
 }
 
-impl TryFrom<&str> for UnresolvedSourcePath {
+impl TryFrom<&str> for InferrableArgPath {
     type Error = error::Error;
 
     fn try_from(raw: &str) -> Result<Self, Self::Error> {
@@ -280,13 +280,13 @@ impl TryFrom<&str> for UnresolvedSourcePath {
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
-pub enum SourcePath {
+pub enum ArgPath {
     #[default]
     Stdio,
     Path(path::PathBuf),
 }
 
-impl From<&str> for SourcePath {
+impl From<&str> for ArgPath {
     fn from(raw: &str) -> Self {
         Self::Path(path::PathBuf::from(raw))
     }
@@ -674,17 +674,19 @@ mod test {
                 Args::try_parse_from(&["em"])
                     .unwrap()
                     .input_file,
-                SourcePath::from("main.em")
+                ArgPath::from("main.em")
             );
             assert_eq!(
-                Args::try_parse_from(&["em", "-"]).unwrap().input_file,
-                SourcePath::Stdio
+                Args::try_parse_from(&["em", "-"])
+                    .unwrap()
+                    .input_file,
+                ArgPath::Stdio
             );
             assert_eq!(
                 Args::try_parse_from(&["em", "chickens"])
                     .unwrap()
                     .input_file,
-                SourcePath::from("chickens")
+                ArgPath::from("chickens")
             );
         }
 
@@ -694,19 +696,19 @@ mod test {
                 Args::try_parse_from(&["em"])
                     .unwrap()
                     .output_file,
-                UnresolvedSourcePath::Infer
+                InferrableArgPath::Infer
             );
             assert_eq!(
                 Args::try_parse_from(&["em", "_", "-"])
                     .unwrap()
                     .output_file,
-                UnresolvedSourcePath::Stdio
+                InferrableArgPath::Stdio
             );
             assert_eq!(
                 Args::try_parse_from(&["em", "_", "pies"])
                     .unwrap()
                     .output_file,
-                UnresolvedSourcePath::Path(path::PathBuf::from("pies"))
+                InferrableArgPath::Path(path::PathBuf::from("pies"))
             );
         }
 
@@ -903,27 +905,27 @@ mod test {
         use super::*;
 
         fn from() {
-            assert_eq!(UnresolvedSourcePath::try_from("foo").ok().unwrap(), UnresolvedSourcePath::Path(path::PathBuf::from("foo")));
+            assert_eq!(InferrableArgPath::try_from("foo").ok().unwrap(), InferrableArgPath::Path(path::PathBuf::from("foo")));
         }
 
         #[test]
-        fn resolve_input() {
-            assert_eq!(UnresolvedSourcePath::Infer.resolve_input(), SourcePath::from("main.em"));
-            assert_eq!(UnresolvedSourcePath::Stdio.resolve_input(), SourcePath::Stdio);
-            assert_eq!(UnresolvedSourcePath::try_from("P. Sherman").ok().unwrap().resolve_input(), SourcePath::Path(path::PathBuf::from("P. Sherman")));
+        fn infer_input() {
+            assert_eq!(InferrableArgPath::Infer.infer_input(), ArgPath::from("main.em"));
+            assert_eq!(InferrableArgPath::Stdio.infer_input(), ArgPath::Stdio);
+            assert_eq!(InferrableArgPath::try_from("P. Sherman").ok().unwrap().infer_input(), ArgPath::Path(path::PathBuf::from("P. Sherman")));
         }
 
         #[test]
-        fn resolve_output() {
-            let resolved_path = SourcePath::from("main.em");
-            let resolved_stdio = SourcePath::Stdio;
+        fn infer_output() {
+            let resolved_path = ArgPath::from("main.em");
+            let resolved_stdio = ArgPath::Stdio;
 
-            assert_eq!(UnresolvedSourcePath::Infer.resolve_output(&resolved_path, "pdf"), SourcePath::from("main.pdf"));
-            assert_eq!(UnresolvedSourcePath::Infer.resolve_output(&resolved_stdio, "pdf"), SourcePath::Stdio);
-            assert_eq!(UnresolvedSourcePath::Stdio.resolve_output(&resolved_path, "pdf"), SourcePath::Stdio);
-            assert_eq!(UnresolvedSourcePath::Stdio.resolve_output(&resolved_stdio, "pdf"), SourcePath::Stdio);
-            assert_eq!(UnresolvedSourcePath::try_from("thing.1").ok().unwrap().resolve_output(&resolved_path, "pdf"), SourcePath::from("thing.1"));
-            assert_eq!(UnresolvedSourcePath::try_from("thing.1").ok().unwrap().resolve_output(&resolved_stdio, "pdf"), SourcePath::from("thing.1"));
+            assert_eq!(InferrableArgPath::Infer.infer_output(&resolved_path), ArgPath::from("main.em"));
+            assert_eq!(InferrableArgPath::Infer.infer_output(&resolved_stdio), ArgPath::Stdio);
+            assert_eq!(InferrableArgPath::Stdio.infer_output(&resolved_path), ArgPath::Stdio);
+            assert_eq!(InferrableArgPath::Stdio.infer_output(&resolved_stdio), ArgPath::Stdio);
+            assert_eq!(InferrableArgPath::try_from("thing.1").ok().unwrap().infer_output(&resolved_path), ArgPath::from("thing.1"));
+            assert_eq!(InferrableArgPath::try_from("thing.1").ok().unwrap().infer_output(&resolved_stdio), ArgPath::from("thing.1"));
         }
     }
 
