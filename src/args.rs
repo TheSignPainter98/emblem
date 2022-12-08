@@ -126,21 +126,16 @@ where
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum MemoryLimit {
     Limited(usize),
+    #[default]
     Unlimited,
 }
 
 impl MemoryLimit {
     fn parser() -> impl TypedValueParser {
         StringValueParser::new().try_map(Self::try_from)
-    }
-}
-
-impl Default for MemoryLimit {
-    fn default() -> Self {
-        Self::Unlimited
     }
 }
 
