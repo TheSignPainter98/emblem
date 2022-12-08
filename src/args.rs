@@ -212,7 +212,7 @@ impl InferrableArgPath {
 
     fn infer_input(&self) -> ArgPath {
         match self {
-            Self::Infer => ArgPath::Path(path::PathBuf::from("main.em")),
+            Self::Infer => ArgPath::Path(path::PathBuf::from("main")),
             Self::Stdio => ArgPath::Stdio,
             Self::Path(p) => ArgPath::Path(p.clone()),
         }
@@ -674,7 +674,7 @@ mod test {
                 Args::try_parse_from(&["em"])
                     .unwrap()
                     .input_file,
-                ArgPath::from("main.em")
+                ArgPath::from("main")
             );
             assert_eq!(
                 Args::try_parse_from(&["em", "-"])
@@ -696,7 +696,7 @@ mod test {
                 Args::try_parse_from(&["em"])
                     .unwrap()
                     .output_file,
-                InferrableArgPath::Infer
+                InferrableArgPath::Infer,
             );
             assert_eq!(
                 Args::try_parse_from(&["em", "_", "-"])
@@ -708,7 +708,7 @@ mod test {
                 Args::try_parse_from(&["em", "_", "pies"])
                     .unwrap()
                     .output_file,
-                InferrableArgPath::Path(path::PathBuf::from("pies"))
+                InferrableArgPath::try_from("pies").unwrap()
             );
         }
 
@@ -904,23 +904,24 @@ mod test {
     mod source_path {
         use super::*;
 
-        fn from() {
+        #[test]
+        fn try_from() {
             assert_eq!(InferrableArgPath::try_from("foo").ok().unwrap(), InferrableArgPath::Path(path::PathBuf::from("foo")));
         }
 
         #[test]
         fn infer_input() {
-            assert_eq!(InferrableArgPath::Infer.infer_input(), ArgPath::from("main.em"));
+            assert_eq!(InferrableArgPath::Infer.infer_input(), ArgPath::from("main"));
             assert_eq!(InferrableArgPath::Stdio.infer_input(), ArgPath::Stdio);
             assert_eq!(InferrableArgPath::try_from("P. Sherman").ok().unwrap().infer_input(), ArgPath::Path(path::PathBuf::from("P. Sherman")));
         }
 
         #[test]
         fn infer_output() {
-            let resolved_path = ArgPath::from("main.em");
+            let resolved_path = ArgPath::from("main");
             let resolved_stdio = ArgPath::Stdio;
 
-            assert_eq!(InferrableArgPath::Infer.infer_output(&resolved_path), ArgPath::from("main.em"));
+            assert_eq!(InferrableArgPath::Infer.infer_output(&resolved_path), ArgPath::from("main"));
             assert_eq!(InferrableArgPath::Infer.infer_output(&resolved_stdio), ArgPath::Stdio);
             assert_eq!(InferrableArgPath::Stdio.infer_output(&resolved_path), ArgPath::Stdio);
             assert_eq!(InferrableArgPath::Stdio.infer_output(&resolved_stdio), ArgPath::Stdio);
