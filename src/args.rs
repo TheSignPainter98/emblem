@@ -28,9 +28,6 @@ pub struct Args {
     /// File to typeset
     input_file: Option<String>,
 
-    /// Print help information, use `--help` for more detail
-    help: Option<bool>,
-
     /// Print info and exit
     list_info: Option<RequestedInfo>,
 
@@ -54,9 +51,6 @@ pub struct Args {
 
     /// Output verbosity
     verbosity: Verbosity,
-
-    /// Print version info
-    version: Option<bool>,
 
     /// Load an extension
     extensions: Vec<String>,
@@ -94,7 +88,7 @@ impl TryFrom<RawArgs> for Args {
             fatal_warnings,
             input_driver,
             input_file,
-            help,
+            help: _help,
             list_info,
             max_mem,
             output_driver,
@@ -103,7 +97,7 @@ impl TryFrom<RawArgs> for Args {
             sandbox,
             style_path,
             verbosity_ctr,
-            version,
+            version: _version,
             extensions,
             extension_path,
         } = raw;
@@ -113,7 +107,6 @@ impl TryFrom<RawArgs> for Args {
             fatal_warnings,
             input_driver,
             input_file,
-            help,
             list_info,
             max_mem,
             output_driver,
@@ -129,7 +122,6 @@ impl TryFrom<RawArgs> for Args {
                 }
                 Verbosity::try_from(verbosity_ctr).unwrap()
             },
-            version,
             extensions,
             extension_path,
         })
