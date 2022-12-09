@@ -14,49 +14,49 @@ use std::{fs, io, path};
 #[derive(Debug)]
 pub struct Args {
     /// Pass variable into extension-space
-    extension_args: Vec<ExtArg>,
+    pub extension_args: Vec<ExtArg>,
 
     /// Colourise log messages
-    colour: ColouriseOutput,
+    pub colour: ColouriseOutput,
 
     /// Make warnings fatal
-    fatal_warnings: bool,
+    pub fatal_warnings: bool,
 
     /// Override detected input format
-    input_driver: Option<String>,
+    pub input_driver: Option<String>,
 
     /// File to typeset
-    input_file: Option<String>,
+    pub input_file: Option<String>,
 
     /// Print info and exit
-    list_info: Option<RequestedInfo>,
+    pub list_info: Option<RequestedInfo>,
 
     /// Limit lua memory usage
-    max_mem: MemoryLimit,
+    pub max_mem: MemoryLimit,
 
     /// Override detected output format
-    output_driver: Option<String>,
+    pub output_driver: Option<String>,
 
     /// Output file path
-    output_file: Option<String>,
+    pub output_file: Option<String>,
 
     /// Set root stylesheet
-    style: Option<String>,
+    pub style: Option<String>,
 
     /// Restrict system access
-    sandbox: SandboxLevel,
+    pub sandbox: SandboxLevel,
 
     /// Style search-path, colon-separated
-    style_path: SearchPath,
+    pub style_path: SearchPath,
 
     /// Output verbosity
-    verbosity: Verbosity,
+    pub verbosity: Verbosity,
 
     /// Load an extension
-    extensions: Vec<String>,
+    pub extensions: Vec<String>,
 
     /// Extension search-path, colon-separated
-    extension_path: SearchPath,
+    pub extension_path: SearchPath,
 }
 
 impl Args {
