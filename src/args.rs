@@ -554,6 +554,8 @@ mod test {
                 Args::try_parse_iterable(&["em", "--sandbox", "strict"]).unwrap().sandbox,
                 SandboxLevel::Strict
             );
+
+            assert!(Args::try_parse_iterable(&["em", "--sandbox", "root"]).is_err());
         }
 
         #[test]
@@ -577,6 +579,7 @@ mod test {
             assert_eq!(Args::try_parse_iterable(["em"]).unwrap().verbosity, Verbosity::Terse);
             assert_eq!(Args::try_parse_iterable(["em", "-v"]).unwrap().verbosity, Verbosity::Verbose);
             assert_eq!(Args::try_parse_iterable(["em", "-vv"]).unwrap().verbosity, Verbosity::Debug);
+            assert!(Args::try_parse_iterable(["em", "-vvv"]).is_err());
         }
 
         #[test]
@@ -604,6 +607,8 @@ mod test {
                 assert_eq!(valid_ext_args[2].name(), "k3");
                 assert_eq!(valid_ext_args[2].value(), "");
             }
+
+            assert!(Args::try_parse_iterable(&["em", "-a=v"]).is_err());
         }
 
         #[test]
