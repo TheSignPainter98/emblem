@@ -906,14 +906,26 @@ mod test {
 
         #[test]
         fn try_from() {
-            assert_eq!(InferrableArgPath::try_from("foo").ok().unwrap(), InferrableArgPath::Path(path::PathBuf::from("foo")));
+            assert_eq!(
+                InferrableArgPath::try_from("foo").unwrap(),
+                InferrableArgPath::Path(path::PathBuf::from("foo"))
+            );
         }
 
         #[test]
         fn infer_input() {
-            assert_eq!(InferrableArgPath::Infer.infer_input(), ArgPath::from("main"));
+            assert_eq!(
+                InferrableArgPath::Infer.infer_input(),
+                ArgPath::from("main")
+            );
             assert_eq!(InferrableArgPath::Stdio.infer_input(), ArgPath::Stdio);
-            assert_eq!(InferrableArgPath::try_from("P. Sherman").ok().unwrap().infer_input(), ArgPath::Path(path::PathBuf::from("P. Sherman")));
+            assert_eq!(
+                InferrableArgPath::try_from("P. Sherman")
+                    .ok()
+                    .unwrap()
+                    .infer_input(),
+                ArgPath::Path(path::PathBuf::from("P. Sherman"))
+            );
         }
 
         #[test]
@@ -921,12 +933,36 @@ mod test {
             let resolved_path = ArgPath::from("main");
             let resolved_stdio = ArgPath::Stdio;
 
-            assert_eq!(InferrableArgPath::Infer.infer_output(&resolved_path), ArgPath::from("main"));
-            assert_eq!(InferrableArgPath::Infer.infer_output(&resolved_stdio), ArgPath::Stdio);
-            assert_eq!(InferrableArgPath::Stdio.infer_output(&resolved_path), ArgPath::Stdio);
-            assert_eq!(InferrableArgPath::Stdio.infer_output(&resolved_stdio), ArgPath::Stdio);
-            assert_eq!(InferrableArgPath::try_from("thing.1").ok().unwrap().infer_output(&resolved_path), ArgPath::from("thing.1"));
-            assert_eq!(InferrableArgPath::try_from("thing.1").ok().unwrap().infer_output(&resolved_stdio), ArgPath::from("thing.1"));
+            assert_eq!(
+                InferrableArgPath::Infer.infer_output(&resolved_path),
+                ArgPath::from("main")
+            );
+            assert_eq!(
+                InferrableArgPath::Infer.infer_output(&resolved_stdio),
+                ArgPath::Stdio
+            );
+            assert_eq!(
+                InferrableArgPath::Stdio.infer_output(&resolved_path),
+                ArgPath::Stdio
+            );
+            assert_eq!(
+                InferrableArgPath::Stdio.infer_output(&resolved_stdio),
+                ArgPath::Stdio
+            );
+            assert_eq!(
+                InferrableArgPath::try_from("thing.1")
+                    .ok()
+                    .unwrap()
+                    .infer_output(&resolved_path),
+                ArgPath::from("thing.1")
+            );
+            assert_eq!(
+                InferrableArgPath::try_from("thing.1")
+                    .ok()
+                    .unwrap()
+                    .infer_output(&resolved_stdio),
+                ArgPath::from("thing.1")
+            );
         }
     }
 
