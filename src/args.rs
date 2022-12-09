@@ -91,9 +91,18 @@ pub struct Args {
 }
 
 impl Args {
-    /// Parse command-line arguments
+    /// Parse command-line arguments, exit on failure
     pub fn new() -> Self {
-        Args::parse().sanitised()
+        Self::parse().sanitised()
+    }
+
+    #[cfg(test)]
+    pub fn try_parse_iterable<T, I>(iter: I) -> Result<Self, clap::Error>
+        where
+            T: Into<OsString> + Clone,
+            I: IntoIterator<Item = T>,
+    {
+        Ok(Self::try_parse_from(iter)?.sanitised())
     }
 
     /// Validate and infer argument values
@@ -122,7 +131,7 @@ where
     I: IntoIterator<Item = T>,
 {
     fn from(itr: I) -> Self {
-        Args::parse_from(itr).sanitised()
+        Self::parse_from(itr).sanitised()
     }
 }
 
