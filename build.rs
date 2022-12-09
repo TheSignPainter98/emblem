@@ -20,7 +20,7 @@ fn mangen() -> Result<(), Box<dyn Error>> {
     let dest_file = Path::new(&out_dir).join("em.1");
 
     let mut file = fs::File::create(dest_file)?;
-    Man::new(Args::command()).render(&mut file)?;
+    Man::new(RawArgs::command()).render(&mut file)?;
     drop(file);
     Ok(())
 }
@@ -43,7 +43,7 @@ fn complgen() -> Result<(), Box<dyn Error>> {
         Shell::Zsh,
     ];
     for shell in shells {
-        clap_complete::generate_to(shell, &mut Args::command(), "em", dest_dir.clone())?;
+        clap_complete::generate_to(shell, &mut RawArgs::command(), "em", dest_dir.clone())?;
     }
     Ok(())
 }
