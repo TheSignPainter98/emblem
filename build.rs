@@ -3,9 +3,9 @@ include!("src/args.rs");
 // use clap::CommandFactory;
 use clap_complete::shells::Shell;
 use clap_mangen::Man;
+use std::env;
 use std::error::Error;
 use std::path::Path;
-use std::env;
 
 fn main() -> Result<(), Box<dyn Error>> {
     complgen()?;
