@@ -38,7 +38,7 @@ pub struct Args {
     pub output_driver: Option<String>,
 
     /// Output file path
-    pub output_file: ArgPath,
+    pub output_stem: ArgPath,
 
     /// Set root stylesheet
     pub style: Option<String>,
@@ -91,7 +91,7 @@ impl TryFrom<RawArgs> for Args {
             list_info,
             max_mem,
             output_driver,
-            output_file: raw_output_file,
+            output_stem: raw_output_stem,
             style,
             sandbox,
             style_path,
@@ -101,7 +101,7 @@ impl TryFrom<RawArgs> for Args {
             extension_path,
         } = raw;
         let input_file = raw_input_file.infer_input();
-        let output_file = raw_output_file.infer_output(&input_file);
+        let output_stem = raw_output_stem.infer_output(&input_file);
         Ok(Args {
             extension_args,
             colour,
@@ -111,7 +111,7 @@ impl TryFrom<RawArgs> for Args {
             list_info,
             max_mem,
             output_driver,
-            output_file,
+            output_stem,
             style,
             sandbox,
             style_path,
@@ -167,7 +167,7 @@ struct RawArgs {
 
     /// Output file path
     #[arg(value_name = "out-file", value_hint = AnyPath, default_value_t=InferrableArgPath::default(), value_parser = InferrableArgPath::parser())]
-    output_file: InferrableArgPath,
+    output_stem: InferrableArgPath,
 
     /// Set root stylesheet
     #[arg(short, value_name = "style")]
@@ -688,33 +688,33 @@ mod test {
         }
 
         #[test]
-        fn output_file() {
+        fn output_stem() {
             assert_eq!(
-                Args::try_parse_from(&["em"]).unwrap().output_file,
+                Args::try_parse_from(&["em"]).unwrap().output_stem,
                 ArgPath::from("main"),
             );
             assert_eq!(
-                Args::try_parse_from(&["em", "-"]).unwrap().output_file,
+                Args::try_parse_from(&["em", "-"]).unwrap().output_stem,
                 ArgPath::Stdio,
             );
             assert_eq!(
-                Args::try_parse_from(&["em", "-", "pies"]).unwrap().output_file,
+                Args::try_parse_from(&["em", "-", "pies"]).unwrap().output_stem,
                 ArgPath::from("pies"),
             );
             assert_eq!(
-                Args::try_parse_from(&["em", "_", "-"]).unwrap().output_file,
+                Args::try_parse_from(&["em", "_", "-"]).unwrap().output_stem,
                 ArgPath::Stdio,
             );
             assert_eq!(
                 Args::try_parse_from(&["em", "_", "pies"])
                     .unwrap()
-                    .output_file,
+                    .output_stem,
                 ArgPath::from("pies")
             );
             assert_eq!(
                 Args::try_parse_from(&["em", "-", "pies"])
                     .unwrap()
-                    .output_file,
+                    .output_stem,
                 ArgPath::from("pies")
             );
         }
