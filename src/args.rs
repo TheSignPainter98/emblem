@@ -670,15 +670,11 @@ mod test {
         #[test]
         fn input_file() {
             assert_eq!(
-                Args::try_parse_from(&["em"])
-                    .unwrap()
-                    .input_file,
+                Args::try_parse_from(&["em"]).unwrap().input_file,
                 ArgPath::from("main")
             );
             assert_eq!(
-                Args::try_parse_from(&["em", "-"])
-                    .unwrap()
-                    .input_file,
+                Args::try_parse_from(&["em", "-"]).unwrap().input_file,
                 ArgPath::Stdio
             );
             assert_eq!(
@@ -692,15 +688,11 @@ mod test {
         #[test]
         fn output_file() {
             assert_eq!(
-                Args::try_parse_from(&["em"])
-                    .unwrap()
-                    .output_file,
+                Args::try_parse_from(&["em"]).unwrap().output_file,
                 InferrableArgPath::Infer,
             );
             assert_eq!(
-                Args::try_parse_from(&["em", "_", "-"])
-                    .unwrap()
-                    .output_file,
+                Args::try_parse_from(&["em", "_", "-"]).unwrap().output_file,
                 InferrableArgPath::Stdio
             );
             assert_eq!(
