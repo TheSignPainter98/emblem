@@ -710,6 +710,12 @@ mod test {
                     .output_file,
                 InferrableArgPath::try_from("pies").unwrap()
             );
+            assert_eq!(
+                Args::try_parse_from(&["em", "-", "pies"])
+                    .unwrap()
+                    .output_file,
+                InferrableArgPath::try_from("pies").unwrap()
+            );
         }
 
         #[test]
