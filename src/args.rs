@@ -8,7 +8,7 @@ use clap::{
 use derive_new::new;
 use std::ffi::OsString;
 use std::fmt::Display;
-use std::{fs, io, path};
+use std::{env, fs, io, path};
 
 /// Parsed command-line arguments
 #[derive(Debug)]
@@ -62,13 +62,12 @@ pub struct Args {
 impl Args {
     /// Parse command-line arguments, exit on failure
     pub fn parse() -> Self {
-        match Self::try_from(RawArgs::parse()) {
+        match Self::try_parse_from(env::args()) {
             Ok(args) => args,
             Err(e) => e.exit(),
         }
     }
 
-    #[cfg(test)]
     pub fn try_parse_from<I, T>(iter: I) -> Result<Self, clap::Error>
     where
         T: Into<OsString> + Clone,
