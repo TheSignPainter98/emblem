@@ -7,7 +7,8 @@ use clap::{
 };
 use derive_new::new;
 use std::ffi::OsString;
-use std::{fs, io, path};
+use std::fmt::Display;
+use std::{env, fs, io, path};
 
 /// Parsed command-line arguments
 #[derive(Debug)]
@@ -25,7 +26,7 @@ pub struct Args {
     pub input_driver: Option<String>,
 
     /// File to typeset
-    pub input_file: Option<String>,
+    pub input_file: ArgPath,
 
     /// Print info and exit
     pub list_info: Option<RequestedInfo>,
@@ -37,7 +38,7 @@ pub struct Args {
     pub output_driver: Option<String>,
 
     /// Output file path
-    pub output_file: Option<String>,
+    pub output_stem: ArgPath,
 
     /// Set root stylesheet
     pub style: Option<String>,
@@ -61,13 +62,12 @@ pub struct Args {
 impl Args {
     /// Parse command-line arguments, exit on failure
     pub fn parse() -> Self {
-        match Self::try_from(RawArgs::parse()) {
+        match Self::try_parse_from(env::args()) {
             Ok(args) => args,
             Err(e) => e.exit(),
         }
     }
 
-    #[cfg(test)]
     pub fn try_parse_from<I, T>(iter: I) -> Result<Self, clap::Error>
     where
         T: Into<OsString> + Clone,
@@ -86,12 +86,12 @@ impl TryFrom<RawArgs> for Args {
             colour,
             fatal_warnings,
             input_driver,
-            input_file,
+            input_file: raw_input_file,
             help: _help,
             list_info,
             max_mem,
             output_driver,
-            output_file,
+            output_stem: raw_output_stem,
             style,
             sandbox,
             style_path,
@@ -100,6 +100,8 @@ impl TryFrom<RawArgs> for Args {
             extensions,
             extension_path,
         } = raw;
+        let input_file = raw_input_file.infer_input();
+        let output_stem = raw_output_stem.infer_output(&input_file);
         Ok(Args {
             extension_args,
             colour,
@@ -109,7 +111,7 @@ impl TryFrom<RawArgs> for Args {
             list_info,
             max_mem,
             output_driver,
-            output_file,
+            output_stem,
             style,
             sandbox,
             style_path,
@@ -143,13 +145,13 @@ struct RawArgs {
     #[arg(short, value_name = "format")]
     input_driver: Option<String>,
 
-    /// File to typeset
-    #[arg(value_name = "in-file", value_hint=FilePath)]
-    input_file: Option<String>,
-
     /// Print help information, use `--help` for more detail
     #[arg(short, long, action=Help)]
     help: Option<bool>,
+
+    /// File to typeset
+    #[arg(value_name = "in-file", value_hint = FilePath, default_value_t = InferrableArgPath::default(), value_parser = InferrableArgPath::parser())]
+    input_file: InferrableArgPath,
 
     /// Print info and exit
     #[arg(long = "list", value_enum, value_name = "what")]
@@ -164,8 +166,8 @@ struct RawArgs {
     output_driver: Option<String>,
 
     /// Output file path
-    #[arg(value_name = "out-file", value_hint=AnyPath)]
-    output_file: Option<String>,
+    #[arg(value_name = "out-file", value_hint = AnyPath, default_value_t=InferrableArgPath::default(), value_parser = InferrableArgPath::parser())]
+    output_stem: InferrableArgPath,
 
     /// Set root stylesheet
     #[arg(short, value_name = "style")]
@@ -194,6 +196,101 @@ struct RawArgs {
     /// Extension search-path, colon-separated
     #[arg(long, env = "EM_EXT_PATH", value_parser = SearchPath::parser(), default_value = "", value_name = "path")]
     extension_path: SearchPath,
+}
+
+#[derive(Clone, Default, Debug, PartialEq, Eq)]
+pub enum InferrableArgPath {
+    #[default]
+    Infer,
+    Stdio,
+    Path(path::PathBuf),
+}
+
+impl InferrableArgPath {
+    fn parser() -> impl TypedValueParser {
+        StringValueParser::new().try_map(Self::try_from)
+    }
+
+    fn infer_input(&self) -> ArgPath {
+        match self {
+            Self::Infer => ArgPath::Path(path::PathBuf::from("main")),
+            Self::Stdio => ArgPath::Stdio,
+            Self::Path(p) => ArgPath::Path(p.clone()),
+        }
+    }
+
+    fn infer_output(&self, input: &ArgPath) -> ArgPath {
+        match self {
+            Self::Infer => match input {
+                ArgPath::Stdio => ArgPath::Stdio,
+                ArgPath::Path(s) => ArgPath::Path(s.clone()),
+            },
+            Self::Stdio => ArgPath::Stdio,
+            Self::Path(s) => ArgPath::Path(s.clone()),
+        }
+    }
+}
+
+impl Display for InferrableArgPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let repr = match self {
+            Self::Infer => "??",
+            Self::Stdio => "stdio",
+            Self::Path(p) => p.to_str().unwrap(),
+        };
+        repr.fmt(f)
+    }
+}
+
+impl TryFrom<OsStr> for InferrableArgPath {
+    type Error = error::Error;
+
+    fn try_from(raw: OsStr) -> Result<Self, Self::Error> {
+        if let Some(s) = raw.to_str() {
+            return Self::try_from(s);
+        }
+        Err(RawArgs::command().error(
+            error::ErrorKind::InvalidValue,
+            format!("could not convert '{:?}' to an OS string", raw),
+        ))
+    }
+}
+
+impl TryFrom<String> for InferrableArgPath {
+    type Error = error::Error;
+
+    fn try_from(raw: String) -> Result<Self, Self::Error> {
+        Self::try_from(&raw[..])
+    }
+}
+
+impl TryFrom<&str> for InferrableArgPath {
+    type Error = error::Error;
+
+    fn try_from(raw: &str) -> Result<Self, Self::Error> {
+        match raw {
+            "" => Err(RawArgs::command().error(
+                error::ErrorKind::InvalidValue,
+                format!("file path cannot be empty"),
+            )),
+            "-" => Ok(Self::Stdio),
+            "??" => Ok(Self::Infer),
+            path => Ok(Self::Path(path.into())),
+        }
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+pub enum ArgPath {
+    #[default]
+    Stdio,
+    Path(path::PathBuf),
+}
+
+impl From<&str> for ArgPath {
+    fn from(raw: &str) -> Self {
+        Self::Path(path::PathBuf::from(raw))
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -574,23 +671,51 @@ mod test {
 
         #[test]
         fn input_file() {
-            assert_eq!(Args::try_parse_from(&["em"]).unwrap().input_file, None);
+            assert_eq!(
+                Args::try_parse_from(&["em"]).unwrap().input_file,
+                ArgPath::from("main")
+            );
+            assert_eq!(
+                Args::try_parse_from(&["em", "-"]).unwrap().input_file,
+                ArgPath::Stdio
+            );
             assert_eq!(
                 Args::try_parse_from(&["em", "chickens"])
                     .unwrap()
                     .input_file,
-                Some("chickens".to_owned())
+                ArgPath::from("chickens")
             );
         }
 
         #[test]
-        fn output_file() {
-            assert_eq!(Args::try_parse_from(&["em"]).unwrap().output_file, None);
+        fn output_stem() {
+            assert_eq!(
+                Args::try_parse_from(&["em"]).unwrap().output_stem,
+                ArgPath::from("main"),
+            );
+            assert_eq!(
+                Args::try_parse_from(&["em", "-"]).unwrap().output_stem,
+                ArgPath::Stdio,
+            );
+            assert_eq!(
+                Args::try_parse_from(&["em", "-", "pies"]).unwrap().output_stem,
+                ArgPath::from("pies"),
+            );
+            assert_eq!(
+                Args::try_parse_from(&["em", "_", "-"]).unwrap().output_stem,
+                ArgPath::Stdio,
+            );
             assert_eq!(
                 Args::try_parse_from(&["em", "_", "pies"])
                     .unwrap()
-                    .output_file,
-                Some("pies".to_owned())
+                    .output_stem,
+                ArgPath::from("pies")
+            );
+            assert_eq!(
+                Args::try_parse_from(&["em", "-", "pies"])
+                    .unwrap()
+                    .output_stem,
+                ArgPath::from("pies")
             );
         }
 
@@ -779,6 +904,71 @@ mod test {
                     .unwrap()
                     .extension_path,
                 SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
+            );
+        }
+    }
+
+    mod source_path {
+        use super::*;
+
+        #[test]
+        fn try_from() {
+            assert_eq!(
+                InferrableArgPath::try_from("foo").unwrap(),
+                InferrableArgPath::Path(path::PathBuf::from("foo"))
+            );
+        }
+
+        #[test]
+        fn infer_input() {
+            assert_eq!(
+                InferrableArgPath::Infer.infer_input(),
+                ArgPath::from("main")
+            );
+            assert_eq!(InferrableArgPath::Stdio.infer_input(), ArgPath::Stdio);
+            assert_eq!(
+                InferrableArgPath::try_from("P. Sherman")
+                    .ok()
+                    .unwrap()
+                    .infer_input(),
+                ArgPath::Path(path::PathBuf::from("P. Sherman"))
+            );
+        }
+
+        #[test]
+        fn infer_output() {
+            let resolved_path = ArgPath::from("main");
+            let resolved_stdio = ArgPath::Stdio;
+
+            assert_eq!(
+                InferrableArgPath::Infer.infer_output(&resolved_path),
+                ArgPath::from("main")
+            );
+            assert_eq!(
+                InferrableArgPath::Infer.infer_output(&resolved_stdio),
+                ArgPath::Stdio
+            );
+            assert_eq!(
+                InferrableArgPath::Stdio.infer_output(&resolved_path),
+                ArgPath::Stdio
+            );
+            assert_eq!(
+                InferrableArgPath::Stdio.infer_output(&resolved_stdio),
+                ArgPath::Stdio
+            );
+            assert_eq!(
+                InferrableArgPath::try_from("thing.1")
+                    .ok()
+                    .unwrap()
+                    .infer_output(&resolved_path),
+                ArgPath::from("thing.1")
+            );
+            assert_eq!(
+                InferrableArgPath::try_from("thing.1")
+                    .ok()
+                    .unwrap()
+                    .infer_output(&resolved_stdio),
+                ArgPath::from("thing.1")
             );
         }
     }
