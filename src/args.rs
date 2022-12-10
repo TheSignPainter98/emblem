@@ -927,11 +927,11 @@ mod test {
             );
             assert_eq!(InferrableArgPath::Stdio.infer_input(), ArgPath::Stdio);
             assert_eq!(
-                InferrableArgPath::try_from("P. Sherman")
+                InferrableArgPath::try_from("62 West Wallaby St.")
                     .ok()
                     .unwrap()
                     .infer_input(),
-                ArgPath::Path(path::PathBuf::from("P. Sherman"))
+                ArgPath::Path(path::PathBuf::from("62 West Wallaby St."))
             );
         }
 
@@ -957,18 +957,18 @@ mod test {
                 ArgPath::Stdio
             );
             assert_eq!(
-                InferrableArgPath::try_from("thing.1")
+                InferrableArgPath::try_from("Tottington Hall")
                     .ok()
                     .unwrap()
                     .infer_output(&resolved_path),
-                ArgPath::from("thing.1")
+                ArgPath::from("Tottington Hall")
             );
             assert_eq!(
-                InferrableArgPath::try_from("thing.1")
+                InferrableArgPath::try_from("Tottington Hall")
                     .ok()
                     .unwrap()
                     .infer_output(&resolved_stdio),
-                ArgPath::from("thing.1")
+                ArgPath::from("Tottington Hall")
             );
         }
     }
