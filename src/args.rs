@@ -6,7 +6,6 @@ use clap::{
     ValueHint::{AnyPath, FilePath},
 };
 use derive_new::new;
-use num_enum::FromPrimitive;
 use std::ffi::OsString;
 use std::{fs, io, path};
 
@@ -114,14 +113,7 @@ impl TryFrom<RawArgs> for Args {
             style,
             sandbox,
             style_path,
-            verbosity: {
-                if verbosity_ctr >= 3 {
-                    let mut cmd = RawArgs::command();
-                    let err = cmd.error(error::ErrorKind::TooManyValues, "too verbose");
-                    return Err(err);
-                }
-                Verbosity::try_from(verbosity_ctr).unwrap()
-            },
+            verbosity: verbosity_ctr.try_into()?,
             extensions,
             extension_path,
         })
@@ -425,8 +417,7 @@ pub enum RequestedInfo {
     OutputExtensions,
 }
 
-#[derive(ValueEnum, Clone, Debug, Default, FromPrimitive, Eq, PartialEq)]
-#[repr(u8)]
+#[derive(ValueEnum, Clone, Debug, Default, Eq, PartialEq)]
 pub enum Verbosity {
     /// Output errors and warnings
     #[default]
@@ -437,6 +428,19 @@ pub enum Verbosity {
 
     /// Show debugging info (very verbose)
     Debug,
+}
+
+impl TryFrom<u8> for Verbosity {
+    type Error = clap::Error;
+
+    fn try_from(ctr: u8) -> Result<Self, Self::Error> {
+        match ctr {
+            0 => Ok(Verbosity::Terse),
+            1 => Ok(Verbosity::Verbose),
+            2 => Ok(Verbosity::Debug),
+            _ => Err(RawArgs::command().error(error::ErrorKind::TooManyValues, "too verbose")),
+        }
+    }
 }
 
 #[derive(ValueEnum, Clone, Debug, Default, PartialEq, Eq)]
