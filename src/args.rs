@@ -87,7 +87,7 @@ impl TryFrom<RawArgs> for Args {
             fatal_warnings,
             input_driver,
             input_file,
-            help: _help,
+            help: _,
             list_info,
             max_mem,
             output_driver,
@@ -95,15 +95,15 @@ impl TryFrom<RawArgs> for Args {
             style,
             sandbox,
             style_path,
-            verbosity: verbosity_ctr,
-            version: _version,
+            verbosity,
+            version: _,
             extensions,
             extension_path,
         } = raw;
 
         let input_file = input_file.infer_input();
         let output_stem = output_stem.infer_output(&input_file);
-        let verbosity = verbosity_ctr.try_into()?;
+        let verbosity = verbosity.try_into()?;
 
         Ok(Self {
             extension_args,
@@ -274,7 +274,7 @@ impl TryFrom<&str> for UninferredArgPath {
         match raw {
             "" => Err(RawArgs::command().error(
                 error::ErrorKind::InvalidValue,
-                format!("file path cannot be empty"),
+                "file path cannot be empty",
             )),
             "-" => Ok(Self::Stdio),
             "??" => Ok(Self::Infer),
@@ -386,12 +386,6 @@ impl SearchPath {
         StringValueParser::new().map(Self::from)
     }
 
-    fn normalised(&self) -> Self {
-        Self {
-            path: self.path.iter().flat_map(|d| d.canonicalize()).collect(),
-        }
-    }
-
     pub fn open<S, T>(&self, src: S, target: T) -> Result<SearchResult, io::Error>
     where
         S: Into<path::PathBuf>,
@@ -449,6 +443,12 @@ impl SearchPath {
                 self.to_string()
             ),
         ))
+    }
+
+    fn normalised(&self) -> Self {
+        Self {
+            path: self.path.iter().flat_map(|d| d.canonicalize()).collect(),
+        }
     }
 }
 
