@@ -386,6 +386,7 @@ impl SearchPath {
         StringValueParser::new().map(Self::from)
     }
 
+    #[allow(dead_code)]
     pub fn open<S, T>(&self, src: S, target: T) -> Result<SearchResult, io::Error>
     where
         S: Into<path::PathBuf>,
@@ -500,10 +501,12 @@ pub struct SearchResult {
 }
 
 impl SearchResult {
+    #[allow(dead_code)]
     pub fn path(&self) -> &path::Path {
         &self.path
     }
 
+    #[allow(dead_code)]
     pub fn file(&self) -> &fs::File {
         &self.file
     }
@@ -577,10 +580,12 @@ impl ExtArg {
         StringValueParser::new().try_map(Self::try_from)
     }
 
+    #[allow(dead_code)]
     pub fn name(&self) -> &str {
         &self.raw[..self.eq_idx]
     }
 
+    #[allow(dead_code)]
     pub fn value(&self) -> &str {
         &self.raw[self.eq_idx + 1..]
     }
