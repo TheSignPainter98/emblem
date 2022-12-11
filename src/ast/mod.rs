@@ -1,26 +1,18 @@
-mod ast;
+mod parsed;
 pub mod region;
 pub mod text;
 
-use text::Text;
+pub type ParsedAst<'i> = Ast<parsed::ParsedContent<'i>>;
 
-pub type ParsedAst<'i> = ast::File<ParsedContent<'i>>;
-
-pub enum ParsedContent<'i> {
-    Call {
-        name: Text<'i>,
-        args: Vec<ParsedContent<'i>>,
-    },
-    Word(Text<'i>),
-    Whitespace(&'i str),
-    Comment(&'i str),
-    MultiLineComment(MultiLineComment<'i>),
+pub struct Ast<C> {
+    root: File<C>,
 }
 
-pub enum MultiLineComment<'i> {
-    Word(&'i str),
-    Whitespace(&'i str),
-    Indented(Box<MultiLineComment<'i>>),
-    Nested(Box<MultiLineComment<'i>>),
+pub struct File<C> {
+    name: String,
+    pars: Vec<Par<C>>,
 }
 
+pub struct Par<C> {
+    content: Vec<C>,
+}

@@ -61,8 +61,9 @@ impl<'input> Lexer<'input> {
         if let Some(mat) = re.find(self.input) {
             self.input = &self.input[mat.end()..];
 
-            self.prev_loc = self.curr_loc;
-            self.curr_loc = self.curr_loc.shift(mat.as_str());
+            let curr_loc = self.curr_loc.clone();
+            self.prev_loc = curr_loc.clone();
+            self.curr_loc = curr_loc.shift(mat.as_str());
 
             Some(mat.as_str())
         } else {
