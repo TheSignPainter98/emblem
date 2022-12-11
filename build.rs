@@ -60,5 +60,4 @@ fn parsergen() -> Result<(), Box<dyn Error>> {
         .emit_rerun_directives(true)
         .emit_comments(true)
         .process_current_dir()
-        .into()
 }

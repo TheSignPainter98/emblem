@@ -9,15 +9,15 @@ pub enum Text<'t> {
 impl AsRef<str> for Text<'_> {
     fn as_ref(&self) -> &str {
         match self {
-            Text::Owned(s) => &s,
+            Text::Owned(s) => s,
             Text::Borrowed(s) => s,
         }
     }
 }
 
-impl Into<String> for Text<'_> {
-    fn into(self) -> String {
-        match self {
+impl From<Text<'_>> for String {
+    fn from(txt: Text<'_>) -> String {
+        match txt {
             Text::Owned(s) => s,
             Text::Borrowed(s) => s.to_string(),
         }

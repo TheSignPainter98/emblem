@@ -1,4 +1,3 @@
-use std::str::FromStr;
 use crate::parser::{self, LexicalError, lexer};
 
 grammar<'input>(input: &'input str);

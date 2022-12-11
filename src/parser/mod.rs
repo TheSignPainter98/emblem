@@ -11,7 +11,11 @@ use std::path::Path;
 use std::{fs, io};
 use ast::region::Region;
 
-lalrpop_mod!(parser, "/parser/parser.rs");
+lalrpop_mod!(
+    #[allow(clippy::all)]
+    parser,
+    "/parser/parser.rs"
+);
 
 /// Parse an emblem source file at the given location.
 pub fn parse<'input, S: Into<&'input Path>>(fname: S) -> Result<(), io::Error> {
