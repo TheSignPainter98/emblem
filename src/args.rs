@@ -86,23 +86,26 @@ impl TryFrom<RawArgs> for Args {
             colour,
             fatal_warnings,
             input_driver,
-            input_file: raw_input_file,
+            input_file,
             help: _help,
             list_info,
             max_mem,
             output_driver,
-            output_stem: raw_output_stem,
+            output_stem,
             style,
             sandbox,
             style_path,
-            verbosity_ctr,
+            verbosity: verbosity_ctr,
             version: _version,
             extensions,
             extension_path,
         } = raw;
-        let input_file = raw_input_file.infer_input();
-        let output_stem = raw_output_stem.infer_output(&input_file);
-        Ok(Args {
+
+        let input_file = input_file.infer_input();
+        let output_stem = output_stem.infer_output(&input_file);
+        let verbosity = verbosity_ctr.try_into()?;
+
+        Ok(Self {
             extension_args,
             colour,
             fatal_warnings,
@@ -115,7 +118,7 @@ impl TryFrom<RawArgs> for Args {
             style,
             sandbox,
             style_path,
-            verbosity: verbosity_ctr.try_into()?,
+            verbosity,
             extensions,
             extension_path,
         })
@@ -150,8 +153,8 @@ struct RawArgs {
     help: Option<bool>,
 
     /// File to typeset
-    #[arg(value_name = "in-file", value_hint = FilePath, default_value_t = InferrableArgPath::default(), value_parser = InferrableArgPath::parser())]
-    input_file: InferrableArgPath,
+    #[arg(value_name = "in-file", value_hint = FilePath, default_value_t = UninferredArgPath::default(), value_parser = UninferredArgPath::parser())]
+    input_file: UninferredArgPath,
 
     /// Print info and exit
     #[arg(long = "list", value_enum, value_name = "what")]
@@ -166,8 +169,8 @@ struct RawArgs {
     output_driver: Option<String>,
 
     /// Output file path
-    #[arg(value_name = "out-file", value_hint = AnyPath, default_value_t=InferrableArgPath::default(), value_parser = InferrableArgPath::parser())]
-    output_stem: InferrableArgPath,
+    #[arg(value_name = "out-file", value_hint = AnyPath, default_value_t=UninferredArgPath::default(), value_parser = UninferredArgPath::parser())]
+    output_stem: UninferredArgPath,
 
     /// Set root stylesheet
     #[arg(short, value_name = "style")]
@@ -183,7 +186,7 @@ struct RawArgs {
 
     /// Set output verbosity
     #[arg(short, action=Count, default_value_t=0, value_name = "level")]
-    verbosity_ctr: u8,
+    verbosity: u8,
 
     /// Print version info
     #[arg(long, action=Version)]
@@ -199,14 +202,14 @@ struct RawArgs {
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
-pub enum InferrableArgPath {
+enum UninferredArgPath {
     #[default]
     Infer,
     Stdio,
     Path(path::PathBuf),
 }
 
-impl InferrableArgPath {
+impl UninferredArgPath {
     fn parser() -> impl TypedValueParser {
         StringValueParser::new().try_map(Self::try_from)
     }
@@ -231,7 +234,7 @@ impl InferrableArgPath {
     }
 }
 
-impl Display for InferrableArgPath {
+impl Display for UninferredArgPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let repr = match self {
             Self::Infer => "??",
@@ -242,7 +245,7 @@ impl Display for InferrableArgPath {
     }
 }
 
-impl TryFrom<OsStr> for InferrableArgPath {
+impl TryFrom<OsStr> for UninferredArgPath {
     type Error = error::Error;
 
     fn try_from(raw: OsStr) -> Result<Self, Self::Error> {
@@ -256,7 +259,7 @@ impl TryFrom<OsStr> for InferrableArgPath {
     }
 }
 
-impl TryFrom<String> for InferrableArgPath {
+impl TryFrom<String> for UninferredArgPath {
     type Error = error::Error;
 
     fn try_from(raw: String) -> Result<Self, Self::Error> {
@@ -264,7 +267,7 @@ impl TryFrom<String> for InferrableArgPath {
     }
 }
 
-impl TryFrom<&str> for InferrableArgPath {
+impl TryFrom<&str> for UninferredArgPath {
     type Error = error::Error;
 
     fn try_from(raw: &str) -> Result<Self, Self::Error> {
@@ -914,20 +917,20 @@ mod test {
         #[test]
         fn try_from() {
             assert_eq!(
-                InferrableArgPath::try_from("foo").unwrap(),
-                InferrableArgPath::Path(path::PathBuf::from("foo"))
+                UninferredArgPath::try_from("foo").unwrap(),
+                UninferredArgPath::Path(path::PathBuf::from("foo"))
             );
         }
 
         #[test]
         fn infer_input() {
             assert_eq!(
-                InferrableArgPath::Infer.infer_input(),
+                UninferredArgPath::Infer.infer_input(),
                 ArgPath::from("main")
             );
-            assert_eq!(InferrableArgPath::Stdio.infer_input(), ArgPath::Stdio);
+            assert_eq!(UninferredArgPath::Stdio.infer_input(), ArgPath::Stdio);
             assert_eq!(
-                InferrableArgPath::try_from("62 West Wallaby St.")
+                UninferredArgPath::try_from("62 West Wallaby St.")
                     .ok()
                     .unwrap()
                     .infer_input(),
@@ -941,30 +944,30 @@ mod test {
             let resolved_stdio = ArgPath::Stdio;
 
             assert_eq!(
-                InferrableArgPath::Infer.infer_output(&resolved_path),
+                UninferredArgPath::Infer.infer_output(&resolved_path),
                 ArgPath::from("main")
             );
             assert_eq!(
-                InferrableArgPath::Infer.infer_output(&resolved_stdio),
+                UninferredArgPath::Infer.infer_output(&resolved_stdio),
                 ArgPath::Stdio
             );
             assert_eq!(
-                InferrableArgPath::Stdio.infer_output(&resolved_path),
+                UninferredArgPath::Stdio.infer_output(&resolved_path),
                 ArgPath::Stdio
             );
             assert_eq!(
-                InferrableArgPath::Stdio.infer_output(&resolved_stdio),
+                UninferredArgPath::Stdio.infer_output(&resolved_stdio),
                 ArgPath::Stdio
             );
             assert_eq!(
-                InferrableArgPath::try_from("Tottington Hall")
+                UninferredArgPath::try_from("Tottington Hall")
                     .ok()
                     .unwrap()
                     .infer_output(&resolved_path),
                 ArgPath::from("Tottington Hall")
             );
             assert_eq!(
-                InferrableArgPath::try_from("Tottington Hall")
+                UninferredArgPath::try_from("Tottington Hall")
                     .ok()
                     .unwrap()
                     .infer_output(&resolved_stdio),
