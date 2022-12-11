@@ -701,7 +701,9 @@ mod test {
                 ArgPath::Stdio,
             );
             assert_eq!(
-                Args::try_parse_from(&["em", "-", "pies"]).unwrap().output_stem,
+                Args::try_parse_from(&["em", "-", "pies"])
+                    .unwrap()
+                    .output_stem,
                 ArgPath::from("pies"),
             );
             assert_eq!(
