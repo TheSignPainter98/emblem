@@ -746,6 +746,14 @@ mod test {
             RawArgs::command().debug_assert()
         }
 
+        #[test]
+        fn default() {
+            assert_eq!(
+                Args::try_parse_from(&["em"]).unwrap().command,
+                Args::try_parse_from(&["em", "build"]).unwrap().command
+            );
+        }
+
         mod common {
             use super::*;
 
