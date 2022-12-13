@@ -1305,6 +1305,90 @@ mod test {
                 );
                 assert!(Args::try_parse_from(&["em", "list", "root-passwd"]).is_err());
             }
+
+            #[test]
+            fn extensions() {
+                let empty: [&str; 0] = [];
+                assert_eq!(
+                    Args::try_parse_from(["em", "list", "output-formats"])
+                        .unwrap()
+                        .command
+                        .list()
+                        .unwrap()
+                        .extensions
+                        .list,
+                    empty
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "list", "output-formats", "-x", "foo", "-x", "bar", "-x", "baz"])
+                        .unwrap()
+                        .command
+                        .list()
+                        .unwrap()
+                        .extensions
+                        .list,
+                    ["foo".to_owned(), "bar".to_owned(), "baz".to_owned()]
+                );
+            }
+
+            #[test]
+            fn extension_args() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "list", "output-formats"])
+                        .unwrap()
+                        .command
+                        .list()
+                        .unwrap()
+                        .extensions
+                        .args,
+                    vec![]
+                );
+
+                {
+                    let valid_ext_args =
+                        Args::try_parse_from(&["em", "list", "output-formats", "-ak=v", "-ak2=v2", "-ak3="])
+                            .unwrap()
+                            .command
+                            .list()
+                            .unwrap()
+                            .extensions
+                            .args
+                            .clone();
+                    assert_eq!(valid_ext_args.len(), 3);
+                    assert_eq!(valid_ext_args[0].name(), "k");
+                    assert_eq!(valid_ext_args[0].value(), "v");
+                    assert_eq!(valid_ext_args[1].name(), "k2");
+                    assert_eq!(valid_ext_args[1].value(), "v2");
+                    assert_eq!(valid_ext_args[2].name(), "k3");
+                    assert_eq!(valid_ext_args[2].value(), "");
+                }
+
+                assert!(Args::try_parse_from(&["em", "list", "-a=v"]).is_err());
+            }
+
+            #[test]
+            fn extension_path() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "list", "output-formats"])
+                        .unwrap()
+                        .command
+                        .list()
+                        .unwrap()
+                        .extensions
+                        .path,
+                    SearchPath::default()
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "list", "output-formats", "--extension-path", "club:house"])
+                        .unwrap()
+                        .command
+                        .list()
+                        .unwrap()
+                        .extensions
+                        .path,
+                    SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
+                );
+            }
         }
     }
 
