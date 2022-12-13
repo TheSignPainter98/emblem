@@ -1168,40 +1168,116 @@ mod test {
             #[test]
             fn input_file() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "fmt"])
-                        .unwrap()
-                        .command
-                        .format()
-                        .unwrap()
-                        .input
-                        .file,
-                    ArgPath::Path("main".into())
+                    Args::try_parse_from(&["em", "fmt"]).unwrap().command.format().unwrap().input.file, ArgPath::Path("main".into())
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "fmt", "-"])
-                        .unwrap()
-                        .command
-                        .format()
-                        .unwrap()
-                        .input
-                        .file,
-                    ArgPath::Stdio
+                    Args::try_parse_from(&["em", "fmt", "-"]).unwrap().command.format().unwrap().input.file, ArgPath::Stdio
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "fmt", "plain.txt"])
-                        .unwrap()
-                        .command
-                        .format()
-                        .unwrap()
-                        .input
-                        .file,
-                    ArgPath::Path("plain.txt".into())
+                    Args::try_parse_from(&["em", "fmt", "plain.txt"]).unwrap().command.format().unwrap().input.file, ArgPath::Path("plain.txt".into())
                 );
             }
         }
 
         mod lint {
             use super::*;
+
+            #[test]
+            fn input_file() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint"]).unwrap().command.lint().unwrap().input.file, ArgPath::Path("main".into())
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint", "-"]).unwrap().command.lint().unwrap().input.file, ArgPath::Stdio
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint", "plain.txt"]).unwrap().command.lint().unwrap().input.file, ArgPath::Path("plain.txt".into())
+                );
+            }
+
+            #[test]
+            fn extensions() {
+                let empty: [&str; 0] = [];
+                assert_eq!(
+                    Args::try_parse_from(["em", "lint"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .extensions
+                        .list,
+                    empty
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "lint", "-x", "foo", "-x", "bar", "-x", "baz"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .extensions
+                        .list,
+                    ["foo".to_owned(), "bar".to_owned(), "baz".to_owned()]
+                );
+            }
+
+            #[test]
+            fn extension_args() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .extensions
+                        .args,
+                    vec![]
+                );
+
+                {
+                    let valid_ext_args =
+                        Args::try_parse_from(&["em", "lint", "-ak=v", "-ak2=v2", "-ak3="])
+                            .unwrap()
+                            .command
+                            .lint()
+                            .unwrap()
+                            .extensions
+                            .args
+                            .clone();
+                    assert_eq!(valid_ext_args.len(), 3);
+                    assert_eq!(valid_ext_args[0].name(), "k");
+                    assert_eq!(valid_ext_args[0].value(), "v");
+                    assert_eq!(valid_ext_args[1].name(), "k2");
+                    assert_eq!(valid_ext_args[1].value(), "v2");
+                    assert_eq!(valid_ext_args[2].name(), "k3");
+                    assert_eq!(valid_ext_args[2].value(), "");
+                }
+
+                assert!(Args::try_parse_from(&["em", "lint", "-a=v"]).is_err());
+            }
+
+            #[test]
+            fn extension_path() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .extensions
+                        .path,
+                    SearchPath::default()
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint", "--extension-path", "club:house"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .extensions
+                        .path,
+                    SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
+                );
+            }
         }
 
         mod list {
@@ -1472,6 +1548,7 @@ mod test {
             Ok(())
         }
     }
+
     mod search_result {
         use super::*;
         use io::Write;
