@@ -835,17 +835,6 @@ mod test {
                 );
             }
 
-            // #[test]
-            // fn input_driver() {
-            //     assert_eq!(Args::try_parse_from(&["em"]).unwrap().input_driver, None);
-            //     assert_eq!(
-            //         Args::try_parse_from(&["em", "-i", "chickens"])
-            //             .unwrap()
-            //             .input_driver,
-            //         Some("chickens".to_owned())
-            //     );
-            // }
-
             #[test]
             fn input_file() {
                 assert_eq!(
