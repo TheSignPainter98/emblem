@@ -188,7 +188,7 @@ impl BuildCmd {
 pub struct FormatCmd {
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub inputs: InputArgs,
+    pub input: InputArgs,
 }
 
 /// Arguments to the lint subcommand
@@ -1162,8 +1162,42 @@ mod test {
             }
         }
 
-        mod fmt {
+        mod format {
             use super::*;
+
+            #[test]
+            fn input_file() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "fmt"])
+                        .unwrap()
+                        .command
+                        .format()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("main".into())
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "fmt", "-"])
+                        .unwrap()
+                        .command
+                        .format()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Stdio
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "fmt", "plain.txt"])
+                        .unwrap()
+                        .command
+                        .format()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("plain.txt".into())
+                );
+            }
         }
 
         mod lint {
