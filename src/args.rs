@@ -415,7 +415,7 @@ impl Display for ArgPath {
             "{}",
             match self {
                 Self::Stdio => "-",
-                Self::Path(s) => s.to_str().unwrap_or("(invalid path)").as_ref(),
+                Self::Path(s) => s.to_str().unwrap_or("(invalid path)"),
             }
         )
     }
