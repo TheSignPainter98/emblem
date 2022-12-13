@@ -197,7 +197,7 @@ pub struct FormatCmd {
 pub struct LintCmd {
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub inputs: InputArgs,
+    pub input: InputArgs,
 
     #[command(flatten)]
     #[allow(missing_docs)]
