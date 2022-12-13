@@ -1176,13 +1176,34 @@ mod test {
             #[test]
             fn input_file() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "fmt"]).unwrap().command.format().unwrap().input.file, ArgPath::Path("main".into())
+                    Args::try_parse_from(&["em", "fmt"])
+                        .unwrap()
+                        .command
+                        .format()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("main".into())
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "fmt", "-"]).unwrap().command.format().unwrap().input.file, ArgPath::Stdio
+                    Args::try_parse_from(&["em", "fmt", "-"])
+                        .unwrap()
+                        .command
+                        .format()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Stdio
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "fmt", "plain.txt"]).unwrap().command.format().unwrap().input.file, ArgPath::Path("plain.txt".into())
+                    Args::try_parse_from(&["em", "fmt", "plain.txt"])
+                        .unwrap()
+                        .command
+                        .format()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("plain.txt".into())
                 );
             }
         }
@@ -1193,13 +1214,34 @@ mod test {
             #[test]
             fn input_file() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "lint"]).unwrap().command.lint().unwrap().input.file, ArgPath::Path("main".into())
+                    Args::try_parse_from(&["em", "lint"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("main".into())
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "lint", "-"]).unwrap().command.lint().unwrap().input.file, ArgPath::Stdio
+                    Args::try_parse_from(&["em", "lint", "-"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Stdio
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "lint", "plain.txt"]).unwrap().command.lint().unwrap().input.file, ArgPath::Path("plain.txt".into())
+                    Args::try_parse_from(&["em", "lint", "plain.txt"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("plain.txt".into())
                 );
             }
 
@@ -1328,13 +1370,23 @@ mod test {
                     empty
                 );
                 assert_eq!(
-                    Args::try_parse_from(["em", "list", "output-formats", "-x", "foo", "-x", "bar", "-x", "baz"])
-                        .unwrap()
-                        .command
-                        .list()
-                        .unwrap()
-                        .extensions
-                        .list,
+                    Args::try_parse_from([
+                        "em",
+                        "list",
+                        "output-formats",
+                        "-x",
+                        "foo",
+                        "-x",
+                        "bar",
+                        "-x",
+                        "baz"
+                    ])
+                    .unwrap()
+                    .command
+                    .list()
+                    .unwrap()
+                    .extensions
+                    .list,
                     ["foo".to_owned(), "bar".to_owned(), "baz".to_owned()]
                 );
             }
@@ -1353,15 +1405,21 @@ mod test {
                 );
 
                 {
-                    let valid_ext_args =
-                        Args::try_parse_from(&["em", "list", "output-formats", "-ak=v", "-ak2=v2", "-ak3="])
-                            .unwrap()
-                            .command
-                            .list()
-                            .unwrap()
-                            .extensions
-                            .args
-                            .clone();
+                    let valid_ext_args = Args::try_parse_from(&[
+                        "em",
+                        "list",
+                        "output-formats",
+                        "-ak=v",
+                        "-ak2=v2",
+                        "-ak3=",
+                    ])
+                    .unwrap()
+                    .command
+                    .list()
+                    .unwrap()
+                    .extensions
+                    .args
+                    .clone();
                     assert_eq!(valid_ext_args.len(), 3);
                     assert_eq!(valid_ext_args[0].name(), "k");
                     assert_eq!(valid_ext_args[0].value(), "v");
@@ -1387,13 +1445,19 @@ mod test {
                     SearchPath::default()
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "list", "output-formats", "--extension-path", "club:house"])
-                        .unwrap()
-                        .command
-                        .list()
-                        .unwrap()
-                        .extensions
-                        .path,
+                    Args::try_parse_from(&[
+                        "em",
+                        "list",
+                        "output-formats",
+                        "--extension-path",
+                        "club:house"
+                    ])
+                    .unwrap()
+                    .command
+                    .list()
+                    .unwrap()
+                    .extensions
+                    .path,
                     SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
                 );
             }
