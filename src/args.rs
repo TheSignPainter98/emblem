@@ -17,7 +17,7 @@ pub struct Args {
     pub command: Command,
 
     /// Colourise log messages
-    pub colour: ColouriseOutput,
+    pub colour: bool,
 
     /// Make warnings fatal
     pub fatal_warnings: bool,
@@ -57,8 +57,9 @@ impl TryFrom<RawArgs> for Args {
             version: _,
         } = raw;
 
-        let verbosity = verbosity.try_into()?;
         let command = command.unwrap_or_default();
+        let colour = colour.into();
+        let verbosity = verbosity.try_into()?;
 
         Ok(Self {
             command,
@@ -693,6 +694,24 @@ pub enum ColouriseOutput {
     Always,
 }
 
+impl From<ColouriseOutput> for bool {
+    fn from(hint: ColouriseOutput) -> Self {
+        use supports_color::Stream;
+
+        match hint {
+            ColouriseOutput::Always => true,
+            ColouriseOutput::Auto => {
+                if let Some(support) = supports_color::on(Stream::Stderr) {
+                    support.has_basic
+                } else {
+                    false
+                }
+            }
+            ColouriseOutput::Never => false,
+        }
+    }
+}
+
 /// Command-line arg declaration
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExtArg {
@@ -760,26 +779,15 @@ mod test {
             #[test]
             fn colourise_output() {
                 assert_eq!(
-                    Args::try_parse_from(&["em"]).unwrap().colour,
-                    ColouriseOutput::Auto
-                );
-                assert_eq!(
                     Args::try_parse_from(&["em", "--colour", "never"])
                         .unwrap()
                         .colour,
-                    ColouriseOutput::Never
+                    false
                 );
-                assert_eq!(
-                    Args::try_parse_from(&["em", "--colour", "auto"])
-                        .unwrap()
-                        .colour,
-                    ColouriseOutput::Auto
-                );
-                assert_eq!(
+                assert!(
                     Args::try_parse_from(&["em", "--colour", "always"])
                         .unwrap()
-                        .colour,
-                    ColouriseOutput::Always
+                        .colour
                 );
 
                 assert!(Args::try_parse_from(&["em", "--colour", "crabcakes"]).is_err());
