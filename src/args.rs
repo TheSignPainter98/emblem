@@ -28,6 +28,7 @@ pub struct Args {
 
 impl Args {
     /// Parse command-line arguments, exit on failure
+    #[allow(dead_code)]
     pub fn parse() -> Self {
         match Self::try_parse_from(env::args()) {
             Ok(args) => args,
@@ -35,6 +36,7 @@ impl Args {
         }
     }
 
+    #[allow(dead_code)]
     pub fn try_parse_from<I, T>(iter: I) -> Result<Self, clap::Error>
     where
         T: Into<OsString> + Clone,
@@ -75,7 +77,7 @@ const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about=LONG_ABOUT, disable_help_flag=true, disable_version_flag=true)]
 #[warn(missing_docs)]
-struct RawArgs {
+pub struct RawArgs {
     #[command(subcommand)]
     command: Option<Command>,
 
@@ -177,6 +179,7 @@ pub struct BuildCmd {
 }
 
 impl BuildCmd {
+    #[allow(dead_code)]
     pub fn output_stem(&self) -> ArgPath {
         self.output.stem.infer_from(&self.input.file)
     }

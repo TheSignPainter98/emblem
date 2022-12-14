@@ -1,9 +1,14 @@
-include!("src/args.rs");
+mod args {
+    include!("src/args.rs");
+}
 
-// use clap::CommandFactory;
+use args::RawArgs;
+use clap::CommandFactory;
 use clap_complete::shells::Shell;
 use clap_mangen::Man;
+use std::env;
 use std::error::Error;
+use std::fs::{self, File};
 use std::path::Path;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -18,7 +23,7 @@ fn mangen() -> Result<(), Box<dyn Error>> {
     let out_dir = env::var("OUT_DIR").unwrap();
     let dest_file = Path::new(&out_dir).join("em.1");
 
-    let mut file = fs::File::create(dest_file)?;
+    let mut file = File::create(dest_file)?;
     Man::new(RawArgs::command()).render(&mut file)?;
     drop(file);
     Ok(())
