@@ -2,7 +2,7 @@ use clap::{
     builder::{OsStr, StringValueParser, TypedValueParser},
     error,
     ArgAction::{Append, Count, Help, Version},
-    CommandFactory, Parser, ValueEnum,
+    CommandFactory, Parser, Subcommand, ValueEnum,
     ValueHint::{AnyPath, FilePath},
 };
 use derive_new::new;
@@ -13,8 +13,8 @@ use std::{env, fs, io, path};
 /// Parsed command-line arguments
 #[derive(Debug)]
 pub struct Args {
-    /// Pass variable into extension-space
-    pub extension_args: Vec<ExtArg>,
+    /// Action to take
+    pub command: Command,
 
     /// Colourise log messages
     pub colour: ColouriseOutput,
@@ -22,41 +22,8 @@ pub struct Args {
     /// Make warnings fatal
     pub fatal_warnings: bool,
 
-    /// Override detected input format
-    pub input_driver: Option<String>,
-
-    /// File to typeset
-    pub input_file: ArgPath,
-
-    /// Print info and exit
-    pub list_info: Option<RequestedInfo>,
-
-    /// Limit lua memory usage
-    pub max_mem: MemoryLimit,
-
-    /// Override detected output format
-    pub output_driver: Option<String>,
-
-    /// Output file path
-    pub output_stem: ArgPath,
-
-    /// Set root stylesheet
-    pub style: Option<String>,
-
-    /// Restrict system access
-    pub sandbox: SandboxLevel,
-
-    /// Style search-path, colon-separated
-    pub style_path: SearchPath,
-
     /// Output verbosity
     pub verbosity: Verbosity,
-
-    /// Load an extension
-    pub extensions: Vec<String>,
-
-    /// Extension search-path, colon-separated
-    pub extension_path: SearchPath,
 }
 
 impl Args {
@@ -82,45 +49,22 @@ impl TryFrom<RawArgs> for Args {
 
     fn try_from(raw: RawArgs) -> Result<Self, Self::Error> {
         let RawArgs {
-            extension_args,
+            command,
             colour,
             fatal_warnings,
-            input_driver,
-            input_file,
             help: _,
-            list_info,
-            max_mem,
-            output_driver,
-            output_stem,
-            style,
-            sandbox,
-            style_path,
             verbosity,
             version: _,
-            extensions,
-            extension_path,
         } = raw;
 
-        let input_file = input_file.infer_input();
-        let output_stem = output_stem.infer_output(&input_file);
         let verbosity = verbosity.try_into()?;
+        let command = command.unwrap_or_default();
 
         Ok(Self {
-            extension_args,
+            command,
             colour,
             fatal_warnings,
-            input_driver,
-            input_file,
-            list_info,
-            max_mem,
-            output_driver,
-            output_stem,
-            style,
-            sandbox,
-            style_path,
             verbosity,
-            extensions,
-            extension_path,
         })
     }
 }
@@ -132,77 +76,209 @@ const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it 
 #[command(author, version, about, long_about=LONG_ABOUT, disable_help_flag=true, disable_version_flag=true)]
 #[warn(missing_docs)]
 struct RawArgs {
-    /// Pass variable into extension-space
-    #[arg(short = 'a', action = Append, value_parser = ExtArg::parser(),  value_name="arg=value")]
-    extension_args: Vec<ExtArg>,
+    #[command(subcommand)]
+    command: Option<Command>,
 
     /// Colourise log messages
-    #[arg(long, value_enum, default_value_t, value_name = "when")]
+    #[arg(long, value_enum, default_value_t, value_name = "when", global = true)]
     colour: ColouriseOutput,
 
     /// Make warnings fatal
-    #[arg(short = 'E', default_value_t = false)]
+    #[arg(short = 'E', default_value_t = false, global = true)]
     fatal_warnings: bool,
 
-    /// Override detected input format
-    #[arg(short, value_name = "format")]
-    input_driver: Option<String>,
-
     /// Print help information, use `--help` for more detail
-    #[arg(short, long, action=Help)]
+    #[arg(short, long, action=Help, global=true)]
     help: Option<bool>,
 
-    /// File to typeset
-    #[arg(value_name = "in-file", value_hint = FilePath, default_value_t = UninferredArgPath::default(), value_parser = UninferredArgPath::parser())]
-    input_file: UninferredArgPath,
-
-    /// Print info and exit
-    #[arg(long = "list", value_enum, value_name = "what")]
-    list_info: Option<RequestedInfo>,
-
-    /// Limit lua memory usage
-    #[arg(long, value_parser = MemoryLimit::parser(), default_value = "unlimited", value_name = "amount")]
-    max_mem: MemoryLimit,
-
-    /// Override detected output format
-    #[arg(short, value_name = "format")]
-    output_driver: Option<String>,
-
-    /// Output file path
-    #[arg(value_name = "out-file", value_hint = AnyPath, default_value_t=UninferredArgPath::default(), value_parser = UninferredArgPath::parser())]
-    output_stem: UninferredArgPath,
-
-    /// Set root stylesheet
-    #[arg(short, value_name = "style")]
-    style: Option<String>,
-
-    /// Restrict system access
-    #[arg(long, value_enum, default_value_t, value_name = "level")]
-    sandbox: SandboxLevel,
-
-    /// Style search-path, colon-separated
-    #[arg(long, env = "EM_STYLE_PATH", value_parser = SearchPath::parser(), default_value = "", value_name = "path")]
-    style_path: SearchPath,
-
     /// Set output verbosity
-    #[arg(short, action=Count, default_value_t=0, value_name = "level")]
+    #[arg(short, action=Count, default_value_t=0, value_name = "level", global=true)]
     verbosity: u8,
 
     /// Print version info
     #[arg(long, action=Version)]
     version: Option<bool>,
+}
+
+/// What emblem will do this execution
+#[derive(Clone, Debug, PartialEq, Eq, Subcommand)]
+#[warn(missing_docs)]
+pub enum Command {
+    /// Build a given document
+    Build(BuildCmd),
+
+    /// Fix formatting errors in the given document
+    #[command(name = "fmt")]
+    Format(FormatCmd),
+
+    /// Check for linting errors in the given document
+    Lint(LintCmd),
+
+    /// Print info and exit
+    List(ListCmd),
+}
+
+#[cfg(test)]
+impl Command {
+    fn build(&self) -> Option<&BuildCmd> {
+        match self {
+            Self::Build(b) => Some(b),
+            _ => None,
+        }
+    }
+
+    fn format(&self) -> Option<&FormatCmd> {
+        match self {
+            Self::Format(f) => Some(f),
+            _ => None,
+        }
+    }
+
+    fn lint(&self) -> Option<&LintCmd> {
+        match self {
+            Self::Lint(l) => Some(l),
+            _ => None,
+        }
+    }
+
+    fn list(&self) -> Option<&ListCmd> {
+        match self {
+            Self::List(l) => Some(l),
+            _ => None,
+        }
+    }
+}
+
+impl Default for Command {
+    fn default() -> Self {
+        Self::Build(BuildCmd::default())
+    }
+}
+
+/// Arguments to the build subcommand
+#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct BuildCmd {
+    #[command(flatten)]
+    #[allow(missing_docs)]
+    pub input: InputArgs,
+
+    #[command(flatten)]
+    #[allow(missing_docs)]
+    pub output: OutputArgs,
+
+    #[command(flatten)]
+    #[allow(missing_docs)]
+    pub extensions: ExtensionArgs,
+
+    #[command(flatten)]
+    #[allow(missing_docs)]
+    pub style: StyleArgs,
+}
+
+impl BuildCmd {
+    pub fn output_stem(&self) -> ArgPath {
+        self.output.stem.infer_from(&self.input.file)
+    }
+}
+
+/// Arguments to the fmt subcommand
+#[derive(Clone, Debug, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct FormatCmd {
+    #[command(flatten)]
+    #[allow(missing_docs)]
+    pub input: InputArgs,
+}
+
+/// Arguments to the lint subcommand
+#[derive(Clone, Debug, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct LintCmd {
+    #[command(flatten)]
+    #[allow(missing_docs)]
+    pub input: InputArgs,
+
+    #[command(flatten)]
+    #[allow(missing_docs)]
+    pub extensions: ExtensionArgs,
+}
+
+/// Arguments to the list subcommand
+#[derive(Clone, Debug, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct ListCmd {
+    /// What to list
+    #[arg(value_enum, value_name = "what")]
+    pub what: RequestedInfo,
+
+    #[command(flatten)]
+    #[allow(missing_docs)]
+    pub extensions: ExtensionArgs,
+}
+
+/// Holds the source of the user's document
+#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct InputArgs {
+    /// Document to typeset
+    #[arg(value_name = "in-file", value_hint = FilePath, default_value_t = ArgPath::default(), value_parser = ArgPath::parser())]
+    pub file: ArgPath,
+}
+
+/// Holds where and how the user wants their output
+#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct OutputArgs {
+    /// Output file path
+    #[arg(value_name = "out-file", value_hint = AnyPath, default_value_t=UninferredArgPath::default(), value_parser = UninferredArgPath::parser())]
+    stem: UninferredArgPath,
+
+    /// Override detected output format
+    #[arg(short = 'T', value_name = "format")]
+    pub driver: Option<String>,
+}
+
+/// Holds the user's preferences for the extensions used when running the program
+#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct ExtensionArgs {
+    /// Pass variable into extension-space
+    #[arg(short = 'a', action = Append, value_parser = ExtArg::parser(),  value_name="arg=value")]
+    pub args: Vec<ExtArg>,
+
+    /// Extension search-path, colon-separated
+    #[arg(id="extension-path", long, env = "EM_EXT_PATH", value_parser = SearchPath::parser(), default_value = "", value_name = "path")]
+    pub path: SearchPath,
+
+    /// Limit lua memory usage
+    #[arg(long, value_parser = MemoryLimit::parser(), default_value = "unlimited", value_name = "amount")]
+    pub max_mem: MemoryLimit,
+
+    /// Restrict system access
+    #[arg(long, value_enum, default_value_t, value_name = "level")]
+    pub sandbox: SandboxLevel,
 
     /// Load an extension
     #[arg(short = 'x', action=Append, value_name = "ext")]
-    extensions: Vec<String>,
+    pub list: Vec<String>,
+}
 
-    /// Extension search-path, colon-separated
-    #[arg(long, env = "EM_EXT_PATH", value_parser = SearchPath::parser(), default_value = "", value_name = "path")]
-    extension_path: SearchPath,
+/// Holds the user's preferences for the style of their document
+#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct StyleArgs {
+    /// Set root stylesheet
+    #[arg(short = 's', value_name = "style")]
+    pub name: Option<String>,
+
+    /// Style search-path, colon-separated
+    #[arg(id="style-path", long, env = "EM_STYLE_PATH", value_parser = SearchPath::parser(), default_value = "", value_name = "path")]
+    pub path: SearchPath,
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
-enum UninferredArgPath {
+pub enum UninferredArgPath {
     #[default]
     Infer,
     Stdio,
@@ -214,17 +290,9 @@ impl UninferredArgPath {
         StringValueParser::new().try_map(Self::try_from)
     }
 
-    fn infer_input(&self) -> ArgPath {
+    fn infer_from(&self, other: &ArgPath) -> ArgPath {
         match self {
-            Self::Infer => ArgPath::Path(path::PathBuf::from("main")),
-            Self::Stdio => ArgPath::Stdio,
-            Self::Path(p) => ArgPath::Path(p.clone()),
-        }
-    }
-
-    fn infer_output(&self, input: &ArgPath) -> ArgPath {
-        match self {
-            Self::Infer => match input {
+            Self::Infer => match other {
                 ArgPath::Stdio => ArgPath::Stdio,
                 ArgPath::Path(s) => ArgPath::Path(s.clone()),
             },
@@ -267,15 +335,17 @@ impl TryFrom<String> for UninferredArgPath {
     }
 }
 
+const FILE_PATH_CANNOT_BE_EMPTY: &str = "file path cannot be empty";
+
 impl TryFrom<&str> for UninferredArgPath {
     type Error = error::Error;
 
     fn try_from(raw: &str) -> Result<Self, Self::Error> {
         match raw {
-            "" => Err(RawArgs::command().error(
-                error::ErrorKind::InvalidValue,
-                "file path cannot be empty",
-            )),
+            "" => {
+                Err(RawArgs::command()
+                    .error(error::ErrorKind::InvalidValue, FILE_PATH_CANNOT_BE_EMPTY))
+            }
             "-" => Ok(Self::Stdio),
             "??" => Ok(Self::Infer),
             path => Ok(Self::Path(path.into())),
@@ -283,16 +353,71 @@ impl TryFrom<&str> for UninferredArgPath {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ArgPath {
-    #[default]
     Stdio,
     Path(path::PathBuf),
 }
 
-impl From<&str> for ArgPath {
-    fn from(raw: &str) -> Self {
-        Self::Path(path::PathBuf::from(raw))
+impl ArgPath {
+    fn parser() -> impl TypedValueParser {
+        StringValueParser::new().try_map(Self::try_from)
+    }
+}
+
+impl Default for ArgPath {
+    fn default() -> Self {
+        Self::try_from("main").unwrap()
+    }
+}
+
+impl TryFrom<OsStr> for ArgPath {
+    type Error = error::Error;
+
+    fn try_from(raw: OsStr) -> Result<Self, Self::Error> {
+        if let Some(s) = raw.to_str() {
+            return Self::try_from(s);
+        }
+        Err(RawArgs::command().error(
+            error::ErrorKind::InvalidValue,
+            format!("could not convert '{:?}' to an OS string", raw),
+        ))
+    }
+}
+
+impl TryFrom<String> for ArgPath {
+    type Error = error::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::try_from(&value[..])
+    }
+}
+
+impl TryFrom<&str> for ArgPath {
+    type Error = clap::Error;
+
+    fn try_from(raw: &str) -> Result<Self, Self::Error> {
+        match raw {
+            "" => {
+                Err(RawArgs::command()
+                    .error(error::ErrorKind::InvalidValue, FILE_PATH_CANNOT_BE_EMPTY))
+            }
+            "-" => Ok(Self::Stdio),
+            raw => Ok(Self::Path(path::PathBuf::from(raw))),
+        }
+    }
+}
+
+impl Display for ArgPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Stdio => "-",
+                Self::Path(s) => s.to_str().unwrap_or("(invalid path)"),
+            }
+        )
     }
 }
 
@@ -514,13 +639,13 @@ impl SearchResult {
 
 #[derive(ValueEnum, Clone, Debug, Eq, PartialEq)]
 pub enum RequestedInfo {
-    InputFormats,
-    InputExtensions,
+    // InputFormats,
+    // InputExtensions,
     OutputFormats,
     OutputExtensions,
 }
 
-#[derive(ValueEnum, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(ValueEnum, Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub enum Verbosity {
     /// Output errors and warnings
     #[default]
@@ -560,7 +685,7 @@ pub enum SandboxLevel {
     Strict,
 }
 
-#[derive(ValueEnum, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(ValueEnum, Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum ColouriseOutput {
     Never,
     #[default]
@@ -622,303 +747,724 @@ mod test {
         }
 
         #[test]
-        fn colourise_output() {
+        fn default() {
             assert_eq!(
-                Args::try_parse_from(&["em"]).unwrap().colour,
-                ColouriseOutput::Auto
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--colour", "never"])
-                    .unwrap()
-                    .colour,
-                ColouriseOutput::Never
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--colour", "auto"])
-                    .unwrap()
-                    .colour,
-                ColouriseOutput::Auto
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--colour", "always"])
-                    .unwrap()
-                    .colour,
-                ColouriseOutput::Always
-            );
-
-            assert!(Args::try_parse_from(&["em", "--colour", "crabcakes"]).is_err());
-        }
-
-        #[test]
-        fn fatal_warnings() {
-            assert!(!Args::try_parse_from(&["em"]).unwrap().fatal_warnings);
-            assert!(Args::try_parse_from(&["em", "-E"]).unwrap().fatal_warnings);
-        }
-
-        #[test]
-        fn input_driver() {
-            assert_eq!(Args::try_parse_from(&["em"]).unwrap().input_driver, None);
-            assert_eq!(
-                Args::try_parse_from(&["em", "-i", "chickens"])
-                    .unwrap()
-                    .input_driver,
-                Some("chickens".to_owned())
+                Args::try_parse_from(&["em"]).unwrap().command,
+                Args::try_parse_from(&["em", "build"]).unwrap().command
             );
         }
 
-        #[test]
-        fn output_driver() {
-            assert_eq!(Args::try_parse_from(&["em"]).unwrap().output_driver, None);
-            assert_eq!(
-                Args::try_parse_from(&["em", "-o", "pies"])
-                    .unwrap()
-                    .output_driver,
-                Some("pies".to_owned())
-            );
-        }
+        mod common {
+            use super::*;
 
-        #[test]
-        fn input_file() {
-            assert_eq!(
-                Args::try_parse_from(&["em"]).unwrap().input_file,
-                ArgPath::from("main")
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "-"]).unwrap().input_file,
-                ArgPath::Stdio
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "chickens"])
-                    .unwrap()
-                    .input_file,
-                ArgPath::from("chickens")
-            );
-        }
+            #[test]
+            fn colourise_output() {
+                assert_eq!(
+                    Args::try_parse_from(&["em"]).unwrap().colour,
+                    ColouriseOutput::Auto
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "--colour", "never"])
+                        .unwrap()
+                        .colour,
+                    ColouriseOutput::Never
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "--colour", "auto"])
+                        .unwrap()
+                        .colour,
+                    ColouriseOutput::Auto
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "--colour", "always"])
+                        .unwrap()
+                        .colour,
+                    ColouriseOutput::Always
+                );
 
-        #[test]
-        fn output_stem() {
-            assert_eq!(
-                Args::try_parse_from(&["em"]).unwrap().output_stem,
-                ArgPath::from("main"),
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "-"]).unwrap().output_stem,
-                ArgPath::Stdio,
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "-", "pies"])
-                    .unwrap()
-                    .output_stem,
-                ArgPath::from("pies"),
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "_", "-"]).unwrap().output_stem,
-                ArgPath::Stdio,
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "_", "pies"])
-                    .unwrap()
-                    .output_stem,
-                ArgPath::from("pies")
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "-", "pies"])
-                    .unwrap()
-                    .output_stem,
-                ArgPath::from("pies")
-            );
-        }
-
-        #[test]
-        fn list_info() {
-            assert_eq!(Args::try_parse_from(&["em"]).unwrap().list_info, None);
-            assert_eq!(
-                Args::try_parse_from(&["em", "--list", "input-formats"])
-                    .unwrap()
-                    .list_info,
-                Some(RequestedInfo::InputFormats)
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--list", "input-extensions"])
-                    .unwrap()
-                    .list_info,
-                Some(RequestedInfo::InputExtensions)
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--list", "output-formats"])
-                    .unwrap()
-                    .list_info,
-                Some(RequestedInfo::OutputFormats)
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--list", "output-extensions"])
-                    .unwrap()
-                    .list_info,
-                Some(RequestedInfo::OutputExtensions)
-            );
-            assert!(Args::try_parse_from(&["em", "--list", "root-passwd"]).is_err());
-        }
-
-        #[test]
-        fn max_mem() {
-            assert_eq!(
-                Args::try_parse_from(&["em"]).unwrap().max_mem,
-                MemoryLimit::Unlimited
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--max-mem", "25"])
-                    .unwrap()
-                    .max_mem,
-                MemoryLimit::Limited(25)
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--max-mem", "25K"])
-                    .unwrap()
-                    .max_mem,
-                MemoryLimit::Limited(25 * 1024)
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--max-mem", "25M"])
-                    .unwrap()
-                    .max_mem,
-                MemoryLimit::Limited(25 * 1024 * 1024)
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--max-mem", "25G"])
-                    .unwrap()
-                    .max_mem,
-                MemoryLimit::Limited(25 * 1024 * 1024 * 1024)
-            );
-
-            assert!(Args::try_parse_from(&["em", "--max-mem", "100T"]).is_err());
-        }
-
-        #[test]
-        fn style() {
-            assert_eq!(Args::try_parse_from(&["em"]).unwrap().style, None);
-            assert_eq!(
-                Args::try_parse_from(&["em", "-s", "funk"]).unwrap().style,
-                Some("funk".to_owned())
-            );
-        }
-
-        #[test]
-        fn sandbox() {
-            assert_eq!(
-                Args::try_parse_from(&["em"]).unwrap().sandbox,
-                SandboxLevel::Standard
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--sandbox", "unrestricted"])
-                    .unwrap()
-                    .sandbox,
-                SandboxLevel::Unrestricted
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--sandbox", "standard"])
-                    .unwrap()
-                    .sandbox,
-                SandboxLevel::Standard
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--sandbox", "strict"])
-                    .unwrap()
-                    .sandbox,
-                SandboxLevel::Strict
-            );
-
-            assert!(Args::try_parse_from(&["em", "--sandbox", "root"]).is_err());
-        }
-
-        #[test]
-        fn style_path() {
-            assert_eq!(
-                Args::try_parse_from(&["em"]).unwrap().style_path,
-                SearchPath::default()
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--style-path", "club:house"])
-                    .unwrap()
-                    .style_path,
-                SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
-            );
-        }
-
-        #[test]
-        fn verbosity() {
-            assert_eq!(
-                {
-                    let empty: [&str; 0] = [];
-                    Args::try_parse_from(empty).unwrap().verbosity
-                },
-                Verbosity::Terse
-            );
-            assert_eq!(
-                Args::try_parse_from(["em"]).unwrap().verbosity,
-                Verbosity::Terse
-            );
-            assert_eq!(
-                Args::try_parse_from(["em", "-v"]).unwrap().verbosity,
-                Verbosity::Verbose
-            );
-            assert_eq!(
-                Args::try_parse_from(["em", "-vv"]).unwrap().verbosity,
-                Verbosity::Debug
-            );
-            assert!(Args::try_parse_from(["em", "-vvv"]).is_err());
-        }
-
-        #[test]
-        fn extensions() {
-            let empty: [&str; 0] = [];
-            assert_eq!(Args::try_parse_from(["em"]).unwrap().extensions, empty);
-            assert_eq!(
-                Args::try_parse_from(["em", "-x", "foo", "-x", "bar", "-x", "baz"])
-                    .unwrap()
-                    .extensions,
-                ["foo".to_owned(), "bar".to_owned(), "baz".to_owned()]
-            );
-        }
-
-        #[test]
-        fn extension_args() {
-            assert_eq!(
-                Args::try_parse_from(&["em"]).unwrap().extension_args,
-                vec![]
-            );
-
-            {
-                let valid_ext_args = Args::try_parse_from(&["em", "-ak=v", "-ak2=v2", "-ak3="])
-                    .unwrap()
-                    .extension_args;
-                assert_eq!(valid_ext_args.len(), 3);
-                assert_eq!(valid_ext_args[0].name(), "k");
-                assert_eq!(valid_ext_args[0].value(), "v");
-                assert_eq!(valid_ext_args[1].name(), "k2");
-                assert_eq!(valid_ext_args[1].value(), "v2");
-                assert_eq!(valid_ext_args[2].name(), "k3");
-                assert_eq!(valid_ext_args[2].value(), "");
+                assert!(Args::try_parse_from(&["em", "--colour", "crabcakes"]).is_err());
             }
 
-            assert!(Args::try_parse_from(&["em", "-a=v"]).is_err());
+            #[test]
+            fn fatal_warnings() {
+                assert!(!Args::try_parse_from(&["em"]).unwrap().fatal_warnings);
+                assert!(Args::try_parse_from(&["em", "-E"]).unwrap().fatal_warnings);
+            }
+
+            #[test]
+            fn verbosity() {
+                assert_eq!(
+                    {
+                        let empty: [&str; 0] = [];
+                        Args::try_parse_from(empty).unwrap().verbosity
+                    },
+                    Verbosity::Terse
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em"]).unwrap().verbosity,
+                    Verbosity::Terse
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "-v"]).unwrap().verbosity,
+                    Verbosity::Verbose
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "-vv"]).unwrap().verbosity,
+                    Verbosity::Debug
+                );
+                assert!(Args::try_parse_from(["em", "-vvv"]).is_err());
+            }
         }
 
-        #[test]
-        fn extension_path() {
-            assert_eq!(
-                Args::try_parse_from(&["em"]).unwrap().extension_path,
-                SearchPath::default()
-            );
-            assert_eq!(
-                Args::try_parse_from(&["em", "--extension-path", "club:house"])
+        mod build {
+            use super::*;
+
+            #[test]
+            fn output_driver() {
+                assert_eq!(
+                    Args::try_parse_from(&["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .output
+                        .driver,
+                    None
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "-T", "pies"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .output
+                        .driver,
+                    Some("pies".to_owned())
+                );
+            }
+
+            #[test]
+            fn input_file() {
+                assert_eq!(
+                    Args::try_parse_from(&["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::try_from("main").unwrap(),
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "-"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Stdio
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "chickens"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::try_from("chickens").unwrap(),
+                );
+            }
+
+            #[test]
+            fn output_stem() {
+                assert_eq!(
+                    Args::try_parse_from(&["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .output_stem(),
+                    ArgPath::try_from("main").unwrap(),
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "-"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .output_stem(),
+                    ArgPath::Stdio,
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "-", "pies"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .output_stem(),
+                    ArgPath::try_from("pies").unwrap(),
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "_", "-"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .output_stem(),
+                    ArgPath::Stdio,
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "_", "pies"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .output_stem(),
+                    ArgPath::try_from("pies").unwrap(),
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "-", "pies"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .output_stem(),
+                    ArgPath::try_from("pies").unwrap(),
+                );
+            }
+
+            #[test]
+            fn max_mem() {
+                assert_eq!(
+                    Args::try_parse_from(&["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .max_mem,
+                    MemoryLimit::Unlimited
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "--max-mem", "25"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .max_mem,
+                    MemoryLimit::Limited(25)
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "--max-mem", "25K"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .max_mem,
+                    MemoryLimit::Limited(25 * 1024)
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "--max-mem", "25M"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .max_mem,
+                    MemoryLimit::Limited(25 * 1024 * 1024)
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "--max-mem", "25G"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .max_mem,
+                    MemoryLimit::Limited(25 * 1024 * 1024 * 1024)
+                );
+
+                assert!(Args::try_parse_from(&["em", "build", "--max-mem", "100T"]).is_err());
+            }
+
+            #[test]
+            fn style() {
+                assert_eq!(
+                    Args::try_parse_from(&["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .style
+                        .name,
+                    None
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "-s", "funk"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .style
+                        .name,
+                    Some("funk".to_owned())
+                );
+            }
+
+            #[test]
+            fn sandbox() {
+                assert_eq!(
+                    Args::try_parse_from(&["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .sandbox,
+                    SandboxLevel::Standard
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "--sandbox", "unrestricted"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .sandbox,
+                    SandboxLevel::Unrestricted
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "--sandbox", "standard"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .sandbox,
+                    SandboxLevel::Standard
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "--sandbox", "strict"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .sandbox,
+                    SandboxLevel::Strict
+                );
+
+                assert!(Args::try_parse_from(&["em", "build", "--sandbox", "root"]).is_err());
+            }
+
+            #[test]
+            fn style_path() {
+                assert_eq!(
+                    Args::try_parse_from(&["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .style
+                        .path,
+                    SearchPath::default()
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "--style-path", "club:house"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .style
+                        .path,
+                    SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
+                );
+            }
+
+            #[test]
+            fn extensions() {
+                let empty: [&str; 0] = [];
+                assert_eq!(
+                    Args::try_parse_from(["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .list,
+                    empty
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "-x", "foo", "-x", "bar", "-x", "baz"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .list,
+                    ["foo".to_owned(), "bar".to_owned(), "baz".to_owned()]
+                );
+            }
+
+            #[test]
+            fn extension_args() {
+                assert_eq!(
+                    Args::try_parse_from(&["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .args,
+                    vec![]
+                );
+
+                {
+                    let valid_ext_args =
+                        Args::try_parse_from(&["em", "build", "-ak=v", "-ak2=v2", "-ak3="])
+                            .unwrap()
+                            .command
+                            .build()
+                            .unwrap()
+                            .extensions
+                            .args
+                            .clone();
+                    assert_eq!(valid_ext_args.len(), 3);
+                    assert_eq!(valid_ext_args[0].name(), "k");
+                    assert_eq!(valid_ext_args[0].value(), "v");
+                    assert_eq!(valid_ext_args[1].name(), "k2");
+                    assert_eq!(valid_ext_args[1].value(), "v2");
+                    assert_eq!(valid_ext_args[2].name(), "k3");
+                    assert_eq!(valid_ext_args[2].value(), "");
+                }
+
+                assert!(Args::try_parse_from(&["em", "-a=v"]).is_err());
+            }
+
+            #[test]
+            fn extension_path() {
+                assert_eq!(
+                    Args::try_parse_from(&["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .path,
+                    SearchPath::default()
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "build", "--extension-path", "club:house"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .extensions
+                        .path,
+                    SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
+                );
+            }
+        }
+
+        mod format {
+            use super::*;
+
+            #[test]
+            fn input_file() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "fmt"])
+                        .unwrap()
+                        .command
+                        .format()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("main".into())
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "fmt", "-"])
+                        .unwrap()
+                        .command
+                        .format()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Stdio
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "fmt", "plain.txt"])
+                        .unwrap()
+                        .command
+                        .format()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("plain.txt".into())
+                );
+            }
+        }
+
+        mod lint {
+            use super::*;
+
+            #[test]
+            fn input_file() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("main".into())
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint", "-"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Stdio
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint", "plain.txt"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("plain.txt".into())
+                );
+            }
+
+            #[test]
+            fn extensions() {
+                let empty: [&str; 0] = [];
+                assert_eq!(
+                    Args::try_parse_from(["em", "lint"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .extensions
+                        .list,
+                    empty
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "lint", "-x", "foo", "-x", "bar", "-x", "baz"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .extensions
+                        .list,
+                    ["foo".to_owned(), "bar".to_owned(), "baz".to_owned()]
+                );
+            }
+
+            #[test]
+            fn extension_args() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .extensions
+                        .args,
+                    vec![]
+                );
+
+                {
+                    let valid_ext_args =
+                        Args::try_parse_from(&["em", "lint", "-ak=v", "-ak2=v2", "-ak3="])
+                            .unwrap()
+                            .command
+                            .lint()
+                            .unwrap()
+                            .extensions
+                            .args
+                            .clone();
+                    assert_eq!(valid_ext_args.len(), 3);
+                    assert_eq!(valid_ext_args[0].name(), "k");
+                    assert_eq!(valid_ext_args[0].value(), "v");
+                    assert_eq!(valid_ext_args[1].name(), "k2");
+                    assert_eq!(valid_ext_args[1].value(), "v2");
+                    assert_eq!(valid_ext_args[2].name(), "k3");
+                    assert_eq!(valid_ext_args[2].value(), "");
+                }
+
+                assert!(Args::try_parse_from(&["em", "lint", "-a=v"]).is_err());
+            }
+
+            #[test]
+            fn extension_path() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .extensions
+                        .path,
+                    SearchPath::default()
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "lint", "--extension-path", "club:house"])
+                        .unwrap()
+                        .command
+                        .lint()
+                        .unwrap()
+                        .extensions
+                        .path,
+                    SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
+                );
+            }
+        }
+
+        mod list {
+            use super::*;
+
+            #[test]
+            fn list_info() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "list", "output-formats"])
+                        .unwrap()
+                        .command
+                        .list()
+                        .unwrap()
+                        .what,
+                    RequestedInfo::OutputFormats
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "list", "output-extensions"])
+                        .unwrap()
+                        .command
+                        .list()
+                        .unwrap()
+                        .what,
+                    RequestedInfo::OutputExtensions
+                );
+                assert!(Args::try_parse_from(&["em", "list", "root-passwd"]).is_err());
+            }
+
+            #[test]
+            fn extensions() {
+                let empty: [&str; 0] = [];
+                assert_eq!(
+                    Args::try_parse_from(["em", "list", "output-formats"])
+                        .unwrap()
+                        .command
+                        .list()
+                        .unwrap()
+                        .extensions
+                        .list,
+                    empty
+                );
+                assert_eq!(
+                    Args::try_parse_from([
+                        "em",
+                        "list",
+                        "output-formats",
+                        "-x",
+                        "foo",
+                        "-x",
+                        "bar",
+                        "-x",
+                        "baz"
+                    ])
                     .unwrap()
-                    .extension_path,
-                SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
-            );
+                    .command
+                    .list()
+                    .unwrap()
+                    .extensions
+                    .list,
+                    ["foo".to_owned(), "bar".to_owned(), "baz".to_owned()]
+                );
+            }
+
+            #[test]
+            fn extension_args() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "list", "output-formats"])
+                        .unwrap()
+                        .command
+                        .list()
+                        .unwrap()
+                        .extensions
+                        .args,
+                    vec![]
+                );
+
+                {
+                    let valid_ext_args = Args::try_parse_from(&[
+                        "em",
+                        "list",
+                        "output-formats",
+                        "-ak=v",
+                        "-ak2=v2",
+                        "-ak3=",
+                    ])
+                    .unwrap()
+                    .command
+                    .list()
+                    .unwrap()
+                    .extensions
+                    .args
+                    .clone();
+                    assert_eq!(valid_ext_args.len(), 3);
+                    assert_eq!(valid_ext_args[0].name(), "k");
+                    assert_eq!(valid_ext_args[0].value(), "v");
+                    assert_eq!(valid_ext_args[1].name(), "k2");
+                    assert_eq!(valid_ext_args[1].value(), "v2");
+                    assert_eq!(valid_ext_args[2].name(), "k3");
+                    assert_eq!(valid_ext_args[2].value(), "");
+                }
+
+                assert!(Args::try_parse_from(&["em", "list", "-a=v"]).is_err());
+            }
+
+            #[test]
+            fn extension_path() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "list", "output-formats"])
+                        .unwrap()
+                        .command
+                        .list()
+                        .unwrap()
+                        .extensions
+                        .path,
+                    SearchPath::default()
+                );
+                assert_eq!(
+                    Args::try_parse_from(&[
+                        "em",
+                        "list",
+                        "output-formats",
+                        "--extension-path",
+                        "club:house"
+                    ])
+                    .unwrap()
+                    .command
+                    .list()
+                    .unwrap()
+                    .extensions
+                    .path,
+                    SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
+                );
+            }
         }
     }
 
-    mod source_path {
+    mod arg_paths {
         use super::*;
 
         #[test]
@@ -930,55 +1476,39 @@ mod test {
         }
 
         #[test]
-        fn infer_input() {
-            assert_eq!(
-                UninferredArgPath::Infer.infer_input(),
-                ArgPath::from("main")
-            );
-            assert_eq!(UninferredArgPath::Stdio.infer_input(), ArgPath::Stdio);
-            assert_eq!(
-                UninferredArgPath::try_from("62 West Wallaby St.")
-                    .ok()
-                    .unwrap()
-                    .infer_input(),
-                ArgPath::Path(path::PathBuf::from("62 West Wallaby St."))
-            );
-        }
-
-        #[test]
-        fn infer_output() {
-            let resolved_path = ArgPath::from("main");
+        fn infer_from() {
+            let resolved_path = ArgPath::try_from("main").unwrap();
             let resolved_stdio = ArgPath::Stdio;
 
             assert_eq!(
-                UninferredArgPath::Infer.infer_output(&resolved_path),
-                ArgPath::from("main")
+                UninferredArgPath::Infer.infer_from(&resolved_path),
+                resolved_path.clone(),
             );
             assert_eq!(
-                UninferredArgPath::Infer.infer_output(&resolved_stdio),
+                UninferredArgPath::Infer.infer_from(&resolved_stdio),
                 ArgPath::Stdio
             );
             assert_eq!(
-                UninferredArgPath::Stdio.infer_output(&resolved_path),
+                UninferredArgPath::Stdio.infer_from(&resolved_path),
                 ArgPath::Stdio
             );
             assert_eq!(
-                UninferredArgPath::Stdio.infer_output(&resolved_stdio),
+                UninferredArgPath::Stdio.infer_from(&resolved_stdio),
                 ArgPath::Stdio
             );
             assert_eq!(
                 UninferredArgPath::try_from("Tottington Hall")
                     .ok()
                     .unwrap()
-                    .infer_output(&resolved_path),
-                ArgPath::from("Tottington Hall")
+                    .infer_from(&resolved_path),
+                ArgPath::try_from("Tottington Hall").unwrap()
             );
             assert_eq!(
                 UninferredArgPath::try_from("Tottington Hall")
                     .ok()
                     .unwrap()
-                    .infer_output(&resolved_stdio),
-                ArgPath::from("Tottington Hall")
+                    .infer_from(&resolved_stdio),
+                ArgPath::try_from("Tottington Hall").unwrap()
             );
         }
     }
@@ -1174,6 +1704,7 @@ mod test {
             Ok(())
         }
     }
+
     mod search_result {
         use super::*;
         use io::Write;
