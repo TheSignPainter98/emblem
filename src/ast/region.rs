@@ -43,7 +43,7 @@ mod test {
     fn new() {
         let text = "my name\nis methos";
         let start = Location::new("fname.em", text);
-        let end = start.shift(text);
+        let end = start.clone().shift(text);
 
         let region = Region::new(&start, &end);
 

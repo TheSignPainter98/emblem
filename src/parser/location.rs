@@ -75,8 +75,8 @@ mod test {
     fn shift_single_line() {
         let src = "my name is methos";
         let start = Location::new("fname", src);
-        let mid = start.shift("my name is ");
-        let end = mid.shift("methos");
+        let mid = start.clone().shift("my name is ");
+        let end = mid.clone().shift("methos");
 
         assert_eq!("fname", mid.file_name);
         assert_eq!(src, mid.src);
