@@ -1,9 +1,10 @@
 use super::text::Text;
 
-pub enum ParsedContent<'i> {
+#[derive(Debug)]
+pub enum Content<'i> {
     Call {
         name: Text<'i>,
-        args: Vec<ParsedContent<'i>>,
+        args: Vec<Content<'i>>,
     },
     Word(Text<'i>),
     Whitespace(&'i str),
@@ -11,6 +12,7 @@ pub enum ParsedContent<'i> {
     MultiLineComment(MultiLineComment<'i>),
 }
 
+#[derive(Debug)]
 pub enum MultiLineComment<'i> {
     Word(&'i str),
     Whitespace(&'i str),

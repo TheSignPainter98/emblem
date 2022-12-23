@@ -1,18 +1,15 @@
-mod parsed;
+pub mod parsed;
 pub mod region;
 pub mod text;
 
-pub type ParsedAst<'i> = Ast<parsed::ParsedContent<'i>>;
+pub type ParsedAst<'file> = File<parsed::Content<'file>>;
 
-pub struct Ast<C> {
-    root: File<C>,
-}
-
+#[derive(Debug)]
 pub struct File<C> {
-    name: String,
-    pars: Vec<Par<C>>,
+    pub pars: Vec<Par<C>>,
 }
 
+#[derive(Debug)]
 pub struct Par<C> {
-    content: Vec<C>,
+    pub content: Vec<C>,
 }

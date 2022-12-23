@@ -5,11 +5,14 @@ pub use lexer::LexicalError;
 pub use location::Location;
 
 use crate::ast;
-use lalrpop_util::{lalrpop_mod, ParseError};
+use lalrpop_util::lalrpop_mod;
+// use lalrpop_util::ParseError;
+use crate::context::Context;
+use ast::ParsedAst;
 use lexer::Lexer;
+use std::error::Error;
+use std::fs;
 use std::path::Path;
-use std::{fs, io};
-use ast::region::Region;
 
 lalrpop_mod!(
     #[allow(clippy::all)]
@@ -18,48 +21,25 @@ lalrpop_mod!(
 );
 
 /// Parse an emblem source file at the given location.
-pub fn parse<'input, S: Into<&'input Path>>(fname: S) -> Result<(), io::Error> {
-    let path = fname.into();
-    let raw = fs::read_to_string(path)?;
+pub fn parse_file<'ctx>(
+    ctx: &'ctx mut Context,
+    path: String,
+) -> Result<ParsedAst<'ctx>, Box<dyn Error + 'ctx>>
+{
+    let content = fs::read_to_string(&path)?;
+    let file = ctx.alloc_file(path, content);
 
-    println!("Start of toks in {:?}:\n===========", path.to_owned());
-    for tok in Lexer::new(path.as_os_str().to_str().unwrap(), &raw) {
-        match tok {
-            Ok(tok) => println!("Read tok {}: {:?}", Region::new(&tok.0, &tok.2), tok.1),
-            Err(ref err) => println!("Lexical error: {:?}", err),
-        }
-    }
-    println!("===========\nEnd of toks in {:?}.", path.to_owned());
+    parse(file.name(), file.content())
+}
 
-    let path = path.as_os_str().to_str().unwrap();
-    let lexer = Lexer::new(path, &raw);
+pub fn parse<'file>(
+    fname: &'file str,
+    input: &'file str,
+) -> Result<ParsedAst<'file>, Box<dyn Error + 'file>> {
+    let lexer = Lexer::new(fname, input);
     let parser = parser::FileParser::new();
-    match parser.parse(&raw, lexer) {
-        Ok(ast) => println!(":D {:?}", ast),
-        Err(err) => match err {
-            ParseError::UnrecognizedEOF { location, expected } => println!(
-                "{}: Unexpected EOF, expected one of {}",
-                location,
-                pretty_tok_list(expected),
-            ),
-            ParseError::UnrecognizedToken {
-                token: (loc, tok, _),
-                expected,
-            } => println!(
-                "{}: expected {}, before {:?} token",
-                loc,
-                pretty_tok_list(expected),
-                tok
-            ),
-            ParseError::User { error: err } => println!("{}: {}", err.location(), err),
-            ParseError::InvalidToken { location } => println!("{}: invalid token", location),
-            ParseError::ExtraToken {
-                token: (loc, tok, _),
-            } => println!("{}: unexpected extra token: {}", loc, tok.to_string()),
-        },
-    };
 
-    Ok(())
+    Ok(parser.parse(lexer)?)
 }
 
 /// Create a string representation of a list of tokens which will fit in with surrounding text.

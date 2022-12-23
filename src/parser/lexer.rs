@@ -198,8 +198,8 @@ pub enum Tok<'input> {
     Newline,
 }
 
-impl ToString for Tok<'_> {
-    fn to_string(&self) -> String {
+impl Display for Tok<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Tok::Indent => "indent",
             Tok::Dedent => "dedent",
@@ -215,8 +215,7 @@ impl ToString for Tok<'_> {
             Tok::NestedCommentClose => "*/",
             Tok::Newline => "newline",
             Tok::Comment(_) => "comment",
-        }
-        .to_owned()
+        }.fmt(f)
     }
 }
 

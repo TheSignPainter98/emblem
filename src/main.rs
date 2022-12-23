@@ -2,6 +2,7 @@ mod args;
 mod init;
 mod ast;
 mod build;
+mod context;
 mod parser;
 
 use args::{Args, Command};

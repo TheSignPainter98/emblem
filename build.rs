@@ -56,8 +56,8 @@ fn complgen() -> Result<(), Box<dyn Error>> {
 
 fn parsergen() -> Result<(), Box<dyn Error>> {
     lalrpop::Configuration::new()
-        .emit_report(true)
+        .set_in_dir("src/parser/")
+        .set_out_dir(Path::new(&env::var("OUT_DIR")?).join("parser"))
         .emit_rerun_directives(true)
-        .emit_comments(true)
-        .process_current_dir()
+        .process()
 }

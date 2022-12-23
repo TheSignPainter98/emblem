@@ -1,9 +1,10 @@
 use crate::parser::{self, LexicalError, lexer};
+use crate::ast::{File, ParsedAst};
 
-grammar<'input>(input: &'input str);
+grammar<'input>;
 
-pub File: &'input str = {
-	Indented<Command>
+pub File: ParsedAst<'input> = {
+	Indented<Command> => File { pars: vec![] },
 };
 
 Indented<T>: T = {
