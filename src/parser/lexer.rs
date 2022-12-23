@@ -198,24 +198,46 @@ pub enum Tok<'input> {
     Newline,
 }
 
+// impl ToString for Tok<'_> {
+//     fn to_string(&self) -> String {
+//         match self {
+//             Tok::Indent => "indent",
+//             Tok::Dedent => "dedent",
+//             Tok::Colon => ":",
+//             Tok::DoubleColon => "::",
+//             Tok::LBrace => "{",
+//             Tok::RBrace => "}",
+//             Tok::Command(_) => "command",
+//             Tok::ParBreak => "paragraph break",
+//             Tok::Word(_) => "word",
+//             Tok::Whitespace(_) => "whitespace",
+//             Tok::NestedCommentOpen => "/*",
+//             Tok::NestedCommentClose => "*/",
+//             Tok::Newline => "newline",
+//             Tok::Comment(_) => "comment",
+//         }
+//         .to_owned()
+//     }
+// }
+
 impl Display for Tok<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Tok::Indent => "indent",
-            Tok::Dedent => "dedent",
-            Tok::Colon => ":",
-            Tok::DoubleColon => "::",
-            Tok::LBrace => "{",
-            Tok::RBrace => "}",
-            Tok::Command(_) => "command",
-            Tok::ParBreak => "paragraph break",
-            Tok::Word(_) => "word",
-            Tok::Whitespace(_) => "whitespace",
-            Tok::NestedCommentOpen => "/*",
-            Tok::NestedCommentClose => "*/",
-            Tok::Newline => "newline",
-            Tok::Comment(_) => "comment",
-        }.fmt(f)
+            Tok::Indent => write!(f, "(indent)"),
+            Tok::Dedent => write!(f, "(dedent)"),
+            Tok::Colon => write!(f, "(:)"),
+            Tok::DoubleColon => write!(f, "(::)"),
+            Tok::LBrace => write!(f, "({{)"),
+            Tok::RBrace => write!(f, "(}})"),
+            Tok::Command(c) => write!(f, "(.{})", c),
+            Tok::ParBreak => write!(f, "(paragraph break)"),
+            Tok::Word(w) => write!(f, "({})", w),
+            Tok::Whitespace(w) => write!(f, "(whitespace:{})", w),
+            Tok::NestedCommentOpen => write!(f, "(/*)"),
+            Tok::NestedCommentClose => write!(f, "(*/)"),
+            Tok::Newline => write!(f, "(newline)"),
+            Tok::Comment(c) => write!(f, "(// {})", c),
+        }
     }
 }
 
