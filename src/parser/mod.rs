@@ -12,7 +12,6 @@ use ast::ParsedAst;
 use lexer::Lexer;
 use std::error::Error;
 use std::fs;
-use std::path::Path;
 
 lalrpop_mod!(
     #[allow(clippy::all)]
@@ -53,4 +52,19 @@ fn pretty_tok_list(list: Vec<String>) -> String {
         pretty_list.push(e);
     }
     pretty_list.concat()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::ast::{File, AstDebug, parsed::Content};
+
+    fn parse_str<'i>(input: &'i str) -> Result<ParsedAst<'i>, Box<dyn Error + 'i>> {
+        parse("test.em", input)
+    }
+
+    #[test]
+    fn basic() {
+        assert_eq!("File[]", parse_str("").unwrap().repr());
+    }
 }
