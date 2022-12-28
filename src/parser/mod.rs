@@ -47,7 +47,7 @@ fn pretty_tok_list(list: Vec<String>) -> String {
     let mut pretty_list = Vec::new();
     for (i, e) in list.iter().enumerate() {
         if i > 0 {
-            pretty_list.push(if i < len-1 { ", " } else { " or " })
+            pretty_list.push(if i < len - 1 { ", " } else { " or " })
         }
         pretty_list.push(e);
     }
