@@ -1,7 +1,7 @@
 pub mod parsed;
 pub mod region;
 pub mod text;
-pub mod debug;
+mod debug;
 
 use std::fmt::Display;
 
@@ -48,17 +48,17 @@ impl<C:Display> Display for Par<C> {
 
 #[cfg(test)]
 impl<C: AstDebug> AstDebug for File<C> {
-    fn fmt(&self, buf: &mut Vec<String>) {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
         buf.push("File".into());
-        self.pars.fmt(buf);
+        self.pars.test_fmt(buf);
     }
 }
 
 
 #[cfg(test)]
 impl<C: AstDebug> AstDebug for Par<C> {
-    fn fmt(&self, buf: &mut Vec<String>) {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
         buf.push("Par".into());
-        self.content.fmt(buf);
+        self.content.test_fmt(buf);
     }
 }

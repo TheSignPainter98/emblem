@@ -36,20 +36,20 @@ impl Display for Content<'_> {
 
 #[cfg(test)]
 impl AstDebug for Content<'_> {
-    fn fmt(&self, buf: &mut Vec<String>) {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
             Self::Call { name, args } => {
-                buf.push(format!(".{}", name));
-                if !args.is_empty() {
-                    buf.push("(".into());
-                    args.fmt(buf);
-                    buf.push(")".into());
-                }
+                buf.push('.'.into());
+                name.test_fmt(buf);
+                args.test_fmt(buf);
             }
-            Self::Word(w) => buf.push(format!("{:?}", w)),
-            Self::Whitespace(w) => buf.push(format!("{:?}", w)),
-            Self::Comment(c) => buf.push(format!("// {:?}", c)),
-            Self::MultiLineComment(c) => AstDebug::fmt(c, buf),
+            Self::Word(w) => w.surround(buf, "Word(", ")"),
+            Self::Whitespace(w) => w.surround(buf, "W(", ")"),
+            Self::Comment(c) => {
+                buf.push("//".into());
+                c.test_fmt(buf);
+            }
+            Self::MultiLineComment(c) => c.test_fmt(buf),
         }
     }
 }
@@ -75,16 +75,12 @@ impl Display for MultiLineComment<'_> {
 
 #[cfg(test)]
 impl AstDebug for MultiLineComment<'_> {
-    fn fmt(&self, buf: &mut Vec<String>) {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
-            Self::Word(w) => buf.push(format!("{:?}", w)),
-            Self::Whitespace(w) => buf.push(format!("{:?}", w)),
-            Self::Indented(i) => buf.push(format!("Indented({})", i)),
-            Self::Nested(c) => {
-                buf.push("/*".into());
-                AstDebug::fmt(c, buf);
-                buf.push("*/".into());
-            }
+            Self::Word(w) => w.test_fmt(buf),
+            Self::Whitespace(w) => w.test_fmt(buf),
+            Self::Indented(i) => i.surround(buf, "Indented(", ")"),
+            Self::Nested(c) => c.surround(buf, "/*", "*/"),
         }
     }
 }

@@ -1,3 +1,5 @@
+#[cfg(test)]
+use crate::ast::AstDebug;
 use core::fmt::{self, Display, Formatter};
 
 #[derive(Debug)]
@@ -39,5 +41,12 @@ impl From<String> for Text<'_> {
 impl Display for Text<'_> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         self.as_ref().fmt(f)
+    }
+}
+
+#[cfg(test)]
+impl AstDebug for Text<'_> {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
+        self.as_ref().test_fmt(buf);
     }
 }
