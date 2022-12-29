@@ -71,6 +71,8 @@ mod test {
         assert_eq!(r"", f("").repr());
         assert_eq!(r"hello, world", f("hello, world").repr());
         assert_eq!(r"\t", f("\t").repr());
+        assert_eq!(r"\r", f("\r").repr());
+        assert_eq!(r"\n", f("\n").repr());
         assert_eq!(r"\\", f(r"\").repr());
         assert_eq!(r"\\\|", f(r"\|").repr());
         assert_eq!(r"\|", f("|").repr());
