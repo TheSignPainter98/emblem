@@ -55,18 +55,37 @@ impl AstDebug for Content<'_> {
 }
 
 #[derive(Debug)]
-pub enum MultiLineComment<'i> {
-    Word(&'i str),
-    Whitespace(&'i str),
-    Indented(Box<MultiLineComment<'i>>),
-    Nested(Box<MultiLineComment<'i>>),
-}
+pub struct MultiLineComment<'i>(pub Vec<MultiLineCommentPart<'i>>);
 
 impl Display for MultiLineComment<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for c in &self.0 {
+            c.fmt(f)?;
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+impl AstDebug for MultiLineComment<'_> {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
+        self.0.test_fmt(buf);
+    }
+}
+
+#[derive(Debug)]
+pub enum MultiLineCommentPart<'i> {
+    Newline,
+    Comment(&'i str),
+    Indented(MultiLineComment<'i>),
+    Nested(MultiLineComment<'i>),
+}
+
+impl Display for MultiLineCommentPart<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Word(w) => write!(f, "[{}]", w),
-            Self::Whitespace(w) => write!(f, "[{}]", w),
+            Self::Newline => write!(f, r"\n"),
+            Self::Comment(w) => write!(f, "{:?}", w),
             Self::Indented(i) => write!(f, "Indented({})", i),
             Self::Nested(c) => write!(f, "/*{}*/", c),
         }
@@ -74,13 +93,19 @@ impl Display for MultiLineComment<'_> {
 }
 
 #[cfg(test)]
-impl AstDebug for MultiLineComment<'_> {
+impl AstDebug for MultiLineCommentPart<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
-            Self::Word(w) => w.test_fmt(buf),
-            Self::Whitespace(w) => w.test_fmt(buf),
-            Self::Indented(i) => i.surround(buf, "Indented(", ")"),
-            Self::Nested(c) => c.surround(buf, "/*", "*/"),
+            Self::Newline => buf.push(r"\n".into()),
+            Self::Comment(w) => w.test_fmt(buf),
+            Self::Indented(i) => {
+                buf.push("Indented".into());
+                i.test_fmt(buf);
+            }
+            Self::Nested(c) => {
+                buf.push("Nested".into());
+                c.test_fmt(buf);
+            }
         }
     }
 }
