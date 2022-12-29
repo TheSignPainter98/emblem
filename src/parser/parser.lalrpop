@@ -17,19 +17,19 @@ extern {
 	type Error = LexicalError<'input>;
 
 	enum lexer::Tok<'input> {
-		Indent => lexer::Tok::Indent,
-		Dedent => lexer::Tok::Dedent,
-		":" => lexer::Tok::Colon,
-		"::" => lexer::Tok::DoubleColon,
-		"{" => lexer::Tok::LBrace,
-		"}" => lexer::Tok::RBrace,
-		Command => lexer::Tok::Command(<&'input str>),
-		ParBreak => lexer::Tok::ParBreak,
-		Word => lexer::Tok::Word(<&'input str>),
+		Indent     => lexer::Tok::Indent,
+		Dedent     => lexer::Tok::Dedent,
+		":"        => lexer::Tok::Colon,
+		"::"       => lexer::Tok::DoubleColon,
+		"{"        => lexer::Tok::LBrace,
+		"}"        => lexer::Tok::RBrace,
+		Command    => lexer::Tok::Command(<&'input str>),
+		ParBreak   => lexer::Tok::ParBreak,
+		Word       => lexer::Tok::Word(<&'input str>),
 		Whitespace => lexer::Tok::Whitespace(<&'input str>),
-		"/*" => lexer::Tok::NestedCommentOpen,
-		"*/" => lexer::Tok::NestedCommentClose,
-		"\n" => lexer::Tok::Newline,
-		"//..." => lexer::Tok::Comment(<&'input str>),
+		"/*"       => lexer::Tok::NestedCommentOpen,
+		"*/"       => lexer::Tok::NestedCommentClose,
+		"\n"       => lexer::Tok::Newline,
+		Comment    => lexer::Tok::Comment(<&'input str>),
 	}
 }
