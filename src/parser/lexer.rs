@@ -41,6 +41,7 @@ pub struct Lexer<'input> {
     curr_loc: Location<'input>,
     prev_loc: Location<'input>,
     comment_depth: u32,
+    open_braces: u32,
 }
 
 impl<'input> Lexer<'input> {
@@ -54,6 +55,7 @@ impl<'input> Lexer<'input> {
             curr_loc: Location::new(file, input),
             prev_loc: Location::new(file, input),
             comment_depth: 0,
+            open_braces: 0,
         }
     }
 
@@ -123,6 +125,14 @@ impl<'input> Iterator for Lexer<'input> {
             let mat = self.try_consume(&INITIAL_INDENT).unwrap();
             self.target_indent = indent_level(mat);
 
+            if self.open_braces > 0 {
+                self.failed = true;
+                return Some(Err(LexicalError {
+                    reason: LexicalErrorReason::NewlineInArg,
+                    loc: self.curr_loc.clone(),
+                }))
+            }
+
             if self.insert_par_break && self.current_indent < self.target_indent {
                 self.insert_par_break = false;
                 return Some(Ok(self.span(Tok::ParBreak)));
@@ -156,8 +166,16 @@ impl<'input> Iterator for Lexer<'input> {
             COMMENT              => |s: &'input str| Ok(Tok::Comment(s[2..].trim())),
             DOUBLE_COLON         => |_| Ok(Tok::DoubleColon),
             COLON                => |_| Ok(Tok::Colon),
-            BRACE_LEFT           => |_| Ok(Tok::LBrace),
-            BRACE_RIGHT          => |_| Ok(Tok::RBrace),
+            BRACE_LEFT           => |_| {
+                self.open_braces += 1;
+                Ok(Tok::LBrace)
+            },
+            BRACE_RIGHT          => |_| {
+                if self.open_braces > 0 {
+                    self.open_braces -= 1;
+                }
+                Ok(Tok::RBrace)
+            },
             NESTED_COMMENT_OPEN  => |_| {
                 self.comment_depth += 1;
                 Ok(Tok::NestedCommentOpen)
@@ -287,6 +305,7 @@ impl Error for LexicalError<'_> {
 enum LexicalErrorReason {
     UnexpectedChar(char),
     UnmatchedCommentClose,
+    NewlineInArg,
 }
 
 impl LexicalErrorReason {
@@ -294,6 +313,7 @@ impl LexicalErrorReason {
         match self {
             LexicalErrorReason::UnexpectedChar(_) => "unexpected character",
             LexicalErrorReason::UnmatchedCommentClose => "no comment to close",
+            LexicalErrorReason::NewlineInArg => "newline in brace args",
         }
     }
 }
