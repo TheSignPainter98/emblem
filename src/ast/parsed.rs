@@ -49,7 +49,7 @@ impl AstDebug for Content<'_> {
                 buf.push("//".into());
                 c.test_fmt(buf);
             }
-            Self::MultiLineComment(c) => c.test_fmt(buf),
+            Self::MultiLineComment(c) => c.surround(buf, "/*", "*/"),
         }
     }
 }

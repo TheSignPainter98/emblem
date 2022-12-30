@@ -57,7 +57,7 @@ fn pretty_tok_list(list: Vec<String>) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ast::{File, AstDebug, parsed::Content};
+    use crate::ast::{parsed::Content, AstDebug, File};
 
     fn parse_str<'i>(input: &'i str) -> Result<ParsedAst<'i>, Box<dyn Error + 'i>> {
         parse("test.em", input)
@@ -65,6 +65,52 @@ mod test {
 
     #[test]
     fn basic() {
-        assert_eq!("File[]", parse_str("").unwrap().repr());
+        assert_eq!(parse_str("").unwrap().repr(), "File[]");
+    }
+
+    #[test]
+    fn multi_line_comments() {
+        assert_eq!(
+            parse_str("/**/").unwrap().repr(),
+            r"File[Par[/*[]*/]]"
+        );
+        assert_eq!(
+            parse_str("/* */").unwrap().repr(),
+            r"File[Par[/*[ ]*/]]"
+        );
+        assert_eq!(
+            parse_str("/*\t*/").unwrap().repr(),
+            r"File[Par[/*[\t]*/]]"
+        );
+        assert_eq!(
+            parse_str("/*spaghetti and meatballs*/").unwrap().repr(),
+            r"File[Par[/*[spaghetti and meatballs]*/]]"
+        );
+        assert_eq!(
+            parse_str("/* spaghetti and meatballs */").unwrap().repr(),
+            r"File[Par[/*[ spaghetti and meatballs ]*/]]"
+        );
+        assert_eq!(
+            parse_str("/*spaghetti and\nmeatballs*/").unwrap().repr(),
+            r"File[Par[/*[spaghetti and|\n|meatballs]*/]]"
+        );
+        assert_eq!(
+            parse_str("/*spaghetti*/\n/*and*/\n\n/*meatballs*/")
+                .unwrap()
+                .repr(),
+            r"File[Par[/*[spaghetti]*/|/*[and]*/]|Par[/*[meatballs]*/]]"
+        );
+        assert_eq!(
+            parse_str("/*spaghetti\n\tand\nmeatballs*/").unwrap().repr(),
+            r"File[Par[/*[spaghetti|Indented[and]|meatballs]*/]]"
+        );
+        assert_eq!(
+            parse_str("/*spaghetti/*and*/meatballs*/").unwrap().repr(),
+            r"File[Par[/*[spaghetti|Nested[and]|meatballs]*/]]"
+        );
+        assert_eq!(
+            parse_str("/*spaghetti\n\t/*\n\t\tand\n\t*/\nmeatballs*/").unwrap().repr(),
+            r"File[Par[/*[spaghetti|Nested[and]|meatballs]*/]]"
+        );
     }
 }

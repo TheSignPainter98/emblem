@@ -1,19 +1,83 @@
-use crate::parser::{self, LexicalError, lexer};
-use crate::ast::{File, ParsedAst};
+use crate::parser::{Location, LexicalError, lexer};
+use crate::ast::{
+    parsed::{MultiLineComment, MultiLineCommentPart, Content},
+    File, Par,
+};
+use crate::context::Context;
+use std::error::Error;
 
 grammar<'input>;
 
-pub File: ParsedAst<'input> = {
-	Indented<Command> => File { pars: vec![] },
+pub File: File<Content<'input>> = {
+	MaybeSepList<Par, ParBreak> => File {
+		pars: <>,
+	},
 };
 
+Par: Par<Content<'input>> = {
+	ParContent => Par { content: <> },
+};
+
+ParContent: Vec<Content<'input>> = {
+	SepList<Content, Whitespace>
+};
+
+Content: Content<'input> = {
+	NestedComment => Content::MultiLineComment(<>),
+	// !             => {
+	// 	errors.push("something went wrong");
+	// 	Content::Error
+	// }
+}
+
+Args = {
+	("{" <Content+> "}")* (":" <Indented<ParContent>> ("::" <Indented<ParContent>>)*)?
+}
+
+NestedComment: MultiLineComment<'input> = {
+	"/*" <NestedCommentContent> "*/"
+}
+
+NestedCommentContent: MultiLineComment<'input> = {
+	<NestedCommentPart*> => MultiLineComment(<>),
+}
+
+NestedCommentPart: MultiLineCommentPart<'input> = {
+	"\n"                                 => MultiLineCommentPart::Newline,
+	Comment                              => MultiLineCommentPart::Comment(<>),
+	Indent <NestedCommentContent> Dedent => MultiLineCommentPart::Indented(<>),
+	NestedComment                        => MultiLineCommentPart::Nested(<>),
+}
+
+SepList<T,Sep>: Vec<T> = {
+	<head:T> <mut tail:MaybeSepList<T,Sep>> => {
+		let mut ret = vec![head];
+		ret.append(&mut tail);
+		ret
+	}
+}
+
+MaybeSepList<T, Sep>: Vec<T> = {
+	<mut init:(<T> Sep)*> <last:T?> => match last {
+		None => init,
+		Some(e) => {
+			init.push(e);
+			init
+		}
+	},
+}
+
 Indented<T>: T = {
-	Indent <Indented<T>> Dedent,
+	Indent <MaybeIndented<T>> Dedent,
+}
+
+MaybeIndented<T>: T = {
 	T,
+	Indent <MaybeIndented<T>> Dedent,
 }
 
 extern {
-	type Location = parser::Location<'input>;
+	type Location = Location<'input>;
 	type Error = LexicalError<'input>;
 
 	enum lexer::Tok<'input> {
