@@ -142,6 +142,10 @@ mod test {
         #[test]
         fn empty() {
             assert_structure("empty", "/**/", r"File[Par[[/*[]*/]]]");
+            assert_structure("empty", "/**//**/", r"File[Par[[/*[]*/|/*[]*/]]]");
+            assert_structure("empty", "/**/ /**/", r"File[Par[[/*[]*/|< >|/*[]*/]]]");
+            assert_structure("empty", "/**/\t/**/", r"File[Par[[/*[]*/|<\t>|/*[]*/]]]");
+            assert_structure("empty", "/**/\n/**/", r"File[Par[[/*[]*/]|[/*[]*/]]]");
             assert_structure(
                 "multiple empty",
                 "/**/\n\n/**/\n/**/",
