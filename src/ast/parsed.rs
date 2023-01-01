@@ -45,7 +45,7 @@ impl AstDebug for Content<'_> {
                 args.test_fmt(buf);
             }
             Self::Word(w) => w.surround(buf, "Word(", ")"),
-            Self::Whitespace(w) => w.surround(buf, "W(", ")"),
+            Self::Whitespace(w) => w.surround(buf, "<", ">"),
             Self::Comment(c) => {
                 buf.push("//".into());
                 c.test_fmt(buf);
