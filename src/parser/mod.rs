@@ -102,10 +102,37 @@ mod test {
         use super::*;
 
         #[test]
-        fn basic() {
-            assert_eq!(parse_str("").unwrap().repr(), "File[]");
-            // assert_eq!(parse_str("hello, world!").unwrap().repr(), "File[Par[Word(hello,)|Whitespace( )|Word(world!)]]");
-            // assert_eq!(parse_str("hello, world!\n").unwrap().repr(), "File[Par[Word(hello,)|Whitespace( )|Word(world!)]]");
+        fn empty() {
+            assert_structure("empty", "", "File[Par[[]]]");
+        }
+
+        #[test]
+        fn single_line() {
+            assert_structure(
+                "single line",
+                "hello, world!",
+                "File[Par[[Word(hello,)|< >|Word(world!)]]]",
+            );
+
+            assert_structure(
+                "single line with tabs",
+                "hello,\tworld!",
+                r"File[Par[[Word(hello,)|<\t>|Word(world!)]]]",
+            );
+
+            assert_structure(
+                "single line for many pars",
+                "Spider-Pig, Spider-Pig,\n\nDoes whatever a Spider-Pig does.\n\nCan he swing from a web?\n\nNo, he can't, he's a pig,\n\nLook out, he is a Spider-Pig!",
+                "File[Par[[Word(Spider-Pig,)|< >|Word(Spider-Pig,)]]|Par[[Word(Does)|< >|Word(whatever)|< >|Word(a)|< >|Word(Spider-Pig)|< >|Word(does.)]]|Par[[Word(Can)|< >|Word(he)|< >|Word(swing)|< >|Word(from)|< >|Word(a)|< >|Word(web?)]]|Par[[Word(No,)|< >|Word(he)|< >|Word(can't,)|< >|Word(he's)|< >|Word(a)|< >|Word(pig,)]]|Par[[Word(Look)|< >|Word(out,)|< >|Word(he)|< >|Word(is)|< >|Word(a)|< >|Word(Spider-Pig!)]]]",
+            );
+        }
+
+        #[test]
+        fn multiple_lines() {
+            assert_structure("multiple lines",
+                "According to all known laws of aviation, there is no way that a bee should be able to fly.\nIts wings are too small to get its fat little body off the ground.\n\nThe bee, of course, flies anyway because bees don't care what humans think is impossible.",
+                "File[Par[[Word(According)|< >|Word(to)|< >|Word(all)|< >|Word(known)|< >|Word(laws)|< >|Word(of)|< >|Word(aviation,)|< >|Word(there)|< >|Word(is)|< >|Word(no)|< >|Word(way)|< >|Word(that)|< >|Word(a)|< >|Word(bee)|< >|Word(should)|< >|Word(be)|< >|Word(able)|< >|Word(to)|< >|Word(fly.)]|[Word(Its)|< >|Word(wings)|< >|Word(are)|< >|Word(too)|< >|Word(small)|< >|Word(to)|< >|Word(get)|< >|Word(its)|< >|Word(fat)|< >|Word(little)|< >|Word(body)|< >|Word(off)|< >|Word(the)|< >|Word(ground.)]]|Par[[Word(The)|< >|Word(bee,)|< >|Word(of)|< >|Word(course,)|< >|Word(flies)|< >|Word(anyway)|< >|Word(because)|< >|Word(bees)|< >|Word(don't)|< >|Word(care)|< >|Word(what)|< >|Word(humans)|< >|Word(think)|< >|Word(is)|< >|Word(impossible.)]]]",
+            );
         }
     }
 
@@ -120,7 +147,6 @@ mod test {
                 "/**/\n\n/**/\n/**/",
                 r"File[Par[[/*[]*/]]|Par[[/*[]*/]|[/*[]*/]]]",
             );
-
         }
 
         #[test]

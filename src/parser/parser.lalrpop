@@ -26,11 +26,13 @@ Eol: () = {
 }
 
 LineContent: Line<Content<'input>> = {
-	MaybeSepList<LineElement, Whitespace> => Line { content: <> }
+	LineElement* => Line { content: <> }
 }
 
 LineElement: Content<'input> = {
+	Word          => Content::Word(Text::from(<>)),
 	NestedComment => Content::MultiLineComment(<>),
+	Whitespace    => Content::Whitespace(<>),
 	// !             => {
 	// 	errors.push("something went wrong");
 	// 	Content::Error
