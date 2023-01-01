@@ -2,6 +2,7 @@ use crate::parser::location::Location;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{
+    collections::VecDeque,
     error::Error,
     fmt::{self, Display},
 };
@@ -34,28 +35,29 @@ token_patterns! {
 
 pub struct Lexer<'input> {
     input: &'input str,
+    done: bool,
     failed: bool,
-    insert_par_break: bool,
     current_indent: u32,
-    target_indent: u32,
     curr_loc: Location<'input>,
     prev_loc: Location<'input>,
     comment_depth: u32,
     open_braces: u32,
+    next_toks: VecDeque<SpannedTok<'input>>,
+    multi_line_comment_state: Option<MultiLineCommentState>,
 }
 
 impl<'input> Lexer<'input> {
     pub fn new(file: &'input str, input: &'input str) -> Self {
         Self {
             input,
+            done: false,
             failed: false,
-            insert_par_break: false,
             current_indent: 0,
-            target_indent: 0,
             curr_loc: Location::new(file, input),
             prev_loc: Location::new(file, input),
-            comment_depth: 0,
             open_braces: 0,
+            next_toks: VecDeque::new(),
+            multi_line_comment_state: None,
         }
     }
 
@@ -76,6 +78,31 @@ impl<'input> Lexer<'input> {
     fn span(&self, tok: Tok<'input>) -> SpannedTok<'input> {
         (self.prev_loc.clone(), tok, self.curr_loc.clone())
     }
+
+    fn enqueue_indentation_delta(&mut self, target: u32) {
+        let difference = self.current_indent.abs_diff(target);
+        let tok = if self.current_indent > target {
+            Tok::Indent
+        } else {
+            Tok::Dedent
+        };
+
+        for _ in 1..difference {
+            self.enqueue(self.span(tok.clone()))
+        }
+    }
+
+    fn dequeue(&mut self) -> Option<SpannedTok<'input>> {
+        self.next_toks.pop_front()
+    }
+
+    fn enqueue(&mut self, t: SpannedTok<'input>) {
+        self.next_toks.push_back(t)
+    }
+
+    fn push(&mut self, t: SpannedTok<'input>) {
+        self.next_toks.push_front(t)
+    }
 }
 
 impl<'input> Iterator for Lexer<'input> {
@@ -83,6 +110,14 @@ impl<'input> Iterator for Lexer<'input> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.failed {
+            return None;
+        }
+
+        if let Some(t) = self.dequeue() {
+            return Some(Ok(t));
+        }
+
+        if self.done {
             return None;
         }
 
@@ -118,48 +153,30 @@ impl<'input> Iterator for Lexer<'input> {
         }
 
         if self.input.is_empty() {
-            self.target_indent = 0;
-        } else if self.try_consume(&LN).is_some() {
-            self.insert_par_break = self.try_consume(&PAR_BREAKS).is_some();
+            self.enqueue_indentation_delta(0);
+            self.enqueue(self.span(Tok::Eof));
+            self.done = true;
+            return Some(Ok(self.dequeue().unwrap()));
+        }
 
-            let mat = self.try_consume(&INITIAL_INDENT).unwrap();
-            self.target_indent = indent_level(mat);
+        if self.try_consume(&LN).is_some() {
+            self.start_of_line = true;
 
             if self.open_braces > 0 {
                 self.failed = true;
                 return Some(Err(LexicalError {
                     reason: LexicalErrorReason::NewlineInArg,
                     loc: self.curr_loc.clone(),
-                }))
+                }));
             }
 
-            if self.insert_par_break && self.current_indent < self.target_indent {
-                self.insert_par_break = false;
-                return Some(Ok(self.span(Tok::ParBreak)));
-            }
-        } else if self.curr_loc.index == 0 {
-            if let Some(mat) = self.try_consume(&INITIAL_INDENT) {
-                self.target_indent = indent_level(mat);
-            }
-        }
+            self.enqueue(self.span(Tok::Newline));
 
-        if self.current_indent != self.target_indent {
-            if self.current_indent < self.target_indent {
-                self.current_indent += 1;
-                return Some(Ok(self.span(Tok::Indent)));
-            } else {
-                self.current_indent -= 1;
-                return Some(Ok(self.span(Tok::Dedent)));
+            if self.try_consume(&PAR_BREAKS).is_some() {
+                self.enqueue(self.span(Tok::ParBreak));
             }
-        }
 
-        if self.input.is_empty() {
-            return None;
-        }
-
-        if self.insert_par_break {
-            self.insert_par_break = false;
-            return Some(Ok(self.span(Tok::ParBreak)));
+            return Some(Ok(self.dequeue().unwrap()))
         }
 
         match_token! {
@@ -214,6 +231,7 @@ pub enum Tok<'input> {
     NestedCommentClose,
     Comment(&'input str),
     Newline,
+    Eof,
 }
 
 // impl ToString for Tok<'_> {
@@ -255,6 +273,7 @@ impl Display for Tok<'_> {
             Tok::NestedCommentClose => write!(f, "(*/)"),
             Tok::Newline => write!(f, "(newline)"),
             Tok::Comment(c) => write!(f, "(// {})", c),
+            Tok::Eof => write!(f, "(EOF)"),
         }
     }
 }
