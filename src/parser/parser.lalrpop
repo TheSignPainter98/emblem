@@ -1,7 +1,7 @@
-use crate::parser::{Location, LexicalError, lexer};
+use crate::parser::{Location, LexicalError, lexer::Tok};
 use crate::ast::{
     parsed::{MultiLineComment, MultiLineCommentPart, Content},
-    File, Par,
+    File, Par, Line, Text,
 };
 use crate::context::Context;
 use std::error::Error;
@@ -9,20 +9,27 @@ use std::error::Error;
 grammar<'input>;
 
 pub File: File<Content<'input>> = {
-	MaybeSepList<Par, ParBreak> => File {
-		pars: <>,
-	},
+	<MaybeSepList<Par, ParBreak>> Eof? => File { pars: <> },
 };
 
 Par: Par<Content<'input>> = {
-	ParContent => Par { content: <> },
-};
+	Line+ => Par { lines: <> }
+}
 
-ParContent: Vec<Content<'input>> = {
-	SepList<Content, Whitespace>
-};
+Line: Line<Content<'input>> = {
+	<LineContent> "\n"
+}
 
-Content: Content<'input> = {
+Eol: () = {
+	"\n"
+	Eof
+}
+
+LineContent: Line<Content<'input>> = {
+	MaybeSepList<LineElement, Whitespace> => Line { content: <> }
+}
+
+LineElement: Content<'input> = {
 	NestedComment => Content::MultiLineComment(<>),
 	// !             => {
 	// 	errors.push("something went wrong");
@@ -30,9 +37,9 @@ Content: Content<'input> = {
 	// }
 }
 
-Args = {
-	("{" <Content+> "}")* (":" <Indented<ParContent>> ("::" <Indented<ParContent>>)*)?
-}
+// Args = {
+// 	("{" <Content+> "}")* (":" <Indented<ParContent>> ("::" <Indented<ParContent>>)*)?
+// }
 
 NestedComment: MultiLineComment<'input> = {
 	"/*" <NestedCommentContent> "*/"
@@ -45,7 +52,6 @@ NestedCommentContent: MultiLineComment<'input> = {
 NestedCommentPart: MultiLineCommentPart<'input> = {
 	"\n"                                 => MultiLineCommentPart::Newline,
 	Comment                              => MultiLineCommentPart::Comment(<>),
-	Indent <NestedCommentContent> Dedent => MultiLineCommentPart::Indented(<>),
 	NestedComment                        => MultiLineCommentPart::Nested(<>),
 }
 
@@ -80,20 +86,21 @@ extern {
 	type Location = Location<'input>;
 	type Error = LexicalError<'input>;
 
-	enum lexer::Tok<'input> {
-		Indent     => lexer::Tok::Indent,
-		Dedent     => lexer::Tok::Dedent,
-		":"        => lexer::Tok::Colon,
-		"::"       => lexer::Tok::DoubleColon,
-		"{"        => lexer::Tok::LBrace,
-		"}"        => lexer::Tok::RBrace,
-		Command    => lexer::Tok::Command(<&'input str>),
-		ParBreak   => lexer::Tok::ParBreak,
-		Word       => lexer::Tok::Word(<&'input str>),
-		Whitespace => lexer::Tok::Whitespace(<&'input str>),
-		"/*"       => lexer::Tok::NestedCommentOpen,
-		"*/"       => lexer::Tok::NestedCommentClose,
-		"\n"       => lexer::Tok::Newline,
-		Comment    => lexer::Tok::Comment(<&'input str>),
+	enum Tok<'input> {
+		Indent     => Tok::Indent,
+		Dedent     => Tok::Dedent,
+		":"        => Tok::Colon,
+		"::"       => Tok::DoubleColon,
+		"{"        => Tok::LBrace,
+		"}"        => Tok::RBrace,
+		Command    => Tok::Command(<&'input str>),
+		ParBreak   => Tok::ParBreak,
+		Word       => Tok::Word(<&'input str>),
+		Whitespace => Tok::Whitespace(<&'input str>),
+		"/*"       => Tok::NestedCommentOpen,
+		"*/"       => Tok::NestedCommentClose,
+		"\n"       => Tok::Newline,
+		Comment    => Tok::Comment(<&'input str>),
+		Eof        => Tok::Eof,
 	}
 }

@@ -63,54 +63,130 @@ mod test {
         parse("test.em", input)
     }
 
-    #[test]
-    fn basic() {
-        assert_eq!(parse_str("").unwrap().repr(), "File[]");
+    fn assert_structure(name: &str, input: &str, expected: &str) {
+        // assert_eq!(
+        //     expected,
+        //     {
+        //         let parse_result = parse(name, input);
+        //         assert!(
+        //             parse_result.is_ok(),
+        //             "{}: expected Ok parse result when parsing {:?}, got: {:?}",
+        //             name,
+        //             input,
+        //             parse_result
+        //         );
+        //         parse_result.unwrap().repr()
+        //     },
+        //     "{}",
+        //     name
+        // );
+        let input_with_newline = &format!("{}\n", input);
+        assert_eq!(
+            expected,
+            {
+                let parse_result = parse(name, input_with_newline);
+                assert!(
+                    parse_result.is_ok(),
+                    "{}: expected Ok parse result when parsing {:?}",
+                    name,
+                    input_with_newline
+                );
+                parse_result.unwrap().repr()
+            },
+            "{}",
+            name
+        );
     }
 
-    #[test]
-    fn multi_line_comments() {
-        assert_eq!(
-            parse_str("/**/").unwrap().repr(),
-            r"File[Par[/*[]*/]]"
-        );
-        assert_eq!(
-            parse_str("/* */").unwrap().repr(),
-            r"File[Par[/*[ ]*/]]"
-        );
-        assert_eq!(
-            parse_str("/*\t*/").unwrap().repr(),
-            r"File[Par[/*[\t]*/]]"
-        );
-        assert_eq!(
-            parse_str("/*spaghetti and meatballs*/").unwrap().repr(),
-            r"File[Par[/*[spaghetti and meatballs]*/]]"
-        );
-        assert_eq!(
-            parse_str("/* spaghetti and meatballs */").unwrap().repr(),
-            r"File[Par[/*[ spaghetti and meatballs ]*/]]"
-        );
-        assert_eq!(
-            parse_str("/*spaghetti and\nmeatballs*/").unwrap().repr(),
-            r"File[Par[/*[spaghetti and|\n|meatballs]*/]]"
-        );
-        assert_eq!(
-            parse_str("/*spaghetti*/\n/*and*/\n\n/*meatballs*/")
-                .unwrap()
-                .repr(),
-            r"File[Par[/*[spaghetti]*/|/*[and]*/]|Par[/*[meatballs]*/]]"
-        );
-        assert_eq!(
-            parse_str("/*spaghetti\n\tand\nmeatballs*/").unwrap().repr(),
-            r"File[Par[/*[spaghetti|Indented[and]|meatballs]*/]]"
-        );
-        assert_eq!(
-            parse_str("/*spaghetti/*and*/meatballs*/").unwrap().repr(),
-            r"File[Par[/*[spaghetti|Nested[and]|meatballs]*/]]"
-        );
-        assert_eq!(
-            parse_str("/*spaghetti\n\t/*\n\t\tand\n\t*/\nmeatballs*/").unwrap().repr(),
-            r"File[Par[/*[spaghetti|Nested[and]|meatballs]*/]]"
-        );
+    mod paragraphs {
+        use super::*;
+
+        #[test]
+        fn basic() {
+            assert_eq!(parse_str("").unwrap().repr(), "File[]");
+            // assert_eq!(parse_str("hello, world!").unwrap().repr(), "File[Par[Word(hello,)|Whitespace( )|Word(world!)]]");
+            // assert_eq!(parse_str("hello, world!\n").unwrap().repr(), "File[Par[Word(hello,)|Whitespace( )|Word(world!)]]");
+        }
+    }
+
+    mod multi_line_comments {
+        use super::*;
+
+        #[test]
+        fn empty() {
+            assert_structure("empty", "/**/", r"File[Par[[/*[]*/]]]");
+            assert_structure(
+                "multiple empty",
+                "/**/\n\n/**/\n/**/",
+                r"File[Par[[/*[]*/]]|Par[[/*[]*/]|[/*[]*/]]]",
+            );
+
+        }
+
+        #[test]
+        fn whitespace_contents() {
+            assert_structure("space only", "/* */", r"File[Par[[/*[ ]*/]]]");
+            assert_structure("tab only", "/*\t*/", r"File[Par[[/*[\t]*/]]]");
+        }
+
+        #[test]
+        fn with_text() {
+            assert_structure(
+                "text",
+                "/*spaghetti and meatballs*/",
+                r"File[Par[[/*[spaghetti and meatballs]*/]]]",
+            );
+            assert_structure(
+                "text with surrounding space",
+                "/* spaghetti and meatballs */",
+                r"File[Par[[/*[ spaghetti and meatballs ]*/]]]",
+            );
+            assert_structure(
+                "text with newline",
+                "/*spaghetti and\nmeatballs*/",
+                r"File[Par[[/*[spaghetti and|\n|meatballs]*/]]]",
+            );
+            assert_structure(
+                "multiple comments",
+                "/*spaghetti*/\n/*and*/\n\n/*meatballs*/",
+                r"File[Par[[/*[spaghetti]*/]|[/*[and]*/]]|Par[[/*[meatballs]*/]]]",
+            );
+        }
+
+        #[test]
+        fn nested() {
+            assert_structure(
+                "nested comment",
+                "/*spaghetti/*and*/meatballs*/",
+                r"File[Par[[/*[spaghetti|Nested[and]|meatballs]*/]]]",
+            );
+            assert_structure(
+                "nested and indented comment",
+                "/*spaghetti\n\t/*\n\t\tand\n\t*/\nmeatballs*/",
+                r"File[Par[[/*[spaghetti|\n|\t|Nested[\n|\t\tand|\n|\t]|\n|meatballs]*/]]]",
+            );
+            assert_structure(
+                "nested unindented comment",
+                "/*spaghetti\n\t/*\nand\n\t*/\nmeatballs*/",
+                r"File[Par[[/*[spaghetti|\n|\t|Nested[\n|and|\n|\t]|\n|meatballs]*/]]]",
+            );
+        }
+
+        #[test]
+        fn unmatched_close() {
+            assert!(parse_str("/*spaghetti/*and*/meatballs").is_err());
+        }
+
+        #[test]
+        fn final_indentation() {
+            assert!(parse_str("/*spaghetti\n\t*/").is_err());
+            assert!(parse_str("/*spaghetti\n    */").is_err());
+            assert_structure(
+                "long, prettified comment block",
+                "/* spaghetti\n *and\n *meatballs\n */",
+                r"File[Par[[/*[ spaghetti|\n| *and|\n| *meatballs|\n| ]*/]]]",
+            );
+            // TODO(kcza): test bad leaving-indentation with trailing args
+        }
     }
 }
