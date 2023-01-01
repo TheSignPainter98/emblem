@@ -43,12 +43,7 @@ pub struct Lexer<'input> {
     prev_loc: Location<'input>,
     open_braces: u32,
     next_toks: VecDeque<SpannedTok<'input>>,
-    multi_line_comment_state: Option<MultiLineCommentState>,
-}
-
-pub struct MultiLineCommentState {
-    depth: u32,
-    initial_indent: u32,
+    comment_depth: u32,
 }
 
 impl<'input> Lexer<'input> {
@@ -63,7 +58,7 @@ impl<'input> Lexer<'input> {
             prev_loc: Location::new(file, input),
             open_braces: 0,
             next_toks: VecDeque::new(),
-            multi_line_comment_state: None,
+            comment_depth: 0,
         }
     }
 
@@ -143,7 +138,7 @@ impl<'input> Iterator for Lexer<'input> {
             };
         }
 
-        if self.multi_line_comment_state.is_some() {
+        if self.comment_depth > 0 {
             return match_token![
                 NESTED_COMMENT_PART => |s: &'input str| {
                     if self.start_of_line {
@@ -156,16 +151,11 @@ impl<'input> Iterator for Lexer<'input> {
                     Ok(Tok::Newline)
                 },
                 NESTED_COMMENT_OPEN => |_| {
-                    self.multi_line_comment_state.as_mut().unwrap().depth += 1;
+                    self.comment_depth += 1;
                     Ok(Tok::NestedCommentOpen)
                 },
                 NESTED_COMMENT_CLOSE => |_| {
-                    let comment_state = self.multi_line_comment_state.as_mut().unwrap();
-                    if comment_state.depth == 1 {
-                        self.multi_line_comment_state = None;
-                    } else {
-                        comment_state.depth -= 1;
-                    }
+                    self.comment_depth -= 1;
                     Ok(Tok::NestedCommentClose)
                 },
             ];
@@ -214,7 +204,7 @@ impl<'input> Iterator for Lexer<'input> {
                 Ok(Tok::RBrace)
             },
             NESTED_COMMENT_OPEN  => |_| {
-                self.multi_line_comment_state = Some(MultiLineCommentState{depth: 1, initial_indent: self.current_indent});
+                self.comment_depth = 1;
                 Ok(Tok::NestedCommentOpen)
             },
             NESTED_COMMENT_CLOSE => |_| {
