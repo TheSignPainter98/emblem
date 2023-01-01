@@ -37,13 +37,18 @@ pub struct Lexer<'input> {
     input: &'input str,
     done: bool,
     failed: bool,
+    start_of_line: bool,
     current_indent: u32,
     curr_loc: Location<'input>,
     prev_loc: Location<'input>,
-    comment_depth: u32,
     open_braces: u32,
     next_toks: VecDeque<SpannedTok<'input>>,
     multi_line_comment_state: Option<MultiLineCommentState>,
+}
+
+pub struct MultiLineCommentState {
+    depth: u32,
+    initial_indent: u32,
 }
 
 impl<'input> Lexer<'input> {
@@ -52,6 +57,7 @@ impl<'input> Lexer<'input> {
             input,
             done: false,
             failed: false,
+            start_of_line: true,
             current_indent: 0,
             curr_loc: Location::new(file, input),
             prev_loc: Location::new(file, input),
@@ -137,16 +143,29 @@ impl<'input> Iterator for Lexer<'input> {
             };
         }
 
-        if self.comment_depth > 0 {
+        if self.multi_line_comment_state.is_some() {
             return match_token![
-                NESTED_COMMENT_PART  => |s: &'input str| Ok(Tok::Comment(s.trim())),
-                LN                   => |_| Ok(Tok::Newline),
-                NESTED_COMMENT_OPEN  => |_| {
-                    self.comment_depth += 1;
+                NESTED_COMMENT_PART => |s: &'input str| {
+                    if self.start_of_line {
+                        self.current_indent = indent_level(s);
+                    }
+                    Ok(Tok::Comment(s))
+                },
+                LN => |_| {
+                    self.start_of_line = true;
+                    Ok(Tok::Newline)
+                },
+                NESTED_COMMENT_OPEN => |_| {
+                    self.multi_line_comment_state.as_mut().unwrap().depth += 1;
                     Ok(Tok::NestedCommentOpen)
                 },
                 NESTED_COMMENT_CLOSE => |_| {
-                    self.comment_depth -= 1;
+                    let comment_state = self.multi_line_comment_state.as_mut().unwrap();
+                    if comment_state.depth == 1 {
+                        self.multi_line_comment_state = None;
+                    } else {
+                        comment_state.depth -= 1;
+                    }
                     Ok(Tok::NestedCommentClose)
                 },
             ];
@@ -178,6 +197,7 @@ impl<'input> Iterator for Lexer<'input> {
 
             return Some(Ok(self.dequeue().unwrap()))
         }
+        self.start_of_line = false;
 
         match_token! {
             COMMENT              => |s: &'input str| Ok(Tok::Comment(s[2..].trim())),
@@ -194,19 +214,15 @@ impl<'input> Iterator for Lexer<'input> {
                 Ok(Tok::RBrace)
             },
             NESTED_COMMENT_OPEN  => |_| {
-                self.comment_depth += 1;
+                self.multi_line_comment_state = Some(MultiLineCommentState{depth: 1, initial_indent: self.current_indent});
                 Ok(Tok::NestedCommentOpen)
             },
             NESTED_COMMENT_CLOSE => |_| {
-                if self.comment_depth == 0 {
-                    self.failed = true;
-                    Err(LexicalError{
-                        reason: LexicalErrorReason::UnmatchedCommentClose,
-                        loc: self.curr_loc.clone(),
-                    })
-                } else {
-                    Ok(Tok::NestedCommentClose)
-                }
+                self.failed = true;
+                Err(LexicalError{
+                    reason: LexicalErrorReason::UnmatchedCommentClose,
+                    loc: self.curr_loc.clone(),
+                })
             },
             COMMAND    => |s:&'input str| Ok(Tok::Command(&s[1..])),
             WORD       => |s:&'input str| Ok(Tok::Word(s)),
@@ -278,7 +294,7 @@ impl Display for Tok<'_> {
     }
 }
 
-/// Compute the level of indentation for the given whitespace string.
+/// Compute the level of indentation for the given string.
 fn indent_level(s: &str) -> u32 {
     let mut tabs = 0;
     let mut spaces = 0;
@@ -287,7 +303,7 @@ fn indent_level(s: &str) -> u32 {
         match chr {
             ' ' => spaces += 1,
             '\t' => tabs += 1,
-            _ => {}
+            _ => break,
         }
     }
 
@@ -347,16 +363,22 @@ impl Display for LexicalErrorReason {
 mod test {
     use super::*;
 
+    fn test_indent_str(expected: u32, s: &str) {
+        assert_eq!(expected, indent_level(s));
+        assert_eq!(expected, indent_level(&format!("{}foo", s)));
+        assert_eq!(expected, indent_level(&format!("{}foo{}", s, s)));
+    }
+
     #[test]
     fn indent_level_counting() {
-        assert_eq!(0, indent_level(""));
-        assert_eq!(1, indent_level(" "));
-        assert_eq!(1, indent_level("\t"));
-        assert_eq!(1, indent_level("    "));
-        assert_eq!(2, indent_level("\t "));
-        assert_eq!(2, indent_level(" \t "));
-        assert_eq!(2, indent_level("\t\t"));
-        assert_eq!(2, indent_level("        "));
-        assert_eq!(3, indent_level("    \t    "));
+        test_indent_str(0, "");
+        test_indent_str(1, " ");
+        test_indent_str(1, "\t");
+        test_indent_str(1, "    ");
+        test_indent_str(2, "\t ");
+        test_indent_str(2, " \t ");
+        test_indent_str(2, "\t\t");
+        test_indent_str(2, "        ");
+        test_indent_str(3, "    \t    ");
     }
 }
