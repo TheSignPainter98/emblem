@@ -80,6 +80,7 @@ mod test {
         //     "{}",
         //     name
         // );
+
         let input_with_newline = &format!("{}\n", input);
         assert_eq!(
             expected,
@@ -96,6 +97,13 @@ mod test {
             "{}",
             name
         );
+    }
+
+    fn assert_parse_error(name: &str, input: &str) {
+        // assert!(parse(name, input).is_err(), "{}", name);
+
+        let input_with_newline = &format!("{}\n", input);
+        assert!(parse(name, input_with_newline).is_err(), "{}", name);
     }
 
     mod paragraphs {
@@ -133,6 +141,43 @@ mod test {
                 "According to all known laws of aviation, there is no way that a bee should be able to fly.\nIts wings are too small to get its fat little body off the ground.\n\nThe bee, of course, flies anyway because bees don't care what humans think is impossible.",
                 "File[Par[[Word(According)|< >|Word(to)|< >|Word(all)|< >|Word(known)|< >|Word(laws)|< >|Word(of)|< >|Word(aviation,)|< >|Word(there)|< >|Word(is)|< >|Word(no)|< >|Word(way)|< >|Word(that)|< >|Word(a)|< >|Word(bee)|< >|Word(should)|< >|Word(be)|< >|Word(able)|< >|Word(to)|< >|Word(fly.)]|[Word(Its)|< >|Word(wings)|< >|Word(are)|< >|Word(too)|< >|Word(small)|< >|Word(to)|< >|Word(get)|< >|Word(its)|< >|Word(fat)|< >|Word(little)|< >|Word(body)|< >|Word(off)|< >|Word(the)|< >|Word(ground.)]]|Par[[Word(The)|< >|Word(bee,)|< >|Word(of)|< >|Word(course,)|< >|Word(flies)|< >|Word(anyway)|< >|Word(because)|< >|Word(bees)|< >|Word(don't)|< >|Word(care)|< >|Word(what)|< >|Word(humans)|< >|Word(think)|< >|Word(is)|< >|Word(impossible.)]]]",
             );
+        }
+    }
+
+    mod commands {
+        use super::*;
+
+        #[test]
+        fn escaped() {
+            assert_structure("escaped command", r"\.hello", "File[Par[[Word(.hello)]]]")
+        }
+
+        #[test]
+        fn command_only() {
+            assert_structure("command", ".order66", "File[Par[[.order66]]]")
+        }
+
+        #[test]
+        fn with_args() {
+            assert_structure(
+                "sole",
+                ".exec{order66}",
+                "File[Par[[.exec{[Word(order66)]}]]]",
+            );
+            assert_structure("start of line", ".old-man-say{leave her Johnny, leave her} tomorrow ye will get your pay", "File[Par[[.old-man-say{[Word(leave)|< >|Word(her)|< >|Word(Johnny,)|< >|Word(leave)|< >|Word(her)]}|< >|Word(tomorrow)|< >|Word(ye)|< >|Word(will)|< >|Word(get)|< >|Word(your)|< >|Word(pay)]]]");
+            assert_structure("end of line", "I hate to .sail{on this rotten tub}", "File[Par[[Word(I)|< >|Word(hate)|< >|Word(to)|< >|.sail{[Word(on)|< >|Word(this)|< >|Word(rotten)|< >|Word(tub)]}]]]");
+            assert_structure("middle of line", "For the .voyage-is{foul} and the winds don't blow", "File[Par[[Word(For)|< >|Word(the)|< >|.voyage-is{[Word(foul)]}|< >|Word(and)|< >|Word(the)|< >|Word(winds)|< >|Word(don't)|< >|Word(blow)]]]");
+            assert_structure("nested", ".no{grog .allowed{and} rotten grub}", "File[Par[[.no{[Word(grog)|< >|.allowed{[Word(and)]}|< >|Word(rotten)|< >|Word(grub)]}]]]");
+
+            assert_parse_error("orphaned open brace", "{");
+            assert_parse_error("orphaned close brace", "}");
+            assert_parse_error("superfluous open brace", ".order66{}{");
+            assert_parse_error("superfluous close brace", ".order66{}}");
+
+            assert_parse_error("newline in brace-arg", ".order66{\n}");
+            assert_parse_error("newline in brace-arg", ".order66{general\nkenobi}");
+            assert_parse_error("par-break in brace-arg", ".order66{\n\n}");
+            assert_parse_error("par-break in brace-arg", ".order66{general\n\nkenobi}");
         }
     }
 

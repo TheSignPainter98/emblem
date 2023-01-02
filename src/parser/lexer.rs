@@ -24,6 +24,7 @@ token_patterns! {
     let DOUBLE_COLON       = r"::";
     let INITIAL_INDENT     = r"[ \t]*";
     let COMMAND            = r"\.[^ \t{}\r\n]+";
+    let ESCAPED_COMMAND    = r"\\\.[^ \t{}\r\n]+";
     let BRACE_LEFT         = r"\{";
     let BRACE_RIGHT        = r"\}";
     let COMMENT            = r"//[^\r\n]*";
@@ -214,9 +215,10 @@ impl<'input> Iterator for Lexer<'input> {
                     loc: self.curr_loc.clone(),
                 })
             },
-            COMMAND    => |s:&'input str| Ok(Tok::Command(&s[1..])),
-            WORD       => |s:&'input str| Ok(Tok::Word(s)),
-            WHITESPACE => |s:&'input str| Ok(Tok::Whitespace(s)),
+            COMMAND         => |s:&'input str| Ok(Tok::Command(&s[1..])),
+            ESCAPED_COMMAND => |s:&'input str| Ok(Tok::Word(&s[1..])),
+            WORD            => |s:&'input str| Ok(Tok::Word(s)),
+            WHITESPACE      => |s:&'input str| Ok(Tok::Whitespace(s)),
         }
     }
 }

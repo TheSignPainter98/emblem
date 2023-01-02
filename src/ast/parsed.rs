@@ -7,7 +7,7 @@ use crate::ast::AstDebug;
 
 #[derive(Debug)]
 pub enum Content<'i> {
-    Call {
+    Command {
         name: Text<'i>,
         args: Vec<Line<Content<'i>>>,
     },
@@ -39,10 +39,12 @@ pub enum Content<'i> {
 impl AstDebug for Content<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
-            Self::Call { name, args } => {
+            Self::Command { name, args } => {
                 buf.push('.'.into());
                 name.test_fmt(buf);
-                args.test_fmt(buf);
+                for arg in args {
+                    arg.surround(buf, "{", "}");
+                }
             }
             Self::Word(w) => w.surround(buf, "Word(", ")"),
             Self::Whitespace(w) => w.surround(buf, "<", ">"),

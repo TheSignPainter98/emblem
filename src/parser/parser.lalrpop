@@ -30,10 +30,11 @@ LineContent: Line<Content<'input>> = {
 }
 
 LineElement: Content<'input> = {
-	Comment       => Content::Comment(<>),
-	NestedComment => Content::MultiLineComment(<>),
-	Whitespace    => Content::Whitespace(<>),
-	Word          => Content::Word(Text::from(<>)),
+	Comment                                         => Content::Comment(<>),
+	NestedComment                                   => Content::MultiLineComment(<>),
+	Whitespace                                      => Content::Whitespace(<>),
+	Word                                            => Content::Word(Text::from(<>)),
+	<name: Command> <args:("{" <LineContent> "}")*> => Content::Command { name: Text::from(name), args },
 	// !             => {
 	// 	errors.push("something went wrong");
 	// 	Content::Error
