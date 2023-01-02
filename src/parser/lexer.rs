@@ -16,7 +16,7 @@ macro_rules! token_patterns {
 }
 
 token_patterns! {
-    let WORD               = r"[^ \t\r\n}]+";
+    let WORD               = r"([^ /\t\r\n}]|/[^ /\t\r\n])+";
     let WHITESPACE         = r"[ \t]+";
     let PAR_BREAKS         = r"([ \t]*(\n|\r\n|\r))+";
     let LN                 = r"(\n|\r\n|\r)";
@@ -190,7 +190,7 @@ impl<'input> Iterator for Lexer<'input> {
         self.start_of_line = false;
 
         match_token! {
-            COMMENT              => |s: &'input str| Ok(Tok::Comment(s[2..].trim())),
+            COMMENT              => |s: &'input str| Ok(Tok::Comment(&s[2..])),
             DOUBLE_COLON         => |_| Ok(Tok::DoubleColon),
             COLON                => |_| Ok(Tok::Colon),
             BRACE_LEFT           => |_| {

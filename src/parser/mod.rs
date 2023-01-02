@@ -136,6 +136,75 @@ mod test {
         }
     }
 
+    mod single_line_comments {
+        use super::*;
+
+        #[test]
+        fn whole_line() {
+            assert_structure(
+                "no gap",
+                "//hello, world!\n",
+                "File[Par[[//hello, world!]]]",
+            );
+            assert_structure(
+                "leading space",
+                "// hello, world!\n",
+                "File[Par[[// hello, world!]]]",
+            );
+            assert_structure(
+                "leading tab",
+                "//\thello, world!\n",
+                r"File[Par[[//\thello, world!]]]",
+            );
+        }
+
+        #[test]
+        fn partial() {
+            assert_structure(
+                "whole_line",
+                "to me!//to you!\n",
+                "File[Par[[Word(to)|< >|Word(me!)|//to you!]]]",
+            );
+            assert_structure(
+                "whole_line",
+                "to me!// to you!\n",
+                "File[Par[[Word(to)|< >|Word(me!)|// to you!]]]",
+            );
+            assert_structure(
+                "whole_line",
+                "to me! //to you!\n",
+                "File[Par[[Word(to)|< >|Word(me!)|< >|//to you!]]]",
+            );
+            assert_structure(
+                "whole_line",
+                "to me! // to you!\n",
+                "File[Par[[Word(to)|< >|Word(me!)|< >|// to you!]]]",
+            );
+        }
+
+        #[test]
+        fn stacked() {
+            let lines = vec![
+                "There once was a ship that put to sea",
+                "And the name of that ship was the Billy O’ Tea",
+                "The winds blew hard, her bow dipped down",
+                "Blow, me bully boys, blow",
+            ];
+            assert_structure(
+                "whole_line",
+                &format!("//{}\n", lines.join("\n//")),
+                &format!(
+                    "File[Par[[{}]]]",
+                    lines
+                        .iter()
+                        .map(|l| format!("//{}", l))
+                        .collect::<Vec<_>>()
+                        .join("]|[")
+                ),
+            );
+        }
+    }
+
     mod multi_line_comments {
         use super::*;
 

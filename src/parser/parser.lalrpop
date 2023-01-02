@@ -30,6 +30,7 @@ LineContent: Line<Content<'input>> = {
 }
 
 LineElement: Content<'input> = {
+	Comment       => Content::Comment(<>),
 	NestedComment => Content::MultiLineComment(<>),
 	Whitespace    => Content::Whitespace(<>),
 	Word          => Content::Word(Text::from(<>)),
