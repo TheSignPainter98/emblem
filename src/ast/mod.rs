@@ -1,13 +1,13 @@
+mod debug;
 pub mod parsed;
 pub mod region;
 mod text;
-mod debug;
 
 // use std::fmt::Display;
 
-pub use text::Text;
 #[cfg(test)]
 pub use debug::AstDebug;
+pub use text::Text;
 
 pub type ParsedAst<'file> = File<parsed::Content<'file>>;
 
@@ -34,6 +34,12 @@ pub struct Par<C> {
     pub lines: Vec<Line<C>>,
 }
 
+impl<C> From<Vec<Line<C>>> for Par<C> {
+    fn from(lines: Vec<Line<C>>) -> Self {
+        Self { lines }
+    }
+}
+
 // impl<C:Display> Display for Par<C> {
 //     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 //         write!(f, "Pars {{")?;
@@ -50,6 +56,12 @@ pub struct Par<C> {
 #[derive(Debug)]
 pub struct Line<C> {
     pub content: Vec<C>,
+}
+
+impl<C> From<Vec<C>> for Line<C> {
+    fn from(content: Vec<C>) -> Self {
+        Self { content }
+    }
 }
 
 #[cfg(test)]

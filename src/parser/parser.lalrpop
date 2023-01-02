@@ -13,7 +13,7 @@ pub File: File<Content<'input>> = {
 };
 
 Par: Par<Content<'input>> = {
-	Line+ => Par { lines: <> }
+	Line+ => Par::from(<>),
 }
 
 Line: Line<Content<'input>> = {
@@ -26,7 +26,7 @@ Eol: () = {
 }
 
 LineContent: Line<Content<'input>> = {
-	LineElement* => Line { content: <> }
+	LineElement* => Line::from(<>)
 }
 
 LineElement: Content<'input> = {
