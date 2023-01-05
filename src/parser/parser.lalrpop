@@ -9,7 +9,7 @@ use std::error::Error;
 grammar<'input>;
 
 pub File: File<Content<'input>> = {
-	<MaybeSepList<Par, ParBreak>> Eof? => File { pars: <> },
+	<MaybeSepList<Par, ParBreak>> => File { pars: <> },
 };
 
 Par: Par<Content<'input>> = {
@@ -20,10 +20,6 @@ Line: Line<Content<'input>> = {
 	<LineContent> "\n"
 }
 
-Eol: () = {
-	"\n"
-	Eof
-}
 
 LineContent: Line<Content<'input>> = {
 	LineElement* => Line::from(<>)
@@ -105,6 +101,5 @@ extern {
 		"*/"       => Tok::NestedCommentClose,
 		"\n"       => Tok::Newline,
 		Comment    => Tok::Comment(<&'input str>),
-		Eof        => Tok::Eof,
 	}
 }

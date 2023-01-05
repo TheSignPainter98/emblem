@@ -45,6 +45,7 @@ pub struct Lexer<'input> {
     open_braces: u32,
     next_toks: VecDeque<SpannedTok<'input>>,
     comment_depth: u32,
+    last_tok: Option<Tok<'input>>,
 }
 
 impl<'input> Lexer<'input> {
@@ -60,6 +61,7 @@ impl<'input> Lexer<'input> {
             open_braces: 0,
             next_toks: VecDeque::new(),
             comment_depth: 0,
+            last_tok: None,
         }
     }
 
@@ -127,7 +129,9 @@ impl<'input> Iterator for Lexer<'input> {
             ( $($re:expr => $to_tok:expr),* $(,)? ) => {
                 if false { None }
                 $(else if let Some(mat) = self.try_consume(&$re) {
-                    Some($to_tok(mat).map(|t| self.span(t)))
+                    let ret = $to_tok(mat).map(|t| self.span(t));
+                    self.last_tok = ret.as_ref().ok().map(|s| s.1.clone());
+                    Some(ret)
                 })*
                 else {
                     self.failed = true;
@@ -163,10 +167,12 @@ impl<'input> Iterator for Lexer<'input> {
         }
 
         if self.input.is_empty() {
+            if self.last_tok != Some(Tok::Newline) {
+                self.enqueue(self.span(Tok::Newline));
+            }
             self.enqueue_indentation_delta(0);
-            self.enqueue(self.span(Tok::Eof));
             self.done = true;
-            return Some(Ok(self.dequeue().unwrap()));
+            return self.dequeue().map(|t| Ok(t));
         }
 
         if self.try_consume(&LN).is_some() {
@@ -186,7 +192,9 @@ impl<'input> Iterator for Lexer<'input> {
                 self.enqueue(self.span(Tok::ParBreak));
             }
 
-            return Some(Ok(self.dequeue().unwrap()))
+            let ret = self.dequeue().unwrap();
+            self.last_tok = Some(ret.1.clone());
+            return Some(Ok(ret))
         }
         self.start_of_line = false;
 
@@ -223,7 +231,7 @@ impl<'input> Iterator for Lexer<'input> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Tok<'input> {
     Indent,
     Dedent,
@@ -235,11 +243,12 @@ pub enum Tok<'input> {
     ParBreak,
     Word(&'input str),
     Whitespace(&'input str),
+    Dash(&'input str),
+    Glue(&'input str),
     NestedCommentOpen,
     NestedCommentClose,
     Comment(&'input str),
     Newline,
-    Eof,
 }
 
 // impl ToString for Tok<'_> {
@@ -277,11 +286,12 @@ impl Display for Tok<'_> {
             Tok::ParBreak => write!(f, "(paragraph break)"),
             Tok::Word(w) => write!(f, "({})", w),
             Tok::Whitespace(w) => write!(f, "(whitespace:{})", w),
+            Tok::Dash(d) => write!(f, "(dash:{})", d),
+            Tok::Glue(g) => write!(f, "(glue:{})", g),
             Tok::NestedCommentOpen => write!(f, "(/*)"),
             Tok::NestedCommentClose => write!(f, "(*/)"),
             Tok::Newline => write!(f, "(newline)"),
             Tok::Comment(c) => write!(f, "(// {})", c),
-            Tok::Eof => write!(f, "(EOF)"),
         }
     }
 }

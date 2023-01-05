@@ -64,22 +64,22 @@ mod test {
     }
 
     fn assert_structure(name: &str, input: &str, expected: &str) {
-        // assert_eq!(
-        //     expected,
-        //     {
-        //         let parse_result = parse(name, input);
-        //         assert!(
-        //             parse_result.is_ok(),
-        //             "{}: expected Ok parse result when parsing {:?}, got: {:?}",
-        //             name,
-        //             input,
-        //             parse_result
-        //         );
-        //         parse_result.unwrap().repr()
-        //     },
-        //     "{}",
-        //     name
-        // );
+        assert_eq!(
+            expected,
+            {
+                let parse_result = parse(name, input);
+                assert!(
+                    parse_result.is_ok(),
+                    "{}: expected Ok parse result when parsing {:?}, got: {:?}",
+                    name,
+                    input,
+                    parse_result
+                );
+                parse_result.unwrap().repr()
+            },
+            "{}",
+            name
+        );
 
         let input_with_newline = &format!("{}\n", input);
         assert_eq!(
