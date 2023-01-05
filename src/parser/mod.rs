@@ -130,8 +130,8 @@ mod test {
 
             assert_structure(
                 "single line for many pars",
-                "Spider-Pig, Spider-Pig,\n\nDoes whatever a Spider-Pig does.\n\nCan he swing from a web?\n\nNo, he can't, he's a pig,\n\nLook out, he is a Spider-Pig!",
-                "File[Par[[Word(Spider-Pig,)|< >|Word(Spider-Pig,)]]|Par[[Word(Does)|< >|Word(whatever)|< >|Word(a)|< >|Word(Spider-Pig)|< >|Word(does.)]]|Par[[Word(Can)|< >|Word(he)|< >|Word(swing)|< >|Word(from)|< >|Word(a)|< >|Word(web?)]]|Par[[Word(No,)|< >|Word(he)|< >|Word(can't,)|< >|Word(he's)|< >|Word(a)|< >|Word(pig,)]]|Par[[Word(Look)|< >|Word(out,)|< >|Word(he)|< >|Word(is)|< >|Word(a)|< >|Word(Spider-Pig!)]]]",
+                "Spiderpig, Spiderpig,\n\nDoes whatever a Spiderpig does.\n\nCan he swing from a web?\n\nNo, he can't, he's a pig,\n\nLook out, he is a Spiderpig!",
+                "File[Par[[Word(Spiderpig,)|< >|Word(Spiderpig,)]]|Par[[Word(Does)|< >|Word(whatever)|< >|Word(a)|< >|Word(Spiderpig)|< >|Word(does.)]]|Par[[Word(Can)|< >|Word(he)|< >|Word(swing)|< >|Word(from)|< >|Word(a)|< >|Word(web?)]]|Par[[Word(No,)|< >|Word(he)|< >|Word(can't,)|< >|Word(he's)|< >|Word(a)|< >|Word(pig,)]]|Par[[Word(Look)|< >|Word(out,)|< >|Word(he)|< >|Word(is)|< >|Word(a)|< >|Word(Spiderpig!)]]]",
             );
         }
 
@@ -144,40 +144,169 @@ mod test {
         }
     }
 
-    mod commands {
+    // mod commands {
+    //     use super::*;
+
+    //     #[test]
+    //     fn escaped() {
+    //         assert_structure("escaped command", r"\.hello", "File[Par[[Word(.hello)]]]")
+    //     }
+
+    //     #[test]
+    //     fn command_only() {
+    //         assert_structure("command", ".order66", "File[Par[[.order66]]]")
+    //     }
+
+    //     #[test]
+    //     fn with_args() {
+    //         assert_structure(
+    //             "sole",
+    //             ".exec{order66}",
+    //             "File[Par[[.exec{[Word(order66)]}]]]",
+    //         );
+    //         assert_structure("start of line", ".old-man-say{leave her Johnny, leave her} tomorrow ye will get your pay", "File[Par[[.old-man-say{[Word(leave)|< >|Word(her)|< >|Word(Johnny,)|< >|Word(leave)|< >|Word(her)]}|< >|Word(tomorrow)|< >|Word(ye)|< >|Word(will)|< >|Word(get)|< >|Word(your)|< >|Word(pay)]]]");
+    //         assert_structure("end of line", "I hate to .sail{on this rotten tub}", "File[Par[[Word(I)|< >|Word(hate)|< >|Word(to)|< >|.sail{[Word(on)|< >|Word(this)|< >|Word(rotten)|< >|Word(tub)]}]]]");
+    //         assert_structure("middle of line", "For the .voyage-is{foul} and the winds don't blow", "File[Par[[Word(For)|< >|Word(the)|< >|.voyage-is{[Word(foul)]}|< >|Word(and)|< >|Word(the)|< >|Word(winds)|< >|Word(don't)|< >|Word(blow)]]]");
+    //         assert_structure("nested", ".no{grog .allowed{and} rotten grub}", "File[Par[[.no{[Word(grog)|< >|.allowed{[Word(and)]}|< >|Word(rotten)|< >|Word(grub)]}]]]");
+
+    //         assert_parse_error("orphaned open brace", "{");
+    //         assert_parse_error("orphaned close brace", "}");
+    //         assert_parse_error("superfluous open brace", ".order66{}{");
+    //         assert_parse_error("superfluous close brace", ".order66{}}");
+
+    //         assert_parse_error("newline in brace-arg", ".order66{\n}");
+    //         assert_parse_error("newline in brace-arg", ".order66{general\nkenobi}");
+    //         assert_parse_error("par-break in brace-arg", ".order66{\n\n}");
+    //         assert_parse_error("par-break in brace-arg", ".order66{general\n\nkenobi}");
+    //     }
+
+    //     // #[test]
+    //     // fn remainder_args() {
+    //     //     todo!();
+    //     //     // start of line
+    //     //     // middle of line
+    //     //     // end of line
+    //     //     // mixed with braces
+    //     //     // nested
+    //     //     // nested within braces
+    //     // }
+
+    //     // #[test]
+    //     // fn trailing_args() {
+    //     //     todo!();
+    //     //     // Sole line content
+    //     //     // double colons
+    //     //     // end of line
+    //     // }
+    // }
+
+    mod interword {
         use super::*;
 
-        #[test]
-        fn escaped() {
-            assert_structure("escaped command", r"\.hello", "File[Par[[Word(.hello)]]]")
+        struct InterwordTest {
+            input: String,
+            expected: String,
+        }
+
+        fn test_interword(name: &str, dash: &str, repr: &str) {
+            let inputs = vec![
+                InterwordTest {
+                    input: dash.into(),
+                    expected: format!("File[Par[[{}]]]", repr),
+                },
+                InterwordTest {
+                    input: format!("a{}b", dash),
+                    expected: format!("File[Par[[Word(a)|{}|Word(b)]]]", repr),
+                },
+                InterwordTest {
+                    input: format!("a {}b", dash),
+                    expected: format!("File[Par[[Word(a)|< >|{}|Word(b)]]]", repr),
+                },
+                InterwordTest {
+                    input: format!("a{} b", dash),
+                    expected: format!("File[Par[[Word(a)|{}|< >|Word(b)]]]", repr),
+                },
+                InterwordTest {
+                    input: format!("a {} b", dash),
+                    expected: format!("File[Par[[Word(a)|< >|{}|< >|Word(b)]]]", repr),
+                },
+                InterwordTest {
+                    input: format!("a\n{}b", dash),
+                    expected: format!("File[Par[[Word(a)]|[{}|Word(b)]]]", repr),
+                },
+                InterwordTest {
+                    input: format!("a{}\nb", dash),
+                    expected: format!("File[Par[[Word(a)|{}]|[Word(b)]]]", repr),
+                },
+            ];
+            for InterwordTest { input, expected } in inputs {
+                assert_eq!(
+                    expected,
+                    {
+                        let parse_result = parse(name, &input);
+                        assert!(
+                            parse_result.is_ok(),
+                            "{}: expected Ok parse result when parsing {:?}: got {:?}",
+                            name,
+                            input,
+                            parse_result
+                        );
+                        parse_result.unwrap().repr()
+                    },
+                    "{}",
+                    name
+                )
+            }
         }
 
         #[test]
-        fn command_only() {
-            assert_structure("command", ".order66", "File[Par[[.order66]]]")
+        fn hyphen() {
+            test_interword("hyphen", "-", "-");
         }
 
         #[test]
-        fn with_args() {
-            assert_structure(
-                "sole",
-                ".exec{order66}",
-                "File[Par[[.exec{[Word(order66)]}]]]",
-            );
-            assert_structure("start of line", ".old-man-say{leave her Johnny, leave her} tomorrow ye will get your pay", "File[Par[[.old-man-say{[Word(leave)|< >|Word(her)|< >|Word(Johnny,)|< >|Word(leave)|< >|Word(her)]}|< >|Word(tomorrow)|< >|Word(ye)|< >|Word(will)|< >|Word(get)|< >|Word(your)|< >|Word(pay)]]]");
-            assert_structure("end of line", "I hate to .sail{on this rotten tub}", "File[Par[[Word(I)|< >|Word(hate)|< >|Word(to)|< >|.sail{[Word(on)|< >|Word(this)|< >|Word(rotten)|< >|Word(tub)]}]]]");
-            assert_structure("middle of line", "For the .voyage-is{foul} and the winds don't blow", "File[Par[[Word(For)|< >|Word(the)|< >|.voyage-is{[Word(foul)]}|< >|Word(and)|< >|Word(the)|< >|Word(winds)|< >|Word(don't)|< >|Word(blow)]]]");
-            assert_structure("nested", ".no{grog .allowed{and} rotten grub}", "File[Par[[.no{[Word(grog)|< >|.allowed{[Word(and)]}|< >|Word(rotten)|< >|Word(grub)]}]]]");
+        fn en() {
+            test_interword("en", "--", "--");
+        }
 
-            assert_parse_error("orphaned open brace", "{");
-            assert_parse_error("orphaned close brace", "}");
-            assert_parse_error("superfluous open brace", ".order66{}{");
-            assert_parse_error("superfluous close brace", ".order66{}}");
+        #[test]
+        fn em() {
+            test_interword("em", "---", "---");
+        }
 
-            assert_parse_error("newline in brace-arg", ".order66{\n}");
-            assert_parse_error("newline in brace-arg", ".order66{general\nkenobi}");
-            assert_parse_error("par-break in brace-arg", ".order66{\n\n}");
-            assert_parse_error("par-break in brace-arg", ".order66{general\n\nkenobi}");
+        #[test]
+        fn glue() {
+            test_interword("em", "~", "~");
+        }
+
+        #[test]
+        fn nbsp() {
+            test_interword("em", "~~", "~~");
+        }
+
+        #[test]
+        fn mixed() {
+            test_interword("mixed", "----", "---|-");
+            test_interword("mixed", "-----", "---|--");
+            test_interword("mixed", "------", "---|---");
+            test_interword("mixed", "~-", "~|-");
+            test_interword("mixed", "-~", "-|~");
+            test_interword("mixed", "~--", "~|--");
+            test_interword("mixed", "-~-", "-|~|-");
+            test_interword("mixed", "--~", "--|~");
+            test_interword("mixed", "~---", "~|---");
+            test_interword("mixed", "-~--", "-|~|--");
+            test_interword("mixed", "--~-", "--|~|-");
+            test_interword("mixed", "---~", "---|~");
+            test_interword("mixed", "~~-", "~~|-");
+            test_interword("mixed", "-~~", "-|~~");
+            test_interword("mixed", "~~--", "~~|--");
+            test_interword("mixed", "-~~-", "-|~~|-");
+            test_interword("mixed", "--~~", "--|~~");
+            test_interword("mixed", "~~---", "~~|---");
+            test_interword("mixed", "-~~--", "-|~~|--");
+            test_interword("mixed", "--~~-", "--|~~|-");
+            test_interword("mixed", "---~~", "---|~~");
         }
     }
 

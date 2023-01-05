@@ -1,10 +1,9 @@
 use crate::parser::{Location, LexicalError, lexer::Tok};
 use crate::ast::{
     parsed::{MultiLineComment, MultiLineCommentPart, Content},
-    File, Par, Line, Text,
+    File, Par, Line, Text, Dash, Glue,
 };
 use crate::context::Context;
-use std::error::Error;
 
 grammar<'input>;
 
@@ -31,6 +30,8 @@ LineElement: Content<'input> = {
 	Whitespace                                      => Content::Whitespace(<>),
 	Word                                            => Content::Word(Text::from(<>)),
 	<name: Command> <args:("{" <LineContent> "}")*> => Content::Command { name: Text::from(name), args },
+	Dash                                            => Content::Dash(Dash::from(<>)),
+	Glue                                            => Content::Glue(Glue::from(<>)),
 	// !             => {
 	// 	errors.push("something went wrong");
 	// 	Content::Error
@@ -96,6 +97,8 @@ extern {
 		Command    => Tok::Command(<&'input str>),
 		ParBreak   => Tok::ParBreak,
 		Word       => Tok::Word(<&'input str>),
+		Dash       => Tok::Dash(<&'input str>),
+		Glue       => Tok::Glue(<&'input str>),
 		Whitespace => Tok::Whitespace(<&'input str>),
 		"/*"       => Tok::NestedCommentOpen,
 		"*/"       => Tok::NestedCommentClose,

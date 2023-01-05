@@ -16,7 +16,7 @@ macro_rules! token_patterns {
 }
 
 token_patterns! {
-    let WORD               = r"([^ /\t\r\n}]|/[^ /\t\r\n])+";
+    let WORD               = r"([^ /\t\r\n}~-]|/[^ /\t\r\n~-])+";
     let WHITESPACE         = r"[ \t]+";
     let PAR_BREAKS         = r"([ \t]*(\n|\r\n|\r))+";
     let LN                 = r"(\n|\r\n|\r)";
@@ -28,6 +28,8 @@ token_patterns! {
     let BRACE_LEFT         = r"\{";
     let BRACE_RIGHT        = r"\}";
     let COMMENT            = r"//[^\r\n]*";
+    let DASH               = r"-{1,3}";
+    let GLUE               = r"~~?";
 
     let NESTED_COMMENT_OPEN  = r"/\*";
     let NESTED_COMMENT_CLOSE = r"\*/";
@@ -224,6 +226,8 @@ impl<'input> Iterator for Lexer<'input> {
                 })
             },
             COMMAND         => |s:&'input str| Ok(Tok::Command(&s[1..])),
+            DASH            => |s:&'input str| Ok(Tok::Dash(s)),
+            GLUE            => |s:&'input str| Ok(Tok::Glue(s)),
             ESCAPED_COMMAND => |s:&'input str| Ok(Tok::Word(&s[1..])),
             WORD            => |s:&'input str| Ok(Tok::Word(s)),
             WHITESPACE      => |s:&'input str| Ok(Tok::Whitespace(s)),

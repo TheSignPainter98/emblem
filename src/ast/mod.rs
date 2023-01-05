@@ -86,3 +86,70 @@ impl<C: AstDebug> AstDebug for Line<C> {
         self.content.test_fmt(buf);
     }
 }
+
+#[derive(Debug)]
+pub enum Dash {
+    Hyphen,
+    En,
+    Em,
+}
+
+impl<T: AsRef<str>> From<T> for Dash {
+    fn from(s: T) -> Self {
+        #[cfg(test)]
+        assert!(s.as_ref().chars().all(|c| c == '-'));
+
+        match s.as_ref().len() {
+            1 => Self::Hyphen,
+            2 => Self::En,
+            3 => Self::Em,
+            _ => panic!(
+                "Dash::from expected from 1 to 3 dashes: got {}",
+                s.as_ref().len()
+            ),
+        }
+    }
+}
+
+#[cfg(test)]
+impl AstDebug for Dash {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
+        buf.push(match self {
+            Self::Hyphen => "-",
+            Self::En => "--",
+            Self::Em => "---",
+        }.into());
+    }
+}
+
+#[derive(Debug)]
+pub enum Glue {
+    Tight,
+    Nbsp,
+}
+
+impl<T: AsRef<str>> From<T> for Glue {
+    fn from(s: T) -> Self {
+        #[cfg(test)]
+        assert!(s.as_ref().chars().all(|c| c == '~'));
+
+        match s.as_ref().len() {
+            1 => Self::Tight,
+            2 => Self::Nbsp,
+            _ => panic!(
+                "Glue::from expected from 1 to 2 tildes: got {}",
+                s.as_ref().len()
+            ),
+        }
+    }
+}
+
+#[cfg(test)]
+impl AstDebug for Glue {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
+        buf.push(match self {
+            Self::Tight => "~",
+            Self::Nbsp => "~~",
+        }.into());
+    }
+}

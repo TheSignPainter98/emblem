@@ -1,6 +1,6 @@
 // use std::fmt::Display;
 
-use crate::ast::{text::Text, Line};
+use crate::ast::{text::Text, Line, Dash, Glue};
 
 #[cfg(test)]
 use crate::ast::AstDebug;
@@ -13,6 +13,8 @@ pub enum Content<'i> {
     },
     Word(Text<'i>),
     Whitespace(&'i str),
+    Dash(Dash),
+    Glue(Glue),
     Comment(&'i str),
     MultiLineComment(MultiLineComment<'i>),
 }
@@ -48,6 +50,8 @@ impl AstDebug for Content<'_> {
             }
             Self::Word(w) => w.surround(buf, "Word(", ")"),
             Self::Whitespace(w) => w.surround(buf, "<", ">"),
+            Self::Dash(d) => d.test_fmt(buf),
+            Self::Glue(g) => g.test_fmt(buf),
             Self::Comment(c) => {
                 buf.push("//".into());
                 c.test_fmt(buf);
