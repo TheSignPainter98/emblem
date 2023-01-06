@@ -72,7 +72,7 @@ mod test {
                     "{}: expected Ok parse result when parsing {:?}, got: {:?}",
                     name,
                     input,
-                    parse_result
+                    parse_result.unwrap_err(),
                 );
                 parse_result.unwrap().repr()
             },
