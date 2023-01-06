@@ -285,19 +285,32 @@ mod test {
         use super::*;
 
         #[test]
-        fn short() {
-            assert_structure("midline", "!verb!", "File[Par[[!verb!]]]");
-            assert_structure("midline", "!//!", "File[Par[[!//!]]]");
-            assert_structure("midline", "!/*!", "File[Par[[!/*!]]]");
-            assert_structure("midline", "!*/!", "File[Par[[!*/!]]]");
-            assert_structure("midline", "!!", "File[Par[[!!]]]");
+        fn word() {
             assert_structure(
-                "midline",
+                "ignore unmatched at start",
+                "spanish inquisition!",
+                "File[Par[[Word(spanish)|< >|Word(inquisition!)]]]",
+            );
+            assert_structure(
+                "ignore unmatched at end",
+                "!spanish inquisition",
+                "File[Par[[Word(!spanish)|< >|Word(inquisition)]]]",
+            );
+        }
+
+        #[test]
+        fn short() {
+            assert_structure("text", "!verb!", "File[Par[[!verb!]]]");
+            assert_structure("comment", "!//!", "File[Par[[!//!]]]");
+            assert_structure("multi line comment start", "!/*!", "File[Par[[!/*!]]]");
+            assert_structure("multi line comment end", "!*/!", "File[Par[[!*/!]]]");
+            assert_structure("empty", "!!", "File[Par[[!!]]]");
+            assert_structure(
+                "with spaces",
                 "!hello } world :: !",
                 "File[Par[[!hello } world :: !]]]",
             );
-            assert_structure("midline", "//!", "File[Par[[//!]]]");
-            assert_structure("midline", "!//", "File[Par[[Word(!)|//]]]");
+            assert_structure("ignored in comment", "//!asdf!", "File[Par[[//!asdf!]]]");
         }
     }
 
