@@ -437,8 +437,16 @@ mod test {
 
         #[test]
         fn final_indentation() {
-            assert!(parse_str("/*spaghetti\n\t*/").is_err());
-            assert!(parse_str("/*spaghetti\n    */").is_err());
+            assert_structure(
+                "final tab indent",
+                "/*spaghetti\n\t*/",
+                r"File[Par[[/*[spaghetti|\n|\t]*/]]]",
+            );
+            assert_structure(
+                "final spaces indent",
+                "/*spaghetti\n    */",
+                r"File[Par[[/*[spaghetti|\n|    ]*/]]]",
+            );
             assert_structure(
                 "long, prettified comment block",
                 "/* spaghetti\n *and\n *meatballs\n */",
