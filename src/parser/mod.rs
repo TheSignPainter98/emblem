@@ -240,22 +240,7 @@ mod test {
                 },
             ];
             for InterwordTest { input, expected } in inputs {
-                assert_eq!(
-                    expected,
-                    {
-                        let parse_result = parse(name, &input);
-                        assert!(
-                            parse_result.is_ok(),
-                            "{}: expected Ok parse result when parsing {:?}: got {:?}",
-                            name,
-                            input,
-                            parse_result
-                        );
-                        parse_result.unwrap().repr()
-                    },
-                    "{}",
-                    name
-                )
+                assert_structure(name, &input, &expected);
             }
         }
 
@@ -286,27 +271,27 @@ mod test {
 
         #[test]
         fn mixed() {
-            test_interword("mixed", "----", "---|-");
-            test_interword("mixed", "-----", "---|--");
-            test_interword("mixed", "------", "---|---");
-            test_interword("mixed", "~-", "~|-");
-            test_interword("mixed", "-~", "-|~");
-            test_interword("mixed", "~--", "~|--");
-            test_interword("mixed", "-~-", "-|~|-");
-            test_interword("mixed", "--~", "--|~");
-            test_interword("mixed", "~---", "~|---");
-            test_interword("mixed", "-~--", "-|~|--");
-            test_interword("mixed", "--~-", "--|~|-");
-            test_interword("mixed", "---~", "---|~");
-            test_interword("mixed", "~~-", "~~|-");
-            test_interword("mixed", "-~~", "-|~~");
-            test_interword("mixed", "~~--", "~~|--");
-            test_interword("mixed", "-~~-", "-|~~|-");
-            test_interword("mixed", "--~~", "--|~~");
-            test_interword("mixed", "~~---", "~~|---");
-            test_interword("mixed", "-~~--", "-|~~|--");
-            test_interword("mixed", "--~~-", "--|~~|-");
-            test_interword("mixed", "---~~", "---|~~");
+            test_interword("em-hyph", "----", "---|-");
+            test_interword("em-en", "-----", "---|--");
+            test_interword("em-em", "------", "---|---");
+            test_interword("glue-mixed-1-dash-1", "~-", "~|-");
+            test_interword("glue-mixed-1-dash-2", "-~", "-|~");
+            test_interword("glue-mixed-2-dashes-1", "~--", "~|--");
+            test_interword("glue-mixed-2-dashes-2", "-~-", "-|~|-");
+            test_interword("glue-mixed-2-dashes-3", "--~", "--|~");
+            test_interword("glue-mixed-3-dashes-1", "~---", "~|---");
+            test_interword("glue-mixed-3-dashes-2", "-~--", "-|~|--");
+            test_interword("glue-mixed-3-dashes-3", "--~-", "--|~|-");
+            test_interword("glue-mixed-3-dashes-4", "---~", "---|~");
+            test_interword("glue-mixed-1-dashes-1", "~~-", "~~|-");
+            test_interword("glue-mixed-1-dashes-2", "-~~", "-|~~");
+            test_interword("glue-mixed-2-dashes-1", "~~--", "~~|--");
+            test_interword("glue-mixed-2-dashes-2", "-~~-", "-|~~|-");
+            test_interword("glue-mixed-2-dashes-3", "--~~", "--|~~");
+            test_interword("glue-mixed-3-dashes-1", "~~---", "~~|---");
+            test_interword("glue-mixed-3-dashes-2", "-~~--", "-|~~|--");
+            test_interword("glue-mixed-3-dashes-3", "--~~-", "--|~~|-");
+            test_interword("glue-mixed-3-dashes-4", "---~~", "---|~~");
         }
     }
 
