@@ -3,7 +3,6 @@ use crate::ast::{
     parsed::{MultiLineComment, MultiLineCommentPart, Content},
     File, Par, Line, Text, Dash, Glue,
 };
-use crate::context::Context;
 
 grammar<'input>;
 
@@ -90,9 +89,9 @@ NestedCommentContent: MultiLineComment<'input> = {
 }
 
 NestedCommentPart: MultiLineCommentPart<'input> = {
-	"\n"                                 => MultiLineCommentPart::Newline,
-	Comment                              => MultiLineCommentPart::Comment(<>),
-	NestedComment                        => MultiLineCommentPart::Nested(<>),
+	"\n"          => MultiLineCommentPart::Newline,
+	Comment       => MultiLineCommentPart::Comment(<>),
+	NestedComment => MultiLineCommentPart::Nested(<>),
 }
 
 SepList<T,Sep>: Vec<T> = {

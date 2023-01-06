@@ -105,10 +105,6 @@ impl<'input> Lexer<'input> {
     fn enqueue(&mut self, t: SpannedTok<'input>) {
         self.next_toks.push_back(t)
     }
-
-    fn push(&mut self, t: SpannedTok<'input>) {
-        self.next_toks.push_front(t)
-    }
 }
 
 impl<'input> Iterator for Lexer<'input> {
@@ -174,7 +170,7 @@ impl<'input> Iterator for Lexer<'input> {
             }
             self.enqueue_indentation_delta(0);
             self.done = true;
-            return self.dequeue().map(|t| Ok(t));
+            return self.dequeue().map(Ok);
         }
 
         if self.try_consume(&LN).is_some() {
@@ -201,20 +197,21 @@ impl<'input> Iterator for Lexer<'input> {
         self.start_of_line = false;
 
         match_token! {
-            COMMENT              => |s: &'input str| Ok(Tok::Comment(&s[2..])),
-            DOUBLE_COLON         => |_| Ok(Tok::DoubleColon),
-            COLON                => |_| Ok(Tok::Colon),
-            BRACE_LEFT           => |_| {
+            COMMENT      => |s: &'input str| Ok(Tok::Comment(&s[2..])),
+            DOUBLE_COLON => |_| Ok(Tok::DoubleColon),
+            COLON        => |_| Ok(Tok::Colon),
+
+            BRACE_LEFT => |_| {
                 self.open_braces += 1;
                 Ok(Tok::LBrace)
             },
-            BRACE_RIGHT          => |_| {
+            BRACE_RIGHT => |_| {
                 if self.open_braces > 0 {
                     self.open_braces -= 1;
                 }
                 Ok(Tok::RBrace)
             },
-            NESTED_COMMENT_OPEN  => |_| {
+            NESTED_COMMENT_OPEN => |_| {
                 self.comment_depth = 1;
                 Ok(Tok::NestedCommentOpen)
             },
@@ -225,6 +222,7 @@ impl<'input> Iterator for Lexer<'input> {
                     loc: self.curr_loc.clone(),
                 })
             },
+
             COMMAND    => |s:&'input str| Ok(Tok::Command(&s[1..])),
             DASH       => |s:&'input str| Ok(Tok::Dash(s)),
             GLUE       => |s:&'input str| Ok(Tok::Glue(s)),
@@ -235,7 +233,7 @@ impl<'input> Iterator for Lexer<'input> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Tok<'input> {
     Indent,
     Dedent,
