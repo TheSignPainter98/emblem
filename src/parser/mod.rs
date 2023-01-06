@@ -295,6 +295,26 @@ mod test {
         }
     }
 
+    mod verbatim {
+        use super::*;
+
+        #[test]
+        fn short() {
+            assert_structure("midline", "!verb!", "File[Par[[!verb!]]]");
+            assert_structure("midline", "!//!", "File[Par[[!//!]]]");
+            assert_structure("midline", "!/*!", "File[Par[[!/*!]]]");
+            assert_structure("midline", "!*/!", "File[Par[[!*/!]]]");
+            assert_structure("midline", "!!", "File[Par[[!!]]]");
+            assert_structure(
+                "midline",
+                "!hello } world :: !",
+                "File[Par[[!hello } world :: !]]]",
+            );
+            assert_structure("midline", "//!", "File[Par[[//!]]]");
+            assert_structure("midline", "!//", "File[Par[[Word(!)|//]]]");
+        }
+    }
+
     mod single_line_comments {
         use super::*;
 
