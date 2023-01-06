@@ -106,6 +106,21 @@ mod test {
         assert!(parse(name, input_with_newline).is_err(), "{}", name);
     }
 
+    mod orphans {
+        use super::*;
+
+        #[test]
+        fn orphaned_tokens() {
+            assert_parse_error("open brace", "{");
+            assert_parse_error("close brace", "}");
+            assert_parse_error("colon", ":");
+            assert_parse_error("double-colon", "::");
+            assert_parse_error("double-colon", "::");
+            assert_parse_error("multi-line comment open", "/*");
+            assert_parse_error("multi-line comment close", "*/");
+        }
+    }
+
     mod paragraphs {
         use super::*;
 
@@ -164,8 +179,6 @@ mod test {
             assert_structure("middle of line", "For the .voyage-is{foul} and the winds don't blow", "File[Par[[Word(For)|< >|Word(the)|< >|.voyage-is{[Word(foul)]}|< >|Word(and)|< >|Word(the)|< >|Word(winds)|< >|Word(don't)|< >|Word(blow)]]]");
             assert_structure("nested", ".no{grog .allowed{and} rotten grub}", "File[Par[[.no{[Word(grog)|< >|.allowed{[Word(and)]}|< >|Word(rotten)|< >|Word(grub)]}]]]");
 
-            assert_parse_error("orphaned open brace", "{");
-            assert_parse_error("orphaned close brace", "}");
             assert_parse_error("superfluous open brace", ".order66{}{");
             assert_parse_error("superfluous close brace", ".order66{}}");
 
