@@ -153,7 +153,7 @@ mod test {
         }
 
         #[test]
-        fn with_args() {
+        fn inline_args() {
             assert_structure(
                 "sole",
                 ".exec{order66}",
@@ -183,6 +183,8 @@ mod test {
                 "our boots .and{our clothes boys}, are all in the pawn",
                 "File[Par[[Word(our)|< >|Word(boots)|< >|.and{[Word(our)|< >|Word(clothes)|< >|Word(boys)]}|Word(,)|< >|Word(are)|< >|Word(all)|< >|Word(in)|< >|Word(the)|< >|Word(pawn)]]]",
             );
+            assert_parse_error("sole at end of line", ".randy-dandy-o:");
+            assert_parse_error("end of line", "randy .dandy-o:");
         }
     }
 
