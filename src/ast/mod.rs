@@ -40,6 +40,12 @@ impl<C> From<Vec<Line<C>>> for Par<C> {
     }
 }
 
+impl<C> From<Line<C>> for Par<C> {
+    fn from(line: Line<C>) -> Self {
+        Self { lines: vec![line] }
+    }
+}
+
 // impl<C:Display> Display for Par<C> {
 //     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 //         write!(f, "Pars {{")?;
@@ -61,6 +67,12 @@ pub struct Line<C> {
 impl<C> From<Vec<C>> for Line<C> {
     fn from(content: Vec<C>) -> Self {
         Self { content }
+    }
+}
+
+impl<C> From<C> for Line<C> {
+    fn from(content: C) -> Self {
+        Self { content: vec![content] }
     }
 }
 
