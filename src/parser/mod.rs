@@ -504,7 +504,25 @@ mod test {
                 "/* spaghetti\n *and\n *meatballs\n */",
                 r"File[Par[[/*[ spaghetti|\n| *and|\n| *meatballs|\n| ]*/]]]",
             );
-            // TODO(kcza): test bad leaving-indentation with trailing args
+        }
+
+        #[test]
+        fn before_remainder_args() {
+            assert_structure(
+                "trailing-args",
+                "/*spaghetti*/.and: meatballs",
+                "File[Par[[/*[spaghetti]*/|.and:[Word(meatballs)]]]]",
+            );
+            assert_structure(
+                "trailing-args",
+                "/*spaghetti\n\t\t*/.and: meatballs",
+                r"File[Par[[/*[spaghetti|\n|\t\t]*/|.and:[Word(meatballs)]]]]",
+            );
+        }
+
+        #[test]
+        fn before_trailing_args() {
+            assert_parse_error("trailing-args", "/*spaghetti*/.and:\n\tmeatballs");
         }
     }
 }
