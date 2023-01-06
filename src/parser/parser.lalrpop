@@ -15,44 +15,36 @@ FileContent: Vec<Par<Content<'input>>> = {
 }
 
 Par: Par<Content<'input>> = {
-	ParContent => Par::from(<>),
-}
-
-ParContent: Vec<Line<Content<'input>>> = {
-	Line+
+	Line+ => Par::from(<>),
 }
 
 Line: Line<Content<'input>> = {
-	<mut content:LineContent> <tail:RemainderCommand?> "\n" => {
+	<mut content:LineElement*> <tail:RemainderCommand?> "\n" => {
 		if let Some(cmd) = tail {
 			content.push(cmd);
 		}
 		Line::from(content)
 	},
 
-	// <name:Command> <inline_args:("{" <LineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" <Indented<FileContent>>)*> => {
-	// 	let name = Text::from(name);
+	<name:Command> <inline_args:("{" <LineElement*> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
+		let name = Text::from(name);
+		let remainder_arg = None;
+		let trailing_args = {
+			let mut trailing_args = vec![trail_head];
+			trailing_args.extend(trail_tail);
+			trailing_args
+		};
 
-	// 	let trailing_args = {
-	// 		let mut trailing_args = vec![trail_head];
-	// 		trailing_args.extend(trail_tail);
-	// 		trailing_args
-	// 	};
-
-	// 	Line::from(Content::Command { name, inline_args, trailing_args })
-	// },
+		Line::from(Content::Command { name, inline_args, remainder_arg, trailing_args })
+	},
 }
 
 RemainderCommand: Content<'input> = {
-// 	<name:Command> <mut args:("{" <LineContent> "}")*> <last:(":" <LineContent>)> => {
-// 		let name = Text::from(name);
-// 		args.push(last);
-// 		Content::Command { name, args, trail_start: None }
-// 	}
-}
-
-LineContent: Vec<Content<'input>> = {
-	LineElement*
+	<name:Command> <mut inline_args:("{" <LineElement*> "}")*> <remainder_arg:(":" <LineElement+>)> => {
+		let name = Text::from(name);
+		let remainder_arg = Some(remainder_arg);
+		Content::Command { name, inline_args, remainder_arg, trailing_args: Vec::with_capacity(0) }
+	}
 }
 
 LineElement: Content<'input> = {
@@ -64,9 +56,10 @@ LineElement: Content<'input> = {
 	Glue          => Content::Glue(Glue::from(<>)),
 	Verbatim      => Content::Verbatim(<>),
 
-	<name: Command> <inline_args:("{" <LineContent> "}")*> => Content::Command {
+	<name: Command> <inline_args:("{" <LineElement*> "}")*> => Content::Command {
 		name: Text::from(name),
 		inline_args,
+		remainder_arg: None,
 		trailing_args: Vec::with_capacity(0),
 	},
 
@@ -75,10 +68,6 @@ LineElement: Content<'input> = {
 	// 	Content::Error
 	// }
 }
-
-// Args = {
-// 	("{" <Content*> "}")* (":" <Indented<ParContent>> ("::" <Indented<ParContent>>)*)?
-// }
 
 NestedComment: MultiLineComment<'input> = {
 	"/*" <NestedCommentContent> "*/"

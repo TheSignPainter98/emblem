@@ -10,6 +10,7 @@ pub enum Content<'i> {
     Command {
         name: Text<'i>,
         inline_args: Vec<Vec<Content<'i>>>,
+        remainder_arg: Option<Vec<Content<'i>>>,
         trailing_args: Vec<Vec<Par<Content<'i>>>>,
     },
     Word(Text<'i>),
@@ -46,6 +47,7 @@ impl AstDebug for Content<'_> {
             Self::Command {
                 name,
                 inline_args,
+                remainder_arg,
                 trailing_args,
             } => {
                 buf.push('.'.into());
@@ -53,12 +55,12 @@ impl AstDebug for Content<'_> {
                 for arg in inline_args.iter() {
                     arg.surround(buf, "{", "}");
                 }
+                if let Some(arg) = remainder_arg {
+                    buf.push(":".into());
+                    arg.test_fmt(buf)
+                }
                 for (i, arg) in trailing_args.iter().enumerate() {
-                    buf.push(if i == 0 {
-                        ":"
-                    } else {
-                        "::"
-                    }.into());
+                    buf.push("::".into());
                     arg.test_fmt(buf);
                 }
             }

@@ -144,61 +144,47 @@ mod test {
         }
     }
 
-    // mod commands {
-    //     use super::*;
+    mod commands {
+        use super::*;
 
-    //     #[test]
-    //     fn escaped() {
-    //         assert_structure("escaped command", r"\.hello", "File[Par[[Word(.hello)]]]")
-    //     }
+        #[test]
+        fn command_only() {
+            assert_structure("command", ".order66", "File[Par[[.order66]]]")
+        }
 
-    //     #[test]
-    //     fn command_only() {
-    //         assert_structure("command", ".order66", "File[Par[[.order66]]]")
-    //     }
+        #[test]
+        fn with_args() {
+            assert_structure(
+                "sole",
+                ".exec{order66}",
+                "File[Par[[.exec{[Word(order66)]}]]]",
+            );
+            assert_structure("start of line", ".old-man-say{leave her Johnny, leave her} tomorrow ye will get your pay", "File[Par[[.old-man-say{[Word(leave)|< >|Word(her)|< >|Word(Johnny,)|< >|Word(leave)|< >|Word(her)]}|< >|Word(tomorrow)|< >|Word(ye)|< >|Word(will)|< >|Word(get)|< >|Word(your)|< >|Word(pay)]]]");
+            assert_structure("end of line", "I hate to .sail{on this rotten tub}", "File[Par[[Word(I)|< >|Word(hate)|< >|Word(to)|< >|.sail{[Word(on)|< >|Word(this)|< >|Word(rotten)|< >|Word(tub)]}]]]");
+            assert_structure("middle of line", "For the .voyage-is{foul} and the winds don't blow", "File[Par[[Word(For)|< >|Word(the)|< >|.voyage-is{[Word(foul)]}|< >|Word(and)|< >|Word(the)|< >|Word(winds)|< >|Word(don't)|< >|Word(blow)]]]");
+            assert_structure("nested", ".no{grog .allowed{and} rotten grub}", "File[Par[[.no{[Word(grog)|< >|.allowed{[Word(and)]}|< >|Word(rotten)|< >|Word(grub)]}]]]");
 
-    //     #[test]
-    //     fn with_args() {
-    //         assert_structure(
-    //             "sole",
-    //             ".exec{order66}",
-    //             "File[Par[[.exec{[Word(order66)]}]]]",
-    //         );
-    //         assert_structure("start of line", ".old-man-say{leave her Johnny, leave her} tomorrow ye will get your pay", "File[Par[[.old-man-say{[Word(leave)|< >|Word(her)|< >|Word(Johnny,)|< >|Word(leave)|< >|Word(her)]}|< >|Word(tomorrow)|< >|Word(ye)|< >|Word(will)|< >|Word(get)|< >|Word(your)|< >|Word(pay)]]]");
-    //         assert_structure("end of line", "I hate to .sail{on this rotten tub}", "File[Par[[Word(I)|< >|Word(hate)|< >|Word(to)|< >|.sail{[Word(on)|< >|Word(this)|< >|Word(rotten)|< >|Word(tub)]}]]]");
-    //         assert_structure("middle of line", "For the .voyage-is{foul} and the winds don't blow", "File[Par[[Word(For)|< >|Word(the)|< >|.voyage-is{[Word(foul)]}|< >|Word(and)|< >|Word(the)|< >|Word(winds)|< >|Word(don't)|< >|Word(blow)]]]");
-    //         assert_structure("nested", ".no{grog .allowed{and} rotten grub}", "File[Par[[.no{[Word(grog)|< >|.allowed{[Word(and)]}|< >|Word(rotten)|< >|Word(grub)]}]]]");
+            assert_parse_error("orphaned open brace", "{");
+            assert_parse_error("orphaned close brace", "}");
+            assert_parse_error("superfluous open brace", ".order66{}{");
+            assert_parse_error("superfluous close brace", ".order66{}}");
 
-    //         assert_parse_error("orphaned open brace", "{");
-    //         assert_parse_error("orphaned close brace", "}");
-    //         assert_parse_error("superfluous open brace", ".order66{}{");
-    //         assert_parse_error("superfluous close brace", ".order66{}}");
+            assert_parse_error("newline in brace-arg", ".order66{\n}");
+            assert_parse_error("newline in brace-arg", ".order66{general\nkenobi}");
+            assert_parse_error("par-break in brace-arg", ".order66{\n\n}");
+            assert_parse_error("par-break in brace-arg", ".order66{general\n\nkenobi}");
+        }
 
-    //         assert_parse_error("newline in brace-arg", ".order66{\n}");
-    //         assert_parse_error("newline in brace-arg", ".order66{general\nkenobi}");
-    //         assert_parse_error("par-break in brace-arg", ".order66{\n\n}");
-    //         assert_parse_error("par-break in brace-arg", ".order66{general\n\nkenobi}");
-    //     }
-
-    //     // #[test]
-    //     // fn remainder_args() {
-    //     //     todo!();
-    //     //     // start of line
-    //     //     // middle of line
-    //     //     // end of line
-    //     //     // mixed with braces
-    //     //     // nested
-    //     //     // nested within braces
-    //     // }
-
-    //     // #[test]
-    //     // fn trailing_args() {
-    //     //     todo!();
-    //     //     // Sole line content
-    //     //     // double colons
-    //     //     // end of line
-    //     // }
-    // }
+        #[test]
+        fn remainder_args() {
+            assert_structure("start of line", ".now{we are ready}: to sail for the horn", "File[Par[[.now{[Word(we)|< >|Word(are)|< >|Word(ready)]}:[Word(to)|< >|Word(sail)|< >|Word(for)|< >|Word(the)|< >|Word(horn)]]]]");
+            assert_structure(
+                "middle of line",
+                "our boots .and{our clothes boys}, are all in the pawn",
+                "File[Par[[Word(our)|< >|Word(boots)|< >|.and{[Word(our)|< >|Word(clothes)|< >|Word(boys)]}|Word(,)|< >|Word(are)|< >|Word(all)|< >|Word(in)|< >|Word(the)|< >|Word(pawn)]]]",
+            );
+        }
+    }
 
     mod interword {
         use super::*;
@@ -382,6 +368,15 @@ mod test {
                 ),
             );
         }
+
+        #[test]
+        fn as_trailing_arg() {
+            assert_structure(
+                "comment as sole arg",
+                ".spaghetti:\n\t//and meatballs",
+                "File[Par[[.spaghetti::[Par[[//and meatballs]]]]]]",
+            );
+        }
     }
 
     mod multi_line_comments {
@@ -453,6 +448,15 @@ mod test {
         #[test]
         fn unmatched_close() {
             assert!(parse_str("/*spaghetti/*and*/meatballs").is_err());
+        }
+
+        #[test]
+        fn as_trailing_arg() {
+            assert_structure(
+                "comment as sole arg",
+                ".spaghetti:\n\t/*and meatballs*/",
+                "File[Par[[.spaghetti::[Par[[/*[and meatballs]*/]]]]]]",
+            );
         }
 
         #[test]

@@ -20,7 +20,7 @@ token_patterns! {
     let WHITESPACE         = r"[ \t]+";
     let PAR_BREAKS         = r"([ \t]*(\n|\r\n|\r))+";
     let LN                 = r"(\n|\r\n|\r)";
-    let COLON              = r":";
+    let COLON              = r":[ \t]*";
     let DOUBLE_COLON       = r"::";
     let INITIAL_INDENT     = r"[ \t]*";
     let COMMAND            = r"\.[^ \t{}\r\n:]+";
@@ -150,16 +150,8 @@ impl<'input> Iterator for Lexer<'input> {
 
         if self.comment_depth > 0 {
             return match_token![
-                NESTED_COMMENT_PART => |s: &'input str| {
-                    if self.start_of_line {
-                        self.current_indent = indent_level(s);
-                    }
-                    Ok(Tok::Comment(s))
-                },
-                LN => |_| {
-                    self.start_of_line = true;
-                    Ok(Tok::Newline)
-                },
+                NESTED_COMMENT_PART => |s: &'input str| Ok(Tok::Comment(s)) ,
+                LN                  => |_| Ok(Tok::Newline) ,
                 NESTED_COMMENT_OPEN => |_| {
                     self.comment_depth += 1;
                     Ok(Tok::NestedCommentOpen)
