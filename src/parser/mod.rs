@@ -474,8 +474,9 @@ mod test {
         }
 
         #[test]
-        fn unmatched_close() {
-            assert!(parse_str("/*spaghetti/*and*/meatballs").is_err());
+        fn unmatched() {
+            assert_parse_error("open", "/*spaghetti/*and*/meatballs");
+            assert_parse_error("close", "spaghetti/*and*/meatballs*/");
         }
 
         #[test]
