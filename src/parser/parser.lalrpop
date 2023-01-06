@@ -8,39 +8,77 @@ use crate::context::Context;
 grammar<'input>;
 
 pub File: File<Content<'input>> = {
-	<MaybeSepList<Par, ParBreak>> => File { pars: <> },
+    FileContent => File { pars: <> },
 };
 
+FileContent: Vec<Par<Content<'input>>> = {
+	MaybeSepList<Par, ParBreak>
+}
+
 Par: Par<Content<'input>> = {
-	Line+ => Par::from(<>),
+	ParContent => Par::from(<>),
+}
+
+ParContent: Vec<Line<Content<'input>>> = {
+	Line+
 }
 
 Line: Line<Content<'input>> = {
-	<LineContent> "\n"
+	<mut content:LineContent> <tail:RemainderCommand?> "\n" => {
+		if let Some(cmd) = tail {
+			content.push(cmd);
+		}
+		Line::from(content)
+	},
+
+	// <name:Command> <inline_args:("{" <LineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" <Indented<FileContent>>)*> => {
+	// 	let name = Text::from(name);
+
+	// 	let trailing_args = {
+	// 		let mut trailing_args = vec![trail_head];
+	// 		trailing_args.extend(trail_tail);
+	// 		trailing_args
+	// 	};
+
+	// 	Line::from(Content::Command { name, inline_args, trailing_args })
+	// },
 }
 
+RemainderCommand: Content<'input> = {
+// 	<name:Command> <mut args:("{" <LineContent> "}")*> <last:(":" <LineContent>)> => {
+// 		let name = Text::from(name);
+// 		args.push(last);
+// 		Content::Command { name, args, trail_start: None }
+// 	}
+}
 
-LineContent: Line<Content<'input>> = {
-	LineElement* => Line::from(<>)
+LineContent: Vec<Content<'input>> = {
+	LineElement*
 }
 
 LineElement: Content<'input> = {
-	Comment                                         => Content::Comment(<>),
-	NestedComment                                   => Content::MultiLineComment(<>),
-	Whitespace                                      => Content::Whitespace(<>),
-	Word                                            => Content::Word(Text::from(<>)),
-	<name: Command> <args:("{" <LineContent> "}")*> => Content::Command { name: Text::from(name), args },
-	Dash                                            => Content::Dash(Dash::from(<>)),
-	Glue                                            => Content::Glue(Glue::from(<>)),
-	Verbatim                                        => Content::Verbatim(<>),
-	// !             => {
+	Comment       => Content::Comment(<>),
+	NestedComment => Content::MultiLineComment(<>),
+	Whitespace    => Content::Whitespace(<>),
+	Word          => Content::Word(Text::from(<>)),
+	Dash          => Content::Dash(Dash::from(<>)),
+	Glue          => Content::Glue(Glue::from(<>)),
+	Verbatim      => Content::Verbatim(<>),
+
+	<name: Command> <inline_args:("{" <LineContent> "}")*> => Content::Command {
+		name: Text::from(name),
+		inline_args,
+		trailing_args: Vec::with_capacity(0),
+	},
+
+	// ! => {
 	// 	errors.push("something went wrong");
 	// 	Content::Error
 	// }
 }
 
 // Args = {
-// 	("{" <Content+> "}")* (":" <Indented<ParContent>> ("::" <Indented<ParContent>>)*)?
+// 	("{" <Content*> "}")* (":" <Indented<ParContent>> ("::" <Indented<ParContent>>)*)?
 // }
 
 NestedComment: MultiLineComment<'input> = {

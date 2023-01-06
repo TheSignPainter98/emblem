@@ -1,6 +1,6 @@
 // use std::fmt::Display;
 
-use crate::ast::{text::Text, Line, Dash, Glue};
+use crate::ast::{text::Text, Dash, Glue, Line, Par};
 
 #[cfg(test)]
 use crate::ast::AstDebug;
@@ -9,7 +9,8 @@ use crate::ast::AstDebug;
 pub enum Content<'i> {
     Command {
         name: Text<'i>,
-        args: Vec<Line<Content<'i>>>,
+        inline_args: Vec<Vec<Content<'i>>>,
+        trailing_args: Vec<Vec<Par<Content<'i>>>>,
     },
     Word(Text<'i>),
     Whitespace(&'i str),
@@ -42,11 +43,23 @@ pub enum Content<'i> {
 impl AstDebug for Content<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
-            Self::Command { name, args } => {
+            Self::Command {
+                name,
+                inline_args,
+                trailing_args,
+            } => {
                 buf.push('.'.into());
                 name.test_fmt(buf);
-                for arg in args {
+                for arg in inline_args.iter() {
                     arg.surround(buf, "{", "}");
+                }
+                for (i, arg) in trailing_args.iter().enumerate() {
+                    buf.push(if i == 0 {
+                        ":"
+                    } else {
+                        "::"
+                    }.into());
+                    arg.test_fmt(buf);
                 }
             }
             Self::Word(w) => w.surround(buf, "Word(", ")"),
