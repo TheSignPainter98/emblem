@@ -15,6 +15,7 @@ pub enum Content<'i> {
     Whitespace(&'i str),
     Dash(Dash),
     Glue(Glue),
+    Verbatim(&'i str),
     Comment(&'i str),
     MultiLineComment(MultiLineComment<'i>),
 }
@@ -52,6 +53,7 @@ impl AstDebug for Content<'_> {
             Self::Whitespace(w) => w.surround(buf, "<", ">"),
             Self::Dash(d) => d.test_fmt(buf),
             Self::Glue(g) => g.test_fmt(buf),
+            Self::Verbatim(v) => v.surround(buf, "!", "!"),
             Self::Comment(c) => {
                 buf.push("//".into());
                 c.test_fmt(buf);

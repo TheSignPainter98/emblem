@@ -32,6 +32,7 @@ LineElement: Content<'input> = {
 	<name: Command> <args:("{" <LineContent> "}")*> => Content::Command { name: Text::from(name), args },
 	Dash                                            => Content::Dash(Dash::from(<>)),
 	Glue                                            => Content::Glue(Glue::from(<>)),
+	Verbatim                                        => Content::Verbatim(<>),
 	// !             => {
 	// 	errors.push("something went wrong");
 	// 	Content::Error
@@ -99,6 +100,7 @@ extern {
 		Word       => Tok::Word(<&'input str>),
 		Dash       => Tok::Dash(<&'input str>),
 		Glue       => Tok::Glue(<&'input str>),
+		Verbatim   => Tok::Verbatim(<&'input str>),
 		Whitespace => Tok::Whitespace(<&'input str>),
 		"/*"       => Tok::NestedCommentOpen,
 		"*/"       => Tok::NestedCommentClose,

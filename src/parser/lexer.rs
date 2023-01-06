@@ -24,7 +24,7 @@ token_patterns! {
     let DOUBLE_COLON       = r"::";
     let INITIAL_INDENT     = r"[ \t]*";
     let COMMAND            = r"\.[^ \t{}\r\n]+";
-    let ESCAPED_COMMAND    = r"\\\.[^ \t{}\r\n]+";
+    let VERBATIM           = r"![^\r\n]*!";
     let BRACE_LEFT         = r"\{";
     let BRACE_RIGHT        = r"\}";
     let COMMENT            = r"//[^\r\n]*";
@@ -225,12 +225,12 @@ impl<'input> Iterator for Lexer<'input> {
                     loc: self.curr_loc.clone(),
                 })
             },
-            COMMAND         => |s:&'input str| Ok(Tok::Command(&s[1..])),
-            DASH            => |s:&'input str| Ok(Tok::Dash(s)),
-            GLUE            => |s:&'input str| Ok(Tok::Glue(s)),
-            ESCAPED_COMMAND => |s:&'input str| Ok(Tok::Word(&s[1..])),
-            WORD            => |s:&'input str| Ok(Tok::Word(s)),
-            WHITESPACE      => |s:&'input str| Ok(Tok::Whitespace(s)),
+            COMMAND    => |s:&'input str| Ok(Tok::Command(&s[1..])),
+            DASH       => |s:&'input str| Ok(Tok::Dash(s)),
+            GLUE       => |s:&'input str| Ok(Tok::Glue(s)),
+            VERBATIM   => |s:&'input str| Ok(Tok::Verbatim(&s[1..s.len()-1])),
+            WORD       => |s:&'input str| Ok(Tok::Word(s)),
+            WHITESPACE => |s:&'input str| Ok(Tok::Whitespace(s)),
         }
     }
 }
@@ -249,6 +249,7 @@ pub enum Tok<'input> {
     Whitespace(&'input str),
     Dash(&'input str),
     Glue(&'input str),
+    Verbatim(&'input str),
     NestedCommentOpen,
     NestedCommentClose,
     Comment(&'input str),
@@ -292,6 +293,7 @@ impl Display for Tok<'_> {
             Tok::Whitespace(w) => write!(f, "(whitespace:{})", w),
             Tok::Dash(d) => write!(f, "(dash:{})", d),
             Tok::Glue(g) => write!(f, "(glue:{})", g),
+            Tok::Verbatim(v) => write!(f, "(verbatim:{})", v),
             Tok::NestedCommentOpen => write!(f, "(/*)"),
             Tok::NestedCommentClose => write!(f, "(*/)"),
             Tok::Newline => write!(f, "(newline)"),
