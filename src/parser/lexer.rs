@@ -23,7 +23,7 @@ token_patterns! {
     let COLON              = r":";
     let DOUBLE_COLON       = r"::";
     let INITIAL_INDENT     = r"[ \t]*";
-    let COMMAND            = r"\.[^ \t{}\r\n]+";
+    let COMMAND            = r"\.[^ \t{}\r\n:]+";
     let VERBATIM           = r"![^\r\n]*!";
     let BRACE_LEFT         = r"\{";
     let BRACE_RIGHT        = r"\}";
@@ -85,17 +85,24 @@ impl<'input> Lexer<'input> {
         (self.prev_loc.clone(), tok, self.curr_loc.clone())
     }
 
-    fn enqueue_indentation_delta(&mut self, target: u32) {
+    fn enqueue_indentation_level(&mut self, target: u32) {
         let difference = self.current_indent.abs_diff(target);
-        let tok = if self.current_indent > target {
+
+        if difference == 0 {
+            return
+        }
+
+        let tok = if self.current_indent < target {
             Tok::Indent
         } else {
             Tok::Dedent
         };
 
-        for _ in 1..difference {
+        for _ in 0..difference {
             self.enqueue(self.span(tok.clone()))
         }
+
+        self.current_indent = target;
     }
 
     fn dequeue(&mut self) -> Option<SpannedTok<'input>> {
@@ -168,7 +175,7 @@ impl<'input> Iterator for Lexer<'input> {
             if self.last_tok != Some(Tok::Newline) {
                 self.enqueue(self.span(Tok::Newline));
             }
-            self.enqueue_indentation_delta(0);
+            self.enqueue_indentation_level(0);
             self.done = true;
             return self.dequeue().map(Ok);
         }
@@ -188,6 +195,10 @@ impl<'input> Iterator for Lexer<'input> {
 
             if self.try_consume(&PAR_BREAKS).is_some() {
                 self.enqueue(self.span(Tok::ParBreak));
+            }
+
+            if let Some(indent) = self.try_consume(&WHITESPACE) {
+                self.enqueue_indentation_level(indent_level(indent));
             }
 
             let ret = self.dequeue().unwrap();
