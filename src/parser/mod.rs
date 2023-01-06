@@ -65,7 +65,6 @@ mod test {
 
     fn assert_structure(name: &str, input: &str, expected: &str) {
         assert_eq!(
-            expected,
             {
                 let parse_result = parse(name, input);
                 assert!(
@@ -77,6 +76,7 @@ mod test {
                 );
                 parse_result.unwrap().repr()
             },
+            expected,
             "{}",
             name
         );
