@@ -189,8 +189,13 @@ impl<'input> Iterator for Lexer<'input> {
                 self.enqueue(self.span(Tok::ParBreak));
             }
 
-            if let Some(indent) = self.try_consume(&WHITESPACE) {
-                self.enqueue_indentation_level(indent_level(indent));
+            {
+                let target = if let Some(indent) = self.try_consume(&WHITESPACE) {
+                    indent_level(indent)
+                } else {
+                    0
+                };
+                self.enqueue_indentation_level(target);
             }
 
             let ret = self.dequeue().unwrap();
