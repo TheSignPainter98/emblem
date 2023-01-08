@@ -11,7 +11,7 @@ pub enum Content<'i> {
         name: Text<'i>,
         inline_args: Vec<Vec<Content<'i>>>,
         remainder_arg: Option<Vec<Content<'i>>>,
-        trailing_args: Vec<Vec<Par<Content<'i>>>>,
+        trailer_args: Vec<Vec<Par<Content<'i>>>>,
     },
     Word(Text<'i>),
     Whitespace(&'i str),
@@ -48,7 +48,7 @@ impl AstDebug for Content<'_> {
                 name,
                 inline_args,
                 remainder_arg,
-                trailing_args,
+                trailer_args: trailing_args,
             } => {
                 buf.push('.'.into());
                 name.test_fmt(buf);

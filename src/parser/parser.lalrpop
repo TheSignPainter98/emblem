@@ -26,7 +26,7 @@ Line: Line<Content<'input>> = {
 			name: Text::from(name),
 			inline_args,
 			remainder_arg: None,
-			trailing_args: {
+			trailer_args: {
 				let mut args = vec![trail_head];
 				args.extend(trail_tail);
 				args
@@ -52,7 +52,7 @@ RemainderCommand: Content<'input> = {
 		name: Text::from(name),
 		inline_args,
 		remainder_arg: Some(remainder_arg),
-		trailing_args: Vec::with_capacity(0),
+		trailer_args: Vec::with_capacity(0),
 	}
 }
 
@@ -69,7 +69,7 @@ LineElement: Content<'input> = {
 		name: Text::from(name),
 		inline_args,
 		remainder_arg: None,
-		trailing_args: Vec::with_capacity(0),
+		trailer_args: Vec::with_capacity(0),
 	},
 
 	// ! => {

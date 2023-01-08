@@ -209,15 +209,15 @@ mod test {
         }
 
         #[test]
-        fn trailing_args() {
-            struct trailing_test<'n, 'd, 'e> {
+        fn trailer_args() {
+            struct trailer_test<'n, 'd, 'e> {
                 name: &'n str,
                 data: &'d [&'d str],
                 expected_structure: &'e str,
             }
 
             let tests = [
-                trailing_test {
+                trailer_test {
                     name: "one par per trailer arg",
                     data: &[
                         ".come{all you}:",
@@ -229,7 +229,7 @@ mod test {
                     ],
                     expected_structure: "File[Par[[.come{[Word(all)|< >|Word(you)]}::[Par[[Word(young)|< >|Word(sailor)|< >|Word(men)]|[Word(listen)|< >|Word(to)|< >|Word(me)]]]::[Par[[Word(I'll)|< >|Word(sing)|< >|Word(you)|< >|Word(a)|< >|Word(song)]|[Word(of)|< >|Word(the)|< >|Word(fish)|< >|Word(in)|< >|Word(the)|< >|Word(sea)]]]]]]",
                 },
-                trailing_test {
+                trailer_test {
                     name: "two pars per trailer arg",
                     data: &[
                         ".come{all you}:",
@@ -243,7 +243,7 @@ mod test {
                     ],
                     expected_structure: "File[Par[[.come{[Word(all)|< >|Word(you)]}::[Par[[Word(young)|< >|Word(sailor)|< >|Word(men)]]|Par[[Word(listen)|< >|Word(to)|< >|Word(me)]]]::[Par[[Word(I'll)|< >|Word(sing)|< >|Word(you)|< >|Word(a)|< >|Word(song)]]|Par[[Word(of)|< >|Word(the)|< >|Word(fish)|< >|Word(in)|< >|Word(the)|< >|Word(sea)]]]]]]",
                 },
-                trailing_test {
+                trailer_test {
                     name: "nested trailers",
                     data: &[
                         ".and{it's}:",
@@ -268,7 +268,7 @@ mod test {
                     ],
                     expected_structure: "File[Par[[.and{[Word(it's)]}::[Par[[Word(windy)|< >|Word(weather,)|< >|Word(boys,)]|[.stormy-weather{[Word(boys)]}::[Par[[Word(when)|< >|Word(the)|< >|Word(wind)|< >|Word(blows,)]]]::[Par[[Word(we're)|< >|Word(all)|< >|Word(together,)|< >|Word(boys)]|[Word(blow)|< >|Word(ye)|< >|Word(winds)|< >|Word(westerly)]]]]]|Par[[.blow{[Word(ye)]}::[Par[[Word(winds)|< >|Word(blow)]]|Par[[Word(jolly)|< >|Word(sou'wester,)|< >|Word(boys)]|[.steady{[Word(she)|< >|Word(goes)]}::[Par[[Word(up)|< >|Word(jumps)|< >|Word(the)|< >|Word(eeo)|< >|Word(with)|< >|Word(his)|< >|Word(slippery)|< >|Word(tail)]]]]|[Word(climbs)|< >|Word(up)|< >|Word(aloft)|< >|Word(and)|< >|Word(reefs)|< >|Word(the)|< >|Word(topsail)]]]]]|Par[[Word(then)|< >|Word(up)|< >|Word(jumps)|< >|Word(the)|< >|Word(shark)|< >|.with:[Word(his)|< >|Word(nine)|< >|Word(rows)|< >|Word(of)|< >|Word(teeth,)]]|[.saying:[Word(you)|< >|Word(eat)|< >|Word(the)|< >|Word(dough)|< >|Word(boys,)]]|[.and{[Word(I'll)|< >|Word(eat)]}:[Word(the)|< >|Word(beef!)]]]]]]]",
                 },
-                trailing_test {
+                trailer_test {
                     name: "remainder in trailer",
                     data: &[
                         ".up{jumps the .whale{the .largest{of}: all}}:",
@@ -276,7 +276,7 @@ mod test {
                     ],
                     expected_structure: "File[Par[[.up{[Word(jumps)|< >|Word(the)|< >|.whale{[Word(the)|< >|.largest{[Word(of)]}:[Word(all)]]}]}::[Par[[Word(if)|< >|Word(you)|< >|Word(want)|< >|Word(any)|< >|Word(wind,)|< >|Word(I'll)|< >|.blow{[Word(ye's)]}:[Word(a)|< >|Word(squall)]]]]]]]",
                 },
-                trailing_test {
+                trailer_test {
                     name: "stacked trailers",
                     data: &[
                         ".four:",
@@ -523,7 +523,7 @@ mod test {
         }
 
         #[test]
-        fn as_trailing_arg() {
+        fn as_trailer_arg() {
             assert_structure(
                 "comment as sole arg",
                 ".spaghetti:\n\t//and meatballs",
@@ -605,7 +605,7 @@ mod test {
         }
 
         #[test]
-        fn as_trailing_arg() {
+        fn as_trailer_arg() {
             assert_structure(
                 "comment as sole arg",
                 ".spaghetti:\n\t/*and meatballs*/",
@@ -635,20 +635,20 @@ mod test {
         #[test]
         fn before_remainder_args() {
             assert_structure(
-                "trailing-args",
+                "trailer-args",
                 "/*spaghetti*/.and: meatballs",
                 "File[Par[[/*[spaghetti]*/|.and:[Word(meatballs)]]]]",
             );
             assert_structure(
-                "trailing-args",
+                "trailer-args",
                 "/*spaghetti\n\t\t*/.and: meatballs",
                 r"File[Par[[/*[spaghetti|\n|\t\t]*/|.and:[Word(meatballs)]]]]",
             );
         }
 
         #[test]
-        fn before_trailing_args() {
-            assert_parse_error("trailing-args", "/*spaghetti*/.and:\n\tmeatballs");
+        fn before_trailer_args() {
+            assert_parse_error("trailer-args", "/*spaghetti*/.and:\n\tmeatballs");
         }
     }
 }
