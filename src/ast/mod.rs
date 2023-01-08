@@ -31,18 +31,18 @@ pub struct File<C> {
 
 #[derive(Debug)]
 pub struct Par<C> {
-    pub lines: Vec<Line<C>>,
+    pub parts: Vec<ParPart<C>>,
 }
 
-impl<C> From<Vec<Line<C>>> for Par<C> {
-    fn from(lines: Vec<Line<C>>) -> Self {
-        Self { lines }
+impl<C> From<Vec<ParPart<C>>> for Par<C> {
+    fn from(lines: Vec<ParPart<C>>) -> Self {
+        Self { parts: lines }
     }
 }
 
-impl<C> From<Line<C>> for Par<C> {
-    fn from(line: Line<C>) -> Self {
-        Self { lines: vec![line] }
+impl<C> From<ParPart<C>> for Par<C> {
+    fn from(line: ParPart<C>) -> Self {
+        Self { parts: vec![line] }
     }
 }
 
@@ -60,21 +60,20 @@ impl<C> From<Line<C>> for Par<C> {
 // }
 
 #[derive(Debug)]
-pub struct Line<C> {
-    pub content: Vec<C>,
+pub enum ParPart<C> {
+    Line(Vec<C>),
+    Single(C),
 }
 
-impl<C> From<Vec<C>> for Line<C> {
+impl<C> From<Vec<C>> for ParPart<C> {// TODO(kcza): remove these trait implementations!
     fn from(content: Vec<C>) -> Self {
-        Self { content }
+        Self::Line(content)
     }
 }
 
-impl<C> From<C> for Line<C> {
+impl<C> From<C> for ParPart<C> {
     fn from(content: C) -> Self {
-        Self {
-            content: vec![content],
-        }
+        Self::Single(content)
     }
 }
 
@@ -90,14 +89,17 @@ impl<C: AstDebug> AstDebug for File<C> {
 impl<C: AstDebug> AstDebug for Par<C> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         buf.push("Par".into());
-        self.lines.test_fmt(buf);
+        self.parts.test_fmt(buf);
     }
 }
 
 #[cfg(test)]
-impl<C: AstDebug> AstDebug for Line<C> {
+impl<C: AstDebug> AstDebug for ParPart<C> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
-        self.content.test_fmt(buf);
+        match self {
+            Self::Line(l) => l.test_fmt(buf),
+            Self::Single(s) => s.test_fmt(buf),
+        }
     }
 }
 

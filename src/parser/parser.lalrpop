@@ -1,7 +1,7 @@
 use crate::parser::{Location, LexicalError, lexer::Tok};
 use crate::ast::{
     parsed::{MultiLineComment, MultiLineCommentPart, Content},
-    File, Par, Line, Text, Dash, Glue,
+    File, Par, ParPart, Text, Dash, Glue,
 };
 
 grammar<'input>;
@@ -15,14 +15,14 @@ FileContent: Vec<Par<Content<'input>>> = {
 }
 
 Par: Par<Content<'input>> = {
-	Line+ => Par::from(<>),
+	ParPart+ => Par::from(<>),
 }
 
-Line: Line<Content<'input>> = {
-	<MaybeLineContent> "\n" => Line::from(<>),
+ParPart: ParPart<Content<'input>> = {
+	<MaybeLineContent> "\n" => ParPart::from(<>),
 
 	<name:Command> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
-		Line::from(Content::Command {
+		ParPart::from(Content::Command {
 			name: Text::from(name),
 			inline_args,
 			remainder_arg: None,
