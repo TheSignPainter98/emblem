@@ -1,6 +1,6 @@
-use std::fmt::{self, Display};
 use lazy_static::lazy_static;
 use regex::Regex;
+use std::fmt::{self, Display};
 
 lazy_static! {
     static ref NEWLINE: Regex = Regex::new("(\n|\r\n|\r)").unwrap();
@@ -32,8 +32,11 @@ impl<'input> Location<'input> {
 
         self.line += num_lines - 1;
 
-        let last_line = lines[num_lines-1];
-        let last_line_width = last_line.len() + 3 * last_line.chars().filter(|c| *c == '\t').count();
+        let last_line = lines[num_lines - 1];
+        let last_line_width = last_line
+            .chars()
+            .map(|c| if c == '\t' { 4 } else { 1 })
+            .sum();
         self.col = if num_lines > 1 {
             last_line_width
         } else {

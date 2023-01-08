@@ -89,7 +89,7 @@ impl<'input> Lexer<'input> {
         let difference = self.current_indent.abs_diff(target);
 
         if difference == 0 {
-            return
+            return;
         }
 
         let tok = if self.current_indent < target {
@@ -195,7 +195,7 @@ impl<'input> Iterator for Lexer<'input> {
 
             let ret = self.dequeue().unwrap();
             self.last_tok = Some(ret.1.clone());
-            return Some(Ok(ret))
+            return Some(Ok(ret));
         }
         self.start_of_line = false;
 

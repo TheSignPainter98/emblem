@@ -26,9 +26,17 @@ impl<'i> Region<'i> {
 impl Display for Region<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.lines.0 != self.lines.1 {
-            write!(f, "{}:{}-{}:{}-{}", self.file_name, self.lines.0, self.lines.1, self.cols.0, self.cols.1)
+            write!(
+                f,
+                "{}:{}-{}:{}-{}",
+                self.file_name, self.lines.0, self.lines.1, self.cols.0, self.cols.1
+            )
         } else if self.cols.0 != self.cols.1 {
-            write!(f, "{}:{}:{}-{}", self.file_name, self.lines.0, self.cols.0, self.cols.1)
+            write!(
+                f,
+                "{}:{}:{}-{}",
+                self.file_name, self.lines.0, self.cols.0, self.cols.1
+            )
         } else {
             write!(f, "{}:{}:{}", self.file_name, self.lines.0, self.cols.0)
         }

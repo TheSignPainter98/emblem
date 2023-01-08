@@ -72,7 +72,9 @@ impl<C> From<Vec<C>> for Line<C> {
 
 impl<C> From<C> for Line<C> {
     fn from(content: C) -> Self {
-        Self { content: vec![content] }
+        Self {
+            content: vec![content],
+        }
     }
 }
 
@@ -126,11 +128,14 @@ impl<T: AsRef<str>> From<T> for Dash {
 #[cfg(test)]
 impl AstDebug for Dash {
     fn test_fmt(&self, buf: &mut Vec<String>) {
-        buf.push(match self {
-            Self::Hyphen => "-",
-            Self::En => "--",
-            Self::Em => "---",
-        }.into());
+        buf.push(
+            match self {
+                Self::Hyphen => "-",
+                Self::En => "--",
+                Self::Em => "---",
+            }
+            .into(),
+        );
     }
 }
 
@@ -159,9 +164,12 @@ impl<T: AsRef<str>> From<T> for Glue {
 #[cfg(test)]
 impl AstDebug for Glue {
     fn test_fmt(&self, buf: &mut Vec<String>) {
-        buf.push(match self {
-            Self::Tight => "~",
-            Self::Nbsp => "~~",
-        }.into());
+        buf.push(
+            match self {
+                Self::Tight => "~",
+                Self::Nbsp => "~~",
+            }
+            .into(),
+        );
     }
 }
