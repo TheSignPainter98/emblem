@@ -202,10 +202,127 @@ mod test {
                 "File[Par[[Word(the)|< >|Word(anchor's)|< >|Word(on)|< >|Word(board)|< >|.and{[Word(the)|< >|Word(cable's)]}:[.all:[Word(stored)]]]]]",
             );
             assert_structure("nested in braces", "Heave away, bullies, .you{parish-rigged bums, .take: your hands from your pockets and don’t}: suck your thumbs", "File[Par[[Word(Heave)|< >|Word(away,)|< >|Word(bullies,)|< >|.you{[Word(parish)|-|Word(rigged)|< >|Word(bums,)|< >|.take:[Word(your)|< >|Word(hands)|< >|Word(from)|< >|Word(your)|< >|Word(pockets)|< >|Word(and)|< >|Word(don’t)]]}:[Word(suck)|< >|Word(your)|< >|Word(thumbs)]]]]");
-            assert_structure("stacked", ".heave{a pawl}:, o heave away\n.way{hay}: roll 'an go!", "File[Par[[.heave{[Word(a)|< >|Word(pawl)]}:[Word(,)|< >|Word(o)|< >|Word(heave)|< >|Word(away)]|.way{]]]");
+            assert_structure("stacked", ".heave{a pawl}:, o heave away\n.way{hay}: roll 'an go!", "File[Par[[.heave{[Word(a)|< >|Word(pawl)]}:[Word(,)|< >|Word(o)|< >|Word(heave)|< >|Word(away)]]|[.way{[Word(hay)]}:[Word(roll)|< >|Word('an)|< >|Word(go!)]]]]");
 
             assert_parse_error("sole at end of line", ".randy-dandy-o:");
             assert_parse_error("end of line", "randy .dandy-o:");
+        }
+
+        #[test]
+        fn trailing_args() {
+            struct trailing_test<'n, 'd, 'e> {
+                name: &'n str,
+                data: &'d [&'d str],
+                expected_structure: &'e str,
+            }
+
+            let tests = [
+                trailing_test {
+                    name: "one par per trailer arg",
+                    data: &[
+                        ".come{all you}:",
+                        "\tyoung sailor men",
+                        "\tlisten to me",
+                        "::",
+                        "\tI'll sing you a song",
+                        "\tof the fish in the sea",
+                    ],
+                    expected_structure: "File[Par[[.come{[Word(all)|< >|Word(you)]}::[Par[[Word(young)|< >|Word(sailor)|< >|Word(men)]|[Word(listen)|< >|Word(to)|< >|Word(me)]]]::[Par[[Word(I'll)|< >|Word(sing)|< >|Word(you)|< >|Word(a)|< >|Word(song)]|[Word(of)|< >|Word(the)|< >|Word(fish)|< >|Word(in)|< >|Word(the)|< >|Word(sea)]]]]]]",
+                },
+                trailing_test {
+                    name: "two pars per trailer arg",
+                    data: &[
+                        ".come{all you}:",
+                        "\tyoung sailor men",
+                        "\t",
+                        "\tlisten to me",
+                        "::",
+                        "\tI'll sing you a song",
+                        "",
+                        "\tof the fish in the sea",
+                    ],
+                    expected_structure: "File[Par[[.come{[Word(all)|< >|Word(you)]}::[Par[[Word(young)|< >|Word(sailor)|< >|Word(men)]]|Par[[Word(listen)|< >|Word(to)|< >|Word(me)]]]::[Par[[Word(I'll)|< >|Word(sing)|< >|Word(you)|< >|Word(a)|< >|Word(song)]]|Par[[Word(of)|< >|Word(the)|< >|Word(fish)|< >|Word(in)|< >|Word(the)|< >|Word(sea)]]]]]]",
+                },
+                trailing_test {
+                    name: "nested trailers",
+                    data: &[
+                        ".and{it's}:",
+                        "\twindy weather, boys,",
+                        "\t.stormy-weather{boys}:",
+                        "\t\twhen the wind blows,",
+                        "\t::",
+                        "\t\twe're all together, boys",
+                        "\t\tblow ye winds westerly",
+                        "",
+                        "\t.blow{ye}:",
+                        "\t\twinds blow",
+                        "",
+                        "\t\tjolly sou'wester, boys",
+                        "\t\t.steady{she goes}:",
+                        "\t\t\tup jumps the eeo with his slippery tail",
+                        "\t\tclimbs up aloft and reefs the topsail",
+                        "",
+                        "\tthen up jumps the shark .with: his nine rows of teeth,",
+                        "\t.saying: you eat the dough boys,",
+                        "\t.and{I'll eat}: the beef!",
+                    ],
+                    expected_structure: "File[Par[[.and{[Word(it's)]}::[Par[[Word(windy)|< >|Word(weather,)|< >|Word(boys,)]|[.stormy-weather{[Word(boys)]}::[Par[[Word(when)|< >|Word(the)|< >|Word(wind)|< >|Word(blows,)]]]::[Par[[Word(we're)|< >|Word(all)|< >|Word(together,)|< >|Word(boys)]|[Word(blow)|< >|Word(ye)|< >|Word(winds)|< >|Word(westerly)]]]]]|Par[[.blow{[Word(ye)]}::[Par[[Word(winds)|< >|Word(blow)]]|Par[[Word(jolly)|< >|Word(sou'wester,)|< >|Word(boys)]|[.steady{[Word(she)|< >|Word(goes)]}::[Par[[Word(up)|< >|Word(jumps)|< >|Word(the)|< >|Word(eeo)|< >|Word(with)|< >|Word(his)|< >|Word(slippery)|< >|Word(tail)]]]]|[Word(climbs)|< >|Word(up)|< >|Word(aloft)|< >|Word(and)|< >|Word(reefs)|< >|Word(the)|< >|Word(topsail)]]]]]|Par[[Word(then)|< >|Word(up)|< >|Word(jumps)|< >|Word(the)|< >|Word(shark)|< >|.with:[Word(his)|< >|Word(nine)|< >|Word(rows)|< >|Word(of)|< >|Word(teeth,)]]|[.saying:[Word(you)|< >|Word(eat)|< >|Word(the)|< >|Word(dough)|< >|Word(boys,)]]|[.and{[Word(I'll)|< >|Word(eat)]}:[Word(the)|< >|Word(beef!)]]]]]]]",
+                },
+                trailing_test {
+                    name: "remainder in trailer",
+                    data: &[
+                        ".up{jumps the .whale{the .largest{of}: all}}:",
+                        "\tif you want any wind, I'll .blow{ye's}: a squall",
+                    ],
+                    expected_structure: "File[Par[[.up{[Word(jumps)|< >|Word(the)|< >|.whale{[Word(the)|< >|.largest{[Word(of)]}:[Word(all)]]}]}::[Par[[Word(if)|< >|Word(you)|< >|Word(want)|< >|Word(any)|< >|Word(wind,)|< >|Word(I'll)|< >|.blow{[Word(ye's)]}:[Word(a)|< >|Word(squall)]]]]]]]",
+                },
+                trailing_test {
+                    name: "stacked trailers",
+                    data: &[
+                        ".four:",
+                        "\tand twenty British sailors",
+                        ".met:",
+                        "\thim on the king's highway",
+                        "",
+                        ".as:",
+                        "\the went to be married",
+                        ".pressed{he was}:",
+                        "\tand sent away",
+                    ],
+                    expected_structure: "File[Par[[.four::[Par[[Word(and)|< >|Word(twenty)|< >|Word(British)|< >|Word(sailors)]]]]|[.met::[Par[[Word(him)|< >|Word(on)|< >|Word(the)|< >|Word(king's)|< >|Word(highway)]]]]]|Par[[.as::[Par[[Word(he)|< >|Word(went)|< >|Word(to)|< >|Word(be)|< >|Word(married)]]]]|[.pressed{[Word(he)|< >|Word(was)]}::[Par[[Word(and)|< >|Word(sent)|< >|Word(away)]]]]]]",
+                },
+            ];
+            for test in &tests {
+                let name_with_tabs = format!("{} (with tabs)", test.name);
+                let data_with_tabs = test.data.join("\n");
+                assert_structure(&name_with_tabs, &data_with_tabs, test.expected_structure);
+
+                let name_with_spaces = format!("{} (with spaces)", test.name);
+                let data_with_spaces = test
+                    .data
+                    .iter()
+                    .map(|l| l.replace('\t', "    "))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                assert_structure(
+                    &name_with_spaces,
+                    &data_with_spaces,
+                    test.expected_structure,
+                );
+            }
+
+            assert_parse_error(
+                "end of populated line",
+                &[
+                    "william taylor was a .brisk{young sailor}:",
+                    "\tfull of heart and full of play",
+                ]
+                .join("\n"),
+            );
+            assert_parse_error(
+                "missing indent",
+                &[".until{did his mind uncover}:", "to a youthful lady gay"].join("\n"),
+            );
         }
     }
 
