@@ -1,6 +1,6 @@
 // use std::fmt::Display;
 
-use crate::ast::{text::Text, Dash, Glue, Line, Par};
+use crate::ast::{text::Text, Dash, Glue, Par};
 
 #[cfg(test)]
 use crate::ast::AstDebug;
@@ -59,7 +59,7 @@ impl AstDebug for Content<'_> {
                     buf.push(":".into());
                     arg.test_fmt(buf)
                 }
-                for (i, arg) in trailing_args.iter().enumerate() {
+                for arg in trailing_args.iter() {
                     buf.push("::".into());
                     arg.test_fmt(buf);
                 }
