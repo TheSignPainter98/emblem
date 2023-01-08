@@ -19,31 +19,40 @@ Par: Par<Content<'input>> = {
 }
 
 Line: Line<Content<'input>> = {
-	<mut content:LineElement*> <tail:RemainderCommand?> "\n" => {
-		if let Some(cmd) = tail {
-			content.push(cmd);
-		}
-		Line::from(content)
+	<MaybeLineContent> "\n" => Line::from(<>),
+
+	<name:Command> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
+		Line::from(Content::Command {
+			name: Text::from(name),
+			inline_args,
+			remainder_arg: None,
+			trailing_args: {
+				let mut args = vec![trail_head];
+				args.extend(trail_tail);
+				args
+			}
+		})
 	},
+}
 
-	<name:Command> <inline_args:("{" <LineElement*> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
-		let name = Text::from(name);
-		let remainder_arg = None;
-		let trailing_args = {
-			let mut trailing_args = vec![trail_head];
-			trailing_args.extend(trail_tail);
-			trailing_args
-		};
+MaybeLineContent: Vec<Content<'input>> = {
+	LineContent? => <>.unwrap_or_default()
+}
 
-		Line::from(Content::Command { name, inline_args, remainder_arg, trailing_args })
+LineContent: Vec<Content<'input>> = {
+	LineElement+,
+	<mut content:LineElement*> <tail:RemainderCommand> => {
+		content.push(tail);
+		content
 	},
 }
 
 RemainderCommand: Content<'input> = {
-	<name:Command> <mut inline_args:("{" <LineElement*> "}")*> <remainder_arg:(":" <LineElement+>)> => {
-		let name = Text::from(name);
-		let remainder_arg = Some(remainder_arg);
-		Content::Command { name, inline_args, remainder_arg, trailing_args: Vec::with_capacity(0) }
+	<name:Command> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> => Content::Command {
+		name: Text::from(name),
+		inline_args,
+		remainder_arg: Some(remainder_arg),
+		trailing_args: Vec::with_capacity(0),
 	}
 }
 
@@ -56,7 +65,7 @@ LineElement: Content<'input> = {
 	Glue          => Content::Glue(Glue::from(<>)),
 	Verbatim      => Content::Verbatim(<>),
 
-	<name: Command> <inline_args:("{" <LineElement*> "}")*> => Content::Command {
+	<name: Command> <inline_args:("{" <MaybeLineContent> "}")*> => Content::Command {
 		name: Text::from(name),
 		inline_args,
 		remainder_arg: None,

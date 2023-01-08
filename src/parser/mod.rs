@@ -196,6 +196,13 @@ mod test {
                 "our boots .and{our clothes boys}, are all in the pawn",
                 "File[Par[[Word(our)|< >|Word(boots)|< >|.and{[Word(our)|< >|Word(clothes)|< >|Word(boys)]}|Word(,)|< >|Word(are)|< >|Word(all)|< >|Word(in)|< >|Word(the)|< >|Word(pawn)]]]",
             );
+            assert_structure(
+                "nested",
+                "the anchor's on board .and{the cable's}: .all: stored",
+                "File[Par[[Word(the)|< >|Word(anchor's)|< >|Word(on)|< >|Word(board)|< >|.and{[Word(the)|< >|Word(cable's)]}:[.all:[Word(stored)]]]]]",
+            );
+            assert_structure("nested in braces", "Heave away, bullies, .you{parish-rigged bums, .take: your hands from your pockets and don’t}: suck your thumbs", "File[Par[[Word(Heave)|< >|Word(away,)|< >|Word(bullies,)|< >|.you{[Word(parish)|-|Word(rigged)|< >|Word(bums,)|< >|.take:[Word(your)|< >|Word(hands)|< >|Word(from)|< >|Word(your)|< >|Word(pockets)|< >|Word(and)|< >|Word(don’t)]]}:[Word(suck)|< >|Word(your)|< >|Word(thumbs)]]]]");
+
             assert_parse_error("sole at end of line", ".randy-dandy-o:");
             assert_parse_error("end of line", "randy .dandy-o:");
         }
