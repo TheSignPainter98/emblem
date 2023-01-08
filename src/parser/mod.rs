@@ -164,7 +164,7 @@ mod test {
 
         #[test]
         fn command_only() {
-            assert_structure("command", ".order66", "File[Par[[.order66]]]")
+            assert_structure("command", ".order-66", "File[Par[[.order-66]]]")
         }
 
         #[test]
