@@ -1,9 +1,11 @@
 // use std::fmt::Display;
 
-use crate::ast::{text::Text, Dash, Glue, Par};
+use crate::ast::{text::Text, Dash, File, Glue, Par, ParPart};
 
 #[cfg(test)]
 use crate::ast::AstDebug;
+
+pub type ParsedFile<'i> = File<ParPart<Content<'i>>>;
 
 #[derive(Debug)]
 pub enum Content<'i> {
@@ -11,7 +13,7 @@ pub enum Content<'i> {
         name: Text<'i>,
         inline_args: Vec<Vec<Content<'i>>>,
         remainder_arg: Option<Vec<Content<'i>>>,
-        trailer_args: Vec<Vec<Par<Content<'i>>>>,
+        trailer_args: Vec<Vec<Par<ParPart<Content<'i>>>>>,
     },
     Word(Text<'i>),
     Whitespace(&'i str),

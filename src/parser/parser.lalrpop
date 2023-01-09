@@ -1,28 +1,28 @@
 use crate::parser::{Location, LexicalError, lexer::Tok};
 use crate::ast::{
-    parsed::{MultiLineComment, MultiLineCommentPart, Content},
-    File, Par, ParPart, Text, Dash, Glue,
+    parsed::{ParsedFile, MultiLineComment, MultiLineCommentPart, Content},
+    Par, ParPart, Text, Dash, Glue,
 };
 
 grammar<'input>;
 
-pub File: File<Content<'input>> = {
-    FileContent => File { pars: <> },
+pub File: ParsedFile<'input> = {
+    FileContent => ParsedFile { pars: <> },
 };
 
-FileContent: Vec<Par<Content<'input>>> = {
+FileContent: Vec<Par<ParPart<Content<'input>>>> = {
 	MaybeSepList<Par, ParBreak>
 }
 
-Par: Par<Content<'input>> = {
+Par: Par<ParPart<Content<'input>>> = {
 	ParPart+ => Par::from(<>),
 }
 
 ParPart: ParPart<Content<'input>> = {
-	<MaybeLineContent> "\n" => ParPart::from(<>),
+	<MaybeLineContent> "\n" => ParPart::Line(<>),
 
 	<name:Command> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
-		ParPart::from(Content::Command {
+		ParPart::Command(Content::Command {
 			name: Text::from(name),
 			inline_args,
 			remainder_arg: None,

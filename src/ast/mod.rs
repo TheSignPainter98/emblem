@@ -9,11 +9,9 @@ mod text;
 pub use debug::AstDebug;
 pub use text::Text;
 
-pub type ParsedAst<'file> = File<parsed::Content<'file>>;
-
 #[derive(Debug)]
-pub struct File<C> {
-    pub pars: Vec<Par<C>>,
+pub struct File<T> {
+    pub pars: Vec<Par<T>>,
 }
 
 // impl<C:Display> Display for File<C> {
@@ -30,18 +28,18 @@ pub struct File<C> {
 // }
 
 #[derive(Debug)]
-pub struct Par<C> {
-    pub parts: Vec<ParPart<C>>,
+pub struct Par<T> {
+    pub parts: Vec<T>,
 }
 
-impl<C> From<Vec<ParPart<C>>> for Par<C> {
-    fn from(lines: Vec<ParPart<C>>) -> Self {
+impl<T> From<Vec<T>> for Par<T> {
+    fn from(lines: Vec<T>) -> Self {
         Self { parts: lines }
     }
 }
 
-impl<C> From<ParPart<C>> for Par<C> {
-    fn from(line: ParPart<C>) -> Self {
+impl<T> From<T> for Par<T> {
+    fn from(line: T) -> Self {
         Self { parts: vec![line] }
     }
 }
@@ -60,25 +58,13 @@ impl<C> From<ParPart<C>> for Par<C> {
 // }
 
 #[derive(Debug)]
-pub enum ParPart<C> {
-    Line(Vec<C>),
-    Single(C),
-}
-
-impl<C> From<Vec<C>> for ParPart<C> {// TODO(kcza): remove these trait implementations!
-    fn from(content: Vec<C>) -> Self {
-        Self::Line(content)
-    }
-}
-
-impl<C> From<C> for ParPart<C> {
-    fn from(content: C) -> Self {
-        Self::Single(content)
-    }
+pub enum ParPart<T> {
+    Line(Vec<T>),
+    Command(T),
 }
 
 #[cfg(test)]
-impl<C: AstDebug> AstDebug for File<C> {
+impl<T: AstDebug> AstDebug for File<T> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         buf.push("File".into());
         self.pars.test_fmt(buf);
@@ -86,7 +72,7 @@ impl<C: AstDebug> AstDebug for File<C> {
 }
 
 #[cfg(test)]
-impl<C: AstDebug> AstDebug for Par<C> {
+impl<T: AstDebug> AstDebug for Par<T> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         buf.push("Par".into());
         self.parts.test_fmt(buf);
@@ -94,11 +80,11 @@ impl<C: AstDebug> AstDebug for Par<C> {
 }
 
 #[cfg(test)]
-impl<C: AstDebug> AstDebug for ParPart<C> {
+impl<T: AstDebug> AstDebug for ParPart<T> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
             Self::Line(l) => l.test_fmt(buf),
-            Self::Single(s) => s.test_fmt(buf),
+            Self::Command(s) => s.test_fmt(buf),
         }
     }
 }

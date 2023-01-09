@@ -8,7 +8,7 @@ use crate::ast;
 use lalrpop_util::lalrpop_mod;
 // use lalrpop_util::ParseError;
 use crate::context::Context;
-use ast::ParsedAst;
+use ast::parsed::ParsedFile;
 use lexer::Lexer;
 use std::error::Error;
 use std::fs;
@@ -20,10 +20,12 @@ lalrpop_mod!(
 );
 
 /// Parse an emblem source file at the given location.
-pub fn parse_file<'ctx>(
+pub fn parse_file<'ctx, 'input>(
     ctx: &'ctx mut Context,
     path: String,
-) -> Result<ParsedAst<'ctx>, Box<dyn Error + 'ctx>>
+) -> Result<ParsedFile<'input>, Box<dyn Error + 'input>>
+where
+    'ctx: 'input,
 {
     let content = fs::read_to_string(&path)?;
     let file = ctx.alloc_file(path, content);
@@ -34,7 +36,7 @@ pub fn parse_file<'ctx>(
 pub fn parse<'file>(
     fname: &'file str,
     input: &'file str,
-) -> Result<ParsedAst<'file>, Box<dyn Error + 'file>> {
+) -> Result<ParsedFile<'file>, Box<dyn Error + 'file>> {
     let lexer = Lexer::new(fname, input);
     let parser = parser::FileParser::new();
 
@@ -59,7 +61,7 @@ mod test {
     use super::*;
     use crate::ast::{parsed::Content, AstDebug, File};
 
-    fn parse_str<'i>(input: &'i str) -> Result<ParsedAst<'i>, Box<dyn Error + 'i>> {
+    fn parse_str<'i>(input: &'i str) -> Result<ParsedFile<'i>, Box<dyn Error + 'i>> {
         parse("test.em", input)
     }
 
