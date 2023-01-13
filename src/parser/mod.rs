@@ -33,6 +33,7 @@ where
     parse(file.name(), file.content())
 }
 
+/// Parse a given string of emblem source code.
 pub fn parse<'file>(
     fname: &'file str,
     input: &'file str,
