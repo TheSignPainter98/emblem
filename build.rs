@@ -1,4 +1,5 @@
 mod args {
+    #![allow(dead_code)]
     include!("src/args.rs");
 }
 

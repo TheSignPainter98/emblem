@@ -28,7 +28,6 @@ pub struct Args {
 
 impl Args {
     /// Parse command-line arguments, exit on failure
-    #[allow(dead_code)]
     pub fn parse() -> Self {
         match Self::try_parse_from(env::args()) {
             Ok(args) => args,
@@ -36,7 +35,6 @@ impl Args {
         }
     }
 
-    #[allow(dead_code)]
     pub fn try_parse_from<I, T>(iter: I) -> Result<Self, clap::Error>
     where
         T: Into<OsString> + Clone,
@@ -114,6 +112,9 @@ pub enum Command {
     #[command(name = "fmt")]
     Format(FormatCmd),
 
+    /// Create a new emblem document
+    Init(InitCmd),
+
     /// Check for linting errors in the given document
     Lint(LintCmd),
 
@@ -133,6 +134,13 @@ impl Command {
     fn format(&self) -> Option<&FormatCmd> {
         match self {
             Self::Format(f) => Some(f),
+            _ => None,
+        }
+    }
+
+    fn init(&self) -> Option<&InitCmd> {
+        match self {
+            Self::Init(i) => Some(i),
             _ => None,
         }
     }
@@ -193,6 +201,28 @@ pub struct FormatCmd {
     #[command(flatten)]
     #[allow(missing_docs)]
     pub input: InputArgs,
+}
+
+/// Arguments to the init subcommand
+#[derive(Clone, Debug, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct InitCmd {
+    #[command(flatten)]
+    #[allow(missing_docs)]
+    pub input: InputArgs,
+
+    /// Title of the new document
+    #[arg(long, value_name = "title", value_hint = None)]
+    title: Option<String>,
+}
+
+impl InitCmd {
+    pub fn title(&self) -> Option<&str> {
+        match &self.title {
+            None => None,
+            Some(s) => Some(s),
+        }
+    }
 }
 
 /// Arguments to the lint subcommand
@@ -367,11 +397,18 @@ impl ArgPath {
     fn parser() -> impl TypedValueParser {
         StringValueParser::new().try_map(Self::try_from)
     }
+
+    pub fn path(&self) -> Option<&path::Path> {
+        match self {
+            Self::Path(p) => Some(p),
+            Self::Stdio => None,
+        }
+    }
 }
 
 impl Default for ArgPath {
     fn default() -> Self {
-        Self::try_from("main").unwrap()
+        Self::Path("main".into())
     }
 }
 
@@ -1219,6 +1256,61 @@ mod test {
             }
         }
 
+        mod init {
+            use super::*;
+
+            #[test]
+            fn input_file() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "init"])
+                        .unwrap()
+                        .command
+                        .init()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("main".into()),
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "init", "cool-doc"])
+                        .unwrap()
+                        .command
+                        .init()
+                        .unwrap()
+                        .input
+                        .file,
+                    ArgPath::Path("cool-doc".into()),
+                );
+            }
+
+            #[test]
+            fn title() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "init"])
+                        .unwrap()
+                        .command
+                        .init()
+                        .unwrap()
+                        .title,
+                    None
+                );
+                assert_eq!(
+                    Args::try_parse_from(&[
+                        "em",
+                        "init",
+                        "--title",
+                        "how to make disappointing sandwiches"
+                    ])
+                    .unwrap()
+                    .command
+                    .init()
+                    .unwrap()
+                    .title,
+                    Some("how to make disappointing sandwiches".into())
+                );
+            }
+        }
+
         mod lint {
             use super::*;
 
@@ -1521,6 +1613,14 @@ mod test {
                     .infer_from(&resolved_stdio),
                 ArgPath::try_from("Tottington Hall").unwrap()
             );
+        }
+
+        #[test]
+        fn path() {
+            assert_eq!(ArgPath::Stdio.path(), None);
+
+            let path = path::PathBuf::from("preston's dog food");
+            assert_eq!(ArgPath::Path(path.clone()).path(), Some(path.as_ref()));
         }
     }
 
