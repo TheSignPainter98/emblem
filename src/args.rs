@@ -421,7 +421,7 @@ impl TryFrom<OsStr> for ArgPath {
         }
         Err(RawArgs::command().error(
             error::ErrorKind::InvalidValue,
-            format!("could not convert '{:?}' to an OS string", raw),
+            format!("could not convert '{:?}' to a valid UTF-8 string", raw),
         ))
     }
 }
