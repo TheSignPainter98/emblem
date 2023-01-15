@@ -2,7 +2,16 @@ use crate::args::InitCmd;
 use git2::{Repository, RepositoryInitOptions};
 use std::error::Error;
 use std::path::{Path, PathBuf};
-use std::{fs, io};
+use std::{
+    fs::{OpenOptions},
+    io::{self, Write},
+};
+
+static MAIN_CONTENTS: &str = r#"
+# Emblem document
+
+Welcome to _Emblem._
+"#;
 
 static GITIGNORE_CONTENTS: &str = r#"
 # Output files
@@ -10,70 +19,121 @@ static GITIGNORE_CONTENTS: &str = r#"
 "#;
 
 pub fn init(cmd: InitCmd) -> Result<(), Box<dyn Error>> {
-    let path = {
-        let path = cmd.input.file.path();
-        if path == None {
-            return Err(Box::new(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("Cannot create new emblem project in {}", cmd.input.file),
-            )));
+    let dir = {
+        let dir = Path::new(cmd.dir());
+        if !dir.is_absolute() && !dir.starts_with("./") {
+            PathBuf::from(".").join(dir)
+        } else {
+            dir.into()
         }
-        let mut path = path.unwrap().join("main");
-        if !path.is_absolute() {
-            path = PathBuf::from(".").join(path);
-        }
-        path
     };
 
-    let dir = path.parent().unwrap();
-
-    if dir.try_exists().ok() == Some(true) && dir.read_dir()?.next().is_some() {
+    if !cmd.dir_not_empty() && dir.try_exists().ok() == Some(true) && dir.read_dir()?.next().is_some() {
         // TODO(kcza): change error kind to DirectoryNotEmpty once stable
         return Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
             format!("Directory {:?} is not empty", dir),
         )));
     }
-    let git_repo = path.with_file_name(".git/");
-    let git_ignore = path.with_file_name(".gitignore");
-    let main_file = path.with_extension("em");
+    let git_ignore = dir.join(".gitignore");
+    let main_file = dir.join("main.em");
 
-    eprintln!("Writing git repo: {:?}", git_repo);
-    Repository::init_opts(
-        git_repo.parent().unwrap(),
-        RepositoryInitOptions::new()
-            .description(cmd.title().unwrap_or("emblem file"))
-            .mkdir(true)
-            .no_reinit(true),
-    )?;
-    eprintln!("Writing file: {:?}", git_ignore);
-    write_file(&git_ignore, GITIGNORE_CONTENTS)?;
+    Repository::init_opts(dir, RepositoryInitOptions::new().mkdir(true))?;
 
-    let main_contents = format!(
-        r#"
-# {}
-
-Welcome to _Emblem._
-"#,
-        cmd.title().unwrap_or("Emblem document".into())
-    );
-    write_file(&main_file, &main_contents)?;
+    write_file(&git_ignore, GITIGNORE_CONTENTS, cmd.dir_not_empty())?;
+    write_file(&main_file, MAIN_CONTENTS, cmd.dir_not_empty())?;
 
     eprintln!("New emblem document created in {:?}", main_file);
 
     Ok(())
 }
 
-fn write_file(file: &Path, contents: &str) -> Result<(), io::Error> {
-    fs::write(file, &contents[1..contents.len() - 1])
+fn write_file(path: &Path, contents: &str, dir_not_empty: bool) -> Result<(), io::Error> {
+    match OpenOptions::new().write(true).create_new(true).open(&path) {
+        Ok(mut file) => write!(file, "{}", contents.trim()),
+        Err(e) => if dir_not_empty {
+            Ok(())
+        } else {
+            Err(e)
+        },
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use tempfile::TempDir;
 
-    // TODO(kcza): test git initialisation
-    // TODO(kcza): test what happens if a git repo is already present, or any of the files
-    // are!
-    // TODO(kcza): test stdin blocked
+    fn do_init(tmpdir: &TempDir, dir_not_empty: bool) -> Result<(), Box<dyn Error>> {
+        let cmd = InitCmd::new(tmpdir.path().to_str().unwrap().to_owned(), dir_not_empty);
+        init(cmd)?;
+        Ok(())
+    }
+
+    mod empty_dir {
+        use super::*;
+        use std::{
+            fs::{self, File},
+            io::{BufRead, BufReader},
+        };
+
+        fn test_files(dir: &TempDir) -> Result<(), Box<dyn Error>> {
+            let dot_git = dir.path().join(".git");
+            assert!(dot_git.exists(), "no .git");
+            assert!(dot_git.is_dir(), ".git is not a directory");
+
+            let dot_gitignore = dir.path().join(".gitignore");
+            assert!(dot_gitignore.exists(), "no .gitignore");
+            assert!(dot_gitignore.is_file(), ".gitignore is not a file");
+
+            const IGNORES: &[&str] = &["*.pdf"];
+
+            let lines: Vec<String> = BufReader::new(File::open(dot_gitignore)?)
+                .lines()
+                .filter_map(|l| l.ok())
+                .collect::<Vec<_>>();
+
+            for ignore in IGNORES {
+                assert!(
+                    lines.contains(&ignore.to_string()),
+                    "Missing ignore: {}",
+                    ignore
+                );
+            }
+
+            let main_file = dir.path().join("main.em");
+            assert!(main_file.exists(), "no main.em");
+            assert!(main_file.is_file(), "main.em is not a file");
+            // TODO(kcza): test the main file builds
+
+            Ok(())
+        }
+
+        #[test]
+        fn empty_dir() -> Result<(), Box<dyn Error>> {
+            let tmpdir = tempfile::tempdir()?;
+            do_init(&tmpdir, false)?;
+            test_files(&tmpdir)
+        }
+
+        #[test]
+        fn non_empty_dir() -> Result<(), Box<dyn Error>> {
+            let tmpdir = tempfile::tempdir()?;
+            let main_file_path = tmpdir.path().join("main.em");
+            let main_file_content = "hello, world!";
+            fs::write(&main_file_path, main_file_content)?;
+
+            assert!(do_init(&tmpdir, false).is_err());
+            assert!(
+                do_init(&tmpdir, true).is_ok(),
+                "failed to force file initialisation"
+            );
+
+            test_files(&tmpdir)?;
+
+            assert_eq!(main_file_content, fs::read_to_string(&main_file_path)?);
+
+            Ok(())
+        }
+    }
 }

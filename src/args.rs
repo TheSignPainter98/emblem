@@ -3,7 +3,7 @@ use clap::{
     error,
     ArgAction::{Append, Count, Help, Version},
     CommandFactory, Parser, Subcommand, ValueEnum,
-    ValueHint::{AnyPath, FilePath},
+    ValueHint::{AnyPath, DirPath, FilePath},
 };
 use derive_new::new;
 use std::ffi::OsString;
@@ -207,21 +207,29 @@ pub struct FormatCmd {
 #[derive(Clone, Debug, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
 pub struct InitCmd {
-    #[command(flatten)]
-    #[allow(missing_docs)]
-    pub input: InputArgs,
+    /// Directory to contain the new document
+    #[arg(value_name = "dir", value_hint = DirPath, default_value = ".")]
+    dir: String,
 
-    /// Title of the new document
-    #[arg(long, value_name = "title", value_hint = None)]
-    title: Option<String>,
+    /// Allow writing to non-empty directories
+    #[arg(long)]
+    dir_not_empty: bool,
 }
 
 impl InitCmd {
-    pub fn title(&self) -> Option<&str> {
-        match &self.title {
-            None => None,
-            Some(s) => Some(s),
-        }
+    pub fn dir(&self) -> &str {
+        &self.dir
+    }
+
+    pub fn dir_not_empty(&self) -> bool {
+        self.dir_not_empty
+    }
+}
+
+#[cfg(test)]
+impl InitCmd {
+    pub fn new(dir: String, dir_not_empty: bool) -> Self {
+        Self { dir, dir_not_empty }
     }
 }
 
@@ -398,6 +406,7 @@ impl ArgPath {
         StringValueParser::new().try_map(Self::try_from)
     }
 
+    #[allow(dead_code)]
     pub fn path(&self) -> Option<&path::Path> {
         match self {
             Self::Path(p) => Some(p),
@@ -1260,16 +1269,15 @@ mod test {
             use super::*;
 
             #[test]
-            fn input_file() {
+            fn dir() {
                 assert_eq!(
                     Args::try_parse_from(&["em", "init"])
                         .unwrap()
                         .command
                         .init()
                         .unwrap()
-                        .input
-                        .file,
-                    ArgPath::Path("main".into()),
+                        .dir(),
+                    ".",
                 );
                 assert_eq!(
                     Args::try_parse_from(&["em", "init", "cool-doc"])
@@ -1277,36 +1285,8 @@ mod test {
                         .command
                         .init()
                         .unwrap()
-                        .input
-                        .file,
-                    ArgPath::Path("cool-doc".into()),
-                );
-            }
-
-            #[test]
-            fn title() {
-                assert_eq!(
-                    Args::try_parse_from(&["em", "init"])
-                        .unwrap()
-                        .command
-                        .init()
-                        .unwrap()
-                        .title,
-                    None
-                );
-                assert_eq!(
-                    Args::try_parse_from(&[
-                        "em",
-                        "init",
-                        "--title",
-                        "how to make disappointing sandwiches"
-                    ])
-                    .unwrap()
-                    .command
-                    .init()
-                    .unwrap()
-                    .title,
-                    Some("how to make disappointing sandwiches".into())
+                        .dir(),
+                    "cool-doc",
                 );
             }
         }
