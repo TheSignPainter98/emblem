@@ -4,17 +4,16 @@ pub mod location;
 pub use lexer::LexicalError;
 pub use location::Location;
 
+use crate::args::SearchResult;
 use crate::ast;
-use lalrpop_util::lalrpop_mod;
-// use lalrpop_util::ParseError;
 use crate::context::Context;
 use ast::parsed::ParsedFile;
+use lalrpop_util::lalrpop_mod;
 use lexer::Lexer;
 use std::error::Error;
 use std::ffi::OsString;
 use std::fmt::Display;
-use std::io::{Read, BufReader};
-use crate::args::SearchResult;
+use std::io::{BufReader, Read};
 
 lalrpop_mod!(
     #[allow(clippy::all)]
@@ -39,8 +38,14 @@ where
         buf
     };
 
-    let path: String = to_parse.path.into_os_string().into_string().map_err(|s| Box::new(OsStringConversionError::new(s)))?;
-    let file = ctx.alloc_file(path, content);
+    let file = {
+        let path: String = to_parse
+            .path
+            .into_os_string()
+            .into_string()
+            .map_err(|s| Box::new(OsStringConversionError::new(s)))?;
+        ctx.alloc_file(path, content)
+    };
 
     parse(file.name(), file.content())
 }
