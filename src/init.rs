@@ -18,6 +18,7 @@ static GITIGNORE_CONTENTS: &str = r#"
 *.pdf
 "#;
 
+/// Initialise a new Emblem project
 pub fn init(cmd: InitCmd) -> Result<(), Box<dyn Error>> {
     let dir = {
         let dir = Path::new(cmd.dir());
@@ -43,15 +44,16 @@ pub fn init(cmd: InitCmd) -> Result<(), Box<dyn Error>> {
 
     Repository::init_opts(dir, RepositoryInitOptions::new().mkdir(true))?;
 
-    write_file(&git_ignore, GITIGNORE_CONTENTS, cmd.dir_not_empty())?;
-    write_file(&main_file, MAIN_CONTENTS, cmd.dir_not_empty())?;
+    try_create_file(&git_ignore, GITIGNORE_CONTENTS, cmd.dir_not_empty())?;
+    try_create_file(&main_file, MAIN_CONTENTS, cmd.dir_not_empty())?;
 
     eprintln!("New emblem document created in {:?}", main_file);
 
     Ok(())
 }
 
-fn write_file(path: &Path, contents: &str, dir_not_empty: bool) -> Result<(), io::Error> {
+/// Try to create a new file with given contents. Optionally skip if file is already present.
+fn try_create_file(path: &Path, contents: &str, dir_not_empty: bool) -> Result<(), io::Error> {
     match OpenOptions::new().write(true).create_new(true).open(path) {
         Ok(mut file) => write!(file, "{}", contents.trim()),
         Err(e) => {
