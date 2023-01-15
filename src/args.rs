@@ -3,7 +3,7 @@ use clap::{
     error,
     ArgAction::{Append, Count, Help, Version},
     CommandFactory, Parser, Subcommand, ValueEnum,
-    ValueHint::{AnyPath, FilePath},
+    ValueHint::{AnyPath, DirPath, FilePath},
 };
 use derive_new::new;
 use std::ffi::OsString;
@@ -28,7 +28,6 @@ pub struct Args {
 
 impl Args {
     /// Parse command-line arguments, exit on failure
-    #[allow(dead_code)]
     pub fn parse() -> Self {
         match Self::try_parse_from(env::args()) {
             Ok(args) => args,
@@ -36,7 +35,6 @@ impl Args {
         }
     }
 
-    #[allow(dead_code)]
     pub fn try_parse_from<I, T>(iter: I) -> Result<Self, clap::Error>
     where
         T: Into<OsString> + Clone,
@@ -114,6 +112,9 @@ pub enum Command {
     #[command(name = "fmt")]
     Format(FormatCmd),
 
+    /// Create a new emblem document
+    Init(InitCmd),
+
     /// Check for linting errors in the given document
     Lint(LintCmd),
 
@@ -133,6 +134,13 @@ impl Command {
     fn format(&self) -> Option<&FormatCmd> {
         match self {
             Self::Format(f) => Some(f),
+            _ => None,
+        }
+    }
+
+    fn init(&self) -> Option<&InitCmd> {
+        match self {
+            Self::Init(i) => Some(i),
             _ => None,
         }
     }
@@ -193,6 +201,36 @@ pub struct FormatCmd {
     #[command(flatten)]
     #[allow(missing_docs)]
     pub input: InputArgs,
+}
+
+/// Arguments to the init subcommand
+#[derive(Clone, Debug, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct InitCmd {
+    /// Directory to contain the new document
+    #[arg(value_name = "dir", value_hint = DirPath, default_value = ".")]
+    dir: String,
+
+    /// Allow writing to non-empty directories
+    #[arg(long)]
+    dir_not_empty: bool,
+}
+
+impl InitCmd {
+    pub fn dir(&self) -> &str {
+        &self.dir
+    }
+
+    pub fn dir_not_empty(&self) -> bool {
+        self.dir_not_empty
+    }
+}
+
+#[cfg(test)]
+impl InitCmd {
+    pub fn new(dir: String, dir_not_empty: bool) -> Self {
+        Self { dir, dir_not_empty }
+    }
 }
 
 /// Arguments to the lint subcommand
@@ -367,11 +405,19 @@ impl ArgPath {
     fn parser() -> impl TypedValueParser {
         StringValueParser::new().try_map(Self::try_from)
     }
+
+    #[allow(dead_code)]
+    pub fn path(&self) -> Option<&path::Path> {
+        match self {
+            Self::Path(p) => Some(p),
+            Self::Stdio => None,
+        }
+    }
 }
 
 impl Default for ArgPath {
     fn default() -> Self {
-        Self::try_from("main").unwrap()
+        Self::Path("main".into())
     }
 }
 
@@ -384,7 +430,7 @@ impl TryFrom<OsStr> for ArgPath {
         }
         Err(RawArgs::command().error(
             error::ErrorKind::InvalidValue,
-            format!("could not convert '{:?}' to an OS string", raw),
+            format!("could not convert '{:?}' to a valid UTF-8 string", raw),
         ))
     }
 }
@@ -1219,6 +1265,32 @@ mod test {
             }
         }
 
+        mod init {
+            use super::*;
+
+            #[test]
+            fn dir() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "init"])
+                        .unwrap()
+                        .command
+                        .init()
+                        .unwrap()
+                        .dir(),
+                    ".",
+                );
+                assert_eq!(
+                    Args::try_parse_from(&["em", "init", "cool-doc"])
+                        .unwrap()
+                        .command
+                        .init()
+                        .unwrap()
+                        .dir(),
+                    "cool-doc",
+                );
+            }
+        }
+
         mod lint {
             use super::*;
 
@@ -1521,6 +1593,14 @@ mod test {
                     .infer_from(&resolved_stdio),
                 ArgPath::try_from("Tottington Hall").unwrap()
             );
+        }
+
+        #[test]
+        fn path() {
+            assert_eq!(ArgPath::Stdio.path(), None);
+
+            let path = path::PathBuf::from("preston's dog food");
+            assert_eq!(ArgPath::Path(path.clone()).path(), Some(path.as_ref()));
         }
     }
 
