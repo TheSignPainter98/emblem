@@ -3,7 +3,7 @@ use git2::{Repository, RepositoryInitOptions};
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::{
-    fs::{OpenOptions},
+    fs::OpenOptions,
     io::{self, Write},
 };
 
@@ -28,7 +28,10 @@ pub fn init(cmd: InitCmd) -> Result<(), Box<dyn Error>> {
         }
     };
 
-    if !cmd.dir_not_empty() && dir.try_exists().ok() == Some(true) && dir.read_dir()?.next().is_some() {
+    if !cmd.dir_not_empty()
+        && dir.try_exists().ok() == Some(true)
+        && dir.read_dir()?.next().is_some()
+    {
         // TODO(kcza): change error kind to DirectoryNotEmpty once stable
         return Err(Box::new(io::Error::new(
             io::ErrorKind::Other,
@@ -51,11 +54,13 @@ pub fn init(cmd: InitCmd) -> Result<(), Box<dyn Error>> {
 fn write_file(path: &Path, contents: &str, dir_not_empty: bool) -> Result<(), io::Error> {
     match OpenOptions::new().write(true).create_new(true).open(&path) {
         Ok(mut file) => write!(file, "{}", contents.trim()),
-        Err(e) => if dir_not_empty {
-            Ok(())
-        } else {
-            Err(e)
-        },
+        Err(e) => {
+            if dir_not_empty {
+                Ok(())
+            } else {
+                Err(e)
+            }
+        }
     }
 }
 
