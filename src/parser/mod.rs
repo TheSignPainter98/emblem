@@ -11,7 +11,10 @@ use crate::context::Context;
 use ast::parsed::ParsedFile;
 use lexer::Lexer;
 use std::error::Error;
-use std::fs;
+use std::ffi::OsString;
+use std::fmt::Display;
+use std::io::{Read, BufReader};
+use crate::args::SearchResult;
 
 lalrpop_mod!(
     #[allow(clippy::all)]
@@ -22,12 +25,21 @@ lalrpop_mod!(
 /// Parse an emblem source file at the given location.
 pub fn parse_file<'ctx, 'input>(
     ctx: &'ctx mut Context,
-    path: String,
+    to_parse: SearchResult,
 ) -> Result<ParsedFile<'input>, Box<dyn Error + 'input>>
 where
     'ctx: 'input,
 {
-    let content = fs::read_to_string(&path)?;
+    let content = {
+        let len = to_parse.file().metadata()?.len();
+
+        let mut reader = BufReader::new(to_parse.file());
+        let mut buf = String::with_capacity(len.try_into()?);
+        reader.read_to_string(&mut buf)?;
+        buf
+    };
+
+    let path: String = to_parse.path.into_os_string().into_string().map_err(|s| Box::new(OsStringConversionError::new(s)))?;
     let file = ctx.alloc_file(path, content);
 
     parse(file.name(), file.content())
@@ -35,10 +47,10 @@ where
 
 /// Parse a given string of emblem source code.
 pub fn parse<'file>(
-    fname: &'file str,
-    input: &'file str,
+    name: &'file str,
+    content: &'file str,
 ) -> Result<ParsedFile<'file>, Box<dyn Error + 'file>> {
-    let lexer = Lexer::new(fname, input);
+    let lexer = Lexer::new(name, content);
     let parser = parser::FileParser::new();
 
     Ok(parser.parse(lexer)?)
@@ -56,6 +68,25 @@ fn pretty_tok_list(list: Vec<String>) -> String {
     }
     pretty_list.concat()
 }
+
+#[derive(Debug)]
+struct OsStringConversionError {
+    culprit: OsString,
+}
+
+impl OsStringConversionError {
+    fn new(culprit: OsString) -> Self {
+        Self { culprit }
+    }
+}
+
+impl Display for OsStringConversionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "could not convert OS string: {:?}", self.culprit)
+    }
+}
+
+impl Error for OsStringConversionError {}
 
 #[cfg(test)]
 mod test {

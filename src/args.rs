@@ -6,9 +6,13 @@ use clap::{
     ValueHint::{AnyPath, DirPath, FilePath},
 };
 use derive_new::new;
-use std::ffi::OsString;
 use std::fmt::Display;
-use std::{env, fs, io, path};
+use std::{
+    env,
+    ffi::OsString,
+    fs::{self, File},
+    io, path,
+};
 
 /// Parsed command-line arguments
 #[derive(Debug)]
@@ -670,19 +674,38 @@ where
 
 #[derive(Debug, new)]
 pub struct SearchResult {
-    path: path::PathBuf,
-    file: fs::File,
+    pub(crate) path: path::PathBuf,
+    file: File,
 }
 
 impl SearchResult {
-    #[allow(dead_code)]
-    pub fn path(&self) -> &path::Path {
-        &self.path
-    }
-
-    #[allow(dead_code)]
-    pub fn file(&self) -> &fs::File {
+    pub fn file(&self) -> &File {
         &self.file
+    }
+}
+
+impl TryFrom<&str> for SearchResult {
+    type Error = io::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(Self {
+            path: path::PathBuf::from(value),
+            file: fs::File::open(value)?,
+        })
+    }
+}
+
+impl TryFrom<&ArgPath> for SearchResult {
+    type Error = io::Error;
+
+    fn try_from(value: &ArgPath) -> Result<Self, Self::Error> {
+        Ok(match value {
+            ArgPath::Path(p) => Self {
+                path: path::PathBuf::from(p),
+                file: fs::File::open(p)?,
+            },
+            ArgPath::Stdio => todo!(),
+        })
     }
 }
 
@@ -1673,7 +1696,7 @@ mod test {
                 assert!(a.is_ok(), "{:?}", a);
                 let mut content = String::new();
                 let found = a.unwrap();
-                assert_eq!(found.path(), tmppath.join("a.txt"));
+                assert_eq!(found.path, tmppath.join("a.txt"));
                 found.file().read_to_string(&mut content)?;
                 assert_eq!(content, "a");
             }
@@ -1682,7 +1705,7 @@ mod test {
                 let b = path.open(&tmppath, "b.txt");
                 assert!(b.is_ok(), "{:?}", b);
                 let found = b.unwrap();
-                assert_eq!(found.path(), tmppath.join("B/b.txt"));
+                assert_eq!(found.path, tmppath.join("B/b.txt"));
                 let mut content = String::new();
                 found.file().read_to_string(&mut content)?;
                 assert_eq!(content, "b");
@@ -1692,7 +1715,7 @@ mod test {
                 let c = path.open(&tmppath, "C2/c.txt");
                 assert!(c.is_ok());
                 let found = c.unwrap();
-                assert_eq!(found.path(), tmppath.join("C1/C2/c.txt"));
+                assert_eq!(found.path, tmppath.join("C1/C2/c.txt"));
                 let mut content = String::new();
                 found.file().read_to_string(&mut content)?;
                 assert_eq!(content, "c");
@@ -1702,7 +1725,7 @@ mod test {
                 let c = path.open(&tmppath, "D/d.txt");
                 assert!(c.is_ok());
                 let found = c.unwrap();
-                assert_eq!(found.path(), tmppath.join("D/d.txt"));
+                assert_eq!(found.path, tmppath.join("D/d.txt"));
                 let mut content = String::new();
                 found.file().read_to_string(&mut content)?;
                 assert_eq!(content, "c");
@@ -1808,11 +1831,59 @@ mod test {
 
             let s = SearchResult::new(path.clone(), file.try_clone()?);
 
-            assert_eq!(s.path(), &path);
+            assert_eq!(s.path, path);
             assert_eq!(
                 s.file().metadata().unwrap().len(),
                 file.metadata().unwrap().len()
             );
+
+            Ok(())
+        }
+
+        #[test]
+        fn from_str() -> io::Result<()> {
+            let src = "from.txt";
+
+            let tmpdir = tempfile::tempdir()?;
+            let path = tmpdir.path().join(src);
+            let mut file = fs::File::create(&path)?;
+            file.write(b"fdsaf")?;
+
+            let s = SearchResult::try_from(path.to_str().unwrap())?;
+            assert_eq!(s.path, path);
+            assert_eq!(
+                s.file().metadata().unwrap().len(),
+                file.metadata().unwrap().len()
+            );
+
+            Ok(())
+        }
+
+        #[test]
+        fn from_arg_path() -> io::Result<()> {
+            let src = "from.txt";
+
+            let tmpdir = tempfile::tempdir()?;
+            let path = tmpdir.path().join(src);
+            let mut file = fs::File::create(&path)?;
+            file.write(b"fdsaf")?;
+
+            {
+                let a = ArgPath::Path(path.clone());
+                let s = SearchResult::try_from(&a)?;
+                assert_eq!(a.path().unwrap(), s.path);
+                assert_eq!(
+                    s.file().metadata().unwrap().len(),
+                    file.metadata().unwrap().len()
+                );
+            }
+
+            // {
+            //     let a = ArgPath::Stdio;
+            //     let s = SearchResult::try_from(&a)?;
+            //     assert_eq!(s.path, PathBuf::new("-"));
+            //     assert_eq!(s.file, io::stdin());
+            // }
 
             Ok(())
         }
