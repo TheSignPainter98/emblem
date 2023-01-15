@@ -52,7 +52,7 @@ pub fn init(cmd: InitCmd) -> Result<(), Box<dyn Error>> {
 }
 
 fn write_file(path: &Path, contents: &str, dir_not_empty: bool) -> Result<(), io::Error> {
-    match OpenOptions::new().write(true).create_new(true).open(&path) {
+    match OpenOptions::new().write(true).create_new(true).open(path) {
         Ok(mut file) => write!(file, "{}", contents.trim()),
         Err(e) => {
             if dir_not_empty {
