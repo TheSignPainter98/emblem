@@ -101,7 +101,7 @@ impl Error for OsStringConversionError {}
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::ast::{parsed::Content, AstDebug, File};
+    use crate::ast::AstDebug;
 
     fn parse_str<'i>(input: &'i str) -> Result<ParsedFile<'i>, Box<dyn Error + 'i>> {
         parse("test.em", input)
@@ -254,14 +254,14 @@ mod test {
 
         #[test]
         fn trailer_args() {
-            struct trailer_test<'n, 'd, 'e> {
+            struct TrailerTest<'n, 'd, 'e> {
                 name: &'n str,
                 data: &'d [&'d str],
                 expected_structure: &'e str,
             }
 
             let tests = [
-                trailer_test {
+                TrailerTest {
                     name: "one par per trailer arg",
                     data: &[
                         ".come{all you}:",
@@ -273,7 +273,7 @@ mod test {
                     ],
                     expected_structure: "File[Par[.come{[Word(all)|< >|Word(you)]}::[Par[[Word(young)|< >|Word(sailor)|< >|Word(men)]|[Word(listen)|< >|Word(to)|< >|Word(me)]]]::[Par[[Word(I'll)|< >|Word(sing)|< >|Word(you)|< >|Word(a)|< >|Word(song)]|[Word(of)|< >|Word(the)|< >|Word(fish)|< >|Word(in)|< >|Word(the)|< >|Word(sea)]]]]]",
                 },
-                trailer_test {
+                TrailerTest {
                     name: "two pars per trailer arg",
                     data: &[
                         ".come{all you}:",
@@ -287,7 +287,7 @@ mod test {
                     ],
                     expected_structure: "File[Par[.come{[Word(all)|< >|Word(you)]}::[Par[[Word(young)|< >|Word(sailor)|< >|Word(men)]]|Par[[Word(listen)|< >|Word(to)|< >|Word(me)]]]::[Par[[Word(I'll)|< >|Word(sing)|< >|Word(you)|< >|Word(a)|< >|Word(song)]]|Par[[Word(of)|< >|Word(the)|< >|Word(fish)|< >|Word(in)|< >|Word(the)|< >|Word(sea)]]]]]",
                 },
-                trailer_test {
+                TrailerTest {
                     name: "nested trailers",
                     data: &[
                         ".and{it's}:",
@@ -312,7 +312,7 @@ mod test {
                     ],
                     expected_structure: "File[Par[.and{[Word(it's)]}::[Par[[Word(windy)|< >|Word(weather,)|< >|Word(boys,)]|.stormy-weather{[Word(boys)]}::[Par[[Word(when)|< >|Word(the)|< >|Word(wind)|< >|Word(blows,)]]]::[Par[[Word(we're)|< >|Word(all)|< >|Word(together,)|< >|Word(boys)]|[Word(blow)|< >|Word(ye)|< >|Word(winds)|< >|Word(westerly)]]]]|Par[.blow{[Word(ye)]}::[Par[[Word(winds)|< >|Word(blow)]]|Par[[Word(jolly)|< >|Word(sou'wester,)|< >|Word(boys)]|.steady{[Word(she)|< >|Word(goes)]}::[Par[[Word(up)|< >|Word(jumps)|< >|Word(the)|< >|Word(eeo)|< >|Word(with)|< >|Word(his)|< >|Word(slippery)|< >|Word(tail)]]]|[Word(climbs)|< >|Word(up)|< >|Word(aloft)|< >|Word(and)|< >|Word(reefs)|< >|Word(the)|< >|Word(topsail)]]]]|Par[[Word(then)|< >|Word(up)|< >|Word(jumps)|< >|Word(the)|< >|Word(shark)|< >|.with:[Word(his)|< >|Word(nine)|< >|Word(rows)|< >|Word(of)|< >|Word(teeth,)]]|[.saying:[Word(you)|< >|Word(eat)|< >|Word(the)|< >|Word(dough)|< >|Word(boys,)]]|[.and{[Word(I'll)|< >|Word(eat)]}:[Word(the)|< >|Word(beef!)]]]]]]",
                 },
-                trailer_test {
+                TrailerTest {
                     name: "remainder in trailer",
                     data: &[
                         ".up{jumps the .whale{the .largest{of}: all}}:",
@@ -320,7 +320,7 @@ mod test {
                     ],
                     expected_structure: "File[Par[.up{[Word(jumps)|< >|Word(the)|< >|.whale{[Word(the)|< >|.largest{[Word(of)]}:[Word(all)]]}]}::[Par[[Word(if)|< >|Word(you)|< >|Word(want)|< >|Word(any)|< >|Word(wind,)|< >|Word(I'll)|< >|.blow{[Word(ye's)]}:[Word(a)|< >|Word(squall)]]]]]]",
                 },
-                trailer_test {
+                TrailerTest {
                     name: "stacked trailers",
                     data: &[
                         ".four:",
