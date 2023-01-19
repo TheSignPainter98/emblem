@@ -5,7 +5,6 @@ use clap::{
     CommandFactory, Parser, Subcommand, ValueEnum,
     ValueHint::{AnyPath, DirPath, FilePath},
 };
-use derive_new::new;
 use std::fmt::Display;
 use std::{
     env,
@@ -581,19 +580,19 @@ impl SearchPath {
 
         let src = src.into().canonicalize()?;
 
-        let localpath = path::PathBuf::from(&src).join(target);
-        if localpath.starts_with(&src) {
-            if let Ok(f) = fs::File::open(&localpath) {
-                if let Ok(metadata) = f.metadata() {
+        let path = path::PathBuf::from(&src).join(target);
+        if path.starts_with(&src) {
+            if let Ok(file) = fs::File::open(&path) {
+                if let Ok(metadata) = file.metadata() {
                     if metadata.is_file() {
-                        return Ok(SearchResult::new(localpath, f));
+                        return Ok(SearchResult { path, file });
                     }
                 }
             }
         }
 
         for dir in self.normalised().path {
-            let needle = {
+            let path = {
                 let p = path::PathBuf::from(&dir).join(target);
                 match p.canonicalize() {
                     Ok(p) => p,
@@ -601,14 +600,14 @@ impl SearchPath {
                 }
             };
 
-            if !needle.starts_with(&dir) {
+            if !path.starts_with(&dir) {
                 continue;
             }
 
-            if let Ok(f) = fs::File::open(&needle) {
-                if let Ok(metadata) = f.metadata() {
+            if let Ok(file) = fs::File::open(&path) {
+                if let Ok(metadata) = file.metadata() {
                     if metadata.is_file() {
-                        return Ok(SearchResult::new(needle, f));
+                        return Ok(SearchResult { path, file });
                     }
                 }
             }
@@ -672,7 +671,7 @@ where
     }
 }
 
-#[derive(Debug, new)]
+#[derive(Debug)]
 pub struct SearchResult {
     pub(crate) path: path::PathBuf,
     file: File,
@@ -1829,7 +1828,7 @@ mod test {
             let mut file = fs::File::create(&path)?;
             file.write(b"asdf")?;
 
-            let s = SearchResult::new(path.clone(), file.try_clone()?);
+            let s = SearchResult { path: path.clone(), file: file.try_clone()? };
 
             assert_eq!(s.path, path);
             assert_eq!(
