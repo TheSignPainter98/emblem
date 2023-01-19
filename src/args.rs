@@ -424,7 +424,7 @@ impl ArgPath {
 
 impl Default for ArgPath {
     fn default() -> Self {
-        Self::Path("main".into())
+        Self::Path("main.em".into())
     }
 }
 
@@ -1004,7 +1004,7 @@ mod test {
                         .unwrap()
                         .input
                         .file,
-                    ArgPath::try_from("main").unwrap(),
+                    ArgPath::try_from("main.em").unwrap(),
                 );
                 assert_eq!(
                     Args::try_parse_from(&["em", "build", "-"])
@@ -1037,7 +1037,7 @@ mod test {
                         .build()
                         .unwrap()
                         .output_stem(),
-                    ArgPath::try_from("main").unwrap(),
+                    ArgPath::try_from("main.em").unwrap(),
                 );
                 assert_eq!(
                     Args::try_parse_from(&["em", "build", "-"])
@@ -1334,7 +1334,7 @@ mod test {
                         .unwrap()
                         .input
                         .file,
-                    ArgPath::Path("main".into())
+                    ArgPath::Path("main.em".into())
                 );
                 assert_eq!(
                     Args::try_parse_from(&["em", "fmt", "-"])
@@ -1398,7 +1398,7 @@ mod test {
                         .unwrap()
                         .input
                         .file,
-                    ArgPath::Path("main".into())
+                    ArgPath::Path("main.em".into())
                 );
                 assert_eq!(
                     Args::try_parse_from(&["em", "lint", "-"])
@@ -1654,7 +1654,7 @@ mod test {
 
         #[test]
         fn infer_from() {
-            let resolved_path = ArgPath::try_from("main").unwrap();
+            let resolved_path = ArgPath::try_from("my-cool-doc.em").unwrap();
             let resolved_stdio = ArgPath::Stdio;
 
             assert_eq!(
