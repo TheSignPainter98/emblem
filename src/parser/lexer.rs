@@ -7,35 +7,6 @@ use std::{
     fmt::{self, Display},
 };
 
-macro_rules! token_patterns {
-    ( $(let $name:ident = $pattern:literal);* $(;)? ) => {
-        lazy_static! {
-            $(static ref $name: Regex = Regex::new(concat!("^", $pattern)).unwrap();)*
-        }
-    }
-}
-
-token_patterns! {
-    let WORD               = r"([^ /\t\r\n}~-]|/[^ /\t\r\n~-])+";
-    let WHITESPACE         = r"[ \t]+";
-    let PAR_BREAKS         = r"([ \t]*(\n|\r\n|\r))+";
-    let LN                 = r"(\n|\r\n|\r)";
-    let COLON              = r":[ \t]*";
-    let DOUBLE_COLON       = r"::";
-    let INITIAL_INDENT     = r"[ \t]*";
-    let COMMAND            = r"\.[^ \t{}\r\n:]+";
-    let VERBATIM           = r"![^\r\n]*!";
-    let BRACE_LEFT         = r"\{";
-    let BRACE_RIGHT        = r"\}";
-    let COMMENT            = r"//[^\r\n]*";
-    let DASH               = r"-{1,3}";
-    let GLUE               = r"~~?";
-
-    let NESTED_COMMENT_OPEN  = r"/\*";
-    let NESTED_COMMENT_CLOSE = r"\*/";
-    let NESTED_COMMENT_PART  = r"([^*/\n\r]|\*[^/\n\r]|/[^*\n\r])+";
-}
-
 pub struct Lexer<'input> {
     input: &'input str,
     done: bool,
@@ -118,6 +89,35 @@ impl<'input> Iterator for Lexer<'input> {
     type Item = Result<SpannedTok<'input>, LexicalError<'input>>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        macro_rules! token_patterns {
+            ( $(let $name:ident = $pattern:literal);* $(;)? ) => {
+                lazy_static! {
+                    $(static ref $name: Regex = Regex::new(concat!("^", $pattern)).unwrap();)*
+                }
+            }
+        }
+
+        token_patterns! {
+            let WORD               = r"([^ /\t\r\n}~-]|/[^ /\t\r\n~-])+";
+            let WHITESPACE         = r"[ \t]+";
+            let PAR_BREAKS         = r"([ \t]*(\n|\r\n|\r))+";
+            let LN                 = r"(\n|\r\n|\r)";
+            let COLON              = r":[ \t]*";
+            let DOUBLE_COLON       = r"::";
+            let INITIAL_INDENT     = r"[ \t]*";
+            let COMMAND            = r"\.[^ \t{}\r\n:]+";
+            let VERBATIM           = r"![^\r\n]*!";
+            let BRACE_LEFT         = r"\{";
+            let BRACE_RIGHT        = r"\}";
+            let COMMENT            = r"//[^\r\n]*";
+            let DASH               = r"-{1,3}";
+            let GLUE               = r"~~?";
+
+            let NESTED_COMMENT_OPEN  = r"/\*";
+            let NESTED_COMMENT_CLOSE = r"\*/";
+            let NESTED_COMMENT_PART  = r"([^*/\n\r]|\*[^/\n\r]|/[^*\n\r])+";
+        }
+
         if self.failed {
             return None;
         }
