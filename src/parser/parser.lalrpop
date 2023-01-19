@@ -1,0 +1,140 @@
+use crate::parser::{Location, LexicalError, lexer::Tok};
+use crate::ast::{
+    parsed::{ParsedFile, MultiLineComment, MultiLineCommentPart, Content},
+    Par, ParPart, Text, Dash, Glue,
+};
+
+grammar<'input>;
+
+pub File: ParsedFile<'input> = {
+    FileContent => ParsedFile { pars: <> },
+};
+
+FileContent: Vec<Par<ParPart<Content<'input>>>> = {
+	MaybeSepList<Par, ParBreak>
+}
+
+Par: Par<ParPart<Content<'input>>> = {
+	ParPart+ => Par::from(<>),
+}
+
+ParPart: ParPart<Content<'input>> = {
+	<MaybeLineContent> "\n" => ParPart::Line(<>),
+
+	<name:Command> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
+		ParPart::Command(Content::Command {
+			name: Text::from(name),
+			inline_args,
+			remainder_arg: None,
+			trailer_args: {
+				let mut args = vec![trail_head];
+				args.extend(trail_tail);
+				args
+			}
+		})
+	},
+}
+
+MaybeLineContent: Vec<Content<'input>> = {
+	LineContent? => <>.unwrap_or_default()
+}
+
+LineContent: Vec<Content<'input>> = {
+	LineElement+,
+	<mut content:LineElement*> <tail:RemainderCommand> => {
+		content.push(tail);
+		content
+	},
+}
+
+RemainderCommand: Content<'input> = {
+	<name:Command> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> => Content::Command {
+		name: Text::from(name),
+		inline_args,
+		remainder_arg: Some(remainder_arg),
+		trailer_args: Vec::with_capacity(0),
+	}
+}
+
+LineElement: Content<'input> = {
+	Comment       => Content::Comment(<>),
+	NestedComment => Content::MultiLineComment(<>),
+	Whitespace    => Content::Whitespace(<>),
+	Word          => Content::Word(Text::from(<>)),
+	Dash          => Content::Dash(Dash::from(<>)),
+	Glue          => Content::Glue(Glue::from(<>)),
+	Verbatim      => Content::Verbatim(<>),
+
+	<name: Command> <inline_args:("{" <MaybeLineContent> "}")*> => Content::Command {
+		name: Text::from(name),
+		inline_args,
+		remainder_arg: None,
+		trailer_args: Vec::with_capacity(0),
+	},
+}
+
+NestedComment: MultiLineComment<'input> = {
+	"/*" <NestedCommentContent> "*/"
+}
+
+NestedCommentContent: MultiLineComment<'input> = {
+	<NestedCommentPart*> => MultiLineComment(<>),
+}
+
+NestedCommentPart: MultiLineCommentPart<'input> = {
+	"\n"          => MultiLineCommentPart::Newline,
+	Comment       => MultiLineCommentPart::Comment(<>),
+	NestedComment => MultiLineCommentPart::Nested(<>),
+}
+
+SepList<T,Sep>: Vec<T> = {
+	<head:T> <mut tail:MaybeSepList<T,Sep>> => {
+		let mut ret = vec![head];
+		ret.append(&mut tail);
+		ret
+	}
+}
+
+MaybeSepList<T, Sep>: Vec<T> = {
+	<mut init:(<T> Sep)*> <last:T?> => match last {
+		None => init,
+		Some(e) => {
+			init.push(e);
+			init
+		}
+	},
+}
+
+Indented<T>: T = {
+	Indent <MaybeIndented<T>> Dedent,
+}
+
+MaybeIndented<T>: T = {
+	T,
+	Indent <MaybeIndented<T>> Dedent,
+}
+
+extern {
+	type Location = Location<'input>;
+	type Error = LexicalError<'input>;
+
+	enum Tok<'input> {
+		Indent     => Tok::Indent,
+		Dedent     => Tok::Dedent,
+		":"        => Tok::Colon,
+		"::"       => Tok::DoubleColon,
+		"{"        => Tok::LBrace,
+		"}"        => Tok::RBrace,
+		Command    => Tok::Command(<&'input str>),
+		ParBreak   => Tok::ParBreak,
+		Word       => Tok::Word(<&'input str>),
+		Dash       => Tok::Dash(<&'input str>),
+		Glue       => Tok::Glue(<&'input str>),
+		Verbatim   => Tok::Verbatim(<&'input str>),
+		Whitespace => Tok::Whitespace(<&'input str>),
+		"/*"       => Tok::NestedCommentOpen,
+		"*/"       => Tok::NestedCommentClose,
+		"\n"       => Tok::Newline,
+		Comment    => Tok::Comment(<&'input str>),
+	}
+}

@@ -15,6 +15,7 @@ use std::path::Path;
 fn main() -> Result<(), Box<dyn Error>> {
     complgen()?;
     mangen()?;
+    parsergen()?;
     Ok(())
 }
 
@@ -51,4 +52,14 @@ fn complgen() -> Result<(), Box<dyn Error>> {
         clap_complete::generate_to(shell, &mut RawArgs::command(), "em", dest_dir.clone())?;
     }
     Ok(())
+}
+
+fn parsergen() -> Result<(), Box<dyn Error>> {
+    let out_dir = Path::new(&env::var("OUT_DIR").unwrap()).join("parser");
+
+    lalrpop::Configuration::new()
+        .emit_rerun_directives(true)
+        .set_in_dir("src/parser/")
+        .set_out_dir(out_dir)
+        .process()
 }
