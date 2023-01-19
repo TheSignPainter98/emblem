@@ -103,10 +103,6 @@ mod test {
     use super::*;
     use crate::ast::AstDebug;
 
-    fn parse_str<'i>(input: &'i str) -> Result<ParsedFile<'i>, Box<dyn Error + 'i>> {
-        parse("test.em", input)
-    }
-
     fn assert_structure(name: &str, input: &str, expected: &str) {
         assert_eq!(
             {
@@ -144,7 +140,7 @@ mod test {
     }
 
     fn assert_parse_error(name: &str, input: &str) {
-        // assert!(parse(name, input).is_err(), "{}", name);
+        assert!(parse(name, input).is_err(), "{}", name);
 
         let input_with_newline = &format!("{}\n", input);
         assert!(parse(name, input_with_newline).is_err(), "{}", name);
