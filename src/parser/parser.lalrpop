@@ -71,11 +71,6 @@ LineElement: Content<'input> = {
 		remainder_arg: None,
 		trailer_args: Vec::with_capacity(0),
 	},
-
-	// ! => {
-	// 	errors.push("something went wrong");
-	// 	Content::Error
-	// }
 }
 
 NestedComment: MultiLineComment<'input> = {

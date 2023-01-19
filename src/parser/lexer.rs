@@ -263,28 +263,6 @@ pub enum Tok<'input> {
     Newline,
 }
 
-// impl ToString for Tok<'_> {
-//     fn to_string(&self) -> String {
-//         match self {
-//             Tok::Indent => "indent",
-//             Tok::Dedent => "dedent",
-//             Tok::Colon => ":",
-//             Tok::DoubleColon => "::",
-//             Tok::LBrace => "{",
-//             Tok::RBrace => "}",
-//             Tok::Command(_) => "command",
-//             Tok::ParBreak => "paragraph break",
-//             Tok::Word(_) => "word",
-//             Tok::Whitespace(_) => "whitespace",
-//             Tok::NestedCommentOpen => "/*",
-//             Tok::NestedCommentClose => "*/",
-//             Tok::Newline => "newline",
-//             Tok::Comment(_) => "comment",
-//         }
-//         .to_owned()
-//     }
-// }
-
 impl Display for Tok<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

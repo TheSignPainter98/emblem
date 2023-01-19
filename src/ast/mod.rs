@@ -3,8 +3,6 @@ pub mod parsed;
 pub mod region;
 mod text;
 
-// use std::fmt::Display;
-
 #[cfg(test)]
 pub use debug::AstDebug;
 pub use text::Text;
@@ -13,19 +11,6 @@ pub use text::Text;
 pub struct File<T> {
     pub pars: Vec<Par<T>>,
 }
-
-// impl<C:Display> Display for File<C> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "File {{")?;
-//         for (i, par) in self.pars.iter().enumerate() {
-//             if i > 0 {
-//                 write!(f, ",")?;
-//             }
-//             par.fmt(f)?;
-//         }
-//         write!(f, "}}")
-//     }
-// }
 
 #[derive(Debug)]
 pub struct Par<T> {
@@ -43,19 +28,6 @@ impl<T> From<T> for Par<T> {
         Self { parts: vec![line] }
     }
 }
-
-// impl<C:Display> Display for Par<C> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "Pars {{")?;
-//         for (i, c) in self.lines.iter().enumerate() {
-//             if i > 0 {
-//                 write!(f, ",")?;
-//             }
-//             c.fmt(f)?;
-//         }
-//         write!(f, "}}")
-//     }
-// }
 
 #[derive(Debug)]
 pub enum ParPart<T> {

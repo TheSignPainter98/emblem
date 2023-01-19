@@ -1,5 +1,3 @@
-// use std::fmt::Display;
-
 use crate::ast::{text::Text, Dash, File, Glue, Par, ParPart};
 
 #[cfg(test)]
@@ -23,24 +21,6 @@ pub enum Content<'i> {
     Comment(&'i str),
     MultiLineComment(MultiLineComment<'i>),
 }
-
-// impl Display for Content<'_> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             Self::Call { name, args } => {
-//                 write!(f, "[.{}", name)?;
-//                 for arg in args {
-//                     write!(f, "{{{}}}", arg)?;
-//                 }
-//                 write!(f, "]")
-//             }
-//             Self::Word(w) => w.fmt(f),
-//             Self::Whitespace(w) => write!(f, "{:?}", w),
-//             Self::Comment(c) => write!(f, "[// {:?}]", c),
-//             Self::MultiLineComment(c) => write!(f, "/*{}*/", c),
-//         }
-//     }
-// }
 
 #[cfg(test)]
 impl AstDebug for Content<'_> {
@@ -83,15 +63,6 @@ impl AstDebug for Content<'_> {
 #[derive(Debug)]
 pub struct MultiLineComment<'i>(pub Vec<MultiLineCommentPart<'i>>);
 
-// impl Display for MultiLineComment<'_> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         for c in &self.0 {
-//             c.fmt(f)?;
-//         }
-//         Ok(())
-//     }
-// }
-
 #[cfg(test)]
 impl AstDebug for MultiLineComment<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
@@ -105,16 +76,6 @@ pub enum MultiLineCommentPart<'i> {
     Comment(&'i str),
     Nested(MultiLineComment<'i>),
 }
-
-// impl Display for MultiLineCommentPart<'_> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             Self::Newline => write!(f, r"\n"),
-//             Self::Comment(w) => write!(f, "{:?}", w),
-//             Self::Nested(c) => write!(f, "/*{}*/", c),
-//         }
-//     }
-// }
 
 #[cfg(test)]
 impl AstDebug for MultiLineCommentPart<'_> {
