@@ -1654,7 +1654,7 @@ mod test {
 
         #[test]
         fn infer_from() {
-            let resolved_path = ArgPath::try_from("main").unwrap();
+            let resolved_path = ArgPath::try_from("my-cool-doc.em").unwrap();
             let resolved_stdio = ArgPath::Stdio;
 
             assert_eq!(
