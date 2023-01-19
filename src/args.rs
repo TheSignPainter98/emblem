@@ -413,6 +413,7 @@ impl ArgPath {
         StringValueParser::new().try_map(Self::try_from)
     }
 
+    #[allow(dead_code)]
     pub fn path(&self) -> Option<&path::Path> {
         match self {
             Self::Path(p) => Some(p),

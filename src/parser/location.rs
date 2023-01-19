@@ -48,6 +48,7 @@ impl<'input> Location<'input> {
         self
     }
 
+    #[allow(dead_code)]
     pub fn text_upto(&self, other: &Location) -> &'input str {
         &self.src[self.index..other.index]
     }

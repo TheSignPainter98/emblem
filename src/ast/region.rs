@@ -12,6 +12,7 @@ pub struct Region<'i> {
 }
 
 impl<'i> Region<'i> {
+    #[allow(dead_code)]
     pub fn new(start: &Location<'i>, end: &Location<'i>) -> Self {
         Self {
             file_name: start.file_name,

@@ -35,9 +35,8 @@ where
 
         let mut reader = BufReader::new(file);
         let mut buf = hint
-            .map(|len| usize::try_from(len).ok())
-            .flatten()
-            .map(|len| String::with_capacity(len))
+            .and_then(|len| usize::try_from(len).ok())
+            .map(String::with_capacity)
             .unwrap_or_default();
         reader.read_to_string(&mut buf)?;
         buf
@@ -67,6 +66,7 @@ pub fn parse<'file>(
 }
 
 /// Create a string representation of a list of tokens which will fit in with surrounding text.
+#[allow(dead_code)]
 fn pretty_tok_list(list: Vec<String>) -> String {
     let len = list.len();
     let mut pretty_list = Vec::new();
