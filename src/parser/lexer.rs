@@ -334,7 +334,7 @@ pub struct LexicalError<'input> {
 }
 
 impl<'input> LexicalError<'input> {
-#[allow(dead_code)]
+    #[allow(dead_code)]
     pub fn location(&self) -> &Location {
         &self.loc
     }

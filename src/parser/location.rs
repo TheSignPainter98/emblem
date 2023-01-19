@@ -49,8 +49,11 @@ impl<'input> Location<'input> {
     }
 
     #[allow(dead_code)]
-    pub fn text_upto(&self, other: &Location) -> &'input str {
-        &self.src[self.index..other.index]
+    pub fn text_upto(&self, other: &Location) -> Option<&'input str> {
+        if self.file_name != other.file_name {
+            return None;
+        }
+        Some(&self.src[self.index..other.index])
     }
 }
 
@@ -94,9 +97,9 @@ mod test {
         assert_eq!(1, end.line);
         assert_eq!(17, end.col);
 
-        assert_eq!("my name is ", start.text_upto(&mid));
-        assert_eq!("methos", mid.text_upto(&end));
-        assert_eq!("my name is methos", start.text_upto(&end));
+        assert_eq!(Some("my name is "), start.text_upto(&mid));
+        assert_eq!(Some("methos"), mid.text_upto(&end));
+        assert_eq!(Some("my name is methos"), start.text_upto(&end));
     }
 
     #[test]
@@ -122,6 +125,14 @@ mod test {
         assert_eq!(118, end.index);
         assert_eq!(7, end.col);
 
-        assert_eq!(src, start.text_upto(&end));
+        assert_eq!(start.text_upto(&end), Some(&src[..]));
+    }
+
+    #[test]
+    fn text_upto_different_locations() {
+        let l1 = Location::new("file1", "fubar");
+        let l2 = Location::new("file2", "snafu");
+
+        assert_eq!(l1.text_upto(&l2), None);
     }
 }
