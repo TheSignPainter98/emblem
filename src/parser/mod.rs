@@ -24,16 +24,21 @@ lalrpop_mod!(
 /// Parse an emblem source file at the given location.
 pub fn parse_file<'ctx, 'input>(
     ctx: &'ctx mut Context,
-    to_parse: SearchResult,
+    mut to_parse: SearchResult,
 ) -> Result<ParsedFile<'input>, Box<dyn Error + 'input>>
 where
     'ctx: 'input,
 {
     let content = {
-        let len = to_parse.file().metadata()?.len();
+        let file = to_parse.file();
+        let hint = file.len_hint();
 
-        let mut reader = BufReader::new(to_parse.file());
-        let mut buf = String::with_capacity(len.try_into()?);
+        let mut reader = BufReader::new(file);
+        let mut buf = hint
+            .map(|len| usize::try_from(len).ok())
+            .flatten()
+            .map(|len| String::with_capacity(len))
+            .unwrap_or_default();
         reader.read_to_string(&mut buf)?;
         buf
     };
