@@ -1968,11 +1968,15 @@ mod test {
                 let a = ArgPath::Stdio;
                 let mut s = SearchResult::try_from(&a)?;
                 assert_eq!(s.path, path::PathBuf::from("-"));
-                assert_eq!(s.file().stdin().unwrap().as_raw_fd(), io::stdin().as_raw_fd());
+                assert_eq!(
+                    s.file().stdin().unwrap().as_raw_fd(),
+                    io::stdin().as_raw_fd()
+                );
             }
 
             Ok(())
         }
+
         #[test]
         fn len_hint() -> io::Result<()> {
             let tmpdir = tempfile::tempdir()?;
