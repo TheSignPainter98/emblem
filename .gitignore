@@ -167,4 +167,5 @@ completion/
 /target
 
 # Test files
+/main.em
 test*.em
