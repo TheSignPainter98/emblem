@@ -87,7 +87,7 @@ impl<'input> Lexer<'input> {
     }
 
     fn can_start_attrs(&self) -> bool {
-        matches!(self.last_tok, Some(Tok::Command{..}))
+        matches!(self.last_tok, Some(Tok::Command { .. }))
     }
 }
 
