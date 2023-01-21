@@ -19,6 +19,7 @@ pub struct Lexer<'input> {
     next_toks: VecDeque<SpannedTok<'input>>,
     comment_depth: u32,
     last_tok: Option<Tok<'input>>,
+    parsing_attrs: bool,
 }
 
 impl<'input> Lexer<'input> {
@@ -35,6 +36,7 @@ impl<'input> Lexer<'input> {
             next_toks: VecDeque::new(),
             comment_depth: 0,
             last_tok: None,
+            parsing_attrs: false,
         }
     }
 
@@ -83,6 +85,10 @@ impl<'input> Lexer<'input> {
     fn enqueue(&mut self, t: SpannedTok<'input>) {
         self.next_toks.push_back(t)
     }
+
+    fn can_start_attrs(&self) -> bool {
+        matches!(self.last_tok, Some(Tok::Command { .. }))
+    }
 }
 
 impl<'input> Iterator for Lexer<'input> {
@@ -98,20 +104,26 @@ impl<'input> Iterator for Lexer<'input> {
         }
 
         token_patterns! {
-            let WORD               = r"([^ /\t\r\n}~-]|/[^ /\t\r\n~-])+";
-            let WHITESPACE         = r"[ \t]+";
-            let PAR_BREAKS         = r"([ \t]*(\n|\r\n|\r))+";
-            let LN                 = r"(\n|\r\n|\r)";
-            let COLON              = r":[ \t]*";
-            let DOUBLE_COLON       = r"::";
-            let INITIAL_INDENT     = r"[ \t]*";
-            let COMMAND            = r"\.[^ \t{}\r\n:]+";
-            let VERBATIM           = r"![^\r\n]*!";
-            let BRACE_LEFT         = r"\{";
-            let BRACE_RIGHT        = r"\}";
-            let COMMENT            = r"//[^\r\n]*";
-            let DASH               = r"-{1,3}";
-            let GLUE               = r"~~?";
+            let WORD           = r"([^ /\t\r\n}~-]|/[^ /\t\r\n~-])+";
+            let WHITESPACE     = r"[ \t]+";
+            let PAR_BREAKS     = r"([ \t]*(\n|\r\n|\r))+";
+            let LN             = r"(\n|\r\n|\r)";
+            let COLON          = r":[ \t]*";
+            let DOUBLE_COLON   = r"::";
+            let INITIAL_INDENT = r"[ \t]*";
+            let COMMAND        = r"\.[^ \t{}\[\]\r\n:]+";
+            let VERBATIM       = r"![^\r\n]*!";
+            let BRACE_LEFT     = r"\{";
+            let BRACE_RIGHT    = r"\}";
+            let COMMENT        = r"//[^\r\n]*";
+            let DASH           = r"-{1,3}";
+            let GLUE           = r"~~?";
+
+            let OPEN_ATTRS   = r"\[";
+            let CLOSE_ATTRS  = r"]";
+            let COMMA        = r",";
+            let UNNAMED_ATTR = r"[ \t]*([^,= \t\[\]]|\\[,=\[\]])+[ \t]*";
+            let NAMED_ATTR   = r"[ \t]*([^,= \t\[\]]|\\[,=\[\]])+[ \t]*=[ \t]*([^,\[\]]|\\[,\[\]])*[ \t]*";
 
             let NESTED_COMMENT_OPEN  = r"/\*";
             let NESTED_COMMENT_CLOSE = r"\*/";
@@ -205,6 +217,23 @@ impl<'input> Iterator for Lexer<'input> {
         }
         self.start_of_line = false;
 
+        if self.can_start_attrs() && self.try_consume(&OPEN_ATTRS).is_some() {
+            self.parsing_attrs = true;
+            return Some(Ok(self.span(Tok::LBracket)));
+        }
+
+        if self.parsing_attrs {
+            return match_token! {
+                NAMED_ATTR   => |s: &'input str| Ok(Tok::NamedAttr(s)),
+                UNNAMED_ATTR => |s: &'input str| Ok(Tok::UnnamedAttr(s)),
+                COMMA        => |_| Ok(Tok::AttrComma),
+                CLOSE_ATTRS  => |_| {
+                    self.parsing_attrs = false;
+                    Ok(Tok::RBracket)
+                },
+            };
+        }
+
         match_token! {
             COMMENT      => |s: &'input str| Ok(Tok::Comment(&s[2..])),
             DOUBLE_COLON => |_| Ok(Tok::DoubleColon),
@@ -250,6 +279,11 @@ pub enum Tok<'input> {
     DoubleColon,
     LBrace,
     RBrace,
+    LBracket,
+    RBracket,
+    NamedAttr(&'input str),
+    UnnamedAttr(&'input str),
+    AttrComma,
     Command(&'input str),
     ParBreak,
     Word(&'input str),
@@ -272,6 +306,11 @@ impl Display for Tok<'_> {
             Tok::DoubleColon => write!(f, "(::)"),
             Tok::LBrace => write!(f, "({{)"),
             Tok::RBrace => write!(f, "(}})"),
+            Tok::LBracket => write!(f, "([)"),
+            Tok::RBracket => write!(f, "(])"),
+            Tok::NamedAttr(a) => write!(f, "(named-attr:{})", a),
+            Tok::UnnamedAttr(a) => write!(f, "(unnamed-attr:{})", a),
+            Tok::AttrComma => write!(f, "(attr-comma)"),
             Tok::Command(c) => write!(f, "(.{})", c),
             Tok::ParBreak => write!(f, "(paragraph break)"),
             Tok::Word(w) => write!(f, "({})", w),

@@ -364,6 +364,54 @@ mod test {
                 &[".until{did his mind uncover}:", "to a youthful lady gay"].join("\n"),
             );
         }
+
+        #[test]
+        fn attrs() {
+            assert_structure(
+                "empty",
+                "we are .outward-bound[]",
+                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[]]]]",
+            );
+            assert_structure(
+                "unnamed-only",
+                "we are .outward-bound[for,kingston,town]",
+                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]",
+            );
+            assert_structure("unnamed-only-with-spaces", "we are .outward-bound[ for , kingston , town ]", "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[( for )|( kingston )|( town )]]]]");
+            assert_structure(
+                "unnamed-only-with-tabs",
+                "we are .outward-bound[\tfor\t,\tkingston\t,\ttown\t]",
+                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(\tfor\t)|(\tkingston\t)|(\ttown\t)]]]]",
+            );
+
+            assert_structure(
+                "named",
+                "we are .outward-bound[for=kingston,town]",
+                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]",
+            );
+            assert_structure("named-with-spaces", "we are .outward-bound[   for   =   kingston   ,   town   ]", "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(   for   )=(   kingston   )|(   town   )]]]]");
+            assert_structure(
+                "named-with-spaces",
+                "we are .outward-bound[\tfor\t=\tkingston\t,\ttown\t]",
+                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(\tfor\t)=(\tkingston\t)|(\ttown\t)]]]]",
+            );
+
+            assert_structure(
+                "with-inline-args",
+                "and we'll .heave[the,old=wheel,round]{and}{round}",
+                r"File[Par[[Word(and)|< >|Word(we'll)|< >|.heave[(the)|(old)=(wheel)|(round)]{[Word(and)]}{[Word(round)]}]]]",
+            );
+            assert_structure(
+                "with-trailer-args",
+                "and we'll .heave[the,old=wheel,round]: and round",
+                r"File[Par[[Word(and)|< >|Word(we'll)|< >|.heave[(the)|(old)=(wheel)|(round)]:[Word(and)|< >|Word(round)]]]]",
+            );
+            assert_structure(
+                "with-remainder-args",
+                ".heave[the,old=wheel,round]:\n\tand\n::\n\tround",
+                r"File[Par[.heave[(the)|(old)=(wheel)|(round)]::[Par[[Word(and)]]]::[Par[[Word(round)]]]]]",
+            );
+        }
     }
 
     mod interword {

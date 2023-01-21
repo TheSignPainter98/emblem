@@ -9,6 +9,7 @@ pub type ParsedFile<'i> = File<ParPart<Content<'i>>>;
 pub enum Content<'i> {
     Command {
         name: Text<'i>,
+        attrs: Option<Attrs<'i>>,
         inline_args: Vec<Vec<Content<'i>>>,
         remainder_arg: Option<Vec<Content<'i>>>,
         trailer_args: Vec<Vec<Par<ParPart<Content<'i>>>>>,
@@ -28,12 +29,16 @@ impl AstDebug for Content<'_> {
         match self {
             Self::Command {
                 name,
+                attrs,
                 inline_args,
                 remainder_arg,
-                trailer_args: trailing_args,
+                trailer_args,
             } => {
                 buf.push('.'.into());
                 name.test_fmt(buf);
+                if let Some(attrs) = attrs {
+                    attrs.test_fmt(buf);
+                }
                 for arg in inline_args.iter() {
                     arg.surround(buf, "{", "}");
                 }
@@ -41,7 +46,7 @@ impl AstDebug for Content<'_> {
                     buf.push(":".into());
                     arg.test_fmt(buf)
                 }
-                for arg in trailing_args.iter() {
+                for arg in trailer_args.iter() {
                     buf.push("::".into());
                     arg.test_fmt(buf);
                 }
@@ -56,6 +61,87 @@ impl AstDebug for Content<'_> {
                 c.test_fmt(buf);
             }
             Self::MultiLineComment(c) => c.surround(buf, "/*", "*/"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Attrs<'i>(Vec<Attr<'i>>);
+
+impl<'i> Attrs<'i> {
+    pub fn new(attrs: Vec<Attr<'i>>) -> Self {
+        Self(attrs)
+    }
+
+    #[allow(dead_code)]
+    pub fn args(&self) -> &Vec<Attr<'i>> {
+        &self.0
+    }
+}
+
+#[cfg(test)]
+impl AstDebug for Attrs<'_> {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
+        self.0.test_fmt(buf);
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Attr<'i> {
+    Named { eq_idx: usize, raw: &'i str },
+    Unnamed { raw: &'i str },
+}
+
+impl<'i> Attr<'i> {
+    pub fn named(raw: &'i str) -> Self {
+        Self::Named {
+            eq_idx: raw.find('=').unwrap(),
+            raw,
+        }
+    }
+
+    pub fn unnamed(raw: &'i str) -> Self {
+        Self::Unnamed { raw }
+    }
+
+    #[allow(dead_code)]
+    pub fn name(&self) -> &str {
+        match self {
+            Self::Named { raw, eq_idx } => raw[..*eq_idx].trim(),
+            Self::Unnamed { raw } => raw.trim(),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn value(&self) -> Option<&str> {
+        match self {
+            Self::Named { raw, eq_idx } => Some(raw[eq_idx + 1..].trim()),
+            Self::Unnamed { .. } => None,
+        }
+    }
+
+    #[allow(dead_code)]
+    fn raw(&self) -> &str {
+        match self {
+            Self::Named { raw, .. } => raw,
+            Self::Unnamed { raw, .. } => raw,
+        }
+    }
+}
+
+#[cfg(test)]
+impl AstDebug for Attr<'_> {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
+        match self {
+            Self::Unnamed { .. } => {
+                self.raw().surround(buf, "(", ")");
+            }
+            Self::Named { eq_idx, .. } => {
+                let raw = self.raw();
+                (&raw[..*eq_idx]).surround(buf, "(", ")");
+                buf.push("=".into());
+                (&raw[*eq_idx + 1..]).surround(buf, "(", ")");
+            }
         }
     }
 }
@@ -87,6 +173,48 @@ impl AstDebug for MultiLineCommentPart<'_> {
                 buf.push("Nested".into());
                 c.test_fmt(buf);
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    mod attrs {
+        use super::*;
+
+        #[test]
+        fn args() {
+            let tests = vec![vec![], vec![Attr::unnamed("hello"), Attr::unnamed("world")]];
+
+            for test in tests {
+                assert_eq!(Attrs::new(test.clone()).args(), &test);
+            }
+        }
+    }
+
+    mod attr {
+        use super::*;
+
+        #[test]
+        fn unnamed() {
+            let raw = " \tfoo\t ";
+            let attr = Attr::unnamed(raw);
+
+            assert_eq!(attr.name(), "foo");
+            assert_eq!(attr.value(), None);
+            assert_eq!(attr.raw(), raw);
+        }
+
+        #[test]
+        fn named() {
+            let raw = " \tfoo\t =\t bar \t";
+            let attr = Attr::named(raw);
+
+            assert_eq!(attr.name(), "foo");
+            assert_eq!(attr.value(), Some("bar"));
+            assert_eq!(attr.raw(), raw);
         }
     }
 }

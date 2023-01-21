@@ -1,6 +1,6 @@
 use crate::parser::{Location, LexicalError, lexer::Tok};
 use crate::ast::{
-    parsed::{ParsedFile, MultiLineComment, MultiLineCommentPart, Content},
+    parsed::{Attrs, Attr, ParsedFile, MultiLineComment, MultiLineCommentPart, Content},
     Par, ParPart, Text, Dash, Glue,
 };
 
@@ -21,9 +21,10 @@ Par: Par<ParPart<Content<'input>>> = {
 ParPart: ParPart<Content<'input>> = {
 	<MaybeLineContent> "\n" => ParPart::Line(<>),
 
-	<name:Command> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
+	<name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
 		ParPart::Command(Content::Command {
 			name: Text::from(name),
+			attrs,
 			inline_args,
 			remainder_arg: None,
 			trailer_args: {
@@ -48,8 +49,9 @@ LineContent: Vec<Content<'input>> = {
 }
 
 RemainderCommand: Content<'input> = {
-	<name:Command> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> => Content::Command {
+	<name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> => Content::Command {
 		name: Text::from(name),
+		attrs,
 		inline_args,
 		remainder_arg: Some(remainder_arg),
 		trailer_args: Vec::with_capacity(0),
@@ -65,13 +67,23 @@ LineElement: Content<'input> = {
 	Glue          => Content::Glue(Glue::from(<>)),
 	Verbatim      => Content::Verbatim(<>),
 
-	<name: Command> <inline_args:("{" <MaybeLineContent> "}")*> => Content::Command {
+	<name: Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> => Content::Command {
 		name: Text::from(name),
+		attrs,
 		inline_args,
 		remainder_arg: None,
 		trailer_args: Vec::with_capacity(0),
 	},
 }
+
+Attrs: Attrs<'input> = {
+	"[" <MaybeSepList<Attr, ",">> "]" => Attrs::new(<>),
+}
+
+Attr: Attr<'input> = {
+	NamedAttr => Attr::named(<>),
+	UnnamedAttr => Attr::unnamed(<>),
+};
 
 NestedComment: MultiLineComment<'input> = {
 	"/*" <NestedCommentContent> "*/"
@@ -119,22 +131,27 @@ extern {
 	type Error = LexicalError<'input>;
 
 	enum Tok<'input> {
-		Indent     => Tok::Indent,
-		Dedent     => Tok::Dedent,
-		":"        => Tok::Colon,
-		"::"       => Tok::DoubleColon,
-		"{"        => Tok::LBrace,
-		"}"        => Tok::RBrace,
-		Command    => Tok::Command(<&'input str>),
-		ParBreak   => Tok::ParBreak,
-		Word       => Tok::Word(<&'input str>),
-		Dash       => Tok::Dash(<&'input str>),
-		Glue       => Tok::Glue(<&'input str>),
-		Verbatim   => Tok::Verbatim(<&'input str>),
-		Whitespace => Tok::Whitespace(<&'input str>),
-		"/*"       => Tok::NestedCommentOpen,
-		"*/"       => Tok::NestedCommentClose,
-		"\n"       => Tok::Newline,
-		Comment    => Tok::Comment(<&'input str>),
+		Indent      => Tok::Indent,
+		Dedent      => Tok::Dedent,
+		":"         => Tok::Colon,
+		"::"        => Tok::DoubleColon,
+		"{"         => Tok::LBrace,
+		"}"         => Tok::RBrace,
+		Command     => Tok::Command(<&'input str>),
+		ParBreak    => Tok::ParBreak,
+		Word        => Tok::Word(<&'input str>),
+		Dash        => Tok::Dash(<&'input str>),
+		Glue        => Tok::Glue(<&'input str>),
+		Verbatim    => Tok::Verbatim(<&'input str>),
+		Whitespace  => Tok::Whitespace(<&'input str>),
+		"["         => Tok::LBracket,
+		"]"         => Tok::RBracket,
+		","         => Tok::AttrComma,
+		NamedAttr   => Tok::NamedAttr(<&'input str>),
+		UnnamedAttr => Tok::UnnamedAttr(<&'input str>),
+		"/*"        => Tok::NestedCommentOpen,
+		"*/"        => Tok::NestedCommentClose,
+		"\n"        => Tok::Newline,
+		Comment     => Tok::Comment(<&'input str>),
 	}
 }
