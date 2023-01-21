@@ -364,6 +364,22 @@ mod test {
                 &[".until{did his mind uncover}:", "to a youthful lady gay"].join("\n"),
             );
         }
+
+        #[test]
+        fn attrs() {
+            // assert_structure("empty", "we are .outward-bound[]", "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[]]]]");
+            // assert_structure("unnamed-only", "we are .outward-bound[for, kingston, town]", "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[for| kingston| town]]]]");
+            // assert_structure("empty", "we are .outward-bound[for=kingston,town]", "File[Par[[.outward-bound[]]]]");
+            // assert_structure("empty", "we are .outward-bound[for=kingston,town,]", "File[Par[[.outward-bound[]]]]");
+
+
+            // TODO(kcza): test with trailer
+            // TODO(kcza): test with remainder
+            // TODO(kcza): test with args
+            // TODO(kcza): test space handling
+            // TODO(kcza): test space before in brackets
+            // TODO(kcza): test space after in brackets
+        }
     }
 
     mod interword {
