@@ -125,7 +125,7 @@ impl<'input> Iterator for Lexer<'input> {
             let OPEN_ATTRS   = r"\[";
             let CLOSE_ATTRS  = r"]";
             let COMMA        = r",";
-            let UNNAMED_ATTR = r"[ \t]*([^,= \t\[\]]|\\[,=\[\]])+";
+            let UNNAMED_ATTR = r"[ \t]*([^,= \t\[\]]|\\[,=\[\]])+[ \t]*";
             let NAMED_ATTR   = r"[ \t]*([^,= \t\[\]]|\\[,=\[\]])+[ \t]*=[ \t]*([^,\[\]]|\\[,\[\]])*[ \t]*";
 
             let NESTED_COMMENT_OPEN  = r"/\*";
