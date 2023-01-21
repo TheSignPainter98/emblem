@@ -87,10 +87,7 @@ impl<'input> Lexer<'input> {
     }
 
     fn can_start_attrs(&self) -> bool {
-        match self.last_tok {
-            Some(Tok::Command { .. }) => true,
-            _ => false,
-        }
+        matches!(self.last_tok, Some(Tok::Command{..}))
     }
 }
 
@@ -220,11 +217,9 @@ impl<'input> Iterator for Lexer<'input> {
         }
         self.start_of_line = false;
 
-        if self.can_start_attrs() {
-            if self.try_consume(&OPEN_ATTRS).is_some() {
-                self.parsing_attrs = true;
-                return Some(Ok(self.span(Tok::LBracket)));
-            }
+        if self.can_start_attrs() && self.try_consume(&OPEN_ATTRS).is_some() {
+            self.parsing_attrs = true;
+            return Some(Ok(self.span(Tok::LBracket)));
         }
 
         if self.parsing_attrs {

@@ -73,6 +73,7 @@ impl<'i> Attrs<'i> {
         Self(attrs)
     }
 
+    #[allow(dead_code)]
     pub fn args(&self) -> &Vec<Attr<'i>> {
         &self.0
     }
@@ -103,20 +104,23 @@ impl<'i> Attr<'i> {
         Self::Unnamed { raw }
     }
 
+    #[allow(dead_code)]
     pub fn name(&self) -> &str {
         match self {
-            Self::Named { raw, eq_idx } => &raw[..*eq_idx].trim(),
+            Self::Named { raw, eq_idx } => raw[..*eq_idx].trim(),
             Self::Unnamed { raw } => raw.trim(),
         }
     }
 
+    #[allow(dead_code)]
     pub fn value(&self) -> Option<&str> {
         match self {
-            Self::Named { raw, eq_idx } => Some(&raw[eq_idx + 1..].trim()),
+            Self::Named { raw, eq_idx } => Some(raw[eq_idx + 1..].trim()),
             Self::Unnamed { .. } => None,
         }
     }
 
+    #[allow(dead_code)]
     fn raw(&self) -> &str {
         match self {
             Self::Named { raw, .. } => raw,
