@@ -130,9 +130,14 @@ impl AstDebug for Attr<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
             Self::Unnamed { .. } => {
-                self.name().surround(buf, "(", ")");
+                self.raw().surround(buf, "(", ")");
             }
-            Self::Named { .. } => self.raw().surround(buf, "(", ")"),
+            Self::Named { eq_idx, .. } => {
+                let raw = self.raw();
+                (&raw[..*eq_idx]).surround(buf, "(", ")");
+                buf.push("=".into());
+                (&raw[*eq_idx + 1..]).surround(buf, "(", ")");
+            }
         }
     }
 }
