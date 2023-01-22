@@ -131,14 +131,14 @@ extern {
 	type Error = LexicalError<'input>;
 
 	enum Tok<'input> {
-		Indent      => Tok::Indent,
-		Dedent      => Tok::Dedent,
-		":"         => Tok::Colon,
-		"::"        => Tok::DoubleColon,
+		Indent      => Tok::Indent(<&'input str>),
+		Dedent      => Tok::Dedent(<&'input str>),
+		":"         => Tok::Colon(<&'input str>),
+		"::"        => Tok::DoubleColon(<&'input str>),
 		"{"         => Tok::LBrace,
 		"}"         => Tok::RBrace,
 		Command     => Tok::Command(<&'input str>),
-		ParBreak    => Tok::ParBreak,
+		ParBreak    => Tok::ParBreak(<&'input str>),
 		Word        => Tok::Word(<&'input str>),
 		Dash        => Tok::Dash(<&'input str>),
 		Glue        => Tok::Glue(<&'input str>),

@@ -331,6 +331,16 @@ mod test {
                     ],
                     expected_structure: "File[Par[.four::[Par[[Word(and)|< >|Word(twenty)|< >|Word(British)|< >|Word(sailors)]]]|.met::[Par[[Word(him)|< >|Word(on)|< >|Word(the)|< >|Word(king's)|< >|Word(highway)]]]]|Par[.as::[Par[[Word(he)|< >|Word(went)|< >|Word(to)|< >|Word(be)|< >|Word(married)]]]|.pressed{[Word(he)|< >|Word(was)]}::[Par[[Word(and)|< >|Word(sent)|< >|Word(away)]]]]]",
                 },
+                TrailerTest {
+                    name: "whitespace-after-colons",
+                    data: &[
+                        ".four: \t",
+                        "\tand twenty British sailors",
+                        "::\t ",
+                        "\tmet him on the king's highway",
+                    ],
+                    expected_structure: "File[Par[.four::[Par[[Word(and)|< >|Word(twenty)|< >|Word(British)|< >|Word(sailors)]]]::[Par[[Word(met)|< >|Word(him)|< >|Word(on)|< >|Word(the)|< >|Word(king's)|< >|Word(highway)]]]]]",
+                },
             ];
             for test in &tests {
                 let name_with_tabs = format!("{} (with tabs)", test.name);

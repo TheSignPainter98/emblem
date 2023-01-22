@@ -12,7 +12,8 @@ pub struct Lexer<'input> {
     done: bool,
     failed: bool,
     start_of_line: bool,
-    current_indent: u32,
+    curr_indent_level: u32,
+    curr_indent: &'input str,
     curr_loc: Location<'input>,
     prev_loc: Location<'input>,
     open_braces: u32,
@@ -29,7 +30,8 @@ impl<'input> Lexer<'input> {
             done: false,
             failed: false,
             start_of_line: true,
-            current_indent: 0,
+            curr_indent_level: 0,
+            curr_indent: "",
             curr_loc: Location::new(file, input),
             prev_loc: Location::new(file, input),
             open_braces: 0,
@@ -58,24 +60,26 @@ impl<'input> Lexer<'input> {
         (self.prev_loc.clone(), tok, self.curr_loc.clone())
     }
 
-    fn enqueue_indentation_level(&mut self, target: u32) {
-        let difference = self.current_indent.abs_diff(target);
+    fn enqueue_indentation(&mut self, target: &'input str) {
+        self.curr_indent = target;
+        let target_level = indent_level(target);
+        let difference = self.curr_indent_level.abs_diff(target_level);
 
         if difference == 0 {
             return;
         }
 
-        let tok = if self.current_indent < target {
-            Tok::Indent
+        let tok = if self.curr_indent_level < target_level {
+            Tok::Indent(self.curr_indent)
         } else {
-            Tok::Dedent
+            Tok::Dedent(self.curr_indent)
         };
 
         for _ in 0..difference {
             self.enqueue(self.span(tok.clone()))
         }
 
-        self.current_indent = target;
+        self.curr_indent_level = target_level;
     }
 
     fn dequeue(&mut self) -> Option<SpannedTok<'input>> {
@@ -109,7 +113,7 @@ impl<'input> Iterator for Lexer<'input> {
             let PAR_BREAKS     = r"([ \t]*(\n|\r\n|\r))+";
             let LN             = r"(\n|\r\n|\r)";
             let COLON          = r":[ \t]*";
-            let DOUBLE_COLON   = r"::";
+            let DOUBLE_COLON   = r"::[ \t]*";
             let INITIAL_INDENT = r"[ \t]*";
             let COMMAND        = r"\.[^ \t{}\[\]\r\n:]+";
             let VERBATIM       = r"![^\r\n]*!";
@@ -179,7 +183,7 @@ impl<'input> Iterator for Lexer<'input> {
             if self.last_tok != Some(Tok::Newline) {
                 self.enqueue(self.span(Tok::Newline));
             }
-            self.enqueue_indentation_level(0);
+            self.enqueue_indentation("");
             self.done = true;
             return self.dequeue().map(Ok);
         }
@@ -196,19 +200,15 @@ impl<'input> Iterator for Lexer<'input> {
             }
 
             self.enqueue(self.span(Tok::Newline));
-            let enqueue_par_break = self.try_consume(&PAR_BREAKS).is_some();
+            let par_break = self.try_consume(&PAR_BREAKS);
 
             {
-                let target = if let Some(indent) = self.try_consume(&WHITESPACE) {
-                    indent_level(indent)
-                } else {
-                    0
-                };
-                self.enqueue_indentation_level(target);
+                let indent = self.try_consume(&WHITESPACE).unwrap_or_default();
+                self.enqueue_indentation(indent);
             }
 
-            if enqueue_par_break {
-                self.enqueue(self.span(Tok::ParBreak));
+            if let Some(mat) = par_break {
+                self.enqueue(self.span(Tok::ParBreak(mat)));
             }
 
             let ret = self.dequeue().unwrap();
@@ -236,8 +236,8 @@ impl<'input> Iterator for Lexer<'input> {
 
         match_token! {
             COMMENT      => |s: &'input str| Ok(Tok::Comment(&s[2..])),
-            DOUBLE_COLON => |_| Ok(Tok::DoubleColon),
-            COLON        => |_| Ok(Tok::Colon),
+            DOUBLE_COLON => |s: &'input str| Ok(Tok::DoubleColon(&s[2..])),
+            COLON        => |s: &'input str| Ok(Tok::Colon(&s[1..])),
 
             BRACE_LEFT => |_| {
                 self.open_braces += 1;
@@ -273,10 +273,10 @@ impl<'input> Iterator for Lexer<'input> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Tok<'input> {
-    Indent,
-    Dedent,
-    Colon,
-    DoubleColon,
+    Indent(&'input str),
+    Dedent(&'input str),
+    Colon(&'input str),
+    DoubleColon(&'input str),
     LBrace,
     RBrace,
     LBracket,
@@ -285,7 +285,7 @@ pub enum Tok<'input> {
     UnnamedAttr(&'input str),
     AttrComma,
     Command(&'input str),
-    ParBreak,
+    ParBreak(&'input str),
     Word(&'input str),
     Whitespace(&'input str),
     Dash(&'input str),
@@ -300,10 +300,10 @@ pub enum Tok<'input> {
 impl Display for Tok<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Tok::Indent => write!(f, "(indent)"),
-            Tok::Dedent => write!(f, "(dedent)"),
-            Tok::Colon => write!(f, "(:)"),
-            Tok::DoubleColon => write!(f, "(::)"),
+            Tok::Indent(i) => write!(f, "(indent:{:?})", i),
+            Tok::Dedent(d) => write!(f, "(dedent:{:?})", d),
+            Tok::Colon(w) => write!(f, "(:{:?})", w),
+            Tok::DoubleColon(w) => write!(f, "(::{:?})", w),
             Tok::LBrace => write!(f, "({{)"),
             Tok::RBrace => write!(f, "(}})"),
             Tok::LBracket => write!(f, "([)"),
@@ -312,9 +312,9 @@ impl Display for Tok<'_> {
             Tok::UnnamedAttr(a) => write!(f, "(unnamed-attr:{})", a),
             Tok::AttrComma => write!(f, "(attr-comma)"),
             Tok::Command(c) => write!(f, "(.{})", c),
-            Tok::ParBreak => write!(f, "(paragraph break)"),
+            Tok::ParBreak(b) => write!(f, "(paragraph break:{:?})", b),
             Tok::Word(w) => write!(f, "({})", w),
-            Tok::Whitespace(w) => write!(f, "(whitespace:{})", w),
+            Tok::Whitespace(w) => write!(f, "(whitespace:{:?})", w),
             Tok::Dash(d) => write!(f, "(dash:{})", d),
             Tok::Glue(g) => write!(f, "(glue:{})", g),
             Tok::Verbatim(v) => write!(f, "(verbatim:{})", v),
