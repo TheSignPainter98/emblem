@@ -13,6 +13,7 @@ pub enum Content<'i> {
         inline_args: Vec<Vec<Content<'i>>>,
         remainder_arg: Option<Vec<Content<'i>>>,
         trailer_args: Vec<Vec<Par<ParPart<Content<'i>>>>>,
+        erratic_indent: Option<&'i str>,
     },
     Word(Text<'i>),
     Whitespace(&'i str),
@@ -21,6 +22,7 @@ pub enum Content<'i> {
     Verbatim(&'i str),
     Comment(&'i str),
     MultiLineComment(MultiLineComment<'i>),
+    ErraticIndent(&'i str),
 }
 
 #[cfg(test)]
@@ -33,7 +35,12 @@ impl AstDebug for Content<'_> {
                 inline_args,
                 remainder_arg,
                 trailer_args,
+                erratic_indent,
             } => {
+                if let Some(indent) = erratic_indent {
+                    Self::ErraticIndent(indent).test_fmt(buf);
+                    buf.push('|'.into())
+                }
                 buf.push('.'.into());
                 name.test_fmt(buf);
                 if let Some(attrs) = attrs {
@@ -61,6 +68,7 @@ impl AstDebug for Content<'_> {
                 c.test_fmt(buf);
             }
             Self::MultiLineComment(c) => c.surround(buf, "/*", "*/"),
+            Self::ErraticIndent(e) => e.surround(buf, "Erratic(", ")"),
         }
     }
 }

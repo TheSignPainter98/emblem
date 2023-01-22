@@ -749,4 +749,36 @@ mod test {
             assert_parse_error("trailer-args", "/*spaghetti*/.and:\n\tmeatballs");
         }
     }
+
+    mod erratic_indentation {
+        use super::*;
+
+        #[test]
+        fn in_pars() {
+            assert_structure(
+                "erratic-spaces",
+                ".cmd:\n\ta\n    b",
+                r"File[Par[.cmd::[Par[[Word(a)]|[Erratic(    )|Word(b)]]]]]",
+            );
+            assert_structure(
+                "erratic-tabs",
+                ".cmd:\n    a\n\tb",
+                r"File[Par[.cmd::[Par[[Word(a)]|[Erratic(\t)|Word(b)]]]]]",
+            );
+        }
+
+        #[test]
+        fn before_trailer() {
+            assert_structure(
+                "erratic-spaces",
+                ".cmd:\n\t.cmd\n    .cmd",
+                r"File[Par[.cmd::[Par[[.cmd]|[Erratic(    )|.cmd]]]]]",
+            );
+            assert_structure(
+                "erratic-spaces",
+                ".cmd:\n    .cmd\n\t.cmd",
+                r"File[Par[.cmd::[Par[[.cmd]|[Erratic(\t)|.cmd]]]]]",
+            );
+        }
+    }
 }

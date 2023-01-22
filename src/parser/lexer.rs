@@ -61,13 +61,17 @@ impl<'input> Lexer<'input> {
     }
 
     fn enqueue_indentation(&mut self, target: &'input str) {
-        self.curr_indent = target;
         let target_level = indent_level(target);
         let difference = self.curr_indent_level.abs_diff(target_level);
 
         if difference == 0 {
+            if self.curr_indent != target {
+                self.enqueue(self.span(Tok::ErraticIndent(target)));
+            }
             return;
         }
+
+        self.curr_indent = target;
 
         let tok = if self.curr_indent_level < target_level {
             Tok::Indent(self.curr_indent)
@@ -275,6 +279,7 @@ impl<'input> Iterator for Lexer<'input> {
 pub enum Tok<'input> {
     Indent(&'input str),
     Dedent(&'input str),
+    ErraticIndent(&'input str),
     Colon(&'input str),
     DoubleColon(&'input str),
     LBrace,
@@ -302,6 +307,7 @@ impl Display for Tok<'_> {
         match self {
             Tok::Indent(i) => write!(f, "(indent:{:?})", i),
             Tok::Dedent(d) => write!(f, "(dedent:{:?})", d),
+            Tok::ErraticIndent(i) => write!(f, "(inconsistent-indent:{:?})", i),
             Tok::Colon(w) => write!(f, "(:{:?})", w),
             Tok::DoubleColon(w) => write!(f, "(::{:?})", w),
             Tok::LBrace => write!(f, "({{)"),

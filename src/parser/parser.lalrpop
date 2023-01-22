@@ -19,9 +19,20 @@ Par: Par<ParPart<Content<'input>>> = {
 }
 
 ParPart: ParPart<Content<'input>> = {
-	<MaybeLineContent> "\n" => ParPart::Line(<>),
+	<err: ErraticIndent?> <content: MaybeLineContent> "\n" => {
+		ParPart::Line({
+			if let Some(err) = err {
+				let mut ret: Vec<Content<'_>> = Vec::with_capacity(1 + content.len());
+				ret.push(Content::ErraticIndent(err));
+				ret.extend(content);
+				ret
+			} else {
+				content
+			}
+		})
+	},
 
-	<name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
+	<erratic_indent: ErraticIndent?> <name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
 		ParPart::Command(Content::Command {
 			name: Text::from(name),
 			attrs,
@@ -31,7 +42,8 @@ ParPart: ParPart<Content<'input>> = {
 				let mut args = vec![trail_head];
 				args.extend(trail_tail);
 				args
-			}
+			},
+			erratic_indent
 		})
 	},
 }
@@ -55,6 +67,7 @@ RemainderCommand: Content<'input> = {
 		inline_args,
 		remainder_arg: Some(remainder_arg),
 		trailer_args: Vec::with_capacity(0),
+		erratic_indent: None,
 	}
 }
 
@@ -73,6 +86,7 @@ LineElement: Content<'input> = {
 		inline_args,
 		remainder_arg: None,
 		trailer_args: Vec::with_capacity(0),
+		erratic_indent: None,
 	},
 }
 
@@ -104,7 +118,7 @@ SepList<T,Sep>: Vec<T> = {
 		let mut ret = vec![head];
 		ret.append(&mut tail);
 		ret
-	}
+	},
 }
 
 MaybeSepList<T, Sep>: Vec<T> = {
@@ -131,27 +145,28 @@ extern {
 	type Error = LexicalError<'input>;
 
 	enum Tok<'input> {
-		Indent      => Tok::Indent(<&'input str>),
-		Dedent      => Tok::Dedent(<&'input str>),
-		":"         => Tok::Colon(<&'input str>),
-		"::"        => Tok::DoubleColon(<&'input str>),
-		"{"         => Tok::LBrace,
-		"}"         => Tok::RBrace,
-		Command     => Tok::Command(<&'input str>),
-		ParBreak    => Tok::ParBreak(<&'input str>),
-		Word        => Tok::Word(<&'input str>),
-		Dash        => Tok::Dash(<&'input str>),
-		Glue        => Tok::Glue(<&'input str>),
-		Verbatim    => Tok::Verbatim(<&'input str>),
-		Whitespace  => Tok::Whitespace(<&'input str>),
-		"["         => Tok::LBracket,
-		"]"         => Tok::RBracket,
-		","         => Tok::AttrComma,
-		NamedAttr   => Tok::NamedAttr(<&'input str>),
-		UnnamedAttr => Tok::UnnamedAttr(<&'input str>),
-		"/*"        => Tok::NestedCommentOpen,
-		"*/"        => Tok::NestedCommentClose,
-		"\n"        => Tok::Newline,
-		Comment     => Tok::Comment(<&'input str>),
+		Indent        => Tok::Indent(<&'input str>),
+		Dedent        => Tok::Dedent(<&'input str>),
+		ErraticIndent => Tok::ErraticIndent(<&'input str>),
+		":"           => Tok::Colon(<&'input str>),
+		"::"          => Tok::DoubleColon(<&'input str>),
+		"{"           => Tok::LBrace,
+		"}"           => Tok::RBrace,
+		Command       => Tok::Command(<&'input str>),
+		ParBreak      => Tok::ParBreak(<&'input str>),
+		Word          => Tok::Word(<&'input str>),
+		Dash          => Tok::Dash(<&'input str>),
+		Glue          => Tok::Glue(<&'input str>),
+		Verbatim      => Tok::Verbatim(<&'input str>),
+		Whitespace    => Tok::Whitespace(<&'input str>),
+		"["           => Tok::LBracket,
+		"]"           => Tok::RBracket,
+		","           => Tok::AttrComma,
+		NamedAttr     => Tok::NamedAttr(<&'input str>),
+		UnnamedAttr   => Tok::UnnamedAttr(<&'input str>),
+		"/*"          => Tok::NestedCommentOpen,
+		"*/"          => Tok::NestedCommentClose,
+		"\n"          => Tok::Newline,
+		Comment       => Tok::Comment(<&'input str>),
 	}
 }
