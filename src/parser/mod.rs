@@ -567,24 +567,49 @@ mod test {
         #[test]
         fn partial() {
             assert_structure(
-                "whole_line",
+                "no gap",
                 "to me!//to you!\n",
-                "File[Par[[Word(to)|< >|Word(me!)|//to you!]]]",
+                r"File[Par[[Word(to)|< >|Word(me!)|//to you!]]]",
             );
             assert_structure(
-                "whole_line",
+                "space-after-comment",
                 "to me!// to you!\n",
-                "File[Par[[Word(to)|< >|Word(me!)|// to you!]]]",
+                r"File[Par[[Word(to)|< >|Word(me!)|// to you!]]]",
             );
             assert_structure(
-                "whole_line",
+                "space-after-comment",
+                "to me!//\tto you!\n",
+                r"File[Par[[Word(to)|< >|Word(me!)|//\tto you!]]]",
+            );
+            assert_structure(
+                "space-before-comment",
                 "to me! //to you!\n",
                 "File[Par[[Word(to)|< >|Word(me!)|< >|//to you!]]]",
             );
             assert_structure(
-                "whole_line",
+                "tab-before-comment",
+                "to me!\t//to you!\n",
+                r"File[Par[[Word(to)|< >|Word(me!)|<\t>|//to you!]]]",
+            );
+            assert_structure(
+                "surrounding-spaces",
                 "to me! // to you!\n",
-                "File[Par[[Word(to)|< >|Word(me!)|< >|// to you!]]]",
+                r"File[Par[[Word(to)|< >|Word(me!)|< >|// to you!]]]",
+            );
+            assert_structure(
+                "surrounding-tabs",
+                "to me!\t//\tto you!\n",
+                r"File[Par[[Word(to)|< >|Word(me!)|<\t>|//\tto you!]]]",
+            );
+            assert_structure(
+                "surrounding-mix-1",
+                "to me! //\tto you!\n",
+                r"File[Par[[Word(to)|< >|Word(me!)|< >|//\tto you!]]]",
+            );
+            assert_structure(
+                "surrounding-mix-2",
+                "to me!\t// to you!\n",
+                r"File[Par[[Word(to)|< >|Word(me!)|<\t>|// to you!]]]",
             );
         }
 
@@ -597,7 +622,7 @@ mod test {
                 "Blow, me bully boys, blow",
             ];
             assert_structure(
-                "whole_line",
+                "multiple-comments",
                 &format!("//{}\n", lines.join("\n//")),
                 &format!(
                     "File[Par[[{}]]]",
@@ -625,13 +650,13 @@ mod test {
 
         #[test]
         fn empty() {
-            assert_structure("empty", "/**/", r"File[Par[[/*[]*/]]]");
-            assert_structure("empty", "/**//**/", r"File[Par[[/*[]*/|/*[]*/]]]");
-            assert_structure("empty", "/**/ /**/", r"File[Par[[/*[]*/|< >|/*[]*/]]]");
-            assert_structure("empty", "/**/\t/**/", r"File[Par[[/*[]*/|<\t>|/*[]*/]]]");
-            assert_structure("empty", "/**/\n/**/", r"File[Par[[/*[]*/]|[/*[]*/]]]");
+            assert_structure("single", "/**/", r"File[Par[[/*[]*/]]]");
+            assert_structure("multiple", "/**//**/", r"File[Par[[/*[]*/|/*[]*/]]]");
+            assert_structure("multiple with space gap", "/**/ /**/", r"File[Par[[/*[]*/|< >|/*[]*/]]]");
+            assert_structure("multiple with tab gap", "/**/\t/**/", r"File[Par[[/*[]*/|<\t>|/*[]*/]]]");
+            assert_structure("stacked", "/**/\n/**/", r"File[Par[[/*[]*/]|[/*[]*/]]]");
             assert_structure(
-                "multiple empty",
+                "pars with stacked",
                 "/**/\n\n/**/\n/**/",
                 r"File[Par[[/*[]*/]]|Par[[/*[]*/]|[/*[]*/]]]",
             );
@@ -723,12 +748,12 @@ mod test {
         #[test]
         fn before_remainder_args() {
             assert_structure(
-                "trailer-args",
+                "single-line",
                 "/*spaghetti*/.and: meatballs",
                 "File[Par[[/*[spaghetti]*/|.and:[Word(meatballs)]]]]",
             );
             assert_structure(
-                "trailer-args",
+                "multi-line",
                 "/*spaghetti\n\t\t*/.and: meatballs",
                 r"File[Par[[/*[spaghetti|\n|\t\t]*/|.and:[Word(meatballs)]]]]",
             );
