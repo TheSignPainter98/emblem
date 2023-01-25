@@ -1,13 +1,20 @@
 use crate::parser::{Location, LexicalError, lexer::Tok};
 use crate::ast::{
-    parsed::{Attrs, Attr, ParsedFile, MultiLineComment, MultiLineCommentPart, Content},
-    Par, ParPart, Text, Dash, Glue,
+    parsed::{
+		Attr,
+		Attrs,
+		Content,
+		MultiLineComment,
+		MultiLineCommentPart,
+		ParsedFile,
+	},
+	Par, ParPart
 };
 
 grammar<'input>;
 
 pub File: ParsedFile<'input> = {
-    FileContent => ParsedFile { pars: <> },
+    FileContent => <>.into(),
 };
 
 FileContent: Vec<Par<ParPart<Content<'input>>>> = {
@@ -15,7 +22,7 @@ FileContent: Vec<Par<ParPart<Content<'input>>>> = {
 }
 
 Par: Par<ParPart<Content<'input>>> = {
-	ParPart+ => Par::from(<>),
+	ParPart+ => <>.into(),
 }
 
 ParPart: ParPart<Content<'input>> = {
@@ -23,7 +30,7 @@ ParPart: ParPart<Content<'input>> = {
 
 	<name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
 		ParPart::Command(Content::Command {
-			name: Text::from(name),
+			name: name.into(),
 			attrs,
 			inline_args,
 			remainder_arg: None,
@@ -50,7 +57,7 @@ LineContent: Vec<Content<'input>> = {
 
 RemainderCommand: Content<'input> = {
 	<name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> => Content::Command {
-		name: Text::from(name),
+		name: name.into(),
 		attrs,
 		inline_args,
 		remainder_arg: Some(remainder_arg),
@@ -62,13 +69,13 @@ LineElement: Content<'input> = {
 	Comment       => Content::Comment(<>),
 	NestedComment => Content::MultiLineComment(<>),
 	Whitespace    => Content::Whitespace(<>),
-	Word          => Content::Word(Text::from(<>)),
-	Dash          => Content::Dash(Dash::from(<>)),
-	Glue          => Content::Glue(Glue::from(<>)),
+	Word          => Content::Word(<>.into()),
+	Dash          => Content::Dash(<>.into()),
+	Glue          => Content::Glue(<>.into()),
 	Verbatim      => Content::Verbatim(<>),
 
 	<name: Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> => Content::Command {
-		name: Text::from(name),
+		name: name.into(),
 		attrs,
 		inline_args,
 		remainder_arg: None,

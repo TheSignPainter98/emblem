@@ -12,20 +12,26 @@ pub struct File<T> {
     pub pars: Vec<Par<T>>,
 }
 
+impl<T> From<Vec<Par<T>>> for File<T> {
+    fn from(pars: Vec<Par<T>>) -> Self {
+        Self { pars }
+    }
+}
+
 #[derive(Debug)]
 pub struct Par<T> {
     pub parts: Vec<T>,
 }
 
 impl<T> From<Vec<T>> for Par<T> {
-    fn from(lines: Vec<T>) -> Self {
-        Self { parts: lines }
+    fn from(parts: Vec<T>) -> Self {
+        Self { parts }
     }
 }
 
 impl<T> From<T> for Par<T> {
-    fn from(line: T) -> Self {
-        Self { parts: vec![line] }
+    fn from(part: T) -> Self {
+        Self { parts: vec![part] }
     }
 }
 
