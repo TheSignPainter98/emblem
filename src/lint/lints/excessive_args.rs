@@ -47,7 +47,7 @@ impl Lint for ExcessiveArgs {
         "too-many-args"
     }
 
-    fn analyse<'i>(&mut self, content: &Content<'i>, problems: &mut Vec<Problem>) {
+    fn analyse<'i>(&mut self, content: &Content<'i>) -> Option<Problem> {
         match content {
             Content::Command {
                 name,
@@ -60,12 +60,14 @@ impl Lint for ExcessiveArgs {
                     let num_style_args =
                         inline_args.len() + remainder_arg.iter().len() + trailer_args.len();
                     if num_style_args > *max {
-                        problems.push(self.problem(format!(
+                        return Some(self.problem(format!(
                             "too many style arguments passed to .{}: got {}",
                             name, num_style_args
                         )))
                     }
                 }
+
+                None
             }
             Content::Word{ .. }
             | Content::Whitespace{ .. }
@@ -73,7 +75,7 @@ impl Lint for ExcessiveArgs {
             | Content::Glue{ .. }
             | Content::Verbatim{ .. }
             | Content::Comment{ .. }
-            | Content::MultiLineComment{ .. } => {}
+            | Content::MultiLineComment{ .. } => None
         }
     }
 }

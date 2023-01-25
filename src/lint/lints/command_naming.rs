@@ -22,16 +22,18 @@ impl Lint for CommandNaming {
         "command-naming"
     }
 
-    fn analyse<'i>(&mut self, content: &Content<'i>, problems: &mut Vec<Problem>) {
+    fn analyse<'i>(&mut self, content: &Content<'i>) -> Option<Problem> {
         match content {
             Content::Command { name, .. } => {
                 let name = name.as_ref();
                 if !CONFORMANT_NAME.is_match(name) {
-                    problems.push(self.problem(format!(
+                    return Some(self.problem(format!(
                         "commands should be lowercase with dashes: got .{}",
                         name
                     )))
                 }
+
+                None
             }
             Content::Word { .. }
             | Content::Whitespace { .. }
@@ -39,7 +41,7 @@ impl Lint for CommandNaming {
             | Content::Glue { .. }
             | Content::Verbatim { .. }
             | Content::Comment { .. }
-            | Content::MultiLineComment { .. } => {}
+            | Content::MultiLineComment { .. } => None,
         }
     }
 }

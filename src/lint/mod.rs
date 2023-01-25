@@ -41,9 +41,9 @@ pub fn lint(cmd: LintCmd) -> Result<(), Box<dyn Error>> {
 pub type Lints = Vec<Box<dyn Lint>>;
 
 pub trait Lint {
-    fn analyse<'i>(&mut self, content: &Content<'i>, problems: &mut Vec<Problem>);
+    fn analyse<'i>(&mut self, content: &Content<'i>) -> Option<Problem>;
 
-    fn done(&mut self, _problems: &mut Vec<Problem>) {}
+    fn done(&mut self) -> Option<Problem> { None }
 
     fn id(&self) -> &'static str;
 
@@ -61,7 +61,9 @@ impl<T: Lintable> Lintable for File<T> {
         self.pars.lint(lints, problems);
 
         for lint in lints {
-            lint.done(problems);
+            if let Some(problem) = lint.done() {
+                problems.push(problem);
+            }
         }
     }
 }
@@ -84,7 +86,9 @@ impl<T: Lintable> Lintable for ParPart<T> {
 impl Lintable for Content<'_> {
     fn lint(&self, lints: &mut Lints, problems: &mut Vec<Problem>) {
         for lint in lints.iter_mut() {
-            lint.analyse(self, problems)
+            if let Some(problem) = lint.analyse(self) {
+                problems.push(problem);
+            }
         }
 
         // Recurse
