@@ -474,6 +474,12 @@ impl Default for ArgPath {
     }
 }
 
+impl AsRef<ArgPath> for ArgPath {
+    fn as_ref(&self) -> &ArgPath {
+        self
+    }
+}
+
 impl TryFrom<OsStr> for ArgPath {
     type Error = error::Error;
 
@@ -2043,7 +2049,7 @@ mod test {
 
             {
                 let a = ArgPath::Stdio;
-                let mut s = SearchResult::try_from(&a)?;
+                let mut s: SearchResult = a.as_ref().try_into()?;
                 assert_eq!(s.path, path::PathBuf::from("-"));
                 assert_eq!(
                     s.file().stdin().unwrap().as_raw_fd(),
