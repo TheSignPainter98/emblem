@@ -652,8 +652,16 @@ mod test {
         fn empty() {
             assert_structure("single", "/**/", r"File[Par[[/*[]*/]]]");
             assert_structure("multiple", "/**//**/", r"File[Par[[/*[]*/|/*[]*/]]]");
-            assert_structure("multiple with space gap", "/**/ /**/", r"File[Par[[/*[]*/|< >|/*[]*/]]]");
-            assert_structure("multiple with tab gap", "/**/\t/**/", r"File[Par[[/*[]*/|<\t>|/*[]*/]]]");
+            assert_structure(
+                "multiple with space gap",
+                "/**/ /**/",
+                r"File[Par[[/*[]*/|< >|/*[]*/]]]",
+            );
+            assert_structure(
+                "multiple with tab gap",
+                "/**/\t/**/",
+                r"File[Par[[/*[]*/|<\t>|/*[]*/]]]",
+            );
             assert_structure("stacked", "/**/\n/**/", r"File[Par[[/*[]*/]|[/*[]*/]]]");
             assert_structure(
                 "pars with stacked",
