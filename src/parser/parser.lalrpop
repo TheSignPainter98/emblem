@@ -1,5 +1,6 @@
 use crate::parser::{
 	LexicalError,
+	Location,
 	lexer::Tok,
 	point::Point,
 };
@@ -32,7 +33,7 @@ Par: Par<ParPart<Content<'input>>> = {
 ParPart: ParPart<Content<'input>> = {
 	<MaybeLineContent> "\n" => ParPart::Line(<>),
 
-	<name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
+	<l:@L> <name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> <r:@R> => {
 		ParPart::Command(Content::Command {
 			name: name.into(),
 			attrs,
@@ -42,7 +43,8 @@ ParPart: ParPart<Content<'input>> = {
 				let mut args = vec![trail_head];
 				args.extend(trail_tail);
 				args
-			}
+			},
+			loc: Location::new(l, r),
 		})
 	},
 }
@@ -60,12 +62,13 @@ LineContent: Vec<Content<'input>> = {
 }
 
 RemainderCommand: Content<'input> = {
-	<name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> => Content::Command {
+	<l:@L> <name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> <r:@R> => Content::Command {
 		name: name.into(),
 		attrs,
 		inline_args,
 		remainder_arg: Some(remainder_arg),
 		trailer_args: Vec::with_capacity(0),
+		loc: Location::new(l, r),
 	}
 }
 
@@ -78,12 +81,13 @@ LineElement: Content<'input> = {
 	Glue          => Content::Glue(<>.into()),
 	Verbatim      => Content::Verbatim(<>),
 
-	<name: Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> => Content::Command {
+	<l:@L> <name: Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
 		name: name.into(),
 		attrs,
 		inline_args,
 		remainder_arg: None,
 		trailer_args: Vec::with_capacity(0),
+		loc: Location::new(l, r),
 	},
 }
 

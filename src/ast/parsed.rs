@@ -1,4 +1,5 @@
 use crate::ast::{text::Text, Dash, File, Glue, Par, ParPart};
+use crate::parser::Location;
 
 #[cfg(test)]
 use crate::ast::AstDebug;
@@ -13,6 +14,7 @@ pub enum Content<'i> {
         inline_args: Vec<Vec<Content<'i>>>,
         remainder_arg: Option<Vec<Content<'i>>>,
         trailer_args: Vec<Vec<Par<ParPart<Content<'i>>>>>,
+        loc: Location<'i>,
     },
     Word(Text<'i>),
     Whitespace(&'i str),
@@ -33,6 +35,7 @@ impl AstDebug for Content<'_> {
                 inline_args,
                 remainder_arg,
                 trailer_args,
+                ..
             } => {
                 buf.push('.'.into());
                 name.test_fmt(buf);

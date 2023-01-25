@@ -12,7 +12,7 @@ pub struct Location<'i> {
 
 impl<'i> Location<'i> {
     #[allow(dead_code)]
-    pub fn new(start: &Point<'i>, end: &Point<'i>) -> Self {
+    pub fn new(start: Point<'i>, end: Point<'i>) -> Self {
         Self {
             file_name: start.file_name,
             src: start.src,
@@ -73,12 +73,12 @@ mod test {
         let start = Point::new("fname.em", text);
         let end = start.clone().shift(text);
 
-        let region = Location::new(&start, &end);
+        let loc = Location::new(start.clone(), end.clone());
 
-        assert_eq!("fname.em", region.file_name());
-        assert_eq!(text, region.src());
-        assert_eq!((start.line, end.line), region.lines());
-        assert_eq!((start.col, end.col), region.cols());
-        assert_eq!((start.index, end.index), region.indices());
+        assert_eq!("fname.em", loc.file_name());
+        assert_eq!(text, loc.src());
+        assert_eq!((start.line, end.line), loc.lines());
+        assert_eq!((start.col, end.col), loc.cols());
+        assert_eq!((start.index, end.index), loc.indices());
     }
 }
