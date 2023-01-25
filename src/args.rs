@@ -290,6 +290,10 @@ pub struct LintCmd {
     #[allow(missing_docs)]
     pub input: InputArgs,
 
+    /// Apply fixes
+    #[arg(long)]
+    pub fix: bool,
+
     #[command(flatten)]
     #[allow(missing_docs)]
     pub extensions: ExtensionArgs,
