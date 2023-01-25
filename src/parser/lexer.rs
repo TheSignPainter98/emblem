@@ -1,4 +1,4 @@
-use crate::parser::location::Location;
+use crate::parser::point::Point;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{
@@ -13,8 +13,8 @@ pub struct Lexer<'input> {
     failed: bool,
     start_of_line: bool,
     current_indent: u32,
-    curr_loc: Location<'input>,
-    prev_loc: Location<'input>,
+    curr_loc: Point<'input>,
+    prev_loc: Point<'input>,
     open_braces: u32,
     next_toks: VecDeque<SpannedTok<'input>>,
     comment_depth: u32,
@@ -30,8 +30,8 @@ impl<'input> Lexer<'input> {
             failed: false,
             start_of_line: true,
             current_indent: 0,
-            curr_loc: Location::new(file, input),
-            prev_loc: Location::new(file, input),
+            curr_loc: Point::new(file, input),
+            prev_loc: Point::new(file, input),
             open_braces: 0,
             next_toks: VecDeque::new(),
             comment_depth: 0,
@@ -342,17 +342,17 @@ fn indent_level(s: &str) -> u32 {
     tabs + (spaces as f32 / 4_f32).ceil() as u32
 }
 
-pub type SpannedTok<'input> = (Location<'input>, Tok<'input>, Location<'input>);
+pub type SpannedTok<'input> = (Point<'input>, Tok<'input>, Point<'input>);
 
 #[derive(Debug)]
 pub struct LexicalError<'input> {
     reason: LexicalErrorReason,
-    loc: Location<'input>,
+    loc: Point<'input>,
 }
 
 impl<'input> LexicalError<'input> {
     #[allow(dead_code)]
-    pub fn location(&self) -> &Location {
+    pub fn location(&self) -> &Point {
         &self.loc
     }
 }

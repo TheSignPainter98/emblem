@@ -1,5 +1,6 @@
 pub mod lexer;
 pub mod location;
+mod point;
 
 pub use lexer::LexicalError;
 pub use location::Location;

@@ -1,4 +1,8 @@
-use crate::parser::{Location, LexicalError, lexer::Tok};
+use crate::parser::{
+	LexicalError,
+	lexer::Tok,
+	point::Point,
+};
 use crate::ast::{
     parsed::{
 		Attr,
@@ -134,7 +138,7 @@ MaybeIndented<T>: T = {
 }
 
 extern {
-	type Location = Location<'input>;
+	type Location = Point<'input>;
 	type Error = LexicalError<'input>;
 
 	enum Tok<'input> {

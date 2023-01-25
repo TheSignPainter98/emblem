@@ -1,6 +1,5 @@
 mod debug;
 pub mod parsed;
-pub mod region;
 mod text;
 
 #[cfg(test)]
