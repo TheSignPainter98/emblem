@@ -73,13 +73,13 @@ RemainderCommand: Content<'input> = {
 }
 
 LineElement: Content<'input> = {
-	Comment       => Content::Comment(<>),
-	NestedComment => Content::MultiLineComment(<>),
-	Whitespace    => Content::Whitespace(<>),
-	Word          => Content::Word(<>.into()),
-	Dash          => Content::Dash(<>.into()),
-	Glue          => Content::Glue(<>.into()),
-	Verbatim      => Content::Verbatim(<>),
+	<l:@L> <comment:Comment>       <r:@R> => Content::Comment{ comment, loc: Location::new(l, r) },
+	<l:@L> <content:NestedComment> <r:@R> => Content::MultiLineComment{ content, loc: Location::new(l, r) },
+	<l:@L> <whitespace:Whitespace> <r:@R> => Content::Whitespace{ whitespace, loc: Location::new(l, r) },
+	<l:@L> <word:Word>             <r:@R> => Content::Word{ word: word.into(), loc: Location::new(l, r) },
+	<l:@L> <dash:Dash>             <r:@R> => Content::Dash{ dash: dash.into(), loc: Location::new(l, r) },
+	<l:@L> <glue:Glue>             <r:@R> => Content::Glue{ glue: glue.into(), loc: Location::new(l, r) },
+	<l:@L> <verbatim:Verbatim>     <r:@R> => Content::Verbatim{ verbatim, loc: Location::new(l, r) },
 
 	<l:@L> <name: Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
 		name: name.into(),

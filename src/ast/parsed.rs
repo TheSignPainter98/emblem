@@ -16,13 +16,34 @@ pub enum Content<'i> {
         trailer_args: Vec<Vec<Par<ParPart<Content<'i>>>>>,
         loc: Location<'i>,
     },
-    Word(Text<'i>),
-    Whitespace(&'i str),
-    Dash(Dash),
-    Glue(Glue),
-    Verbatim(&'i str),
-    Comment(&'i str),
-    MultiLineComment(MultiLineComment<'i>),
+    Word {
+        word: Text<'i>,
+        loc: Location<'i>,
+    },
+    Whitespace {
+        whitespace: &'i str,
+        loc: Location<'i>,
+    },
+    Dash {
+        dash: Dash,
+        loc: Location<'i>,
+    },
+    Glue {
+        glue: Glue,
+        loc: Location<'i>,
+    },
+    Verbatim {
+        verbatim: &'i str,
+        loc: Location<'i>,
+    },
+    Comment {
+        comment: &'i str,
+        loc: Location<'i>,
+    },
+    MultiLineComment {
+        content: MultiLineComment<'i>,
+        loc: Location<'i>,
+    },
 }
 
 #[cfg(test)]
@@ -54,16 +75,16 @@ impl AstDebug for Content<'_> {
                     arg.test_fmt(buf);
                 }
             }
-            Self::Word(w) => w.surround(buf, "Word(", ")"),
-            Self::Whitespace(w) => w.surround(buf, "<", ">"),
-            Self::Dash(d) => d.test_fmt(buf),
-            Self::Glue(g) => g.test_fmt(buf),
-            Self::Verbatim(v) => v.surround(buf, "!", "!"),
-            Self::Comment(c) => {
+            Self::Word{ word, .. } => word.surround(buf, "Word(", ")"),
+            Self::Whitespace{whitespace, .. } => whitespace.surround(buf, "<", ">"),
+            Self::Dash{dash, ..} => dash.test_fmt(buf),
+            Self::Glue{glue, ..} => glue.test_fmt(buf),
+            Self::Verbatim{verbatim, ..} => verbatim.surround(buf, "!", "!"),
+            Self::Comment{comment, ..} => {
                 buf.push("//".into());
-                c.test_fmt(buf);
+                comment.test_fmt(buf);
             }
-            Self::MultiLineComment(c) => c.surround(buf, "/*", "*/"),
+            Self::MultiLineComment{content, ..} => content.surround(buf, "/*", "*/"),
         }
     }
 }
