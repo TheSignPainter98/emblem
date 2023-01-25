@@ -2035,7 +2035,7 @@ mod test {
 
             {
                 let a = ArgPath::Path(path.clone());
-                let mut s = SearchResult::try_from(&a)?;
+                let mut s: SearchResult = a.as_ref().try_into()?;
                 assert_eq!(a.path().unwrap(), s.path);
                 assert_eq!(
                     {

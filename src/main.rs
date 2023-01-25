@@ -7,6 +7,7 @@ mod build;
 mod context;
 mod explain;
 mod init;
+mod lint;
 mod parser;
 mod repo;
 
@@ -23,7 +24,7 @@ fn main() -> ExitCode {
         Command::Explain(args) => explain::explain(args),
         Command::Format(_) => panic!("fmt not implemented"),
         Command::Init(args) => init::init(args),
-        Command::Lint(_) => panic!("lint not implemented"),
+        Command::Lint(args) => lint::lint(args),
         Command::List(_) => panic!("list not implemented"),
     };
     if let Err(e) = ret {
