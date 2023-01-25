@@ -63,7 +63,7 @@ impl Lint for ExcessiveArgs {
                         return Some(self.problem(format!(
                             "too many style arguments passed to .{}: got {}",
                             name, num_style_args
-                        )))
+                        )));
                     }
                 }
 
