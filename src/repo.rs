@@ -6,10 +6,10 @@ pub fn init(dir: &Path) -> Result<Repository, Error> {
 }
 
 #[allow(dead_code)]
-pub fn is_clean(dir: &Path) -> Result<bool, Error> {
+pub fn is_dirty(dir: &Path) -> Result<bool, Error> {
     let repo = match Repository::open(dir) {
         Ok(r) => r,
-        Err(e) if e.code() == ErrorCode::NotFound => return Ok(true),
+        Err(e) if e.code() == ErrorCode::NotFound => return Ok(false),
         Err(e) => return Err(e),
     };
 
@@ -30,11 +30,11 @@ pub fn is_clean(dir: &Path) -> Result<bool, Error> {
             | Status::IGNORED
             | Status::CONFLICTED;
         if status.status().bits() & dirty_flags.bits() != 0 {
-            return Ok(false);
+            return Ok(true);
         }
     }
 
-    Ok(true)
+    Ok(false)
 }
 
 #[cfg(test)]
@@ -57,12 +57,12 @@ mod test {
     fn is_clean() -> Result<(), Box<dyn Error>> {
         let dir = tempfile::tempdir()?;
 
-        assert!(super::is_clean(dir.path())?);
+        assert!(!super::is_dirty(dir.path())?);
 
         super::init(dir.path())?;
 
         println!("a");
-        assert!(super::is_clean(dir.path())?);
+        assert!(!super::is_dirty(dir.path())?);
         println!("b");
 
         {
@@ -71,7 +71,7 @@ mod test {
         }
 
         println!("c");
-        assert!(!super::is_clean(dir.path())?);
+        assert!(super::is_dirty(dir.path())?);
         println!("d");
 
         Ok(())
