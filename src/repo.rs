@@ -1,10 +1,12 @@
 use git2::{Error, ErrorCode, Repository, RepositoryInitOptions, Status, StatusOptions};
 use std::path::Path;
 
+/// Create a new code repository at the given path.
 pub fn init(dir: &Path) -> Result<Repository, Error> {
     Repository::init_opts(dir, RepositoryInitOptions::new().mkdir(true))
 }
 
+/// Check whether there is a dirty repository at the given path.
 #[allow(dead_code)]
 pub fn is_dirty(dir: &Path) -> Result<bool, Error> {
     let repo = match Repository::open(dir) {
