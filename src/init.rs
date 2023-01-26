@@ -1,5 +1,5 @@
 use crate::args::InitCmd;
-use git2::{Repository, RepositoryInitOptions};
+use crate::repo;
 use std::error::Error;
 use std::path::{Path, PathBuf};
 use std::{
@@ -42,7 +42,7 @@ pub fn init(cmd: InitCmd) -> Result<(), Box<dyn Error>> {
     let git_ignore = dir.join(".gitignore");
     let main_file = dir.join("main.em");
 
-    Repository::init_opts(dir, RepositoryInitOptions::new().mkdir(true))?;
+    repo::init(&dir)?;
 
     try_create_file(&git_ignore, GITIGNORE_CONTENTS, cmd.dir_not_empty())?;
     try_create_file(&main_file, MAIN_CONTENTS, cmd.dir_not_empty())?;

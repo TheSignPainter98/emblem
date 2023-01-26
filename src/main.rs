@@ -4,6 +4,7 @@ mod build;
 mod context;
 mod init;
 mod parser;
+mod repo;
 
 use args::{Args, Command};
 use std::error::Error;
