@@ -56,7 +56,7 @@ mod test {
     }
 
     #[test]
-    fn is_clean() -> Result<(), Box<dyn Error>> {
+    fn is_dirty() -> Result<(), Box<dyn Error>> {
         let dir = tempfile::tempdir()?;
 
         assert!(!super::is_dirty(dir.path())?);
