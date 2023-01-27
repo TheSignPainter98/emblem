@@ -29,7 +29,6 @@ pub fn is_dirty(dir: &Path) -> Result<bool, Error> {
             | Status::WT_TYPECHANGE
             | Status::WT_DELETED
             | Status::WT_MODIFIED
-            | Status::IGNORED
             | Status::CONFLICTED;
         if status.status().bits() & dirty_flags.bits() != 0 {
             return Ok(true);
