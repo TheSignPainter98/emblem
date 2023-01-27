@@ -63,18 +63,14 @@ mod test {
 
         super::init(dir.path())?;
 
-        println!("a");
         assert!(!super::is_dirty(dir.path())?);
-        println!("b");
 
         {
             let mut file = File::create(dir.path().join("dirt.txt"))?;
             file.write(b"some dirt")?;
         }
 
-        println!("c");
         assert!(super::is_dirty(dir.path())?);
-        println!("d");
 
         Ok(())
     }
