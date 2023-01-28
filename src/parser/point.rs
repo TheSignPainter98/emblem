@@ -22,7 +22,7 @@ impl<'input> Point<'input> {
             src,
             index: 0,
             line: 1,
-            col: 0,
+            col: 1,
         }
     }
 
@@ -33,14 +33,14 @@ impl<'input> Point<'input> {
         self.line += num_lines - 1;
 
         let last_line = lines[num_lines - 1];
-        let last_line_width = last_line
+        let last_line_width: usize = last_line
             .chars()
             .map(|c| if c == '\t' { 4 } else { 1 })
             .sum();
-        self.col = if num_lines > 1 {
-            last_line_width
+        self.col = last_line_width + if num_lines > 1 {
+            1
         } else {
-            self.col + last_line_width
+            self.col
         };
 
         self.index += text.len();
@@ -57,9 +57,10 @@ impl<'input> Point<'input> {
     }
 }
 
+#[cfg(test)]
 impl<'input> Display for Point<'input> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}:{}:({})", self.file_name, self.line, self.index)
+        write!(f, "{}:{}", self.line, self.col)
     }
 }
 
@@ -75,7 +76,7 @@ mod test {
         assert_eq!(src, loc.src);
         assert_eq!(0, loc.index);
         assert_eq!(1, loc.line);
-        assert_eq!(0, loc.col);
+        assert_eq!(1, loc.col);
     }
 
     #[test]
@@ -89,13 +90,13 @@ mod test {
         assert_eq!(src, mid.src);
         assert_eq!(11, mid.index);
         assert_eq!(1, mid.line);
-        assert_eq!(11, mid.col);
+        assert_eq!(12, mid.col);
 
         assert_eq!("fname", end.file_name);
         assert_eq!(src, end.src);
         assert_eq!(17, end.index);
         assert_eq!(1, end.line);
-        assert_eq!(17, end.col);
+        assert_eq!(18, end.col);
 
         assert_eq!(Some("my name is "), start.text_upto(&mid));
         assert_eq!(Some("methos"), mid.text_upto(&end));
@@ -109,7 +110,7 @@ mod test {
         let end = start.shift(src);
 
         assert_eq!(13, end.index);
-        assert_eq!(19, end.col);
+        assert_eq!(20, end.col);
     }
 
     #[test]
@@ -123,7 +124,7 @@ mod test {
         assert_eq!(src, end.src);
         assert_eq!(21, end.line);
         assert_eq!(118, end.index);
-        assert_eq!(7, end.col);
+        assert_eq!(8, end.col);
 
         assert_eq!(start.text_upto(&end), Some(&src[..]));
     }
