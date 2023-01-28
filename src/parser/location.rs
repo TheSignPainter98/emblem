@@ -1,5 +1,6 @@
-use core::fmt::{self, Display};
 use crate::parser::point::Point;
+use core::fmt::{self, Display};
+use std::cmp;
 
 #[derive(Clone, Debug)]
 pub struct Location<'i> {
@@ -18,7 +19,7 @@ impl<'i> Location<'i> {
             src: start.src,
             lines: (start.line, end.line),
             indices: (start.index, end.index),
-            cols: (start.col, end.col),
+            cols: (start.col, cmp::max(1, end.col - 1)),
         }
     }
 
@@ -68,7 +69,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn new() {
+    fn mid_line() {
         let text = "my name\nis methos";
         let start = Point::new("fname.em", text);
         let end = start.clone().shift(text);
@@ -78,7 +79,22 @@ mod test {
         assert_eq!("fname.em", loc.file_name());
         assert_eq!(text, loc.src());
         assert_eq!((start.line, end.line), loc.lines());
-        assert_eq!((start.col, end.col), loc.cols());
+        assert_eq!((start.col, end.col - 1), loc.cols());
+        assert_eq!((start.index, end.index), loc.indices());
+    }
+
+    #[test]
+    fn end_of_line() {
+        let text = "my name is methos\n";
+        let start = Point::new("fname.em", text);
+        let end = start.clone().shift(text);
+
+        let loc = Location::new(start.clone(), end.clone());
+
+        assert_eq!("fname.em", loc.file_name());
+        assert_eq!(text, loc.src());
+        assert_eq!((start.line, end.line), loc.lines());
+        assert_eq!((start.col, 1), loc.cols());
         assert_eq!((start.index, end.index), loc.indices());
     }
 }
