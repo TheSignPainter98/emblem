@@ -153,7 +153,11 @@ impl<'input> Iterator for Lexer<'input> {
                 else {
                     self.failed = true;
                     Some(Err(LexicalError {
-                        reason: LexicalErrorReason::UnexpectedChar(self.input.chars().next().unwrap_or('\0')),
+                        reason: if self.input.is_empty() {
+                                LexicalErrorReason::UnexpectedEOF
+                            } else {
+                                LexicalErrorReason::UnexpectedChar(self.input.chars().next().unwrap())
+                            },
                         loc: self.curr_loc.clone(),
                     }))
                 }
@@ -359,7 +363,7 @@ impl<'input> LexicalError<'input> {
 
 impl Display for LexicalError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.reason.fmt(f)
+        write!(f, "{} found at {}", self.reason, self.loc)
     }
 }
 
@@ -372,6 +376,7 @@ impl Error for LexicalError<'_> {
 #[derive(Debug)]
 enum LexicalErrorReason {
     UnexpectedChar(char),
+    UnexpectedEOF,
     UnmatchedCommentClose,
     NewlineInArg,
 }
@@ -379,6 +384,7 @@ enum LexicalErrorReason {
 impl LexicalErrorReason {
     fn description(&self) -> &str {
         match self {
+            LexicalErrorReason::UnexpectedEOF => "unexpected EOF",
             LexicalErrorReason::UnexpectedChar(_) => "unexpected character",
             LexicalErrorReason::UnmatchedCommentClose => "no comment to close",
             LexicalErrorReason::NewlineInArg => "newline in brace args",
@@ -388,7 +394,10 @@ impl LexicalErrorReason {
 
 impl Display for LexicalErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.description())
+        match self {
+            Self::UnexpectedChar(c) => write!(f, "{}: {:?}", self.description(), c),
+            _ => self.description().fmt(f),
+        }
     }
 }
 
