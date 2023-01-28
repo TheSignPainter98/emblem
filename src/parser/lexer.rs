@@ -13,8 +13,8 @@ pub struct Lexer<'input> {
     failed: bool,
     start_of_line: bool,
     current_indent: u32,
-    curr_loc: Point<'input>,
-    prev_loc: Point<'input>,
+    curr_point: Point<'input>,
+    prev_point: Point<'input>,
     open_braces: u32,
     next_toks: VecDeque<SpannedTok<'input>>,
     comment_depth: u32,
@@ -30,8 +30,8 @@ impl<'input> Lexer<'input> {
             failed: false,
             start_of_line: true,
             current_indent: 0,
-            curr_loc: Point::new(file, input),
-            prev_loc: Point::new(file, input),
+            curr_point: Point::new(file, input),
+            prev_point: Point::new(file, input),
             open_braces: 0,
             next_toks: VecDeque::new(),
             comment_depth: 0,
@@ -44,9 +44,9 @@ impl<'input> Lexer<'input> {
         if let Some(mat) = re.find(self.input) {
             self.input = &self.input[mat.end()..];
 
-            let curr_loc = self.curr_loc.clone();
-            self.prev_loc = curr_loc.clone();
-            self.curr_loc = curr_loc.shift(mat.as_str());
+            let curr_point = self.curr_point.clone();
+            self.prev_point = curr_point.clone();
+            self.curr_point = curr_point.shift(mat.as_str());
 
             Some(mat.as_str())
         } else {
@@ -55,7 +55,7 @@ impl<'input> Lexer<'input> {
     }
 
     fn span(&self, tok: Tok<'input>) -> SpannedTok<'input> {
-        (self.prev_loc.clone(), tok, self.curr_loc.clone())
+        (self.prev_point.clone(), tok, self.curr_point.clone())
     }
 
     fn enqueue_indentation_level(&mut self, target: u32) {
@@ -195,7 +195,7 @@ impl<'input> Iterator for Lexer<'input> {
                 self.failed = true;
                 return Some(Err(LexicalError {
                     reason: LexicalErrorReason::NewlineInArg,
-                    loc: self.curr_loc.clone(),
+                    loc: self.curr_point.clone(),
                 }));
             }
 
