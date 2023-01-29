@@ -4,9 +4,9 @@ use crate::parser::{
 };
 use lalrpop_util::ParseError as LalrpopParseError;
 use std::error;
+use std::ffi::OsString;
 use std::fmt::Display;
 use std::io;
-use std::ffi::OsString;
 
 pub type LalrpopError<'i> = LalrpopParseError<Point<'i>, Tok<'i>, LexicalError<'i>>;
 

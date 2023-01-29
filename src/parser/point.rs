@@ -37,11 +37,7 @@ impl<'input> Point<'input> {
             .chars()
             .map(|c| if c == '\t' { 4 } else { 1 })
             .sum();
-        self.col = last_line_width + if num_lines > 1 {
-            1
-        } else {
-            self.col
-        };
+        self.col = last_line_width + if num_lines > 1 { 1 } else { self.col };
 
         self.index += text.len();
 
