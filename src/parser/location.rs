@@ -13,7 +13,7 @@ pub struct Location<'i> {
 
 impl<'i> Location<'i> {
     #[allow(dead_code)]
-    pub fn new(start: Point<'i>, end: Point<'i>) -> Self {
+    pub fn new(start: &Point<'i>, end: &Point<'i>) -> Self {
         Self {
             file_name: start.file_name,
             src: start.src,
@@ -49,8 +49,8 @@ impl Display for Location<'_> {
         if self.lines.0 != self.lines.1 {
             write!(
                 f,
-                "{}:{}-{}:{}-{}",
-                self.file_name, self.lines.0, self.lines.1, self.cols.0, self.cols.1
+                "{}:{}:{}-{}:{}",
+                self.file_name, self.lines.0, self.cols.0, self.lines.1, self.cols.1
             )
         } else if self.cols.0 != self.cols.1 {
             write!(
@@ -74,7 +74,7 @@ mod test {
         let start = Point::new("fname.em", text);
         let end = start.clone().shift(text);
 
-        let loc = Location::new(start.clone(), end.clone());
+        let loc = Location::new(&start, &end);
 
         assert_eq!("fname.em", loc.file_name());
         assert_eq!(text, loc.src());
@@ -89,7 +89,7 @@ mod test {
         let start = Point::new("fname.em", text);
         let end = start.clone().shift(text);
 
-        let loc = Location::new(start.clone(), end.clone());
+        let loc = Location::new(&start, &end);
 
         assert_eq!("fname.em", loc.file_name());
         assert_eq!(text, loc.src());
