@@ -812,7 +812,7 @@ pub enum RequestedInfo {
     OutputExtensions,
 }
 
-#[derive(ValueEnum, Copy, Clone, Debug, Default, Eq, PartialEq)]
+#[derive(ValueEnum, Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub enum Verbosity {
     /// Output errors and warnings
     #[default]
