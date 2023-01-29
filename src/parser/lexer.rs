@@ -132,7 +132,7 @@ impl<'input> Iterator for Lexer<'input> {
 
             let NESTED_COMMENT_OPEN  = r"/\*";
             let NESTED_COMMENT_CLOSE = r"\*/";
-            let NESTED_COMMENT_PART  = r"([^*/\n\r]|\*[^/\n\r]|/[^*\n\r])+";
+            let NESTED_COMMENT_PART  = r"([^*/\r\n]|\*[^/\r\n]|/[^*\r\n])+";
         }
 
         if self.failed {
