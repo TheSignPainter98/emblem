@@ -321,29 +321,30 @@ pub enum Tok<'input> {
 impl Display for Tok<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Tok::Indent => write!(f, "(indent)"),
-            Tok::Dedent => write!(f, "(dedent)"),
-            Tok::Colon => write!(f, "(:)"),
-            Tok::DoubleColon => write!(f, "(::)"),
-            Tok::LBrace => write!(f, "({{)"),
-            Tok::RBrace => write!(f, "(}})"),
-            Tok::LBracket => write!(f, "([)"),
-            Tok::RBracket => write!(f, "(])"),
-            Tok::NamedAttr(a) => write!(f, "(named-attr:{})", a),
-            Tok::UnnamedAttr(a) => write!(f, "(unnamed-attr:{})", a),
-            Tok::AttrComma => write!(f, "(attr-comma)"),
-            Tok::Command(c) => write!(f, "(.{})", c),
-            Tok::ParBreak => write!(f, "(paragraph break)"),
-            Tok::Word(w) => write!(f, "({})", w),
-            Tok::Whitespace(w) => write!(f, "(whitespace:{})", w),
-            Tok::Dash(d) => write!(f, "(dash:{})", d),
-            Tok::Glue(g) => write!(f, "(glue:{})", g),
-            Tok::Verbatim(v) => write!(f, "(verbatim:{})", v),
-            Tok::NestedCommentOpen => write!(f, "(/*)"),
-            Tok::NestedCommentClose => write!(f, "(*/)"),
-            Tok::Newline => write!(f, "(newline)"),
-            Tok::Comment(c) => write!(f, "(// {})", c),
+            Tok::Indent => "indent",
+            Tok::Dedent => "dedent",
+            Tok::Colon => ":",
+            Tok::DoubleColon => "::",
+            Tok::LBrace => "{",
+            Tok::RBrace => "}",
+            Tok::LBracket => "[",
+            Tok::RBracket => "]",
+            Tok::NamedAttr(_) => "named-attr",
+            Tok::UnnamedAttr(_) => "unnamed-attr",
+            Tok::AttrComma => "comma",
+            Tok::Command(_) => "command",
+            Tok::ParBreak => "par-break",
+            Tok::Word(_) => "word",
+            Tok::Whitespace(_) => "whitespace",
+            Tok::Dash(_) => "dash",
+            Tok::Glue(_) => "glue",
+            Tok::Verbatim(_) => "verbatim",
+            Tok::NestedCommentOpen => "/*",
+            Tok::NestedCommentClose => "*/",
+            Tok::Newline => "newline",
+            Tok::Comment(_) => "comment",
         }
+        .fmt(f)
     }
 }
 
@@ -380,7 +381,10 @@ impl<'input> LexicalError<'input> {
 
 impl Display for LexicalError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} found at {}", self.reason, self.loc)
+        match self.reason {
+            LexicalErrorReason::UnexpectedEOF => self.reason.description().fmt(f),
+            _ => write!(f, "{} found at {}", self.reason, self.loc),
+        }
     }
 }
 
