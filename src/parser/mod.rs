@@ -1,7 +1,9 @@
+mod error;
 pub mod lexer;
 pub mod location;
 mod point;
 
+pub use error::Error;
 pub use lexer::LexicalError;
 pub use location::Location;
 
@@ -9,11 +11,9 @@ use crate::args::SearchResult;
 use crate::ast;
 use crate::context::Context;
 use ast::parsed::ParsedFile;
+use error::OsStringConversionError;
 use lalrpop_util::lalrpop_mod;
 use lexer::Lexer;
-use std::error::Error;
-use std::ffi::OsString;
-use std::fmt::Display;
 use std::io::{BufReader, Read};
 
 lalrpop_mod!(
@@ -26,7 +26,7 @@ lalrpop_mod!(
 pub fn parse_file<'ctx, 'input>(
     ctx: &'ctx mut Context,
     mut to_parse: SearchResult,
-) -> Result<ParsedFile<'input>, Box<dyn Error + 'input>>
+) -> Result<ParsedFile<'input>, Box<Error<'input>>>
 where
     'ctx: 'input,
 {
@@ -48,7 +48,7 @@ where
             .path
             .into_os_string()
             .into_string()
-            .map_err(|s| Box::new(OsStringConversionError::new(s)))?;
+            .map_err(|s| OsStringConversionError::new(s))?;
         ctx.alloc_file(path, content)
     };
 
@@ -59,7 +59,7 @@ where
 pub fn parse<'file>(
     name: &'file str,
     content: &'file str,
-) -> Result<ParsedFile<'file>, Box<dyn Error + 'file>> {
+) -> Result<ParsedFile<'file>, Box<Error<'file>>> {
     let lexer = Lexer::new(name, content);
     let parser = parser::FileParser::new();
 
@@ -79,25 +79,6 @@ fn pretty_tok_list(list: Vec<String>) -> String {
     }
     pretty_list.concat()
 }
-
-#[derive(Debug)]
-struct OsStringConversionError {
-    culprit: OsString,
-}
-
-impl OsStringConversionError {
-    fn new(culprit: OsString) -> Self {
-        Self { culprit }
-    }
-}
-
-impl Display for OsStringConversionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "could not convert OS string: {:?}", self.culprit)
-    }
-}
-
-impl Error for OsStringConversionError {}
 
 #[cfg(test)]
 mod test {
