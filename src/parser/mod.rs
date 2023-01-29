@@ -1,6 +1,9 @@
+mod error;
 pub mod lexer;
 pub mod location;
+mod point;
 
+pub use error::Error;
 pub use lexer::LexicalError;
 pub use location::Location;
 
@@ -8,11 +11,9 @@ use crate::args::SearchResult;
 use crate::ast;
 use crate::context::Context;
 use ast::parsed::ParsedFile;
+use error::StringConversionError;
 use lalrpop_util::lalrpop_mod;
 use lexer::Lexer;
-use std::error::Error;
-use std::ffi::OsString;
-use std::fmt::Display;
 use std::io::{BufReader, Read};
 
 lalrpop_mod!(
@@ -25,7 +26,7 @@ lalrpop_mod!(
 pub fn parse_file<'ctx, 'input>(
     ctx: &'ctx mut Context,
     mut to_parse: SearchResult,
-) -> Result<ParsedFile<'input>, Box<dyn Error + 'input>>
+) -> Result<ParsedFile<'input>, Box<Error<'input>>>
 where
     'ctx: 'input,
 {
@@ -47,7 +48,7 @@ where
             .path
             .into_os_string()
             .into_string()
-            .map_err(|s| Box::new(OsStringConversionError::new(s)))?;
+            .map_err(StringConversionError::new)?;
         ctx.alloc_file(path, content)
     };
 
@@ -58,7 +59,7 @@ where
 pub fn parse<'file>(
     name: &'file str,
     content: &'file str,
-) -> Result<ParsedFile<'file>, Box<dyn Error + 'file>> {
+) -> Result<ParsedFile<'file>, Box<Error<'file>>> {
     let lexer = Lexer::new(name, content);
     let parser = parser::FileParser::new();
 
@@ -79,27 +80,10 @@ fn pretty_tok_list(list: Vec<String>) -> String {
     pretty_list.concat()
 }
 
-#[derive(Debug)]
-struct OsStringConversionError {
-    culprit: OsString,
-}
-
-impl OsStringConversionError {
-    fn new(culprit: OsString) -> Self {
-        Self { culprit }
-    }
-}
-
-impl Display for OsStringConversionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "could not convert OS string: {:?}", self.culprit)
-    }
-}
-
-impl Error for OsStringConversionError {}
-
 #[cfg(test)]
 mod test {
+    use regex::Regex;
+
     use super::*;
     use crate::ast::AstDebug;
 
@@ -139,25 +123,79 @@ mod test {
         );
     }
 
-    fn assert_parse_error(name: &str, input: &str) {
-        assert!(parse(name, input).is_err(), "{}", name);
+    fn assert_parse_error(name: &str, input: &str, expected: &str) {
+        let re = Regex::new(&("^".to_owned() + expected)).unwrap();
 
-        let input_with_newline = &format!("{}\n", input);
-        assert!(parse(name, input_with_newline).is_err(), "{}", name);
+        let inputs = [
+            (name, input),
+            (&format!("{} with newline", name), &format!("{}\n", input)),
+        ];
+
+        for (name, input) in inputs {
+            let result = parse(name, input);
+            assert!(result.is_err(), "{}: unexpected success", name);
+
+            let err = result.unwrap_err();
+            let err = err.parse_error();
+            assert!(err.is_some(), "{}: expected error", name);
+
+            let msg = err
+                .unwrap()
+                .to_string()
+                .replace("Unrecognized", "Unrecognised");
+            assert!(
+                !expected.is_empty() && re.is_match(&msg),
+                "{}: unexpected error:\n{}\n\nexpected message to start with:\n{}",
+                name,
+                msg,
+                expected,
+            );
+        }
     }
 
     mod orphans {
         use super::*;
 
         #[test]
-        fn orphaned_tokens() {
-            assert_parse_error("open brace", "{");
-            assert_parse_error("close brace", "}");
-            assert_parse_error("colon", ":");
-            assert_parse_error("double-colon", "::");
-            assert_parse_error("double-colon", "::");
-            assert_parse_error("multi-line comment open", "/*");
-            assert_parse_error("multi-line comment close", "*/");
+        fn general() {
+            let tests = [
+                ("open brace", "{"),
+                ("close brace", "}"),
+                ("colon", ":"),
+                ("double-colon", "::"),
+            ];
+
+            for (name, tok) in tests {
+                let expected = if tok == "{" || tok == "}" {
+                    format!(
+                        "Unrecognised token `\\{}` found at 1:1:1:{}",
+                        tok,
+                        1 + tok.len()
+                    )
+                } else {
+                    format!(
+                        "Unrecognised token `{}` found at 1:1:1:{}",
+                        tok,
+                        1 + tok.len()
+                    )
+                };
+
+                assert_parse_error(name, tok, &expected);
+            }
+        }
+
+        #[test]
+        fn multi_line_comments() {
+            assert_parse_error(
+                "multi-line comment open",
+                "/*",
+                r"unclosed comment found at multi-line comment open[^\n]*:1:1-2",
+            );
+            assert_parse_error(
+                "multi-line comment close",
+                "*/",
+                r"no comment to close found at[^\n]*1:1-2",
+            );
         }
     }
 
@@ -219,13 +257,26 @@ mod test {
             assert_structure("middle of line", "For the .voyage-is{foul} and the winds don't blow", "File[Par[[Word(For)|< >|Word(the)|< >|.voyage-is{[Word(foul)]}|< >|Word(and)|< >|Word(the)|< >|Word(winds)|< >|Word(don't)|< >|Word(blow)]]]");
             assert_structure("nested", ".no{grog .allowed{and} rotten grub}", "File[Par[[.no{[Word(grog)|< >|.allowed{[Word(and)]}|< >|Word(rotten)|< >|Word(grub)]}]]]");
 
-            assert_parse_error("superfluous open brace", ".order66{}{");
-            assert_parse_error("superfluous close brace", ".order66{}}");
-
-            assert_parse_error("newline in brace-arg", ".order66{\n}");
-            assert_parse_error("newline in brace-arg", ".order66{general\nkenobi}");
-            assert_parse_error("par-break in brace-arg", ".order66{\n\n}");
-            assert_parse_error("par-break in brace-arg", ".order66{general\n\nkenobi}");
+            assert_parse_error(
+                "newline in brace-arg",
+                ".order66{\n}",
+                "newline in braced args found at newline in brace-arg[^:]*:1:9",
+            );
+            assert_parse_error(
+                "newline in brace-arg",
+                ".order66{general\nkenobi}",
+                "newline in braced args found at newline in brace-arg[^:]*:1:9",
+            );
+            assert_parse_error(
+                "par-break in brace-arg",
+                ".order66{\n\n}",
+                "newline in braced args found at par-break in brace-arg[^:]*:1:9",
+            );
+            assert_parse_error(
+                "par-break in brace-arg",
+                ".order66{general\n\nkenobi}",
+                "newline in braced args found at par-break in brace-arg[^:]*:1:9",
+            );
         }
 
         #[test]
@@ -244,8 +295,16 @@ mod test {
             assert_structure("nested in braces", "Heave away, bullies, .you{parish-rigged bums, .take: your hands from your pockets and don’t}: suck your thumbs", "File[Par[[Word(Heave)|< >|Word(away,)|< >|Word(bullies,)|< >|.you{[Word(parish)|-|Word(rigged)|< >|Word(bums,)|< >|.take:[Word(your)|< >|Word(hands)|< >|Word(from)|< >|Word(your)|< >|Word(pockets)|< >|Word(and)|< >|Word(don’t)]]}:[Word(suck)|< >|Word(your)|< >|Word(thumbs)]]]]");
             assert_structure("stacked", ".heave{a pawl}:, o heave away\n.way{hay}: roll 'an go!", "File[Par[[.heave{[Word(a)|< >|Word(pawl)]}:[Word(,)|< >|Word(o)|< >|Word(heave)|< >|Word(away)]]|[.way{[Word(hay)]}:[Word(roll)|< >|Word('an)|< >|Word(go!)]]]]");
 
-            assert_parse_error("sole at end of line", ".randy-dandy-o:");
-            assert_parse_error("end of line", "randy .dandy-o:");
+            assert_parse_error(
+                "sole at end of line",
+                ".randy-dandy-o:",
+                "Unrecognised EOF found at (1:16|2:1)",
+            );
+            assert_parse_error(
+                "end of line",
+                "randy .dandy-o:",
+                "Unrecognised token `newline` found at 1:1[56]",
+            );
         }
 
         #[test]
@@ -358,10 +417,24 @@ mod test {
                     "\tfull of heart and full of play",
                 ]
                 .join("\n"),
+                "Unrecognised token `newline` found at 1:43:2:1",
             );
             assert_parse_error(
                 "missing indent",
                 &[".until{did his mind uncover}:", "to a youthful lady gay"].join("\n"),
+                "Unrecognised token `word` found at 2:1:2:3",
+            );
+            assert_parse_error(
+                "missing second trailer",
+                &[
+                    ".until{did his mind uncover}:",
+                    "\tto a youthful lady gay",
+                    "::",
+                    "\tfour and twenty british sailors",
+                    "::",
+                ]
+                .join("\n"),
+                "Unrecognised EOF found at (5:3|6:1)",
             );
         }
 
@@ -721,8 +794,16 @@ mod test {
 
         #[test]
         fn unmatched() {
-            assert_parse_error("open", "/*spaghetti/*and*/meatballs");
-            assert_parse_error("close", "spaghetti/*and*/meatballs*/");
+            assert_parse_error(
+                "open",
+                "/*spaghetti/*and*/meatballs",
+                "unclosed comment found at open[^:]*:1:1-2",
+            );
+            assert_parse_error(
+                "close",
+                "spaghetti/*and*/meatballs */",
+                "no comment to close found at close[^:]*:1:27-28",
+            );
         }
 
         #[test]
@@ -769,7 +850,11 @@ mod test {
 
         #[test]
         fn before_trailer_args() {
-            assert_parse_error("trailer-args", "/*spaghetti*/.and:\n\tmeatballs");
+            assert_parse_error(
+                "trailer-args",
+                "/*spaghetti*/.and:\n\tmeatballs",
+                "Unrecognised token `newline` found at 1:19",
+            );
         }
     }
 }

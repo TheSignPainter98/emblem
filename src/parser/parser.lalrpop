@@ -1,4 +1,9 @@
-use crate::parser::{Location, LexicalError, lexer::Tok};
+use crate::parser::{
+	LexicalError,
+	Location,
+	lexer::Tok,
+	point::Point,
+};
 use crate::ast::{
     parsed::{
 		Attr,
@@ -28,7 +33,7 @@ Par: Par<ParPart<Content<'input>>> = {
 ParPart: ParPart<Content<'input>> = {
 	<MaybeLineContent> "\n" => ParPart::Line(<>),
 
-	<name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> => {
+	<l:@L> <name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> <r:@R> => {
 		ParPart::Command(Content::Command {
 			name: name.into(),
 			attrs,
@@ -38,7 +43,8 @@ ParPart: ParPart<Content<'input>> = {
 				let mut args = vec![trail_head];
 				args.extend(trail_tail);
 				args
-			}
+			},
+			loc: Location::new(&l, &r),
 		})
 	},
 }
@@ -56,30 +62,32 @@ LineContent: Vec<Content<'input>> = {
 }
 
 RemainderCommand: Content<'input> = {
-	<name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> => Content::Command {
+	<l:@L> <name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> <r:@R> => Content::Command {
 		name: name.into(),
 		attrs,
 		inline_args,
 		remainder_arg: Some(remainder_arg),
 		trailer_args: Vec::with_capacity(0),
+		loc: Location::new(&l, &r),
 	}
 }
 
 LineElement: Content<'input> = {
-	Comment       => Content::Comment(<>),
-	NestedComment => Content::MultiLineComment(<>),
-	Whitespace    => Content::Whitespace(<>),
-	Word          => Content::Word(<>.into()),
-	Dash          => Content::Dash(<>.into()),
-	Glue          => Content::Glue(<>.into()),
-	Verbatim      => Content::Verbatim(<>),
+	<l:@L> <comment:Comment>       <r:@R> => Content::Comment{ comment, loc: Location::new(&l, &r) },
+	<l:@L> <content:NestedComment> <r:@R> => Content::MultiLineComment{ content, loc: Location::new(&l, &r) },
+	<l:@L> <whitespace:Whitespace> <r:@R> => Content::Whitespace{ whitespace, loc: Location::new(&l, &r) },
+	<l:@L> <word:Word>             <r:@R> => Content::Word{ word: word.into(), loc: Location::new(&l, &r) },
+	<l:@L> <dash:Dash>             <r:@R> => Content::Dash{ dash: dash.into(), loc: Location::new(&l, &r) },
+	<l:@L> <glue:Glue>             <r:@R> => Content::Glue{ glue: glue.into(), loc: Location::new(&l, &r) },
+	<l:@L> <verbatim:Verbatim>     <r:@R> => Content::Verbatim{ verbatim, loc: Location::new(&l, &r) },
 
-	<name: Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> => Content::Command {
+	<l:@L> <name: Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
 		name: name.into(),
 		attrs,
 		inline_args,
 		remainder_arg: None,
 		trailer_args: Vec::with_capacity(0),
+		loc: Location::new(&l, &r),
 	},
 }
 
@@ -134,7 +142,7 @@ MaybeIndented<T>: T = {
 }
 
 extern {
-	type Location = Location<'input>;
+	type Location = Point<'input>;
 	type Error = LexicalError<'input>;
 
 	enum Tok<'input> {
