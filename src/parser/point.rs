@@ -45,7 +45,8 @@ impl<'input> Point<'input> {
     }
 
     #[allow(dead_code)]
-    pub fn text_upto(&self, other: &Point) -> Option<&'input str> { // TODO(kcza): remove---this is on the wrong type, it should be on Location.
+    pub fn text_upto(&self, other: &Point) -> Option<&'input str> {
+        // TODO(kcza): remove---this is on the wrong type, it should be on Location.
         if self.file_name != other.file_name {
             return None;
         }

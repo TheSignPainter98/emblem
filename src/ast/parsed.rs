@@ -75,16 +75,16 @@ impl AstDebug for Content<'_> {
                     arg.test_fmt(buf);
                 }
             }
-            Self::Word{ word, .. } => word.surround(buf, "Word(", ")"),
-            Self::Whitespace{whitespace, .. } => whitespace.surround(buf, "<", ">"),
-            Self::Dash{dash, ..} => dash.test_fmt(buf),
-            Self::Glue{glue, ..} => glue.test_fmt(buf),
-            Self::Verbatim{verbatim, ..} => verbatim.surround(buf, "!", "!"),
-            Self::Comment{comment, ..} => {
+            Self::Word { word, .. } => word.surround(buf, "Word(", ")"),
+            Self::Whitespace { whitespace, .. } => whitespace.surround(buf, "<", ">"),
+            Self::Dash { dash, .. } => dash.test_fmt(buf),
+            Self::Glue { glue, .. } => glue.test_fmt(buf),
+            Self::Verbatim { verbatim, .. } => verbatim.surround(buf, "!", "!"),
+            Self::Comment { comment, .. } => {
                 buf.push("//".into());
                 comment.test_fmt(buf);
             }
-            Self::MultiLineComment{content, ..} => content.surround(buf, "/*", "*/"),
+            Self::MultiLineComment { content, .. } => content.surround(buf, "/*", "*/"),
         }
     }
 }
