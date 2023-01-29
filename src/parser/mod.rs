@@ -11,7 +11,7 @@ use crate::args::SearchResult;
 use crate::ast;
 use crate::context::Context;
 use ast::parsed::ParsedFile;
-use error::OsStringConversionError;
+use error::StringConversionError;
 use lalrpop_util::lalrpop_mod;
 use lexer::Lexer;
 use std::io::{BufReader, Read};
@@ -48,7 +48,7 @@ where
             .path
             .into_os_string()
             .into_string()
-            .map_err(|s| OsStringConversionError::new(s))?;
+            .map_err(StringConversionError::new)?;
         ctx.alloc_file(path, content)
     };
 

@@ -403,7 +403,7 @@ enum LexicalErrorReason {
     NewlineInArg,
 }
 
-impl<'input> LexicalErrorReason {
+impl LexicalErrorReason {
     fn description(&self) -> &str {
         match self {
             LexicalErrorReason::UnexpectedEOF => "unexpected EOF",
