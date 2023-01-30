@@ -13,7 +13,7 @@ use parking_lot::Mutex;
 pub static mut VERBOSITY: Verbosity = Verbosity::Terse;
 
 static mut COLOURISE: bool = true;
-static mut FATAL_WARNINGS: bool = false;
+static mut WARNINGS_AS_ERRORS: bool = false;
 static mut TOT_ERRORS: Mutex<i32> = Mutex::new(0);
 static mut TOT_WARNINGS: Mutex<i32> = Mutex::new(0);
 
@@ -40,7 +40,7 @@ logger!(debug, Verbosity::Debug, crate::log::VERBOSITY);
 pub fn init(args: LogArgs) {
     unsafe {
         COLOURISE = args.colour;
-        FATAL_WARNINGS = args.fatal_warnings;
+        WARNINGS_AS_ERRORS = args.warnings_as_errors;
         VERBOSITY = args.verbosity;
     }
 }

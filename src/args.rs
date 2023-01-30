@@ -69,8 +69,8 @@ pub struct LogArgs {
     /// Colourise log messages
     pub colour: bool,
 
-    /// Make warnings fatal
-    pub fatal_warnings: bool,
+    /// Make warnings into errors
+    pub warnings_as_errors: bool,
 
     /// Output verbosity
     pub verbosity: Verbosity,
@@ -82,12 +82,12 @@ impl TryFrom<RawLogArgs> for LogArgs {
     fn try_from(raw: RawLogArgs) -> Result<Self, Self::Error> {
         let RawLogArgs {
             colour,
-            fatal_warnings,
+            warnings_as_errors,
             verbosity,
         } = raw;
         Ok(Self {
             colour: colour.into(),
-            fatal_warnings,
+            warnings_as_errors,
             verbosity: verbosity.try_into()?,
         })
     }
@@ -122,9 +122,9 @@ pub struct RawLogArgs {
     #[arg(long, value_enum, default_value_t, value_name = "when", global = true)]
     colour: ColouriseOutput,
 
-    /// Make warnings fatal
+    /// Make warnings into errors
     #[arg(short = 'E', default_value_t = false, global = true)]
-    fatal_warnings: bool,
+    warnings_as_errors: bool,
 
     /// Set output verbosity
     #[arg(short, action=Count, default_value_t=0, value_name = "level", global=true)]
@@ -962,13 +962,13 @@ mod test {
             }
 
             #[test]
-            fn fatal_warnings() {
-                assert!(!Args::try_parse_from(&["em"]).unwrap().log.fatal_warnings);
+            fn warnings_as_errors() {
+                assert!(!Args::try_parse_from(&["em"]).unwrap().log.warnings_as_errors);
                 assert!(
                     Args::try_parse_from(&["em", "-E"])
                         .unwrap()
                         .log
-                        .fatal_warnings
+                        .warnings_as_errors
                 );
             }
 
