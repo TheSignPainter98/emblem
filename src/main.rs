@@ -22,7 +22,8 @@ fn main() -> ExitCode {
         Command::Init(args) => init::init(args),
         Command::Lint(_) => panic!("lint not implemented"),
         Command::List(_) => panic!("list not implemented"),
-    }.unwrap();
+    }
+    .unwrap();
 
     log::report()
 }

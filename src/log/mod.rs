@@ -48,14 +48,23 @@ pub fn report() -> ExitCode {
 
     if tot_warnings > 0 {
         let plural = if tot_warnings > 1 { "s" } else { "" };
-        alert!(Log::warn(&format!("generated {tot_warnings} warning{plural}")));
+        alert!(Log::warn(&format!(
+            "generated {tot_warnings} warning{plural}"
+        )));
     }
 
     if tot_errors > 0 {
         let plural = if tot_errors > 1 { "s" } else { "" };
         let exe = std::env::current_exe().unwrap();
-        let exe = exe.file_name().unwrap().to_os_string().into_string().unwrap();
-        alert!(Log::error(&format!("`{exe}` failed due to {tot_errors} error{plural}")));
+        let exe = exe
+            .file_name()
+            .unwrap()
+            .to_os_string()
+            .into_string()
+            .unwrap();
+        alert!(Log::error(&format!(
+            "`{exe}` failed due to {tot_errors} error{plural}"
+        )));
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
