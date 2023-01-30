@@ -1,6 +1,6 @@
 use crate::args::{BuildCmd, SearchResult};
 use crate::context::Context;
-use crate::log::{Log, Src};
+use crate::log::Log;
 use crate::parser::{self, Error};
 use std::error;
 
