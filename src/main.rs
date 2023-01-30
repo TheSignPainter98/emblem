@@ -1,9 +1,11 @@
+#[macro_use]
+mod log;
+
 mod args;
 mod ast;
 mod build;
 mod context;
 mod init;
-mod log;
 mod parser;
 mod repo;
 
