@@ -18,24 +18,21 @@ static mut TOT_ERRORS: Mutex<i32> = Mutex::new(0);
 static mut TOT_WARNINGS: Mutex<i32> = Mutex::new(0);
 
 macro_rules! logger {
-    ($name:ident, $verbosity:path, $VERBOSITY:path) => {
+    ($name:ident, $verbosity:ident) => {
+        #[macro_export]
         macro_rules! $name {
             ($msg:expr) => {
-                use crate::args::Verbosity;
-                use annotate_snippets::{display_list::DisplayList, snippet::Snippet};
-                if unsafe { $VERBOSITY } >= $verbosity {
-                    log(DisplayList::from(Snippet::from($msg.into())));
+                if unsafe { crate::log::VERBOSITY } >= crate::args::Verbosity::$verbosity {
+                    $msg.log();
                 }
             };
         }
     };
 }
 
-// logger!(fatal, Verbosity::Terse, crate::log::VERBOSITY);
-logger!(alert, Verbosity::Terse, crate::log::VERBOSITY);
-logger!(warn, Verbosity::Terse, crate::log::VERBOSITY);
-logger!(inform, Verbosity::Verbose, crate::log::VERBOSITY);
-logger!(debug, Verbosity::Debug, crate::log::VERBOSITY);
+logger!(alert, Terse);
+logger!(inform, Verbose);
+logger!(debug, Debug);
 
 pub fn init(args: LogArgs) {
     unsafe {
