@@ -91,12 +91,20 @@ impl<'i> Log<'i> {
     }
 
     pub fn log(self) {
-        let snippet: Snippet = self.into();
-        match snippet.title.as_ref().unwrap().annotation_type {
-            AnnotationType::Error => unsafe { *TOT_ERRORS.lock() += 1 },
-            AnnotationType::Warning => unsafe { *TOT_WARNINGS.lock() += 1 },
-            _ => {}
+        let mut snippet: Snippet = self.into();
+
+        if let Some(title) = &mut snippet.title {
+            if unsafe { WARNINGS_AS_ERRORS } && title.annotation_type == AnnotationType::Warning {
+                title.annotation_type = AnnotationType::Error;
+            }
+
+            match title.annotation_type {
+                AnnotationType::Error => unsafe { *TOT_ERRORS.lock() += 1 },
+                AnnotationType::Warning => unsafe { *TOT_WARNINGS.lock() += 1 },
+                _ => {}
+            }
         }
+
         eprintln!("{}", DisplayList::from(snippet));
     }
 
