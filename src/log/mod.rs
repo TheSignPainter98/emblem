@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use crate::{
     args::{LogArgs, Verbosity},
     parser::Location,
@@ -7,21 +9,13 @@ use annotate_snippets::{
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
 use parking_lot::Mutex;
-use std::error::Error;
 
 pub static mut VERBOSITY: Verbosity = Verbosity::Terse;
 
 static mut COLOURISE: bool = true;
 static mut FATAL_WARNINGS: bool = false;
-static mut TOT_ERRS: Mutex<i32> = Mutex::new(0);
-
-pub fn init(args: LogArgs) {
-    unsafe {
-        COLOURISE = args.colour;
-        FATAL_WARNINGS = args.fatal_warnings;
-        VERBOSITY = args.verbosity;
-    }
-}
+static mut TOT_ERRORS: Mutex<i32> = Mutex::new(0);
+static mut TOT_WARNINGS: Mutex<i32> = Mutex::new(0);
 
 macro_rules! logger {
     ($name:ident, $verbosity:path, $VERBOSITY:path) => {
@@ -43,12 +37,32 @@ logger!(warn, Verbosity::Terse, crate::log::VERBOSITY);
 logger!(inform, Verbosity::Verbose, crate::log::VERBOSITY);
 logger!(debug, Verbosity::Debug, crate::log::VERBOSITY);
 
-fn log<'i>(msg: impl Loggable<'i>) {
-    println!("{}", DisplayList::from(msg.snippet()));
+pub fn init(args: LogArgs) {
+    unsafe {
+        COLOURISE = args.colour;
+        FATAL_WARNINGS = args.fatal_warnings;
+        VERBOSITY = args.verbosity;
+    }
 }
 
-trait Loggable<'i> where Self: Sized {
-    fn snippet(&self) -> Snippet<'i>;
+pub fn report() -> ExitCode {
+    let tot_warnings = unsafe { *TOT_WARNINGS.lock() };
+    let tot_errors = unsafe { *TOT_ERRORS.lock() };
+
+    if tot_warnings > 0 {
+        let plural = if tot_warnings > 1 { "s" } else { "" };
+        alert!(Log::warn(&format!("generated {tot_warnings} warning{plural}")));
+    }
+
+    if tot_errors > 0 {
+        let plural = if tot_errors > 1 { "s" } else { "" };
+        let exe = std::env::current_exe().unwrap();
+        let exe = exe.file_name().unwrap().to_os_string().into_string().unwrap();
+        alert!(Log::error(&format!("`{exe}` failed due to {tot_errors} error{plural}")));
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
 }
 
 pub struct Log<'i> {
@@ -68,6 +82,16 @@ impl<'i> Log<'i> {
             help: None,
             srcs: Vec::new(),
         }
+    }
+
+    pub fn log(self) {
+        let snippet: Snippet = self.into();
+        match snippet.title.as_ref().unwrap().annotation_type {
+            AnnotationType::Error => unsafe { *TOT_ERRORS.lock() += 1 },
+            AnnotationType::Warning => unsafe { *TOT_WARNINGS.lock() += 1 },
+            _ => {}
+        }
+        eprintln!("{}", DisplayList::from(snippet));
     }
 
     #[allow(dead_code)]

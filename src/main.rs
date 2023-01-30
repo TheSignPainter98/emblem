@@ -8,14 +8,10 @@ mod parser;
 mod repo;
 
 use args::{Args, Command};
-use std::error::Error;
+use std::process::ExitCode;
 
-fn main() {
+fn main() -> ExitCode {
     let args = Args::parse();
-    exec(args).unwrap_or_else(|e| panic!("error: {}", e));
-}
-
-fn exec(args: Args) -> Result<(), Box<dyn Error>> {
     log::init(args.log);
 
     match args.command {
@@ -24,5 +20,7 @@ fn exec(args: Args) -> Result<(), Box<dyn Error>> {
         Command::Init(args) => init::init(args),
         Command::Lint(_) => panic!("lint not implemented"),
         Command::List(_) => panic!("list not implemented"),
-    }
+    }.unwrap();
+
+    log::report()
 }
