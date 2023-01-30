@@ -11,13 +11,11 @@ pub fn build(cmd: BuildCmd) -> Result<(), Box<dyn error::Error>> {
 
     match parser::parse_file(&mut ctx, fname) {
         Ok(d) => println!("{:?}", d),
-        Err(e) => {
-            match *e {
-                Error::StringConversion(e) => alert!(Log::error(&e.to_string())),
-                Error::Filesystem(e) => alert!(Log::error(&e.to_string())),
-                Error::Parse(e) =>  alert!(Log::error(&e.to_string()))
-            }
-        }
+        Err(e) => match *e {
+            Error::StringConversion(e) => alert!(Log::error(&e.to_string())),
+            Error::Filesystem(e) => alert!(Log::error(&e.to_string())),
+            Error::Parse(e) => alert!(Log::error(&e.to_string())),
+        },
     }
 
     Ok(())

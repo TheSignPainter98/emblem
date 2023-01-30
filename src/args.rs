@@ -963,7 +963,12 @@ mod test {
 
             #[test]
             fn warnings_as_errors() {
-                assert!(!Args::try_parse_from(&["em"]).unwrap().log.warnings_as_errors);
+                assert!(
+                    !Args::try_parse_from(&["em"])
+                        .unwrap()
+                        .log
+                        .warnings_as_errors
+                );
                 assert!(
                     Args::try_parse_from(&["em", "-E"])
                         .unwrap()

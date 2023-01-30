@@ -10,8 +10,8 @@ mod parser;
 mod repo;
 
 use args::{Args, Command};
-use std::process::ExitCode;
 use log::Log;
+use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let args = Args::parse();
