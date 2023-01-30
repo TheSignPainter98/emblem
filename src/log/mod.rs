@@ -19,6 +19,7 @@ static mut TOT_WARNINGS: Mutex<i32> = Mutex::new(0);
 
 macro_rules! logger {
     ($name:ident, $verbosity:ident) => {
+        #[allow(clippy::crate_in_macro_def)]
         #[macro_export]
         macro_rules! $name {
             ($msg:expr) => {
