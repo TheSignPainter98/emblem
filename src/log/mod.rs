@@ -76,7 +76,7 @@ pub struct Log<'i> {
 impl<'i> Log<'i> {
     fn new(msg_type: AnnotationType, msg: &'i str) -> Self {
         Self {
-            msg: msg.into(),
+            msg,
             id: None,
             msg_type,
             help: None,
@@ -133,13 +133,13 @@ impl<'i> Log<'i> {
     }
 }
 
-impl<'i> Into<Snippet<'i>> for Log<'i> {
-    fn into(self) -> Snippet<'i> {
+impl<'i> From<Log<'i>> for Snippet<'i> {
+    fn from(log: Log<'i>) -> Self {
         Snippet {
             title: Some(Annotation {
-                id: self.id,
-                label: Some(self.msg),
-                annotation_type: self.msg_type,
+                id: log.id,
+                label: Some(log.msg),
+                annotation_type: log.msg_type,
             }),
             slices: vec![],
             footer: vec![],
