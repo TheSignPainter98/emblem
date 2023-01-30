@@ -92,13 +92,34 @@ impl<'i> Log<'i> {
     }
 
     pub fn log(self) {
-        let mut snippet: Snippet = self.into();
+        let snippet = Snippet {
+            title: Some(Annotation {
+                id: self.id,
+                label: Some(self.msg),
+                annotation_type: match (unsafe { WARNINGS_AS_ERRORS }, self.msg_type) {
+                    (true, AnnotationType::Warning) => AnnotationType::Error,
+                    _ => self.msg_type,
+                },
+            }),
+            slices: self.srcs.iter().map(|s| Slice {
+                source: s.loc.file_name(),
+                line_start: s.loc.lines().0,
+                origin: Some("??"),
+                fold: false,
+                annotations: s.annotations.iter().map(|a| SourceAnnotation {
+                    annotation_type: a.msg_type,
+                    label: &a.msg,
+                    range: a.loc.indices(),
+                }).collect(),
+            }).collect(),
+            footer: vec![],
+            opt: FormatOptions {
+                color: unsafe { COLOURISE },
+                ..Default::default()
+            },
+        };
 
-        if let Some(title) = &mut snippet.title {
-            if unsafe { WARNINGS_AS_ERRORS } && title.annotation_type == AnnotationType::Warning {
-                title.annotation_type = AnnotationType::Error;
-            }
-
+        if let Some(title) = &snippet.title {
             match title.annotation_type {
                 AnnotationType::Error => unsafe { *TOT_ERRORS.lock() += 1 },
                 AnnotationType::Warning => unsafe { *TOT_WARNINGS.lock() += 1 },
@@ -148,63 +169,39 @@ impl<'i> Log<'i> {
     }
 }
 
-impl<'i> From<Log<'i>> for Snippet<'i> {
-    fn from(log: Log<'i>) -> Self {
-        Snippet {
-            title: Some(Annotation {
-                id: log.id,
-                label: Some(log.msg),
-                annotation_type: log.msg_type,
-            }),
-            slices: vec![],
-            footer: vec![],
-            opt: FormatOptions {
-                color: unsafe { COLOURISE },
-                ..Default::default()
-            },
-        }
-    }
-}
-
 pub struct Msg<'i> {
-    loc: Option<Location<'i>>,
+    loc: Location<'i>,
     msg: String,
     msg_type: AnnotationType,
 }
 
 impl<'i> Msg<'i> {
-    fn new<S: Into<String>>(msg_type: AnnotationType, msg: S) -> Self {
+    fn new<S: Into<String>>(msg_type: AnnotationType, loc: &Location<'i>, msg: S) -> Self {
         Self {
-            loc: None,
+            loc: loc.clone(),
             msg: msg.into(),
             msg_type,
         }
     }
 
     #[allow(dead_code)]
-    pub fn error<S: Into<String>>(msg: S) -> Self {
-        Self::new(AnnotationType::Error, msg)
+    pub fn error<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
+        Self::new(AnnotationType::Error, loc, msg)
     }
 
     #[allow(dead_code)]
-    pub fn warn<S: Into<String>>(msg: S) -> Self {
-        Self::new(AnnotationType::Warning, msg)
+    pub fn warn<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
+        Self::new(AnnotationType::Warning, loc, msg)
     }
 
     #[allow(dead_code)]
-    pub fn info<S: Into<String>>(msg: S) -> Self {
-        Self::new(AnnotationType::Info, msg)
+    pub fn info<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
+        Self::new(AnnotationType::Info, loc, msg)
     }
 
     #[allow(dead_code)]
-    pub fn note<S: Into<String>>(msg: S) -> Self {
-        Self::new(AnnotationType::Note, msg)
-    }
-
-    #[allow(dead_code)]
-    pub fn loc(mut self, loc: &Location<'i>) -> Self {
-        self.loc = Some(loc.clone());
-        self
+    pub fn note<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
+        Self::new(AnnotationType::Note, loc, msg)
     }
 }
 
