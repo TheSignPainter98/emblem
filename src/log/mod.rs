@@ -78,7 +78,7 @@ pub struct Log<'i> {
     msg: &'i str,
     msg_type: AnnotationType,
     id: Option<&'static str>,
-    help: Option<Msg<'i>>,
+    help: Option<String>,
     srcs: Vec<Src<'i>>,
 }
 
@@ -159,8 +159,8 @@ impl<'i> Log<'i> {
     }
 
     #[allow(dead_code)]
-    pub fn help(mut self, help: Msg<'i>) -> Self {
-        self.help = Some(help);
+    pub fn help<S: Into<String>>(mut self, help: S) -> Self {
+        self.help = Some(help.into());
         self
     }
 
