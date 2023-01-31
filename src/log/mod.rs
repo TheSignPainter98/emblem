@@ -171,6 +171,13 @@ impl<'i> Log<'i> {
     }
 }
 
+#[cfg(test)]
+impl Log<'_> {
+    pub fn get_id(&self) -> Option<&str> {
+        self.id
+    }
+}
+
 pub struct Msg<'i> {
     loc: Location<'i>,
     msg: String,

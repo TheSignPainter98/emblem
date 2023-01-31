@@ -17,6 +17,13 @@ pub trait Message<'i> {
     /// Format this message into a log.
     fn log(self) -> Log<'i>;
 
+    fn default() -> Box<Self>
+    where
+        Self: Default,
+    {
+        Default::default()
+    }
+
     /// Explain the meaning of this error, why it usually comes up and if
     /// appropriate, how to avoid it.
     fn explain() -> &'static str
@@ -28,8 +35,14 @@ pub trait Message<'i> {
     }
 }
 
+pub struct MessageInfo {
+    id: &'static str,
+    default_log: Log<'static>,
+    explanation: &'static str,
+}
+
 #[allow(dead_code)]
-fn messages<'i>() -> Vec<(&'static str, &'static str)> {
+fn messages() -> Vec<MessageInfo> {
     macro_rules! messages {
         ($($msg:ident),*) => {
             {
@@ -37,7 +50,11 @@ fn messages<'i>() -> Vec<(&'static str, &'static str)> {
                 $(
                     let id = $msg::id();
                     if id != "" {
-                        ret.push((id, $msg::explain()));
+                        ret.push(MessageInfo {
+                            id,
+                            default_log: <$msg as Message<'_>>::default().log(),
+                            explanation: $msg::explain()
+                        });
                     }
                 )*
                 ret
@@ -45,21 +62,56 @@ fn messages<'i>() -> Vec<(&'static str, &'static str)> {
         };
     }
 
-    messages![UnexpectedEOF]
+    messages![UnexpectedEOF, NewlineInInlineArg]
 }
+
+// #[cfg(test)]
+// fn defaults<'i>() -> Vec<(&'static str, Box<dyn Message<'i>>)> {
+//     macro_rules! defaults {
+//         ($($msg:ident),*) => {
+//             {
+//                 let mut ret = Vec::new();
+//                 $(
+//                     ret.push(($msg::id(), <$msg as Message>::default()));
+//                 )*
+//                 ret
+//             }
+//         };
+//     }
+
+//     defaults![UnexpectedEOF]
+// }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::collections::HashSet;
 
-    #[test]
-    fn unique() {
-        let ids: Vec<_> = messages().into_iter().map(|(id, _)| id).collect();
+    mod ids {
+        use super::*;
+        use lazy_static::lazy_static;
+        use regex::Regex;
+        use std::collections::HashSet;
 
-        let mut seen = HashSet::new();
-        for id in ids {
-            assert!(seen.insert(id));
+        #[test]
+        fn naming() {
+            lazy_static! {
+                static ref RE: Regex = Regex::new(r"^E\d{3}$").unwrap();
+            }
+
+            let mut seen = HashSet::new();
+            for info in messages() {
+                assert!(seen.insert(info.id), "Non-unique id: {}", info.id);
+                assert!(RE.is_match(info.id), "Non-conformant id: {}", info.id);
+            }
+        }
+
+        #[test]
+        fn log_application() {
+            for info in messages() {
+                let id = info.id;
+                let log = Box::new(info.default_log);
+                assert_eq!(Some(id), log.get_id(), "Incorrect id in log for {}", id);
+            }
         }
     }
 
@@ -68,28 +120,28 @@ mod test {
 
         #[test]
         fn not_too_long() {
-            for (id, desc) in messages() {
-                let nchars = desc.chars().count();
+            for info in messages() {
+                let nchars = info.explanation.chars().count();
                 assert!(
                     nchars <= 1000,
-                    "{} description is too long: contains {} chars",
-                    id,
+                    "{} explanation is too long: contains {} chars",
+                    info.id,
                     nchars
                 );
             }
         }
 
-        // #[test]
-        // fn not_too_short() {
-        //     for (id, desc) in messages() {
-        //         let nchars = desc.chars().count();
-        //         assert!(
-        //             nchars >= 100,
-        //             "{} description is too short: contains {} chars",
-        //             id,
-        //             nchars
-        //         );
-        //     }
-        // }
+        //         #[test]
+        //         fn not_too_short() {
+        //             for info in messages() {
+        //                 let nchars = info.explanation.chars().count();
+        //                 assert!(
+        //                     nchars >= 100,
+        //                     "{} description is too short: contains {} chars",
+        //                     info.id,
+        //                     nchars
+        //                 );
+        //             }
+        //         }
     }
 }
