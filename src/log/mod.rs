@@ -1,3 +1,5 @@
+pub mod messages;
+
 use std::process::ExitCode;
 
 use crate::{
