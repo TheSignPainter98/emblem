@@ -1,4 +1,4 @@
-mod error;
+pub mod error;
 pub mod lexer;
 pub mod location;
 mod point;
@@ -6,6 +6,7 @@ mod point;
 pub use error::Error;
 pub use lexer::LexicalError;
 pub use location::Location;
+pub use point::Point;
 
 use crate::args::SearchResult;
 use crate::ast;
@@ -64,20 +65,6 @@ pub fn parse<'file>(
     let parser = parser::FileParser::new();
 
     Ok(parser.parse(lexer)?)
-}
-
-/// Create a string representation of a list of tokens which will fit in with surrounding text.
-#[allow(dead_code)]
-fn pretty_tok_list(list: Vec<String>) -> String {
-    let len = list.len();
-    let mut pretty_list = Vec::new();
-    for (i, e) in list.iter().enumerate() {
-        if i > 0 {
-            pretty_list.push(if i < len - 1 { ", " } else { " or " })
-        }
-        pretty_list.push(e);
-    }
-    pretty_list.concat()
 }
 
 #[cfg(test)]

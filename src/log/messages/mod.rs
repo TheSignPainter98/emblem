@@ -1,6 +1,10 @@
+mod newline_in_inline_arg;
 mod unexpected_eof;
+mod unexpected_token;
 
+pub use newline_in_inline_arg::NewlineInInlineArg;
 pub use unexpected_eof::UnexpectedEOF;
+pub use unexpected_token::UnexpectedToken;
 
 use crate::log::Log;
 
@@ -63,7 +67,7 @@ fn messages() -> Vec<MessageInfo> {
         };
     }
 
-    messages![UnexpectedEOF, NewlineInInlineArg]
+    messages![UnexpectedEOF, UnexpectedToken, NewlineInInlineArg]
 }
 
 // #[cfg(test)]

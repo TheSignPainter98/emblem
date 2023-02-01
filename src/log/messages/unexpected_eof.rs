@@ -1,10 +1,17 @@
 use crate::log::messages::Message;
-use crate::log::{Log, Src, Msg};
-use crate::parser::Location;
+use crate::log::{Log, Msg, Src};
+use crate::parser::{Location, Point};
 
 #[derive(Default)]
 pub struct UnexpectedEOF<'i> {
-    loc: Location<'i>,
+    point: Point<'i>,
+    expected: Vec<String>,
+}
+
+impl<'i> UnexpectedEOF<'i> {
+    pub fn new(point: Point<'i>, expected: Vec<String>) -> Self {
+        Self { point, expected }
+    }
 }
 
 impl<'i> Message<'i> for UnexpectedEOF<'i> {
@@ -13,8 +20,10 @@ impl<'i> Message<'i> for UnexpectedEOF<'i> {
     }
 
     fn log(self) -> Log<'i> {
+        let loc = Location::new(&self.point, &self.point.clone().shift("\0"));
         Log::error("unexpected eof")
             .id(Self::id())
-            .src(Src::new(&self.loc).annotate(Msg::error(&self.loc, "file ended early here")))
+            .src(Src::new(&loc).annotate(Msg::error(&loc, "file ended early here")))
+            .expect_one_of(&self.expected)
     }
 }

@@ -106,18 +106,34 @@ impl<'i> Log<'i> {
                     _ => self.msg_type,
                 },
             }),
-            slices: self.srcs.iter().map(|s| Slice {
-                source: s.loc.file_name(),
-                line_start: s.loc.lines().0,
-                origin: Some("??"),
-                fold: false,
-                annotations: s.annotations.iter().map(|a| SourceAnnotation {
-                    annotation_type: a.msg_type,
-                    label: &a.msg,
-                    range: a.loc.indices(),
-                }).collect(),
-            }).collect(),
-            footer: vec![],
+            slices: self
+                .srcs
+                .iter()
+                .map(|s| Slice {
+                    source: s.loc.src(),
+                    line_start: 1,
+                    origin: Some(s.loc.file_name()),
+                    fold: true,
+                    annotations: s
+                        .annotations
+                        .iter()
+                        .map(|a| SourceAnnotation {
+                            annotation_type: a.msg_type,
+                            label: &a.msg,
+                            range: a.loc.indices(),
+                        })
+                        .collect(),
+                })
+                .collect(),
+            footer: self
+                .help
+                .iter()
+                .map(|help| Annotation {
+                    id: None,
+                    label: Some(help),
+                    annotation_type: AnnotationType::Note,
+                })
+                .collect(),
             opt: FormatOptions {
                 color: unsafe { COLOURISE },
                 ..Default::default()
@@ -161,16 +177,30 @@ impl<'i> Log<'i> {
         self
     }
 
-    #[allow(dead_code)]
     pub fn help<S: Into<String>>(mut self, help: S) -> Self {
+        assert!(self.help.is_none());
+
         self.help = Some(help.into());
         self
     }
 
-    #[allow(dead_code)]
     pub fn src(mut self, src: Src<'i>) -> Self {
         self.srcs.push(src);
         self
+    }
+
+    pub fn expect_one_of(self, expected: &Vec<String>) -> Self {
+        // TODO(kcza): replace with iter.intersperse once stable.
+        let len = expected.len();
+        let mut pretty_expected = Vec::new();
+        for (i, e) in expected.iter().enumerate() {
+            if i > 0 {
+                pretty_expected.push(if i < len - 1 { ", " } else { " or " })
+            }
+            pretty_expected.push(e);
+        }
+
+        self.help(format!("expected one of {}", pretty_expected.concat()))
     }
 }
 
