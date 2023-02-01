@@ -2,6 +2,7 @@ pub mod messages;
 
 use std::process::ExitCode;
 
+use self::messages::Message;
 use crate::{
     args::{LogArgs, Verbosity},
     parser::Location,
@@ -26,7 +27,9 @@ macro_rules! logger {
         macro_rules! $name {
             ($msg:expr) => {
                 if unsafe { crate::log::VERBOSITY } >= crate::args::Verbosity::$verbosity {
-                    $msg.log();
+                    #[allow(unused_imports)]
+                    use crate::log::messages::Message;
+                    $msg.log().print();
                 }
             };
         }
@@ -93,7 +96,7 @@ impl<'i> Log<'i> {
         }
     }
 
-    pub fn log(self) {
+    pub fn print(self) {
         let snippet = Snippet {
             title: Some(Annotation {
                 id: self.id,
@@ -175,6 +178,12 @@ impl<'i> Log<'i> {
 impl Log<'_> {
     pub fn get_id(&self) -> Option<&str> {
         self.id
+    }
+}
+
+impl<'i> Message<'i> for Log<'i> {
+    fn log(self) -> Log<'i> {
+        self
     }
 }
 
