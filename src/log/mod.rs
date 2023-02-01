@@ -78,7 +78,7 @@ pub fn report() -> ExitCode {
 }
 
 pub struct Log<'i> {
-    msg: &'i str,
+    msg: String,
     msg_type: AnnotationType,
     id: Option<&'static str>,
     help: Option<String>,
@@ -86,9 +86,9 @@ pub struct Log<'i> {
 }
 
 impl<'i> Log<'i> {
-    fn new(msg_type: AnnotationType, msg: &'i str) -> Self {
+    fn new<S: Into<String>>(msg_type: AnnotationType, msg: S) -> Self {
         Self {
-            msg,
+            msg: msg.into(),
             id: None,
             msg_type,
             help: None,
@@ -100,7 +100,7 @@ impl<'i> Log<'i> {
         let snippet = Snippet {
             title: Some(Annotation {
                 id: self.id,
-                label: Some(self.msg),
+                label: Some(&self.msg),
                 annotation_type: match (unsafe { WARNINGS_AS_ERRORS }, self.msg_type) {
                     (true, AnnotationType::Warning) => AnnotationType::Error,
                     _ => self.msg_type,
@@ -136,22 +136,22 @@ impl<'i> Log<'i> {
     }
 
     #[allow(dead_code)]
-    pub fn error(msg: &'i str) -> Self {
+    pub fn error<S: Into<String>>(msg: S) -> Self {
         Self::new(AnnotationType::Error, msg)
     }
 
     #[allow(dead_code)]
-    pub fn warn(msg: &'i str) -> Self {
+    pub fn warn<S: Into<String>>(msg: S) -> Self {
         Self::new(AnnotationType::Warning, msg)
     }
 
     #[allow(dead_code)]
-    pub fn info(msg: &'i str) -> Self {
+    pub fn info<S: Into<String>>(msg: S) -> Self {
         Self::new(AnnotationType::Info, msg)
     }
 
     #[allow(dead_code)]
-    pub fn note(msg: &'i str) -> Self {
+    pub fn note<S: Into<String>>(msg: S) -> Self {
         Self::new(AnnotationType::Note, msg)
     }
 
