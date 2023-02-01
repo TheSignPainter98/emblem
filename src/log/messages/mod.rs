@@ -35,13 +35,14 @@ pub trait Message<'i> {
     }
 }
 
+#[cfg(test)]
 pub struct MessageInfo {
     id: &'static str,
     default_log: Log<'static>,
     explanation: &'static str,
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 fn messages() -> Vec<MessageInfo> {
     macro_rules! messages {
         ($($msg:ident),*) => {
