@@ -1,8 +1,9 @@
 use crate::log::messages::Message;
 use crate::log::{Log, Msg, Src};
 use crate::parser::Location;
+use derive_new::new;
 
-#[derive(Default)]
+#[derive(Default, new)]
 pub struct NewlineInInlineArg<'i> {
     arg_start_loc: Location<'i>,
     newline_loc: Location<'i>,

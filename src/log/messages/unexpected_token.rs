@@ -1,21 +1,13 @@
 use crate::log::messages::Message;
 use crate::log::{Log, Msg, Src};
 use crate::parser::{lexer::Tok, Location};
+use derive_new::new;
 
+#[derive(Debug, new)]
 pub struct UnexpectedToken<'i> {
     loc: Location<'i>,
     token: Tok<'i>,
     expected: Vec<String>,
-}
-
-impl<'i> UnexpectedToken<'i> {
-    pub fn new(loc: Location<'i>, token: Tok<'i>, expected: Vec<String>) -> Self {
-        Self {
-            loc,
-            token,
-            expected,
-        }
-    }
 }
 
 impl Default for UnexpectedToken<'_> {
