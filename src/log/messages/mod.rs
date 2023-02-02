@@ -53,14 +53,11 @@ fn messages() -> Vec<MessageInfo> {
             {
                 let mut ret = Vec::new();
                 $(
-                    let id = $msg::id();
-                    if id != "" {
-                        ret.push(MessageInfo {
-                            id,
-                            default_log: <$msg as Message<'_>>::default().log(),
-                            explanation: $msg::explain()
-                        });
-                    }
+                    ret.push(MessageInfo {
+                        id: $msg::id(),
+                        default_log: <$msg as Message<'_>>::default().log(),
+                        explanation: $msg::explain()
+                    });
                 )*
                 ret
             }
@@ -104,7 +101,7 @@ mod test {
             }
 
             let mut seen = HashSet::new();
-            for info in messages() {
+            for info in messages().iter().filter(|info| !info.id.is_empty()) {
                 assert!(seen.insert(info.id), "Non-unique id: {}", info.id);
                 assert!(RE.is_match(info.id), "Non-conformant id: {}", info.id);
             }
@@ -115,7 +112,12 @@ mod test {
             for info in messages() {
                 let id = info.id;
                 let log = Box::new(info.default_log);
-                assert_eq!(Some(id), log.get_id(), "Incorrect id in log for {}", id);
+                assert_eq!(
+                    id,
+                    log.get_id().unwrap_or(""),
+                    "Incorrect id in log for {}",
+                    id
+                );
             }
         }
     }
