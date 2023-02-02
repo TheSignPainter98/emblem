@@ -20,7 +20,7 @@ impl<'i> Message<'i> for NewlineInInlineArg<'i> {
             .src(
                 Src::new(&self.arg_start_loc.span_to(&self.newline_loc))
                     .annotate(Msg::error(&self.newline_loc, "newline found here"))
-                    .annotate(Msg::info(&self.arg_start_loc, "in inline started here")),
+                    .annotate(Msg::info(&self.arg_start_loc, "in inline argument started here")),
             )
             .help("consider either removing the newline or using trailer (colon) arguments")
     }
