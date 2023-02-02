@@ -44,11 +44,14 @@ where
     };
 
     let file = {
-        let path: String = to_parse
+        let mut path: String = to_parse
             .path
             .into_os_string()
             .into_string()
             .map_err(StringConversionError::new)?;
+        if path == "-" {
+            path = "(stdin)".into();
+        }
         ctx.alloc_file(path, content)
     };
 
