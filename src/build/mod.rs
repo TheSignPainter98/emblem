@@ -34,7 +34,7 @@ pub fn build(cmd: BuildCmd) -> Result<(), Box<dyn error::Error>> {
                     Location::new(&l, &r)
                 ),
                 LalrpopError::User { error } => {
-                    alert!(Log::error(error.to_string()));
+                    alert!(error);
                 }
             },
         },

@@ -69,10 +69,9 @@ pub fn parse<'file>(
 
 #[cfg(test)]
 mod test {
-    use regex::Regex;
-
     use super::*;
     use crate::ast::AstDebug;
+    use regex::Regex;
 
     fn assert_structure(name: &str, input: &str, expected: &str) {
         assert_eq!(
@@ -176,7 +175,12 @@ mod test {
             assert_parse_error(
                 "multi-line comment open",
                 "/*",
-                r"unclosed comment found at multi-line comment open[^\n]*:1:1-2",
+                r#"unclosed comment found at \["multi-line comment open[^\n]*:1:1-2"\]"#,
+            );
+            assert_parse_error(
+                "multi-line comment open",
+                "/*/*",
+                r#"unclosed comment found at \["multi-line comment open[^\n]*:1:1-2", "multi-line comment open[^\n]*:1:3-4"\]"#,
             );
             assert_parse_error(
                 "multi-line comment close",
@@ -471,6 +475,8 @@ mod test {
                 ".heave[the,old=wheel,round]:\n\tand\n::\n\tround",
                 r"File[Par[.heave[(the)|(old)=(wheel)|(round)]::[Par[[Word(and)]]]::[Par[[Word(round)]]]]]",
             );
+
+            assert_parse_error("unclosed", ".heave[", "unexpected EOF found at (1:8|2:1)");
         }
     }
 
@@ -784,7 +790,12 @@ mod test {
             assert_parse_error(
                 "open",
                 "/*spaghetti/*and*/meatballs",
-                "unclosed comment found at open[^:]*:1:1-2",
+                r#"unclosed comment found at \["open[^:]*:1:1-2"\]"#,
+            );
+            assert_parse_error(
+                "open",
+                "/*spaghetti/*and meatballs",
+                r#"unclosed comment found at \["open[^:]*:1:1-2", "open[^:]*:1:12-13"\]"#,
             );
             assert_parse_error(
                 "close",
