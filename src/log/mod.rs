@@ -213,6 +213,20 @@ impl Log<'_> {
     pub fn get_id(&self) -> Option<&str> {
         self.id
     }
+
+    pub fn get_text(&self) -> Vec<&str> {
+        let mut ret = vec![&self.msg[..]];
+
+        for src in &self.srcs {
+            ret.extend(src.get_text());
+        }
+
+        if let Some(h) = &self.help {
+            ret.push(h);
+        }
+
+        ret
+    }
 }
 
 impl<'i> Message<'i> for Log<'i> {
@@ -257,6 +271,13 @@ impl<'i> Msg<'i> {
     }
 }
 
+#[cfg(test)]
+impl Msg<'_> {
+    fn get_text(&self) -> Vec<&str> {
+        vec![&self.msg]
+    }
+}
+
 pub struct Src<'i> {
     loc: Location<'i>,
     annotations: Vec<Msg<'i>>,
@@ -275,5 +296,16 @@ impl<'i> Src<'i> {
     pub fn annotate(mut self, annotation: Msg<'i>) -> Self {
         self.annotations.push(annotation);
         self
+    }
+}
+
+#[cfg(test)]
+impl Src<'_> {
+    fn get_text(&self) -> Vec<&str> {
+        let mut ret = Vec::new();
+        for annotation in &self.annotations {
+            ret.extend(annotation.get_text());
+        }
+        ret
     }
 }
