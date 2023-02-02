@@ -1,8 +1,14 @@
+mod extra_comment_close;
 mod newline_in_inline_arg;
+mod unclosed_comments;
+mod unexpected_char;
 mod unexpected_eof;
 mod unexpected_token;
 
+pub use extra_comment_close::ExtraCommentClose;
 pub use newline_in_inline_arg::NewlineInInlineArg;
+pub use unclosed_comments::UnclosedComments;
+pub use unexpected_char::UnexpectedChar;
 pub use unexpected_eof::UnexpectedEOF;
 pub use unexpected_token::UnexpectedToken;
 
@@ -49,7 +55,7 @@ pub struct MessageInfo {
 #[cfg(test)]
 fn messages() -> Vec<MessageInfo> {
     macro_rules! messages {
-        ($($msg:ident),*) => {
+        ($($msg:ident),* $(,)?) => {
             {
                 let mut ret = Vec::new();
                 $(
@@ -64,7 +70,14 @@ fn messages() -> Vec<MessageInfo> {
         };
     }
 
-    messages![UnexpectedEOF, UnexpectedToken, NewlineInInlineArg]
+    messages![
+        ExtraCommentClose,
+        NewlineInInlineArg,
+        UnclosedComments,
+        UnexpectedChar,
+        UnexpectedEOF,
+        UnexpectedToken,
+    ]
 }
 
 // #[cfg(test)]
