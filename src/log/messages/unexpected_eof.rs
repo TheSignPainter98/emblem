@@ -9,8 +9,14 @@ pub struct UnexpectedEOF<'i> {
 }
 
 impl<'i> UnexpectedEOF<'i> {
-    pub fn new(point: Point<'i>, expected: Vec<String>) -> Self {
-        Self { point, expected }
+    pub fn new(mut point: Point<'i>, expected: Vec<String>) -> Self {
+        // This error will never be shown on an empty file.
+        point.index -= 1;
+
+        Self {
+            point,
+            expected,
+        }
     }
 }
 
