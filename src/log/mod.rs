@@ -190,7 +190,6 @@ impl<'i> Log<'i> {
     }
 
     pub fn expect_one_of(self, expected: &Vec<String>) -> Self {
-        // TODO(kcza): replace with iter.intersperse once stable.
         let len = expected.len();
         if len == 1 {
             return self.help(format!("expected {}", expected[0]));
