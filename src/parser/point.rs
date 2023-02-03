@@ -43,15 +43,6 @@ impl<'input> Point<'input> {
 
         self
     }
-
-    #[allow(dead_code)]
-    pub fn text_upto(&self, other: &Point) -> Option<&'input str> {
-        // TODO(kcza): remove---this is on the wrong type, it should be on Location.
-        if self.file_name != other.file_name {
-            return None;
-        }
-        Some(&self.src[self.index..other.index])
-    }
 }
 
 impl<'input> Display for Point<'input> {
@@ -93,10 +84,6 @@ mod test {
         assert_eq!(17, end.index);
         assert_eq!(1, end.line);
         assert_eq!(18, end.col);
-
-        assert_eq!(Some("my name is "), start.text_upto(&mid));
-        assert_eq!(Some("methos"), mid.text_upto(&end));
-        assert_eq!(Some("my name is methos"), start.text_upto(&end));
     }
 
     #[test]
@@ -121,15 +108,5 @@ mod test {
         assert_eq!(21, end.line);
         assert_eq!(118, end.index);
         assert_eq!(8, end.col);
-
-        assert_eq!(start.text_upto(&end), Some(&src[..]));
-    }
-
-    #[test]
-    fn text_upto_different_locations() {
-        let l1 = Point::new("file1", "fubar");
-        let l2 = Point::new("file2", "snafu");
-
-        assert_eq!(l1.text_upto(&l2), None);
     }
 }
