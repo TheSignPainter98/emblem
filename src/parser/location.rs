@@ -68,6 +68,19 @@ impl<'i> Location<'i> {
             ),
         }
     }
+
+    pub fn context(&self) -> &str {
+        let start = self.src[..self.indices.0]
+            .rfind(['\r', '\n'])
+            .map(|i| i + 1)
+            .unwrap_or_default();
+        let end = self.src[self.indices.1..]
+            .find(['\r', '\n'])
+            .map(|i| i + self.indices.1)
+            .unwrap_or(self.src.len());
+
+        &self.src[start..end]
+    }
 }
 
 impl Display for Location<'_> {
@@ -153,6 +166,47 @@ mod test {
                         cmp::max(l2.indices.0, l2.indices.1)
                     )
                 );
+            }
+        }
+    }
+
+    mod context {
+        use super::*;
+        #[test]
+        fn single_line() {
+            let text = "oh! santiana gained a day";
+            let text_start = Point::new("fname.em", text);
+
+            let loc_start_shift = "oh! ";
+            let loc_text = "santiana";
+
+            let loc_start = text_start.clone().shift(loc_start_shift);
+            let loc_end = loc_start.clone().shift(loc_text);
+
+            let loc = Location::new(&loc_start, &loc_end);
+            assert_eq!(loc.context(), text);
+        }
+
+        #[test]
+        fn multi_line() {
+            let lines = [
+                "oh! santiana gained a day",
+                "away santiana!",
+                "'napoleon of the west,' they say",
+                "along the plains of mexico",
+            ];
+            for newline in ["\n", "\r", "\r\n"] {
+                let text = lines.join(newline);
+                let text_start = Point::new("fname.em", &text);
+
+                let loc_start_shift = &format!("oh! santiana gained a day{newline}away ");
+                let loc_text = &format!("santiana!{newline}'napoleon of");
+
+                let loc_start = text_start.clone().shift(loc_start_shift);
+                let loc_end = loc_start.clone().shift(loc_text);
+
+                let loc = Location::new(&loc_start, &loc_end);
+                assert_eq!(loc.context(), lines[1..3].join(newline));
             }
         }
     }
