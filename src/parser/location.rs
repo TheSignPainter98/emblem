@@ -1,4 +1,4 @@
-use crate::parser::point::Point;
+use crate::parser::{LocationContext, Point};
 use core::fmt::{self, Display};
 use std::cmp;
 
@@ -23,11 +23,11 @@ impl<'i> Location<'i> {
         }
     }
 
-    pub fn file_name(&self) -> &str {
+    pub fn file_name(&self) -> &'i str {
         self.file_name
     }
 
-    pub fn src(&self) -> &str {
+    pub fn src(&self) -> &'i str {
         self.src
     }
 
@@ -39,8 +39,10 @@ impl<'i> Location<'i> {
         self.cols
     }
 
-    pub fn indices(&self) -> (usize, usize) {
-        self.indices
+    pub fn indices(&self, context: &LocationContext) -> (usize, usize) {
+        let (start, end) = self.indices;
+        let context_start = context.starting_index();
+        (start - context_start, end - context_start)
     }
 
     pub fn span_to(&self, other: &Self) -> Self {
@@ -69,7 +71,7 @@ impl<'i> Location<'i> {
         }
     }
 
-    pub fn context(&self) -> &str {
+    pub fn context(&self) -> LocationContext<'i> {
         let start = self.src[..self.indices.0]
             .rfind(['\r', '\n'])
             .map(|i| i + 1)
@@ -79,7 +81,7 @@ impl<'i> Location<'i> {
             .map(|i| i + self.indices.1)
             .unwrap_or(self.src.len());
 
-        &self.src[start..end]
+        LocationContext::new(&self.src[start..end], start)
     }
 }
 
@@ -107,34 +109,35 @@ impl Display for Location<'_> {
 mod test {
     use super::*;
 
-    #[test]
-    fn mid_line() {
-        let text = "my name\nis methos";
-        let start = Point::new("fname.em", text);
-        let end = start.clone().shift(text);
+    mod lines_cols {
+        use super::*;
+        #[test]
+        fn mid_line() {
+            let text = "my name\nis methos";
+            let start = Point::new("fname.em", text);
+            let end = start.clone().shift(text);
 
-        let loc = Location::new(&start, &end);
+            let loc = Location::new(&start, &end);
 
-        assert_eq!("fname.em", loc.file_name());
-        assert_eq!(text, loc.src());
-        assert_eq!((start.line, end.line), loc.lines());
-        assert_eq!((start.col, end.col - 1), loc.cols());
-        assert_eq!((start.index, end.index), loc.indices());
-    }
+            assert_eq!("fname.em", loc.file_name());
+            assert_eq!(text, loc.src());
+            assert_eq!((start.line, end.line), loc.lines());
+            assert_eq!((start.col, end.col - 1), loc.cols());
+        }
 
-    #[test]
-    fn end_of_line() {
-        let text = "my name is methos\n";
-        let start = Point::new("fname.em", text);
-        let end = start.clone().shift(text);
+        #[test]
+        fn end_of_line() {
+            let text = "my name is methos\n";
+            let start = Point::new("fname.em", text);
+            let end = start.clone().shift(text);
 
-        let loc = Location::new(&start, &end);
+            let loc = Location::new(&start, &end);
 
-        assert_eq!("fname.em", loc.file_name());
-        assert_eq!(text, loc.src());
-        assert_eq!((start.line, end.line), loc.lines());
-        assert_eq!((start.col, 1), loc.cols());
-        assert_eq!((start.index, end.index), loc.indices());
+            assert_eq!("fname.em", loc.file_name());
+            assert_eq!(text, loc.src());
+            assert_eq!((start.line, end.line), loc.lines());
+            assert_eq!((start.col, 1), loc.cols());
+        }
     }
 
     #[test]
@@ -184,7 +187,10 @@ mod test {
             let loc_end = loc_start.clone().shift(loc_text);
 
             let loc = Location::new(&loc_start, &loc_end);
-            assert_eq!(loc.context(), text);
+            let context = loc.context();
+            assert_eq!(context.src(), text);
+            assert_eq!(context.starting_index(), 0);
+            assert_eq!(loc.indices(&context), (4, 12));
         }
 
         #[test]
@@ -206,7 +212,11 @@ mod test {
                 let loc_end = loc_start.clone().shift(loc_text);
 
                 let loc = Location::new(&loc_start, &loc_end);
-                assert_eq!(loc.context(), lines[1..3].join(newline));
+                let context = loc.context();
+
+                assert_eq!(context.src(), lines[1..3].join(newline));
+                assert_eq!(context.starting_index(), 25 + newline.len());
+                assert_eq!(loc.indices(&context), (5, 26 + newline.len()));
             }
         }
     }

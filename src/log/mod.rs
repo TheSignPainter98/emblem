@@ -109,20 +109,23 @@ impl<'i> Log<'i> {
             slices: self
                 .srcs
                 .iter()
-                .map(|s| Slice {
-                    source: s.loc.src(),
-                    line_start: 1,
-                    origin: Some(s.loc.file_name()),
-                    fold: true,
-                    annotations: s
-                        .annotations
-                        .iter()
-                        .map(|a| SourceAnnotation {
-                            annotation_type: a.msg_type,
-                            label: &a.msg,
-                            range: a.loc.indices(),
-                        })
-                        .collect(),
+                .map(|s| {
+                    let context = s.loc.context();
+                    Slice {
+                        source: context.src(),
+                        line_start: s.loc.lines().0,
+                        origin: Some(s.loc.file_name()),
+                        fold: true,
+                        annotations: s
+                            .annotations
+                            .iter()
+                            .map(|a| SourceAnnotation {
+                                annotation_type: a.msg_type,
+                                label: &a.msg,
+                                range: a.loc.indices(&context),
+                            })
+                            .collect(),
+                    }
                 })
                 .collect(),
             footer: self

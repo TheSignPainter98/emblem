@@ -1,11 +1,13 @@
 pub mod error;
 pub mod lexer;
 pub mod location;
+mod location_context;
 mod point;
 
 pub use error::Error;
 pub use lexer::LexicalError;
 pub use location::Location;
+pub use location_context::LocationContext;
 pub use point::Point;
 
 use crate::args::SearchResult;
