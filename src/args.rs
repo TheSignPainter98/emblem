@@ -240,7 +240,7 @@ impl BuildCmd {
 pub struct ExplainCmd {
     /// Code of the error to explain
     #[arg(value_name = "error-code")]
-    pub code: String,
+    pub id: String,
 }
 
 /// Arguments to the fmt subcommand
@@ -1386,7 +1386,7 @@ mod test {
                         .command
                         .explain()
                         .unwrap()
-                        .code,
+                        .id,
                     "E001"
                 );
                 assert!(Args::try_parse_from(&["em", "explain"]).is_err());

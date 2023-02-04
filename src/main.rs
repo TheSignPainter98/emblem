@@ -5,6 +5,7 @@ mod args;
 mod ast;
 mod build;
 mod context;
+mod explain;
 mod init;
 mod parser;
 mod repo;
@@ -19,7 +20,7 @@ fn main() -> ExitCode {
 
     let ret = match args.command {
         Command::Build(args) => build::build(args),
-        Command::Explain(_) => panic!("explain not implemented"),
+        Command::Explain(args) => explain::explain(args),
         Command::Format(_) => panic!("fmt not implemented"),
         Command::Init(args) => init::init(args),
         Command::Lint(_) => panic!("lint not implemented"),

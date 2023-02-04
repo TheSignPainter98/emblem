@@ -1,5 +1,6 @@
 mod extra_comment_close;
 mod newline_in_inline_arg;
+mod no_such_error_code;
 mod unclosed_comments;
 mod unexpected_char;
 mod unexpected_eof;
@@ -7,6 +8,7 @@ mod unexpected_token;
 
 pub use extra_comment_close::ExtraCommentClose;
 pub use newline_in_inline_arg::NewlineInInlineArg;
+pub use no_such_error_code::NoSuchErrorCode;
 pub use unclosed_comments::UnclosedComments;
 pub use unexpected_char::UnexpectedChar;
 pub use unexpected_eof::UnexpectedEOF;
@@ -45,15 +47,24 @@ pub trait Message<'i> {
     }
 }
 
-#[cfg(test)]
 pub struct MessageInfo {
     id: &'static str,
+    #[cfg(test)]
     default_log: Log<'static>,
     explanation: &'static str,
 }
 
-#[cfg(test)]
-fn messages() -> Vec<MessageInfo> {
+impl MessageInfo {
+    pub fn id(&self) -> &'static str {
+        self.id
+    }
+
+    pub fn explanation(&self) -> &'static str {
+        self.explanation
+    }
+}
+
+pub fn messages() -> Vec<MessageInfo> {
     macro_rules! messages {
         ($($msg:ident),* $(,)?) => {
             {
@@ -61,6 +72,7 @@ fn messages() -> Vec<MessageInfo> {
                 $(
                     ret.push(MessageInfo {
                         id: $msg::id(),
+                        #[cfg(test)]
                         default_log: <$msg as Message<'_>>::default().log(),
                         explanation: $msg::explain()
                     });
@@ -73,6 +85,7 @@ fn messages() -> Vec<MessageInfo> {
     messages![
         ExtraCommentClose,
         NewlineInInlineArg,
+        NoSuchErrorCode,
         UnclosedComments,
         UnexpectedChar,
         UnexpectedEOF,
