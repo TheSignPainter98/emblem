@@ -3,7 +3,7 @@ use derive_new::new;
 #[derive(new)]
 pub struct LocationContext<'i> {
     src: &'i str,
-    starting_index: usize
+    starting_index: usize,
 }
 
 impl<'i> LocationContext<'i> {

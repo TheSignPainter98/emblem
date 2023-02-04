@@ -13,10 +13,7 @@ impl<'i> UnexpectedEOF<'i> {
         // This error will never be shown on an empty file.
         point.index -= 1;
 
-        Self {
-            point,
-            expected,
-        }
+        Self { point, expected }
     }
 }
 
