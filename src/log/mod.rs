@@ -171,7 +171,10 @@ impl<'i> Log<'i> {
         }
 
         if let Some(id) = self.id {
-            let info_instruction = &format!("For more information about this error, try `em explain {}", id);
+            let info_instruction = &format!(
+                "For more information about this error, try `em explain {}",
+                id
+            );
             let mut display_list = DisplayList::from(snippet);
             display_list
                 .body
