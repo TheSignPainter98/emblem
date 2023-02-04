@@ -12,7 +12,7 @@ impl<'a> Message<'a> for NoSuchErrorCode<'a> {
     where
         Self: Sized,
     {
-        "E000"
+        "E001"
     }
 
     fn log(self) -> Log<'a> {
