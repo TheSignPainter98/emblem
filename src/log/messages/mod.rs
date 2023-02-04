@@ -80,23 +80,6 @@ fn messages() -> Vec<MessageInfo> {
     ]
 }
 
-// #[cfg(test)]
-// fn defaults<'i>() -> Vec<(&'static str, Box<dyn Message<'i>>)> {
-//     macro_rules! defaults {
-//         ($($msg:ident),*) => {
-//             {
-//                 let mut ret = Vec::new();
-//                 $(
-//                     ret.push(($msg::id(), <$msg as Message>::default()));
-//                 )*
-//                 ret
-//             }
-//         };
-//     }
-
-//     defaults![UnexpectedEOF]
-// }
-
 #[cfg(test)]
 mod test {
     use super::*;
