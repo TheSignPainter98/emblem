@@ -154,12 +154,10 @@ impl<'i> Log<'i> {
         eprintln!("{}", DisplayList::from(snippet));
     }
 
-    #[allow(dead_code)]
     pub fn error<S: Into<String>>(msg: S) -> Self {
         Self::new(AnnotationType::Error, msg)
     }
 
-    #[allow(dead_code)]
     pub fn warn<S: Into<String>>(msg: S) -> Self {
         Self::new(AnnotationType::Warning, msg)
     }
@@ -174,7 +172,6 @@ impl<'i> Log<'i> {
         Self::new(AnnotationType::Note, msg)
     }
 
-    #[allow(dead_code)]
     pub fn id(mut self, id: &'static str) -> Self {
         self.id = Some(id);
         self
@@ -252,7 +249,6 @@ impl<'i> Note<'i> {
         }
     }
 
-    #[allow(dead_code)]
     pub fn error<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
         Self::new(AnnotationType::Error, loc, msg)
     }
@@ -262,7 +258,6 @@ impl<'i> Note<'i> {
         Self::new(AnnotationType::Warning, loc, msg)
     }
 
-    #[allow(dead_code)]
     pub fn info<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
         Self::new(AnnotationType::Info, loc, msg)
     }
@@ -286,7 +281,6 @@ pub struct Src<'i> {
 }
 
 impl<'i> Src<'i> {
-    #[allow(dead_code)]
     pub fn new(loc: &Location<'i>) -> Self {
         Self {
             loc: loc.clone(),
@@ -294,7 +288,6 @@ impl<'i> Src<'i> {
         }
     }
 
-    #[allow(dead_code)]
     pub fn annotate(mut self, note: Note<'i>) -> Self {
         self.annotations.push(note);
         self

@@ -12,7 +12,6 @@ pub struct Location<'i> {
 }
 
 impl<'i> Location<'i> {
-    #[allow(dead_code)]
     pub fn new(start: &Point<'i>, end: &Point<'i>) -> Self {
         Self {
             file_name: start.file_name,
