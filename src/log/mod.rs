@@ -85,6 +85,7 @@ pub struct Log<'i> {
     msg_type: AnnotationType,
     id: Option<&'static str>,
     help: Option<String>,
+    note: Option<String>,
     srcs: Vec<Src<'i>>,
 }
 
@@ -95,11 +96,34 @@ impl<'i> Log<'i> {
             id: None,
             msg_type,
             help: None,
+            note: None,
             srcs: Vec::new(),
         }
     }
 
     pub fn print(self) {
+        let footer = {
+            let mut footer = vec![];
+
+            if let Some(ref help) = self.help {
+                footer.push(Annotation {
+                    id: None,
+                    label: Some(&help),
+                    annotation_type: AnnotationType::Help,
+                });
+            }
+
+            if let Some(ref note) = self.note {
+                footer.push(Annotation {
+                    id: None,
+                    label: Some(&note),
+                    annotation_type: AnnotationType::Note,
+                });
+            }
+
+            footer
+        };
+
         let snippet = Snippet {
             title: Some(Annotation {
                 id: self.id,
@@ -131,15 +155,7 @@ impl<'i> Log<'i> {
                     }
                 })
                 .collect(),
-            footer: self
-                .help
-                .iter()
-                .map(|help| Annotation {
-                    id: None,
-                    label: Some(help),
-                    annotation_type: AnnotationType::Note,
-                })
-                .collect(),
+            footer,
             opt: FormatOptions {
                 color: unsafe { COLOURISE },
                 ..Default::default()
@@ -190,13 +206,14 @@ impl<'i> Log<'i> {
         Self::new(AnnotationType::Info, msg)
     }
 
-    #[allow(dead_code)]
-    pub fn note<S: Into<String>>(msg: S) -> Self {
-        Self::new(AnnotationType::Note, msg)
-    }
-
     pub fn id(mut self, id: &'static str) -> Self {
         self.id = Some(id);
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn note<S: Into<String>>(mut self, note: S) -> Self {
+        self.note = Some(note.into());
         self
     }
 
@@ -215,7 +232,7 @@ impl<'i> Log<'i> {
     pub fn expect_one_of(self, expected: &Vec<String>) -> Self {
         let len = expected.len();
         if len == 1 {
-            return self.help(format!("expected {}", expected[0]));
+            return self.note(format!("expected {}", expected[0]));
         }
 
         let mut pretty_expected = Vec::new();
@@ -226,7 +243,7 @@ impl<'i> Log<'i> {
             pretty_expected.push(e);
         }
 
-        self.help(format!("expected one of {}", pretty_expected.concat()))
+        self.note(format!("expected one of {}", pretty_expected.concat()))
     }
 }
 
