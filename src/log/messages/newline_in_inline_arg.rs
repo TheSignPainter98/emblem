@@ -1,5 +1,5 @@
 use crate::log::messages::Message;
-use crate::log::{Log, Msg, Src};
+use crate::log::{Log, Note, Src};
 use crate::parser::Location;
 use derive_new::new;
 
@@ -19,8 +19,8 @@ impl<'i> Message<'i> for NewlineInInlineArg<'i> {
             .id(Self::id())
             .src(
                 Src::new(&self.arg_start_loc.span_to(&self.newline_loc))
-                    .annotate(Msg::error(&self.newline_loc, "newline found here"))
-                    .annotate(Msg::info(
+                    .annotate(Note::error(&self.newline_loc, "newline found here"))
+                    .annotate(Note::info(
                         &self.arg_start_loc,
                         "in inline argument started here",
                     )),

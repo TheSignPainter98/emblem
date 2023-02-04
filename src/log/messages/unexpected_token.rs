@@ -1,5 +1,5 @@
 use crate::log::messages::Message;
-use crate::log::{Log, Msg, Src};
+use crate::log::{Log, Note, Src};
 use crate::parser::{lexer::Tok, Location};
 use derive_new::new;
 
@@ -31,7 +31,7 @@ impl<'i> Message<'i> for UnexpectedToken<'i> {
     fn log(self) -> Log<'i> {
         Log::error("unexpected token")
             .id(Self::id())
-            .src(Src::new(&self.loc).annotate(Msg::error(
+            .src(Src::new(&self.loc).annotate(Note::error(
                 &self.loc,
                 format!("found a {} here", self.token),
             )))

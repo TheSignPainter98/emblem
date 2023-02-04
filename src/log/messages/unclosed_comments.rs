@@ -1,5 +1,5 @@
 use crate::log::messages::Message;
-use crate::log::{Log, Msg, Src};
+use crate::log::{Log, Note, Src};
 use crate::parser::Location;
 use derive_new::new;
 
@@ -18,7 +18,7 @@ impl<'i> Message<'i> for UnclosedComments<'i> {
 
         let mut ret = Log::error(msg);
         for loc in self.unclosed {
-            ret = ret.src(Src::new(&loc).annotate(Msg::error(&loc, "found here")))
+            ret = ret.src(Src::new(&loc).annotate(Note::error(&loc, "found here")))
         }
         ret
     }

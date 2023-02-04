@@ -1,5 +1,5 @@
 use crate::log::messages::Message;
-use crate::log::{Log, Msg, Src};
+use crate::log::{Log, Note, Src};
 use crate::parser::{Location, Point};
 
 #[derive(Default)]
@@ -26,7 +26,7 @@ impl<'i> Message<'i> for UnexpectedEOF<'i> {
         let loc = Location::new(&self.point, &self.point.clone().shift("\0"));
         Log::error("unexpected eof")
             .id(Self::id())
-            .src(Src::new(&loc).annotate(Msg::error(&loc, "file ended early here")))
+            .src(Src::new(&loc).annotate(Note::error(&loc, "file ended early here")))
             .expect_one_of(&self.expected)
     }
 }

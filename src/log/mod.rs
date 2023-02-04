@@ -237,13 +237,13 @@ impl<'i> Message<'i> for Log<'i> {
     }
 }
 
-pub struct Msg<'i> {
+pub struct Note<'i> {
     loc: Location<'i>,
     msg: String,
     msg_type: AnnotationType,
 }
 
-impl<'i> Msg<'i> {
+impl<'i> Note<'i> {
     fn new<S: Into<String>>(msg_type: AnnotationType, loc: &Location<'i>, msg: S) -> Self {
         Self {
             loc: loc.clone(),
@@ -274,7 +274,7 @@ impl<'i> Msg<'i> {
 }
 
 #[cfg(test)]
-impl Msg<'_> {
+impl Note<'_> {
     fn get_text(&self) -> Vec<&str> {
         vec![&self.msg]
     }
@@ -282,7 +282,7 @@ impl Msg<'_> {
 
 pub struct Src<'i> {
     loc: Location<'i>,
-    annotations: Vec<Msg<'i>>,
+    annotations: Vec<Note<'i>>,
 }
 
 impl<'i> Src<'i> {
@@ -295,8 +295,8 @@ impl<'i> Src<'i> {
     }
 
     #[allow(dead_code)]
-    pub fn annotate(mut self, annotation: Msg<'i>) -> Self {
-        self.annotations.push(annotation);
+    pub fn annotate(mut self, note: Note<'i>) -> Self {
+        self.annotations.push(note);
         self
     }
 }
