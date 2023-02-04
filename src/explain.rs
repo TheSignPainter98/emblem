@@ -1,19 +1,16 @@
 use crate::{
     args::ExplainCmd,
-    log::messages,
-    log::messages::{
-        NoSuchErrorCode,
-    }
+    log::messages::{self, NoSuchErrorCode},
 };
-use std::error::Error;
 use pager::Pager;
+use std::error::Error;
 
 pub fn explain(cmd: ExplainCmd) -> Result<(), Box<dyn Error>> {
     match get_explanation(&cmd.id) {
         Ok(expl) => {
             Pager::with_default_pager("less").setup();
             println!("{}", expl);
-        },
+        }
         Err(m) => alert!(m),
     }
 
@@ -25,7 +22,10 @@ fn get_explanation<'a>(id: &'a str) -> Result<&'static str, NoSuchErrorCode<'a>>
         return Err(NoSuchErrorCode::new(id));
     }
 
-    let msg = messages::messages().into_iter().filter(|msg| msg.id() == id).next();
+    let msg = messages::messages()
+        .into_iter()
+        .filter(|msg| msg.id() == id)
+        .next();
 
     match msg {
         None => Err(NoSuchErrorCode::new(id)),

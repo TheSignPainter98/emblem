@@ -8,7 +8,10 @@ use crate::{
     parser::Location,
 };
 use annotate_snippets::{
-    display_list::{DisplayList, FormatOptions},
+    display_list::{
+        DisplayAnnotationType, DisplayLine, DisplayList, DisplayRawLine, DisplayTextFragment,
+        DisplayTextStyle, FormatOptions,
+    },
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
 use parking_lot::Mutex;
