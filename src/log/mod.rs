@@ -151,7 +151,27 @@ impl<'i> Log<'i> {
             }
         }
 
-        eprintln!("{}", DisplayList::from(snippet));
+        if let Some(id) = self.id {
+            let info_instruction = &format!("For more information about this error, try `em explain {}", id);
+            let mut display_list = DisplayList::from(snippet);
+            display_list
+                .body
+                .push(DisplayLine::Raw(DisplayRawLine::Annotation {
+                    annotation: annotate_snippets::display_list::Annotation {
+                        annotation_type: DisplayAnnotationType::None,
+                        id: None,
+                        label: vec![DisplayTextFragment {
+                            content: info_instruction,
+                            style: DisplayTextStyle::Regular,
+                        }],
+                    },
+                    source_aligned: false,
+                    continuation: false,
+                }));
+            eprintln!("{}`", display_list);
+        } else {
+            eprintln!("{}`", DisplayList::from(snippet));
+        }
     }
 
     pub fn error<S: Into<String>>(msg: S) -> Self {
