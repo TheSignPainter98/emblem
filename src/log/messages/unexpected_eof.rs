@@ -10,7 +10,10 @@ pub struct UnexpectedEOF<'i> {
 
 impl<'i> UnexpectedEOF<'i> {
     pub fn new(mut point: Point<'i>, expected: Vec<String>) -> Self {
-        assert!(point.index > 0, "internal error: empty files are supposed to be valid");
+        assert!(
+            point.index > 0,
+            "internal error: empty files are supposed to be valid"
+        );
 
         point.index -= 1;
 
