@@ -28,6 +28,7 @@ lazy_static = "1.4.0"
 typed-arena = "2.0.1"
 parking_lot = "0.12.1"
 derive-new = "0.5.9"
+pager = "0.16.1"
 
 [build-dependencies]
 clap = { version = "4.0.12", features = ["derive", "env", "wrap_help"] }

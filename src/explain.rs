@@ -6,10 +6,14 @@ use crate::{
     }
 };
 use std::error::Error;
+use pager::Pager;
 
 pub fn explain(cmd: ExplainCmd) -> Result<(), Box<dyn Error>> {
     match get_explanation(&cmd.id) {
-        Ok(expl) => println!("{}", expl),
+        Ok(expl) => {
+            Pager::with_default_pager("less").setup();
+            println!("{}", expl);
+        },
         Err(m) => alert!(m),
     }
 
