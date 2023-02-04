@@ -138,6 +138,9 @@ pub enum Command {
     /// Build a given document
     Build(BuildCmd),
 
+    /// Explain a given error
+    Explain(ExplainCmd),
+
     /// Fix formatting errors in the given document
     #[command(name = "fmt")]
     Format(FormatCmd),
@@ -157,6 +160,13 @@ impl Command {
     fn build(&self) -> Option<&BuildCmd> {
         match self {
             Self::Build(b) => Some(b),
+            _ => None,
+        }
+    }
+
+    fn explain(&self) -> Option<&ExplainCmd> {
+        match self {
+            Self::Explain(e) => Some(e),
             _ => None,
         }
     }
@@ -222,6 +232,15 @@ impl BuildCmd {
     pub fn output_stem(&self) -> ArgPath {
         self.output.stem.infer_from(&self.input.file)
     }
+}
+
+/// Arguments to the explain subcommand
+#[derive(Clone, Debug, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct ExplainCmd {
+    /// Code of the error to explain
+    #[arg(value_name = "error-code")]
+    pub code: String,
 }
 
 /// Arguments to the fmt subcommand
@@ -1353,6 +1372,24 @@ mod test {
                         .path,
                     SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
                 );
+            }
+        }
+
+        mod explain {
+            use super::*;
+
+            #[test]
+            fn code() {
+                assert_eq!(
+                    Args::try_parse_from(&["em", "explain", "E001"])
+                        .unwrap()
+                        .command
+                        .explain()
+                        .unwrap()
+                        .code,
+                    "E001"
+                );
+                assert!(Args::try_parse_from(&["em", "explain"]).is_err());
             }
         }
 

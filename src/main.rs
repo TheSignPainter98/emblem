@@ -19,6 +19,7 @@ fn main() -> ExitCode {
 
     let ret = match args.command {
         Command::Build(args) => build::build(args),
+        Command::Explain(_) => panic!("explain not implemented"),
         Command::Format(_) => panic!("fmt not implemented"),
         Command::Init(args) => init::init(args),
         Command::Lint(_) => panic!("lint not implemented"),
