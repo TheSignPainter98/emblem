@@ -15,6 +15,7 @@ path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+annotate-snippets = { version = "0.9.1", features = ["color"] }
 clap = { version = "4.0.12", features = ["derive", "env", "wrap_help"] }
 clap-verbosity-flag = "2.0.0"
 git2 = { version = "0.16.1" }
@@ -25,6 +26,8 @@ tempfile = "3.3.0"
 regex = "1"
 lazy_static = "1.4.0"
 typed-arena = "2.0.1"
+parking_lot = "0.12.1"
+derive-new = "0.5.9"
 
 [build-dependencies]
 clap = { version = "4.0.12", features = ["derive", "env", "wrap_help"] }

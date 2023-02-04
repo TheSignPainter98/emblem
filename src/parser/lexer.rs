@@ -1,5 +1,9 @@
-use crate::parser::point::Point;
+use crate::log::messages::{
+    ExtraCommentClose, NewlineInInlineArg, UnclosedComments, UnexpectedChar, UnexpectedEOF,
+};
+use crate::log::Log;
 use crate::parser::Location;
+use crate::{log::messages::Message, parser::point::Point};
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{
@@ -148,34 +152,37 @@ impl<'input> Iterator for Lexer<'input> {
         }
 
         macro_rules! match_token {
-            ( $($re:ident => $to_tok:expr),*, $(! => $on_eof:expr)? $(,)?  ) => {
-                if false { None }
+            ( ! => $on_eof:expr, $($re:ident => $to_tok:expr),* $(,)? ) => {
+                if self.input.is_empty() {
+                    #[allow(unreachable_code)]
+                    Some($on_eof)
+                }
                 $(else if let Some(mat) = self.try_consume(&$re) {
                     let ret = $to_tok(mat).map(|t| self.span(t));
                     self.last_tok = ret.as_ref().ok().map(|s| s.1.clone());
                     Some(ret)
                 })*
-                $(
-                else if self.input.is_empty() {
-                    Some(Err($on_eof))
-                }
-                )?
                 else {
                     self.failed = true;
-                    Some(Err(LexicalError {
-                        reason: if self.input.is_empty() {
-                                LexicalErrorReason::UnexpectedEOF
-                            } else {
-                                LexicalErrorReason::UnexpectedChar(self.input.chars().next().unwrap())
-                            },
-                        loc: self.location(),
-                    }))
+                    Some(Err(
+                        LexicalError::UnexpectedChar {
+                            found: self.input.chars().next().unwrap(),
+                            loc: self.location(),
+                        }
+                    ))
                 }
             };
         }
 
         if !self.multi_line_comment_starts.is_empty() {
             return match_token![
+                ! => {
+                    self.failed = true;
+                    Err(LexicalError::UnmatchedCommentOpen {
+                        unclosed: self.multi_line_comment_starts.clone(),
+                    })
+                },
+
                 NESTED_COMMENT_PART => |s: &'input str| Ok(Tok::Comment(s)) ,
                 LN                  => |_| Ok(Tok::Newline) ,
                 NESTED_COMMENT_OPEN => |_| {
@@ -186,17 +193,38 @@ impl<'input> Iterator for Lexer<'input> {
                     self.multi_line_comment_starts.pop();
                     Ok(Tok::NestedCommentClose)
                 },
-                ! => {
-                    self.failed = true;
-                    LexicalError {
-                        reason: LexicalErrorReason::UnmatchedCommentOpen,
-                        loc: self.multi_line_comment_starts.pop().unwrap(),
-                    }
-                }
             ];
         }
 
+        if self.parsing_attrs {
+            return match_token! {
+                ! => {
+                    self.failed = true;
+                    Err(LexicalError::UnexpectedEOF {
+                        point: self.curr_point.clone(),
+                        expected: vec![],
+                    })
+                },
+
+                NAMED_ATTR   => |s: &'input str| Ok(Tok::NamedAttr(s)),
+                UNNAMED_ATTR => |s: &'input str| Ok(Tok::UnnamedAttr(s)),
+                COMMA        => |_| Ok(Tok::AttrComma),
+                CLOSE_ATTRS  => |_| {
+                    self.parsing_attrs = false;
+                    Ok(Tok::RBracket)
+                },
+            };
+        }
+
         if self.input.is_empty() {
+            if !self.open_braces.is_empty() {
+                self.failed = true;
+                return Some(Err(LexicalError::UnexpectedEOF {
+                    point: self.curr_point.clone(),
+                    expected: vec!["\"}\"".into()],
+                }));
+            }
+
             if self.last_tok != Some(Tok::Newline) {
                 self.enqueue(self.span(Tok::Newline));
             }
@@ -210,9 +238,9 @@ impl<'input> Iterator for Lexer<'input> {
 
             if !self.open_braces.is_empty() {
                 self.failed = true;
-                return Some(Err(LexicalError {
-                    reason: LexicalErrorReason::NewlineInArg,
-                    loc: self.open_braces.pop().unwrap(),
+                return Some(Err(LexicalError::NewlineInArg {
+                    arg_start_loc: self.open_braces.pop().unwrap(),
+                    newline_loc: self.location(),
                 }));
             }
 
@@ -243,19 +271,9 @@ impl<'input> Iterator for Lexer<'input> {
             return Some(Ok(self.span(Tok::LBracket)));
         }
 
-        if self.parsing_attrs {
-            return match_token! {
-                NAMED_ATTR   => |s: &'input str| Ok(Tok::NamedAttr(s)),
-                UNNAMED_ATTR => |s: &'input str| Ok(Tok::UnnamedAttr(s)),
-                COMMA        => |_| Ok(Tok::AttrComma),
-                CLOSE_ATTRS  => |_| {
-                    self.parsing_attrs = false;
-                    Ok(Tok::RBracket)
-                },
-            };
-        }
-
         match_token! {
+            ! => panic!("internal error: unexpected EOF"),
+
             COMMENT      => |s: &'input str| Ok(Tok::Comment(&s[2..])),
             DOUBLE_COLON => |_| Ok(Tok::DoubleColon),
             COLON        => |_| Ok(Tok::Colon),
@@ -276,10 +294,7 @@ impl<'input> Iterator for Lexer<'input> {
             },
             NESTED_COMMENT_CLOSE => |_| {
                 self.failed = true;
-                Err(LexicalError{
-                    reason: LexicalErrorReason::UnmatchedCommentClose,
-                    loc: self.location(),
-                })
+                Err(LexicalError::UnmatchedCommentClose { loc: self.location() })
             },
 
             COMMAND    => |s:&'input str| Ok(Tok::Command(&s[1..])),
@@ -367,59 +382,62 @@ fn indent_level(s: &str) -> u32 {
 pub type SpannedTok<'input> = (Point<'input>, Tok<'input>, Point<'input>);
 
 #[derive(Debug)]
-pub struct LexicalError<'input> {
-    reason: LexicalErrorReason,
-    loc: Location<'input>,
+pub enum LexicalError<'input> {
+    UnexpectedChar {
+        loc: Location<'input>,
+        found: char,
+    },
+    UnexpectedEOF {
+        point: Point<'input>,
+        expected: Vec<String>,
+    },
+    UnmatchedCommentOpen {
+        unclosed: Vec<Location<'input>>,
+    },
+    UnmatchedCommentClose {
+        loc: Location<'input>,
+    },
+    NewlineInArg {
+        arg_start_loc: Location<'input>,
+        newline_loc: Location<'input>,
+    },
 }
 
-impl<'input> LexicalError<'input> {
-    #[allow(dead_code)]
-    pub fn location(&self) -> &Location {
-        &self.loc
+impl<'input> Message<'input> for LexicalError<'input> {
+    fn log(self) -> Log<'input> {
+        match self {
+            Self::UnexpectedChar { found, loc } => UnexpectedChar::new(loc, found).log(),
+            Self::UnexpectedEOF { point, expected } => UnexpectedEOF::new(point, expected).log(),
+            Self::UnmatchedCommentOpen { unclosed } => UnclosedComments::new(unclosed).log(),
+            Self::UnmatchedCommentClose { loc } => ExtraCommentClose::new(loc).log(),
+            Self::NewlineInArg {
+                arg_start_loc,
+                newline_loc,
+            } => NewlineInInlineArg::new(arg_start_loc, newline_loc).log(),
+        }
     }
 }
+
+impl Error for LexicalError<'_> {}
 
 impl Display for LexicalError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.reason {
-            LexicalErrorReason::UnexpectedEOF => self.reason.description().fmt(f),
-            _ => write!(f, "{} found at {}", self.reason, self.loc),
-        }
-    }
-}
-
-impl Error for LexicalError<'_> {
-    fn description(&self) -> &str {
-        self.reason.description()
-    }
-}
-
-#[derive(Debug)]
-enum LexicalErrorReason {
-    UnexpectedChar(char),
-    UnexpectedEOF,
-    UnmatchedCommentOpen,
-    UnmatchedCommentClose,
-    NewlineInArg,
-}
-
-impl LexicalErrorReason {
-    fn description(&self) -> &str {
         match self {
-            LexicalErrorReason::UnexpectedEOF => "unexpected EOF",
-            LexicalErrorReason::UnexpectedChar(_) => "unexpected character",
-            LexicalErrorReason::UnmatchedCommentOpen => "unclosed comment",
-            LexicalErrorReason::UnmatchedCommentClose => "no comment to close",
-            LexicalErrorReason::NewlineInArg => "newline in braced args",
-        }
-    }
-}
-
-impl Display for LexicalErrorReason {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::UnexpectedChar(c) => write!(f, "{}: {:?}", self.description(), c),
-            _ => self.description().fmt(f),
+            Self::UnexpectedChar { found, loc } => {
+                write!(f, "unexpected character '{:?}' found at {}", found, loc)
+            }
+            Self::UnexpectedEOF { point, .. } => write!(f, "unexpected EOF found at {}", point),
+            Self::UnmatchedCommentOpen { unclosed } => write!(
+                f,
+                "unclosed comment found at {:?}",
+                unclosed.iter().map(|u| u.to_string()).collect::<Vec<_>>()
+            ),
+            Self::UnmatchedCommentClose { loc, .. } => {
+                write!(f, "no comment to close found at {}", loc)
+            }
+            Self::NewlineInArg { arg_start_loc, .. } => {
+                write!(f, "newline in braced args found at {}", arg_start_loc)
+            }
         }
     }
 }
