@@ -27,7 +27,7 @@ impl<'a> Message<'a> for NoSuchErrorCode<'a> {
     {
         concat!(
             "Error codes have the form `Eddd`, for digits `d`, such as this error, E001. ",
-            "If you're seeing this, please check any typos."
+            "If you're seeing this, please check for any typos."
         )
     }
 }
