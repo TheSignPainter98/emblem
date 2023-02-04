@@ -11,7 +11,7 @@ pub struct NewlineInInlineArg<'i> {
 
 impl<'i> Message<'i> for NewlineInInlineArg<'i> {
     fn id() -> &'static str {
-        "E002"
+        "E001"
     }
 
     fn log(self) -> Log<'i> {
@@ -26,5 +26,32 @@ impl<'i> Message<'i> for NewlineInInlineArg<'i> {
                     )),
             )
             .help("consider using trailer (colon) arguments")
+    }
+
+    fn explain() -> &'static str
+    where
+        Self: Sized,
+    {
+        concat!(
+            "This error means that a newline was detected early in the parsing of arguments. ",
+            "Command arguments have two forms:\n",
+            "\n",
+            "```\n",
+            ".command{inline-arg-1}{inline-arg-2}{...}: remainder-arg\n",
+            "// or\n",
+            ".command{inline-arg-1}{inline-arg-2}{...}:\n",
+            "\ttrailer\n",
+            "\targ\n",
+            "\t1\n",
+            "::\n",
+            "\ttrailer\n",
+            "\targ\n",
+            "\t2\n",
+            "::\n",
+            "\t...\n",
+            "```\n",
+            "\n",
+            "If you are an extension author, consider ordering arguments so your users are encouraged to place longer ones later.",
+        )
     }
 }

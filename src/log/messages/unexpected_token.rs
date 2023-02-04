@@ -21,13 +21,6 @@ impl Default for UnexpectedToken<'_> {
 }
 
 impl<'i> Message<'i> for UnexpectedToken<'i> {
-    fn id() -> &'static str
-    where
-        Self: Sized,
-    {
-        "E003"
-    }
-
     fn log(self) -> Log<'i> {
         Log::error("unexpected token")
             .id(Self::id())

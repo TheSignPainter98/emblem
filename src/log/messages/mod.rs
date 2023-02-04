@@ -144,28 +144,37 @@ mod test {
 
         #[test]
         fn not_too_long() {
+            let mut failed = false;
             for info in messages() {
                 let nchars = info.explanation.chars().count();
-                assert!(
-                    nchars <= 1000,
-                    "{} explanation is too long: contains {} chars",
-                    info.id,
-                    nchars
-                );
+                let limit = if info.id.is_empty() { 0 } else { 1000 };
+
+                if nchars > limit {
+                    failed = true;
+                    println!(
+                        "{} explanation is too long: contains {} chars",
+                        info.id, nchars
+                    );
+                }
             }
+            assert!(!failed, "some explanations were too long, see above");
         }
 
-        //         #[test]
-        //         fn not_too_short() {
-        //             for info in messages() {
-        //                 let nchars = info.explanation.chars().count();
-        //                 assert!(
-        //                     nchars >= 100,
-        //                     "{} description is too short: contains {} chars",
-        //                     info.id,
-        //                     nchars
-        //                 );
-        //             }
-        //         }
+        #[test]
+        fn not_too_short() {
+            let mut failed = false;
+
+            for info in messages().iter().filter(|info| !info.id.is_empty()) {
+                let nchars = info.explanation.chars().count();
+                if nchars < 100 {
+                    failed = true;
+                    println!(
+                        "{} explanation is too short: contains {} chars",
+                        info.id, nchars
+                    );
+                }
+            }
+            assert!(!failed, "some explanations were too short, see above");
+        }
     }
 }
