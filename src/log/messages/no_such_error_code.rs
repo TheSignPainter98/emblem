@@ -18,7 +18,7 @@ impl<'a> Message<'a> for NoSuchErrorCode<'a> {
     fn log(self) -> Log<'a> {
         Log::error(format!("no such error code {:?}", self.id))
             .id(Self::id())
-            .help("perhaps this is a typo?")
+            .help("perhaps there is a typo here?")
     }
 
     fn explain() -> &'static str
