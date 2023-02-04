@@ -25,7 +25,6 @@ impl<'i> Message<'i> for UnexpectedEOF<'i> {
     fn log(self) -> Log<'i> {
         let loc = Location::new(&self.point, &self.point.clone().shift("\0"));
         Log::error("unexpected eof")
-            .id(Self::id())
             .src(Src::new(&loc).annotate(Note::error(&loc, "file ended early here")))
             .expect_one_of(&self.expected)
     }

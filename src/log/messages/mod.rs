@@ -118,14 +118,18 @@ mod test {
 
         #[test]
         fn log_application() {
-            for info in messages() {
-                let id = info.id;
-                let log = Box::new(info.default_log);
+            for (i, info) in messages().iter().enumerate() {
+                let id = match info.id {
+                    "" => None,
+                    s => Some(s),
+                };
+                let log = &info.default_log;
                 assert_eq!(
                     id,
-                    log.get_id().unwrap_or(""),
-                    "Incorrect id in log for {}",
-                    id
+                    log.get_id(),
+                    "Incorrect id in log for {:?} (message type {})",
+                    info.id,
+                    i,
                 );
             }
         }
