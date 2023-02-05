@@ -16,7 +16,7 @@ pub fn lint(cmd: LintCmd) -> Result<(), Box<dyn Error>> {
     let file: ParsedFile = match parser::parse_file(&mut ctx, cmd.input.file.as_ref().try_into()?) {
         Ok(f) => f,
         Err(e) => {
-            println!("{}", e);
+            alert!(e);
             return Ok(());
         }
     };

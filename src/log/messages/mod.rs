@@ -15,6 +15,7 @@ pub use unexpected_eof::UnexpectedEOF;
 pub use unexpected_token::UnexpectedToken;
 
 use crate::log::Log;
+use crate::parser::{self, error::LalrpopError, Location};
 
 pub trait Message<'i> {
     /// If implemented, returns the unique identifier for the message. This must have the form
@@ -44,6 +45,37 @@ pub trait Message<'i> {
     {
         // TODO(kcza): remove default empty implementation
         ""
+    }
+}
+
+impl<'i> Message<'i> for parser::Error<'i> {
+    fn log(self) -> Log<'i> {
+        match self {
+            parser::Error::StringConversion(e) => Log::error(&e.to_string()),
+            parser::Error::Filesystem(e) => Log::error(&e.to_string()),
+            parser::Error::Parse(e) => match e {
+                LalrpopError::InvalidToken { location } => {
+                    panic!("internal error: invalid token at {}", location)
+                }
+                LalrpopError::UnrecognizedEOF { location, expected } => {
+                    UnexpectedEOF::new(location, expected).log()
+                }
+                LalrpopError::UnrecognizedToken {
+                    token: (l, t, r),
+                    expected,
+                } => {
+                    UnexpectedToken::new(Location::new(&l, &r), t, expected).log()
+                }
+                LalrpopError::ExtraToken { token: (l, t, r) } => panic!(
+                    "internal error: extra token {} at {}",
+                    t,
+                    Location::new(&l, &r)
+                ),
+                LalrpopError::User { error } => {
+                    error.log()
+                }
+            },
+        }
     }
 }
 
