@@ -23,7 +23,6 @@ impl Default for UnexpectedToken<'_> {
 impl<'i> Message<'i> for UnexpectedToken<'i> {
     fn log(self) -> Log<'i> {
         Log::error("unexpected token")
-            .id(Self::id())
             .src(Src::new(&self.loc).annotate(Note::error(
                 &self.loc,
                 format!("found a {} here", self.token),

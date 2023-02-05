@@ -11,7 +11,7 @@ pub struct NewlineInInlineArg<'i> {
 
 impl<'i> Message<'i> for NewlineInInlineArg<'i> {
     fn id() -> &'static str {
-        "E001"
+        "E002"
     }
 
     fn log(self) -> Log<'i> {

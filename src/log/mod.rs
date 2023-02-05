@@ -8,7 +8,10 @@ use crate::{
     parser::Location,
 };
 use annotate_snippets::{
-    display_list::{DisplayList, FormatOptions},
+    display_list::{
+        DisplayAnnotationType, DisplayLine, DisplayList, DisplayRawLine, DisplayTextFragment,
+        DisplayTextStyle, FormatOptions,
+    },
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
 use parking_lot::Mutex;
@@ -82,6 +85,7 @@ pub struct Log<'i> {
     msg_type: AnnotationType,
     id: Option<&'static str>,
     help: Option<String>,
+    note: Option<String>,
     srcs: Vec<Src<'i>>,
 }
 
@@ -92,11 +96,34 @@ impl<'i> Log<'i> {
             id: None,
             msg_type,
             help: None,
+            note: None,
             srcs: Vec::new(),
         }
     }
 
     pub fn print(self) {
+        let footer = {
+            let mut footer = vec![];
+
+            if let Some(ref help) = self.help {
+                footer.push(Annotation {
+                    id: None,
+                    label: Some(help),
+                    annotation_type: AnnotationType::Help,
+                });
+            }
+
+            if let Some(ref note) = self.note {
+                footer.push(Annotation {
+                    id: None,
+                    label: Some(note),
+                    annotation_type: AnnotationType::Note,
+                });
+            }
+
+            footer
+        };
+
         let snippet = Snippet {
             title: Some(Annotation {
                 id: self.id,
@@ -128,15 +155,7 @@ impl<'i> Log<'i> {
                     }
                 })
                 .collect(),
-            footer: self
-                .help
-                .iter()
-                .map(|help| Annotation {
-                    id: None,
-                    label: Some(help),
-                    annotation_type: AnnotationType::Note,
-                })
-                .collect(),
+            footer,
             opt: FormatOptions {
                 color: unsafe { COLOURISE },
                 ..Default::default()
@@ -151,7 +170,30 @@ impl<'i> Log<'i> {
             }
         }
 
-        eprintln!("{}", DisplayList::from(snippet));
+        if let Some(id) = self.id {
+            let info_instruction = &format!(
+                "For more information about this error, try `em explain {}",
+                id
+            );
+            let mut display_list = DisplayList::from(snippet);
+            display_list
+                .body
+                .push(DisplayLine::Raw(DisplayRawLine::Annotation {
+                    annotation: annotate_snippets::display_list::Annotation {
+                        annotation_type: DisplayAnnotationType::None,
+                        id: None,
+                        label: vec![DisplayTextFragment {
+                            content: info_instruction,
+                            style: DisplayTextStyle::Emphasis,
+                        }],
+                    },
+                    source_aligned: false,
+                    continuation: false,
+                }));
+            eprintln!("{}`", display_list);
+        } else {
+            eprintln!("{}`", DisplayList::from(snippet));
+        }
     }
 
     pub fn error<S: Into<String>>(msg: S) -> Self {
@@ -167,13 +209,14 @@ impl<'i> Log<'i> {
         Self::new(AnnotationType::Info, msg)
     }
 
-    #[allow(dead_code)]
-    pub fn note<S: Into<String>>(msg: S) -> Self {
-        Self::new(AnnotationType::Note, msg)
-    }
-
     pub fn id(mut self, id: &'static str) -> Self {
         self.id = Some(id);
+        self
+    }
+
+    #[allow(dead_code)]
+    pub fn note<S: Into<String>>(mut self, note: S) -> Self {
+        self.note = Some(note.into());
         self
     }
 
@@ -192,7 +235,7 @@ impl<'i> Log<'i> {
     pub fn expect_one_of(self, expected: &Vec<String>) -> Self {
         let len = expected.len();
         if len == 1 {
-            return self.help(format!("expected {}", expected[0]));
+            return self.note(format!("expected {}", expected[0]));
         }
 
         let mut pretty_expected = Vec::new();
@@ -203,7 +246,7 @@ impl<'i> Log<'i> {
             pretty_expected.push(e);
         }
 
-        self.help(format!("expected one of {}", pretty_expected.concat()))
+        self.note(format!("expected one of {}", pretty_expected.concat()))
     }
 }
 
@@ -263,8 +306,8 @@ impl<'i> Note<'i> {
     }
 
     #[allow(dead_code)]
-    pub fn note<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
-        Self::new(AnnotationType::Note, loc, msg)
+    pub fn help<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
+        Self::new(AnnotationType::Help, loc, msg)
     }
 }
 
