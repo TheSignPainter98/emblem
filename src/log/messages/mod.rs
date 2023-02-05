@@ -68,16 +68,16 @@ pub fn messages() -> Vec<MessageInfo> {
     macro_rules! messages {
         ($($msg:ident),* $(,)?) => {
             {
-                let mut ret = Vec::new();
-                $(
-                    ret.push(MessageInfo {
-                        id: $msg::id(),
-                        #[cfg(test)]
-                        default_log: <$msg as Message<'_>>::default().log(),
-                        explanation: $msg::explain()
-                    });
-                )*
-                ret
+                vec![
+                    $(
+                        MessageInfo {
+                            id: $msg::id(),
+                            #[cfg(test)]
+                            default_log: <$msg as Message<'_>>::default().log(),
+                            explanation: $msg::explain()
+                        },
+                    )*
+                ]
             }
         };
     }

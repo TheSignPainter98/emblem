@@ -22,10 +22,7 @@ fn get_explanation<'a>(id: &'a str) -> Result<&'static str, NoSuchErrorCode<'a>>
         return Err(NoSuchErrorCode::new(id));
     }
 
-    let msg = messages::messages()
-        .into_iter()
-        .filter(|msg| msg.id() == id)
-        .next();
+    let msg = messages::messages().into_iter().find(|msg| msg.id() == id);
 
     match msg {
         None => Err(NoSuchErrorCode::new(id)),

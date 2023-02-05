@@ -108,7 +108,7 @@ impl<'i> Log<'i> {
             if let Some(ref help) = self.help {
                 footer.push(Annotation {
                     id: None,
-                    label: Some(&help),
+                    label: Some(help),
                     annotation_type: AnnotationType::Help,
                 });
             }
@@ -116,7 +116,7 @@ impl<'i> Log<'i> {
             if let Some(ref note) = self.note {
                 footer.push(Annotation {
                     id: None,
-                    label: Some(&note),
+                    label: Some(note),
                     annotation_type: AnnotationType::Note,
                 });
             }
@@ -306,8 +306,8 @@ impl<'i> Note<'i> {
     }
 
     #[allow(dead_code)]
-    pub fn note<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
-        Self::new(AnnotationType::Note, loc, msg)
+    pub fn help<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
+        Self::new(AnnotationType::Help, loc, msg)
     }
 }
 
