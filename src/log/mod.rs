@@ -184,7 +184,7 @@ impl<'i> Log<'i> {
                         id: None,
                         label: vec![DisplayTextFragment {
                             content: info_instruction,
-                            style: DisplayTextStyle::Regular,
+                            style: DisplayTextStyle::Emphasis,
                         }],
                     },
                     source_aligned: false,
