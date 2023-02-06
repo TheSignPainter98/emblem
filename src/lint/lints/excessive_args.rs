@@ -55,6 +55,7 @@ impl<'i> Lint<'i> for ExcessiveArgs {
                 remainder_arg,
                 trailer_args,
                 loc,
+                invocation_loc,
                 ..
             } => {
                 if let Some(max) = AFFECTED_COMMANDS.get(name.as_ref()) {
@@ -64,7 +65,7 @@ impl<'i> Lint<'i> for ExcessiveArgs {
                         return Some(
                             Log::warn(format!("too many arguments passed to .{name}",)).src(
                                 Src::new(loc).annotate(Note::info(
-                                    loc,
+                                    invocation_loc,
                                     format!("expected at most {max} arguments"),
                                 )),
                             ),

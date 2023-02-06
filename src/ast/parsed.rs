@@ -16,6 +16,7 @@ pub enum Content<'i> {
         remainder_arg: Option<Vec<Content<'i>>>,
         trailer_args: Vec<Vec<Par<ParPart<Content<'i>>>>>,
         loc: Location<'i>,
+        invocation_loc: Location<'i>,
     },
     Word {
         word: Text<'i>,

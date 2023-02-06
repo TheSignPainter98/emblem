@@ -27,6 +27,7 @@ impl<'i> Lint<'i> for CommandNaming {
             Content::Command {
                 name,
                 loc,
+                invocation_loc,
                 ..
             } => {
                 let name = name.as_ref();
@@ -36,7 +37,7 @@ impl<'i> Lint<'i> for CommandNaming {
                             "commands should be lowercase with dashes: got .{name}"
                         ))
                         .src(Src::new(loc).annotate(Note::help(
-                            loc,
+                            invocation_loc,
                             format!("try changing this to .{}", name.to_lowercase()),
                         )))
                         .note("command-names are case-insensitive; lowercase reads more fluidly"),
