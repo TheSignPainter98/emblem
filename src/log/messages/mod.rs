@@ -51,8 +51,8 @@ pub trait Message<'i> {
 impl<'i> Message<'i> for parser::Error<'i> {
     fn log(self) -> Log<'i> {
         match self {
-            parser::Error::StringConversion(e) => Log::error(&e.to_string()),
-            parser::Error::Filesystem(e) => Log::error(&e.to_string()),
+            parser::Error::StringConversion(e) => Log::error(e.to_string()),
+            parser::Error::Filesystem(e) => Log::error(e.to_string()),
             parser::Error::Parse(e) => match e {
                 LalrpopError::InvalidToken { location } => {
                     panic!("internal error: invalid token at {}", location)

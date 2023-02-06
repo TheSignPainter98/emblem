@@ -19,26 +19,26 @@ lazy_static! {
     // TODO(kcza): do the exact same for attributes
     static ref AFFECTED_COMMANDS: HashMap<&'static str, usize> = {
         vec![
+            ("cite", 0),
+            ("anchor", 0),
+            ("ref", 0),
+            ("toc", 0),
             ("bf", 1),
             ("it", 1),
             ("sc", 1),
             ("af", 1),
             ("dt", 1),
             ("tt", 1),
-            ("toc", 0),
-            ("if", 3),
-            ("cite", 1),
-            ("anchor", 1),
-            ("ref", 1),
             ("h1", 1),
             ("h2", 1),
             ("h3", 1),
             ("h4", 1),
             ("h5", 1),
             ("h6", 1),
+            ("if", 3),
         ]
-        .into_iter()
-        .collect()
+            .into_iter()
+            .collect()
     };
 }
 
@@ -59,9 +59,9 @@ impl<'i> Lint<'i> for ExcessiveArgs {
                 ..
             } => {
                 if let Some(max) = AFFECTED_COMMANDS.get(name.as_ref()) {
-                    let num_style_args =
+                    let num_args =
                         inline_args.len() + remainder_arg.iter().len() + trailer_args.len();
-                    if num_style_args > *max {
+                    if num_args > *max {
                         return Some(
                             Log::warn(format!("too many arguments passed to .{name}",)).src(
                                 Src::new(loc).annotate(Note::info(
@@ -75,13 +75,13 @@ impl<'i> Lint<'i> for ExcessiveArgs {
 
                 None
             }
-            Content::Word{ .. }
-            | Content::Whitespace{ .. }
-            | Content::Dash{ .. }
-            | Content::Glue{ .. }
-            | Content::Verbatim{ .. }
-            | Content::Comment{ .. }
-            | Content::MultiLineComment{ .. } => None
+            Content::Word { .. }
+            | Content::Whitespace { .. }
+            | Content::Dash { .. }
+            | Content::Glue { .. }
+            | Content::Verbatim { .. }
+            | Content::Comment { .. }
+            | Content::MultiLineComment { .. } => None,
         }
     }
 }
