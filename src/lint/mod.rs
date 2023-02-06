@@ -1,13 +1,12 @@
 mod lints;
-mod problem;
 
 use crate::args::LintCmd;
 use crate::ast::parsed::Content;
 use crate::ast::parsed::ParsedFile;
 use crate::ast::{File, Par, ParPart};
 use crate::context::Context;
+use crate::log::Log;
 use crate::parser;
-use problem::Problem;
 use std::error::Error;
 
 pub fn lint(cmd: LintCmd) -> Result<(), Box<dyn Error>> {
@@ -21,61 +20,55 @@ pub fn lint(cmd: LintCmd) -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let mut lints = lints::lints();
-    let mut problems = Vec::new();
+    let problems = {
+        let mut problems = Vec::new();
+        file.lint(&mut lints::lints(), &mut problems);
+        problems
+    };
 
-    file.lint(&mut lints, &mut problems);
-
-    for problem in &problems {
-        println!("{}", problem);
-    }
-
-    let len = problems.len();
-    if len > 0 {
-        println!("{} linting problems", problems.len());
+    for problem in problems.into_iter() {
+        alert!(problem);
     }
 
     Ok(())
 }
 
-pub type Lints = Vec<Box<dyn Lint>>;
+pub type Lints<'i> = Vec<Box<dyn Lint<'i>>>;
 
-pub trait Lint {
-    fn analyse<'i>(&mut self, content: &Content<'i>) -> Option<Problem>;
+pub trait Lint<'i> {
+    fn analyse(&mut self, content: &Content<'i>) -> Option<Log<'i>>;
 
-    fn done(&mut self) -> Option<Problem> { None }
+    fn done(&mut self) -> Option<Log<'i>> {
+        None
+    }
 
     fn id(&self) -> &'static str;
-
-    fn problem(&self, reason: String) -> Problem {
-        Problem::new(self.id(), reason)
-    }
 }
 
-pub trait Lintable {
-    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Problem>);
+pub trait Lintable<'i> {
+    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>);
 }
 
-impl<T: Lintable> Lintable for File<T> {
-    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Problem>) {
+impl<'i, T: Lintable<'i>> Lintable<'i> for File<T> {
+    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
         self.pars.lint(lints, problems);
 
         for lint in lints {
             if let Some(problem) = lint.done() {
-                problems.push(problem);
+                problems.push(problem.id(lint.id()));
             }
         }
     }
 }
 
-impl<T: Lintable> Lintable for Par<T> {
-    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Problem>) {
+impl<'i, T: Lintable<'i>> Lintable<'i> for Par<T> {
+    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
         self.parts.lint(lints, problems);
     }
 }
 
-impl<T: Lintable> Lintable for ParPart<T> {
-    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Problem>) {
+impl<'i, T: Lintable<'i>> Lintable<'i> for ParPart<T> {
+    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
         match self {
             Self::Command(cmd) => cmd.lint(lints, problems),
             Self::Line(line) => line.lint(lints, problems),
@@ -83,11 +76,11 @@ impl<T: Lintable> Lintable for ParPart<T> {
     }
 }
 
-impl Lintable for Content<'_> {
-    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Problem>) {
+impl<'i> Lintable<'i> for Content<'i> {
+    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
         for lint in lints.iter_mut() {
             if let Some(problem) = lint.analyse(self) {
-                problems.push(problem);
+                problems.push(problem.id(lint.id()));
             }
         }
 
@@ -116,8 +109,8 @@ impl Lintable for Content<'_> {
     }
 }
 
-impl<T: Lintable> Lintable for Vec<T> {
-    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Problem>) {
+impl<'i, T: Lintable<'i>> Lintable<'i> for Vec<T> {
+    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
         for elem in self {
             elem.lint(lints, problems)
         }

@@ -3,7 +3,7 @@ use regex::Regex;
 
 use crate::ast::parsed::Content;
 use crate::lint::Lint;
-use crate::lint::Problem;
+use crate::log::{Log, Note, Src};
 
 pub struct CommandNaming {}
 
@@ -17,20 +17,30 @@ lazy_static! {
     static ref CONFORMANT_NAME: Regex = Regex::new(r"^[a-z0-9-]*?$").unwrap();
 }
 
-impl Lint for CommandNaming {
+impl<'i> Lint<'i> for CommandNaming {
     fn id(&self) -> &'static str {
         "command-naming"
     }
 
-    fn analyse<'i>(&mut self, content: &Content<'i>) -> Option<Problem> {
+    fn analyse(&mut self, content: &Content<'i>) -> Option<Log<'i>> {
         match content {
-            Content::Command { name, .. } => {
+            Content::Command {
+                name,
+                loc,
+                ..
+            } => {
                 let name = name.as_ref();
                 if !CONFORMANT_NAME.is_match(name) {
-                    return Some(self.problem(format!(
-                        "commands should be lowercase with dashes: got .{}",
-                        name
-                    )))
+                    return Some(
+                        Log::warn(format!(
+                            "commands should be lowercase with dashes: got .{name}"
+                        ))
+                        .src(Src::new(loc).annotate(Note::help(
+                            loc,
+                            format!("try changing this to .{}", name.to_lowercase()),
+                        )))
+                        .note("command-names are case-insensitive; lowercase reads more fluidly"),
+                    );
                 }
 
                 None

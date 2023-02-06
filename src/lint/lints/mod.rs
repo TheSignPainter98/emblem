@@ -3,7 +3,7 @@ mod excessive_args;
 
 use super::Lints;
 
-pub fn lints() -> Lints {
+pub fn lints<'i>() -> Lints<'i> {
     macro_rules! lints {
         ($($lint:expr),* $(,)?) => {
             vec![

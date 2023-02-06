@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 
 use crate::ast::parsed::Content;
 use crate::lint::Lint;
-use crate::lint::Problem;
+use crate::log::{Log, Note, Src};
 
 pub struct ExcessiveArgs {}
 
@@ -42,28 +42,33 @@ lazy_static! {
     };
 }
 
-impl Lint for ExcessiveArgs {
+impl<'i> Lint<'i> for ExcessiveArgs {
     fn id(&self) -> &'static str {
         "too-many-args"
     }
 
-    fn analyse<'i>(&mut self, content: &Content<'i>) -> Option<Problem> {
+    fn analyse(&mut self, content: &Content<'i>) -> Option<Log<'i>> {
         match content {
             Content::Command {
                 name,
                 inline_args,
                 remainder_arg,
                 trailer_args,
+                loc,
                 ..
             } => {
                 if let Some(max) = AFFECTED_COMMANDS.get(name.as_ref()) {
                     let num_style_args =
                         inline_args.len() + remainder_arg.iter().len() + trailer_args.len();
                     if num_style_args > *max {
-                        return Some(self.problem(format!(
-                            "too many style arguments passed to .{}: got {}",
-                            name, num_style_args
-                        )));
+                        return Some(
+                            Log::warn(format!("too many arguments passed to .{name}",)).src(
+                                Src::new(loc).annotate(Note::info(
+                                    loc,
+                                    format!("expected at most {max} arguments"),
+                                )),
+                            ),
+                        );
                     }
                 }
 
