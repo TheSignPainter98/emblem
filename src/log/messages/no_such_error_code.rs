@@ -18,13 +18,11 @@ impl<'a> Message<'a> for NoSuchErrorCode<'a> {
     fn log(self) -> Log<'a> {
         Log::error(format!("no such error code {:?}", self.id))
             .id(Self::id())
+            .explainable()
             .help("perhaps there is a typo here?")
     }
 
-    fn explain() -> &'static str
-    where
-        Self: Sized,
-    {
+    fn explain(&self) -> &'static str {
         concat!(
             "Error codes have the form `Eddd`, for digits `d`, such as this error, E001. ",
             "If you're seeing this, please check for any typos."

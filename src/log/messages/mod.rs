@@ -39,11 +39,8 @@ pub trait Message<'i> {
 
     /// Explain the meaning of this error, why it usually comes up and if
     /// appropriate, how to avoid it.
-    fn explain() -> &'static str
-    where
-        Self: Sized,
+    fn explain(&self) -> &'static str
     {
-        // TODO(kcza): remove default empty implementation
         ""
     }
 }
@@ -102,11 +99,15 @@ pub fn messages() -> Vec<MessageInfo> {
             {
                 vec![
                     $(
-                        MessageInfo {
-                            id: $msg::id(),
-                            #[cfg(test)]
-                            default_log: <$msg as Message<'_>>::default().log(),
-                            explanation: $msg::explain()
+                        {
+                            let default = <$msg as Message<'_>>::default();
+                            let explanation = default.explain();
+                            MessageInfo {
+                                id: $msg::id(),
+                                #[cfg(test)]
+                                default_log: default.log(),
+                                explanation,
+                            }
                         },
                     )*
                 ]
@@ -190,6 +191,23 @@ mod test {
 
     mod explanations {
         use super::*;
+
+        #[test]
+        fn prompt_offered_correctly() {
+            for info in messages() {
+                assert_eq!(
+                    !info.id.is_empty(),
+                    info.default_log.is_explainable(),
+                    "message {} is {}explainable",
+                    info.id,
+                    if info.default_log.is_explainable() {
+                        ""
+                    } else {
+                        "not "
+                    }
+                );
+            }
+        }
 
         #[test]
         fn not_too_long() {
