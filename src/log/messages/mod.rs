@@ -60,17 +60,13 @@ impl<'i> Message<'i> for parser::Error<'i> {
                 LalrpopError::UnrecognizedToken {
                     token: (l, t, r),
                     expected,
-                } => {
-                    UnexpectedToken::new(Location::new(&l, &r), t, expected).log()
-                }
+                } => UnexpectedToken::new(Location::new(&l, &r), t, expected).log(),
                 LalrpopError::ExtraToken { token: (l, t, r) } => panic!(
                     "internal error: extra token {} at {}",
                     t,
                     Location::new(&l, &r)
                 ),
-                LalrpopError::User { error } => {
-                    error.log()
-                }
+                LalrpopError::User { error } => error.log(),
             },
         }
     }
