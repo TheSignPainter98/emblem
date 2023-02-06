@@ -40,7 +40,7 @@ impl<'i> Lint<'i> for CommandNaming {
                             invocation_loc,
                             format!("try changing this to .{}", name.to_lowercase()),
                         )))
-                        .note("command-names are case-insensitive; lowercase reads more fluidly"),
+                        .note("command-names are case-insensitive but lowercase reads more fluidly"),
                     );
                 }
 
