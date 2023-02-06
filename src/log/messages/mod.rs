@@ -39,8 +39,7 @@ pub trait Message<'i> {
 
     /// Explain the meaning of this error, why it usually comes up and if
     /// appropriate, how to avoid it.
-    fn explain(&self) -> &'static str
-    {
+    fn explain(&self) -> &'static str {
         ""
     }
 }
