@@ -196,9 +196,9 @@ impl<'i> Log<'i> {
                     source_aligned: false,
                     continuation: false,
                 }));
-            eprintln!("{}`", display_list);
+            eprintln!("{}", display_list);
         } else {
-            eprintln!("{}`", DisplayList::from(snippet));
+            eprintln!("{}", DisplayList::from(snippet));
         }
     }
 
