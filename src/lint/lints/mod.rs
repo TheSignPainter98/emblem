@@ -45,11 +45,9 @@ mod test {
 
     #[test]
     fn unique_ids() {
-        let lints = lints();
-        let ids = lints.iter().map(|l| l.id()).collect::<Vec<_>>();
-
-        let num_lints = lints.len();
-        let num_unique_ids = ids.iter().collect::<HashSet<_>>().len();
-        assert_eq!(num_lints, num_unique_ids);
+        let mut ids = HashSet::new();
+        for lint in lints() {
+            assert!(ids.insert(lint.id()), "id {:?} is not unique", lint.id());
+        }
     }
 }
