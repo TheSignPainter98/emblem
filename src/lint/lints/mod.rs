@@ -1,6 +1,7 @@
 mod command_naming;
 mod num_args;
 mod num_attrs;
+mod empty_attrs;
 
 use super::Lints;
 
@@ -15,6 +16,7 @@ pub fn lints<'i>() -> Lints<'i> {
 
     lints![
         command_naming::CommandNaming::new(),
+        empty_attrs::EmptyAttrs::new(),
         num_args::NumArgs::new(),
         num_attrs::NumAttrs::new(),
     ]
