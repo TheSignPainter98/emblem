@@ -10,6 +10,7 @@ mod init;
 mod lint;
 mod parser;
 mod repo;
+mod util;
 
 use args::{Args, Command};
 use log::Log;
