@@ -96,23 +96,33 @@ impl AstDebug for Content<'_> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Attrs<'i>(Vec<Attr<'i>>);
+pub struct Attrs<'i>{
+    attrs: Vec<Attr<'i>>,
+    loc: Location<'i>,
+}
 
 impl<'i> Attrs<'i> {
-    pub fn new(attrs: Vec<Attr<'i>>) -> Self {
-        Self(attrs)
+    pub fn new(attrs: Vec<Attr<'i>>, loc: Location<'i>) -> Self {
+        println!("{:?}", loc);
+        Self {
+            attrs,
+            loc
+        }
     }
 
-    #[allow(dead_code)]
     pub fn args(&self) -> &Vec<Attr<'i>> {
-        &self.0
+        &self.attrs
+    }
+
+    pub fn loc(&self) -> &Location<'i> {
+        &self.loc
     }
 }
 
 #[cfg(test)]
 impl AstDebug for Attrs<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
-        self.0.test_fmt(buf);
+        self.args().test_fmt(buf);
     }
 }
 

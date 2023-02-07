@@ -102,7 +102,7 @@ LineElement: Content<'input> = {
 }
 
 Attrs: Attrs<'input> = {
-	"[" <MaybeSepList<Attr, ",">> "]" => Attrs::new(<>),
+	<l:@L> "[" <attrs:MaybeSepList<Attr, ",">> "]" <r:@R> => Attrs::new(attrs, Location::new(&l, &r)),
 }
 
 Attr: Attr<'input> = {

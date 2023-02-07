@@ -12,7 +12,6 @@ use derive_new::new;
 pub struct NumArgs {}
 
 lazy_static! {
-    // TODO(kcza): do the exact same for attributes
     static ref AFFECTED_COMMANDS: HashMap<&'static str, (usize, usize)> = {
         vec![
             ("toc", (0, 0)),
