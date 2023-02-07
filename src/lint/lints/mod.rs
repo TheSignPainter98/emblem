@@ -1,7 +1,7 @@
 mod command_naming;
+mod empty_attrs;
 mod num_args;
 mod num_attrs;
-mod empty_attrs;
 
 use super::Lints;
 

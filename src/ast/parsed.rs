@@ -96,7 +96,7 @@ impl AstDebug for Content<'_> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Attrs<'i>{
+pub struct Attrs<'i> {
     attrs: Vec<Attr<'i>>,
     loc: Location<'i>,
 }
@@ -104,10 +104,7 @@ pub struct Attrs<'i>{
 impl<'i> Attrs<'i> {
     pub fn new(attrs: Vec<Attr<'i>>, loc: Location<'i>) -> Self {
         println!("{:?}", loc);
-        Self {
-            attrs,
-            loc
-        }
+        Self { attrs, loc }
     }
 
     pub fn args(&self) -> &Vec<Attr<'i>> {

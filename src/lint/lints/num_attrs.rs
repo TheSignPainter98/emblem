@@ -62,8 +62,8 @@ impl<'i> Lint<'i> for NumAttrs {
                                 "too {} attributes passed to .{name}",
                                 if num_attrs > *max { "many" } else { "few" }
                             ))
-                            .src(Src::new(&loc).annotate(Note::info(
-                                        report_loc,
+                            .src(Src::new(loc).annotate(Note::info(
+                                report_loc,
                                 format!(
                                     "expected {max} {}",
                                     util::plural(*max, "attribute", "attributes")
@@ -73,8 +73,8 @@ impl<'i> Lint<'i> for NumAttrs {
                     } else if num_attrs > *max {
                         return Some(
                             Log::warn(format!("too many attributes passed to .{name}")).src(
-                                Src::new(&loc).annotate(Note::info(
-                                        report_loc,
+                                Src::new(loc).annotate(Note::info(
+                                    report_loc,
                                     format!(
                                         "expected at most {} {}",
                                         max,
@@ -86,8 +86,8 @@ impl<'i> Lint<'i> for NumAttrs {
                     } else if num_attrs < *min {
                         return Some(
                             Log::warn(format!("too few attributes passed to .{name}")).src(
-                                Src::new(&loc).annotate(Note::info(
-                                        report_loc,
+                                Src::new(loc).annotate(Note::info(
+                                    report_loc,
                                     format!(
                                         "expected at least {} {}",
                                         min,

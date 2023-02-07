@@ -29,8 +29,8 @@ lazy_static! {
             ("h6", (1, 1)),
             ("if", (2, 3)),
         ]
-            .into_iter()
-            .collect()
+        .into_iter()
+        .collect()
     };
 }
 
@@ -55,20 +55,29 @@ impl<'i> Lint<'i> for NumArgs {
                         inline_args.len() + remainder_arg.iter().len() + trailer_args.len();
 
                     if *max == *min && num_args != *max {
-                        return Some(Log::warn(format!(
-                            "too {} arguments passed to .{name}",
-                            if num_args > *max { "many" } else { "few" }
-                        ))
-                        .src(Src::new(loc).annotate(Note::info(
-                            invocation_loc,
-                            format!("expected {max} {}", util::plural(*max, "argument", "arguments")),
-                        ))));
+                        return Some(
+                            Log::warn(format!(
+                                "too {} arguments passed to .{name}",
+                                if num_args > *max { "many" } else { "few" }
+                            ))
+                            .src(Src::new(loc).annotate(Note::info(
+                                invocation_loc,
+                                format!(
+                                    "expected {max} {}",
+                                    util::plural(*max, "argument", "arguments")
+                                ),
+                            ))),
+                        );
                     } else if num_args > *max {
                         return Some(
                             Log::warn(format!("too many arguments passed to .{name}")).src(
                                 Src::new(loc).annotate(Note::info(
                                     invocation_loc,
-                                    format!("expected at most {} {}", max, util::plural(*max, "argument", "arguments")),
+                                    format!(
+                                        "expected at most {} {}",
+                                        max,
+                                        util::plural(*max, "argument", "arguments")
+                                    ),
                                 )),
                             ),
                         );
@@ -77,7 +86,11 @@ impl<'i> Lint<'i> for NumArgs {
                             Log::warn(format!("too few arguments passed to .{name}")).src(
                                 Src::new(loc).annotate(Note::info(
                                     invocation_loc,
-                                    format!("expected at least {} {}", min, util::plural(*min, "argument", "arguments")),
+                                    format!(
+                                        "expected at least {} {}",
+                                        min,
+                                        util::plural(*min, "argument", "arguments")
+                                    ),
                                 )),
                             ),
                         );

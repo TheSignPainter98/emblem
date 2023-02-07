@@ -1,10 +1,7 @@
 use crate::ast::parsed::Content;
 use crate::lint::Lint;
 use crate::log::{Log, Note, Src};
-use crate::util;
 use derive_new::new;
-use lazy_static::lazy_static;
-use std::collections::HashMap;
 
 #[derive(new)]
 pub struct EmptyAttrs {}
@@ -16,21 +13,17 @@ impl<'i> Lint<'i> for EmptyAttrs {
 
     fn analyse(&mut self, content: &Content<'i>) -> Option<Log<'i>> {
         match content {
-            Content::Command {
-                loc,
-                invocation_loc,
-                attrs,
-                ..
-            } => {
+            Content::Command { loc, attrs, .. } => {
                 if attrs.is_none() {
-                    return None
+                    return None;
                 }
                 let attrs = attrs.as_ref().unwrap();
 
                 if attrs.args().is_empty() {
-                    return Some(Log::warn("empty attributes")
-                        .src(Src::new(&loc)
-                            .annotate(Note::info(attrs.loc(), "found here"))))
+                    return Some(
+                        Log::warn("empty attributes")
+                            .src(Src::new(loc).annotate(Note::info(attrs.loc(), "found here"))),
+                    );
                 }
 
                 None
