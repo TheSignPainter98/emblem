@@ -1,17 +1,12 @@
-use lazy_static::lazy_static;
-use regex::Regex;
-
 use crate::ast::parsed::Content;
 use crate::lint::Lint;
 use crate::log::{Log, Note, Src};
+use derive_new::new;
+use lazy_static::lazy_static;
+use regex::Regex;
 
+#[derive(new)]
 pub struct CommandNaming {}
-
-impl CommandNaming {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
 
 lazy_static! {
     static ref CONFORMANT_NAME: Regex = Regex::new(r"^[a-z0-9-]*?$").unwrap();
