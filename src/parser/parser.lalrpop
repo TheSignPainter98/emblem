@@ -106,8 +106,8 @@ Attrs: Attrs<'input> = {
 }
 
 Attr: Attr<'input> = {
-	NamedAttr => Attr::named(<>),
-	UnnamedAttr => Attr::unnamed(<>),
+	<l:@L> <attr:NamedAttr> <r:@R> => Attr::named(attr, Location::new(&l, &r)),
+	<l:@L> <attr:UnnamedAttr> <r:@R> => Attr::unnamed(attr, Location::new(&l, &r)),
 };
 
 NestedComment: MultiLineComment<'input> = {

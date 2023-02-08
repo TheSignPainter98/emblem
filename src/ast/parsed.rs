@@ -125,35 +125,49 @@ impl AstDebug for Attrs<'_> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Attr<'i> {
-    Named { eq_idx: usize, raw: &'i str },
-    Unnamed { raw: &'i str },
+    Named {
+        eq_idx: usize,
+        raw: &'i str,
+        loc: Location<'i>,
+    },
+    Unnamed {
+        raw: &'i str,
+        loc: Location<'i>,
+    },
 }
 
 impl<'i> Attr<'i> {
-    pub fn named(raw: &'i str) -> Self {
+    pub fn named(raw: &'i str, loc: Location<'i>) -> Self {
         Self::Named {
             eq_idx: raw.find('=').unwrap(),
             raw,
+            loc,
         }
     }
 
-    pub fn unnamed(raw: &'i str) -> Self {
-        Self::Unnamed { raw }
+    pub fn unnamed(raw: &'i str, loc: Location<'i>) -> Self {
+        Self::Unnamed { raw, loc }
     }
 
-    #[allow(dead_code)]
     pub fn name(&self) -> &str {
         match self {
-            Self::Named { raw, eq_idx } => raw[..*eq_idx].trim(),
-            Self::Unnamed { raw } => raw.trim(),
+            Self::Named { raw, eq_idx, .. } => raw[..*eq_idx].trim(),
+            Self::Unnamed { raw, .. } => raw.trim(),
         }
     }
 
     #[allow(dead_code)]
     pub fn value(&self) -> Option<&str> {
         match self {
-            Self::Named { raw, eq_idx } => Some(raw[eq_idx + 1..].trim()),
+            Self::Named { raw, eq_idx, .. } => Some(raw[eq_idx + 1..].trim()),
             Self::Unnamed { .. } => None,
+        }
+    }
+
+    pub fn loc(&self) -> &Location<'i> {
+        match self {
+            Self::Named { loc, .. } => loc,
+            Self::Unnamed { loc, .. } => loc,
         }
     }
 

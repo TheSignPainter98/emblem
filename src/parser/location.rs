@@ -2,7 +2,7 @@ use crate::parser::{LocationContext, Point};
 use core::fmt::{self, Display};
 use std::cmp;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Location<'i> {
     file_name: &'i str,
     src: &'i str,
