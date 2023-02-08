@@ -103,7 +103,6 @@ pub struct Attrs<'i> {
 
 impl<'i> Attrs<'i> {
     pub fn new(attrs: Vec<Attr<'i>>, loc: Location<'i>) -> Self {
-        println!("{:?}", loc);
         Self { attrs, loc }
     }
 
