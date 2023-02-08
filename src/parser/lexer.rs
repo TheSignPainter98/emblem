@@ -92,7 +92,7 @@ impl<'input> Lexer<'input> {
     }
 
     fn can_start_attrs(&self) -> bool {
-        matches!(self.last_tok, Some(Tok::Command { .. }))
+        matches!(self.last_tok, Some(Tok::Command(_, _)))
     }
 
     fn location(&self) -> Location<'input> {
@@ -120,7 +120,7 @@ impl<'input> Iterator for Lexer<'input> {
             let COLON          = r":[ \t]*";
             let DOUBLE_COLON   = r"::";
             let INITIAL_INDENT = r"[ \t]*";
-            let COMMAND        = r"\.[^ \t{}\[\]\r\n:]+";
+            let COMMAND        = r"\.[^ \t{}\[\]\r\n:*]+\**";
             let VERBATIM       = r"![^\r\n]*!";
             let BRACE_LEFT     = r"\{";
             let BRACE_RIGHT    = r"\}";
@@ -297,7 +297,10 @@ impl<'input> Iterator for Lexer<'input> {
                 Err(LexicalError::UnmatchedCommentClose { loc: self.location() })
             },
 
-            COMMAND    => |s:&'input str| Ok(Tok::Command(&s[1..])),
+            COMMAND    => |s:&'input str| {
+                let stars = s.chars().rev().take_while(|c| *c == '*').count();
+                Ok(Tok::Command(&s[1..s.len()-stars], stars))
+            },
             DASH       => |s:&'input str| Ok(Tok::Dash(s)),
             GLUE       => |s:&'input str| Ok(Tok::Glue(s)),
             VERBATIM   => |s:&'input str| Ok(Tok::Verbatim(&s[1..s.len()-1])),
@@ -320,7 +323,7 @@ pub enum Tok<'input> {
     NamedAttr(&'input str),
     UnnamedAttr(&'input str),
     AttrComma,
-    Command(&'input str),
+    Command(&'input str, usize),
     ParBreak,
     Word(&'input str),
     Whitespace(&'input str),
@@ -347,7 +350,7 @@ impl Display for Tok<'_> {
             Tok::NamedAttr(_) => "named-attr",
             Tok::UnnamedAttr(_) => "unnamed-attr",
             Tok::AttrComma => "comma",
-            Tok::Command(_) => "command",
+            Tok::Command(_, _) => "command",
             Tok::ParBreak => "par-break",
             Tok::Word(_) => "word",
             Tok::Whitespace(_) => "whitespace",

@@ -35,7 +35,8 @@ ParPart: ParPart<Content<'input>> = {
 
 	<l:@L> <name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> <r:@R> => {
 		ParPart::Command(Content::Command {
-			name: name.into(),
+			name: name.0.into(),
+			stars: name.1,
 			attrs,
 			inline_args,
 			remainder_arg: None,
@@ -63,7 +64,8 @@ LineContent: Vec<Content<'input>> = {
 
 RemainderCommand: Content<'input> = {
 	<l:@L> <name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> <r:@R> => Content::Command {
-		name: name.into(),
+		name: name.0.into(),
+		stars: name.1,
 		attrs,
 		inline_args,
 		remainder_arg: Some(remainder_arg),
@@ -82,7 +84,8 @@ LineElement: Content<'input> = {
 	<l:@L> <verbatim:Verbatim>     <r:@R> => Content::Verbatim{ verbatim, loc: Location::new(&l, &r) },
 
 	<l:@L> <name: Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
-		name: name.into(),
+		name: name.0.into(),
+		stars: name.1,
 		attrs,
 		inline_args,
 		remainder_arg: None,
@@ -152,7 +155,7 @@ extern {
 		"::"        => Tok::DoubleColon,
 		"{"         => Tok::LBrace,
 		"}"         => Tok::RBrace,
-		Command     => Tok::Command(<&'input str>),
+		Command     => Tok::Command(<&'input str>, <usize>),
 		ParBreak    => Tok::ParBreak,
 		Word        => Tok::Word(<&'input str>),
 		Dash        => Tok::Dash(<&'input str>),
