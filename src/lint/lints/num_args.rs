@@ -55,45 +55,37 @@ impl<'i> Lint<'i> for NumArgs {
                         inline_args.len() + remainder_arg.iter().len() + trailer_args.len();
 
                     if *max == *min && num_args != *max {
-                        return vec![
-                            Log::warn(format!(
-                                "too {} arguments passed to .{name}",
-                                if num_args > *max { "many" } else { "few" }
-                            ))
+                        return vec![Log::warn(format!(
+                            "too {} arguments passed to .{name}",
+                            if num_args > *max { "many" } else { "few" }
+                        ))
+                        .src(Src::new(loc).annotate(Note::info(
+                            invocation_loc,
+                            format!(
+                                "expected {max} {}",
+                                util::plural(*max, "argument", "arguments")
+                            ),
+                        )))];
+                    } else if num_args > *max {
+                        return vec![Log::warn(format!("too many arguments passed to .{name}"))
                             .src(Src::new(loc).annotate(Note::info(
                                 invocation_loc,
                                 format!(
-                                    "expected {max} {}",
+                                    "expected at most {} {}",
+                                    max,
                                     util::plural(*max, "argument", "arguments")
                                 ),
-                            ))),
-                        ];
-                    } else if num_args > *max {
-                        return vec![
-                            Log::warn(format!("too many arguments passed to .{name}")).src(
-                                Src::new(loc).annotate(Note::info(
-                                    invocation_loc,
-                                    format!(
-                                        "expected at most {} {}",
-                                        max,
-                                        util::plural(*max, "argument", "arguments")
-                                    ),
-                                )),
-                            ),
-                        ];
+                            )))];
                     } else if num_args < *min {
-                        return vec![
-                            Log::warn(format!("too few arguments passed to .{name}")).src(
-                                Src::new(loc).annotate(Note::info(
-                                    invocation_loc,
-                                    format!(
-                                        "expected at least {} {}",
-                                        min,
-                                        util::plural(*min, "argument", "arguments")
-                                    ),
-                                )),
-                            ),
-                        ];
+                        return vec![Log::warn(format!("too few arguments passed to .{name}"))
+                            .src(Src::new(loc).annotate(Note::info(
+                                invocation_loc,
+                                format!(
+                                    "expected at least {} {}",
+                                    min,
+                                    util::plural(*min, "argument", "arguments")
+                                ),
+                            )))];
                     }
                 }
 

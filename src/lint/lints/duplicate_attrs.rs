@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::ast::parsed::Attr;
 use crate::ast::parsed::Content;
 use crate::lint::Lint;
 use crate::log::{Log, Note, Src};
@@ -25,7 +26,7 @@ impl<'i> Lint<'i> for DuplicateAttrs {
                 for attr in attrs.args() {
                     let name = attr.name();
                     if let Some(first) = first_seen.get(name) {
-                        dups.push((attr, first.clone()));
+                        dups.push((attr, <&Attr<'_>>::clone(first)));
                     } else {
                         first_seen.insert(name, attr);
                     }

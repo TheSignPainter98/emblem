@@ -13,12 +13,14 @@ impl<'i> Lint<'i> for EmptyAttrs {
 
     fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
         match content {
-            Content::Command { loc, attrs: Some(attrs), .. } => {
+            Content::Command {
+                loc,
+                attrs: Some(attrs),
+                ..
+            } => {
                 if attrs.args().is_empty() {
-                    return vec![
-                        Log::warn("empty attributes")
-                            .src(Src::new(loc).annotate(Note::info(attrs.loc(), "found here"))),
-                    ];
+                    return vec![Log::warn("empty attributes")
+                        .src(Src::new(loc).annotate(Note::info(attrs.loc(), "found here")))];
                 }
 
                 vec![]

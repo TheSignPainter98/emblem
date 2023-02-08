@@ -1,9 +1,9 @@
+mod attr_ordering;
 mod command_naming;
+mod duplicate_attrs;
 mod empty_attrs;
 mod num_args;
 mod num_attrs;
-mod duplicate_attrs;
-mod attr_ordering;
 
 use super::Lints;
 

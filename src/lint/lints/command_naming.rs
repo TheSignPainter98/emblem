@@ -27,18 +27,14 @@ impl<'i> Lint<'i> for CommandNaming {
             } => {
                 let name = name.as_ref();
                 if !CONFORMANT_NAME.is_match(name) {
-                    return vec![
-                        Log::warn(format!(
-                            "commands should be lowercase with dashes: got .{name}"
-                        ))
-                        .src(Src::new(loc).annotate(Note::help(
-                            invocation_loc,
-                            format!("try changing this to .{}", name.to_lowercase()),
-                        )))
-                        .note(
-                            "command-names are case-insensitive but lowercase reads more fluidly",
-                        ),
-                    ];
+                    return vec![Log::warn(format!(
+                        "commands should be lowercase with dashes: got .{name}"
+                    ))
+                    .src(Src::new(loc).annotate(Note::help(
+                        invocation_loc,
+                        format!("try changing this to .{}", name.to_lowercase()),
+                    )))
+                    .note("command-names are case-insensitive but lowercase reads more fluidly")];
                 }
 
                 vec![]
