@@ -39,7 +39,7 @@ impl<'i> Lint<'i> for NumArgs {
         "num-args"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Option<Log<'i>> {
+    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
         match content {
             Content::Command {
                 name,
@@ -55,7 +55,7 @@ impl<'i> Lint<'i> for NumArgs {
                         inline_args.len() + remainder_arg.iter().len() + trailer_args.len();
 
                     if *max == *min && num_args != *max {
-                        return Some(
+                        return vec![
                             Log::warn(format!(
                                 "too {} arguments passed to .{name}",
                                 if num_args > *max { "many" } else { "few" }
@@ -67,9 +67,9 @@ impl<'i> Lint<'i> for NumArgs {
                                     util::plural(*max, "argument", "arguments")
                                 ),
                             ))),
-                        );
+                        ];
                     } else if num_args > *max {
-                        return Some(
+                        return vec![
                             Log::warn(format!("too many arguments passed to .{name}")).src(
                                 Src::new(loc).annotate(Note::info(
                                     invocation_loc,
@@ -80,9 +80,9 @@ impl<'i> Lint<'i> for NumArgs {
                                     ),
                                 )),
                             ),
-                        );
+                        ];
                     } else if num_args < *min {
-                        return Some(
+                        return vec![
                             Log::warn(format!("too few arguments passed to .{name}")).src(
                                 Src::new(loc).annotate(Note::info(
                                     invocation_loc,
@@ -93,11 +93,11 @@ impl<'i> Lint<'i> for NumArgs {
                                     ),
                                 )),
                             ),
-                        );
+                        ];
                     }
                 }
 
-                None
+                vec![]
             }
             Content::Word { .. }
             | Content::Whitespace { .. }
@@ -105,7 +105,7 @@ impl<'i> Lint<'i> for NumArgs {
             | Content::Glue { .. }
             | Content::Verbatim { .. }
             | Content::Comment { .. }
-            | Content::MultiLineComment { .. } => None,
+            | Content::MultiLineComment { .. } => vec![],
         }
     }
 }

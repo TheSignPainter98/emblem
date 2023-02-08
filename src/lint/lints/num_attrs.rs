@@ -38,7 +38,7 @@ impl<'i> Lint<'i> for NumAttrs {
         "num-attrs"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Option<Log<'i>> {
+    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
         match content {
             Content::Command {
                 name,
@@ -57,7 +57,7 @@ impl<'i> Lint<'i> for NumAttrs {
                     };
 
                     if *max == *min && num_attrs != *max {
-                        return Some(
+                        return vec![
                             Log::warn(format!(
                                 "too {} attributes passed to .{name}",
                                 if num_attrs > *max { "many" } else { "few" }
@@ -69,9 +69,9 @@ impl<'i> Lint<'i> for NumAttrs {
                                     util::plural(*max, "attribute", "attributes")
                                 ),
                             ))),
-                        );
+                        ];
                     } else if num_attrs > *max {
-                        return Some(
+                        return vec![
                             Log::warn(format!("too many attributes passed to .{name}")).src(
                                 Src::new(loc).annotate(Note::info(
                                     report_loc,
@@ -82,9 +82,9 @@ impl<'i> Lint<'i> for NumAttrs {
                                     ),
                                 )),
                             ),
-                        );
+                        ];
                     } else if num_attrs < *min {
-                        return Some(
+                        return vec![
                             Log::warn(format!("too few attributes passed to .{name}")).src(
                                 Src::new(loc).annotate(Note::info(
                                     report_loc,
@@ -95,11 +95,11 @@ impl<'i> Lint<'i> for NumAttrs {
                                     ),
                                 )),
                             ),
-                        );
+                        ];
                     }
                 }
 
-                None
+                vec![]
             }
             Content::Word { .. }
             | Content::Whitespace { .. }
@@ -107,7 +107,7 @@ impl<'i> Lint<'i> for NumAttrs {
             | Content::Glue { .. }
             | Content::Verbatim { .. }
             | Content::Comment { .. }
-            | Content::MultiLineComment { .. } => None,
+            | Content::MultiLineComment { .. } => vec![],
         }
     }
 }

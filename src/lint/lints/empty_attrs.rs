@@ -11,17 +11,17 @@ impl<'i> Lint<'i> for EmptyAttrs {
         "empty-attrs"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Option<Log<'i>> {
+    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
         match content {
             Content::Command { loc, attrs: Some(attrs), .. } => {
                 if attrs.args().is_empty() {
-                    return Some(
+                    return vec![
                         Log::warn("empty attributes")
                             .src(Src::new(loc).annotate(Note::info(attrs.loc(), "found here"))),
-                    );
+                    ];
                 }
 
-                None
+                vec![]
             }
             Content::Command { .. }
             | Content::Word { .. }
@@ -30,7 +30,7 @@ impl<'i> Lint<'i> for EmptyAttrs {
             | Content::Glue { .. }
             | Content::Verbatim { .. }
             | Content::Comment { .. }
-            | Content::MultiLineComment { .. } => None,
+            | Content::MultiLineComment { .. } => vec![],
         }
     }
 }

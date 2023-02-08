@@ -17,7 +17,7 @@ impl<'i> Lint<'i> for CommandNaming {
         "command-naming"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Option<Log<'i>> {
+    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
         match content {
             Content::Command {
                 name,
@@ -27,7 +27,7 @@ impl<'i> Lint<'i> for CommandNaming {
             } => {
                 let name = name.as_ref();
                 if !CONFORMANT_NAME.is_match(name) {
-                    return Some(
+                    return vec![
                         Log::warn(format!(
                             "commands should be lowercase with dashes: got .{name}"
                         ))
@@ -38,10 +38,10 @@ impl<'i> Lint<'i> for CommandNaming {
                         .note(
                             "command-names are case-insensitive but lowercase reads more fluidly",
                         ),
-                    );
+                    ];
                 }
 
-                None
+                vec![]
             }
             Content::Word { .. }
             | Content::Whitespace { .. }
@@ -49,7 +49,7 @@ impl<'i> Lint<'i> for CommandNaming {
             | Content::Glue { .. }
             | Content::Verbatim { .. }
             | Content::Comment { .. }
-            | Content::MultiLineComment { .. } => None,
+            | Content::MultiLineComment { .. } => vec![],
         }
     }
 }

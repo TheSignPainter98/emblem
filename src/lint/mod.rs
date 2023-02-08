@@ -36,10 +36,10 @@ pub fn lint(cmd: LintCmd) -> Result<(), Box<dyn Error>> {
 pub type Lints<'i> = Vec<Box<dyn Lint<'i>>>;
 
 pub trait Lint<'i> {
-    fn analyse(&mut self, content: &Content<'i>) -> Option<Log<'i>>;
+    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>>;
 
-    fn done(&mut self) -> Option<Log<'i>> {
-        None
+    fn done(&mut self) -> Vec<Log<'i>> {
+        vec![]
     }
 
     fn id(&self) -> &'static str;
@@ -54,7 +54,7 @@ impl<'i, T: Lintable<'i>> Lintable<'i> for File<T> {
         self.pars.lint(lints, problems);
 
         for lint in lints {
-            if let Some(problem) = lint.done() {
+            for problem in lint.done() {
                 problems.push(problem.id(lint.id()));
             }
         }
@@ -79,7 +79,7 @@ impl<'i, T: Lintable<'i>> Lintable<'i> for ParPart<T> {
 impl<'i> Lintable<'i> for Content<'i> {
     fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
         for lint in lints.iter_mut() {
-            if let Some(problem) = lint.analyse(self) {
+            for problem in lint.analyse(self) {
                 problems.push(problem.id(lint.id()));
             }
         }
@@ -93,9 +93,7 @@ impl<'i> Lintable<'i> for Content<'i> {
                 ..
             } => {
                 inline_args.lint(lints, problems);
-                if let Some(arg) = remainder_arg {
-                    arg.lint(lints, problems);
-                }
+                remainder_arg.lint(lints, problems);
                 trailer_args.lint(lints, problems);
             }
             Self::Word { .. }
@@ -105,6 +103,14 @@ impl<'i> Lintable<'i> for Content<'i> {
             | Self::Verbatim { .. }
             | Self::Comment { .. }
             | Self::MultiLineComment { .. } => {}
+        }
+    }
+}
+
+impl<'i, T: Lintable<'i>> Lintable<'i> for Option<T> {
+    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
+        if let Some(t) = self {
+            t.lint(lints, problems);
         }
     }
 }
