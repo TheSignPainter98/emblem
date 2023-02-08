@@ -3,6 +3,7 @@ mod empty_attrs;
 mod num_args;
 mod num_attrs;
 mod duplicate_attrs;
+mod attr_ordering;
 
 use super::Lints;
 
@@ -16,6 +17,7 @@ pub fn lints<'i>() -> Lints<'i> {
     }
 
     lints![
+        attr_ordering::AttrOrdering::new(),
         command_naming::CommandNaming::new(),
         duplicate_attrs::DuplicateAttrs::new(),
         empty_attrs::EmptyAttrs::new(),
