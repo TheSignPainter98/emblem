@@ -13,12 +13,7 @@ impl<'i> Lint<'i> for EmptyAttrs {
 
     fn analyse(&mut self, content: &Content<'i>) -> Option<Log<'i>> {
         match content {
-            Content::Command { loc, attrs, .. } => {
-                if attrs.is_none() {
-                    return None;
-                }
-                let attrs = attrs.as_ref().unwrap();
-
+            Content::Command { loc, attrs: Some(attrs), .. } => {
                 if attrs.args().is_empty() {
                     return Some(
                         Log::warn("empty attributes")
@@ -28,7 +23,8 @@ impl<'i> Lint<'i> for EmptyAttrs {
 
                 None
             }
-            Content::Word { .. }
+            Content::Command { .. }
+            | Content::Word { .. }
             | Content::Whitespace { .. }
             | Content::Dash { .. }
             | Content::Glue { .. }
