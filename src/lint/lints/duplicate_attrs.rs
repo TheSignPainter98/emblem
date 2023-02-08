@@ -35,23 +35,26 @@ impl<'i> Lint<'i> for DuplicateAttrs {
                     return vec![];
                 }
 
-                vec![Log::warn("duplicate attributes")
-                    .src({
-                        let mut src = Src::new(loc);
-                        for (dup, def) in dups {
-                            let name = dup.name();
-                            src = src.annotate(Note::warn(
-                                dup.loc(),
-                                format!("found duplicate '{}' here", name),
-                            ));
-                            src = src.annotate(Note::info(
-                                def.loc(),
-                                format!("'{}' first defined here", name),
-                            ));
-                        }
-                        src
-                    })
-                    .help("remove multiple occurrences of the same attribute")]
+                let mut ret = vec![];
+                for (dup, def) in dups {
+                    ret.push(
+                        Log::warn("duplicate attributes")
+                            .src({
+                                let name = dup.name();
+                                Src::new(loc)
+                                    .annotate(Note::warn(
+                                        dup.loc(),
+                                        format!("found duplicate '{}' here", name),
+                                    ))
+                                    .annotate(Note::info(
+                                        def.loc(),
+                                        format!("'{}' first defined here", name),
+                                    ))
+                            })
+                            .help("remove multiple occurrences of the same attribute"),
+                    );
+                }
+                ret
             }
             Content::Command { .. }
             | Content::Word { .. }
