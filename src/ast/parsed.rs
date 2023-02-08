@@ -230,16 +230,30 @@ impl AstDebug for MultiLineCommentPart<'_> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::parser::Point;
 
     mod attrs {
+
         use super::*;
 
         #[test]
         fn args() {
-            let tests = vec![vec![], vec![Attr::unnamed("hello"), Attr::unnamed("world")]];
+            let p1 = Point::new("fname.em", "helloworld");
+            let p2 = p1.clone().shift("hello");
+            let p3 = p2.clone().shift("world");
+            let tests = vec![
+                vec![],
+                vec![
+                    Attr::unnamed("hello", Location::new(&p1, &p2)),
+                    Attr::unnamed("world", Location::new(&p2, &p3)),
+                ],
+            ];
 
             for test in tests {
-                assert_eq!(Attrs::new(test.clone()).args(), &test);
+                assert_eq!(
+                    Attrs::new(test.clone(), Location::new(&p1, &p2)).args(),
+                    &test
+                );
             }
         }
     }
@@ -250,7 +264,8 @@ mod test {
         #[test]
         fn unnamed() {
             let raw = " \tfoo\t ";
-            let attr = Attr::unnamed(raw);
+            let p1 = Point::new("fname.em", raw);
+            let attr = Attr::unnamed(raw, Location::new(&p1, &p1.clone().shift(raw)));
 
             assert_eq!(attr.name(), "foo");
             assert_eq!(attr.value(), None);
@@ -260,7 +275,8 @@ mod test {
         #[test]
         fn named() {
             let raw = " \tfoo\t =\t bar \t";
-            let attr = Attr::named(raw);
+            let p1 = Point::new("fname.em", raw);
+            let attr = Attr::named(raw, Location::new(&p1, &p1.clone().shift(raw)));
 
             assert_eq!(attr.name(), "foo");
             assert_eq!(attr.value(), Some("bar"));
