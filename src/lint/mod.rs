@@ -1,36 +1,38 @@
 mod lints;
 
 use crate::args::LintCmd;
+use crate::args::SearchResult;
 use crate::ast::parsed::Content;
-use crate::ast::parsed::ParsedFile;
 use crate::ast::{File, Par, ParPart};
 use crate::context::Context;
 use crate::log::Log;
-use crate::parser;
+use crate::parser::{self, Error as ParseError};
 use std::error::Error;
 
 pub fn lint(cmd: LintCmd) -> Result<(), Box<dyn Error>> {
     let mut ctx = Context::new();
 
-    let file: ParsedFile = match parser::parse_file(&mut ctx, cmd.input.file.as_ref().try_into()?) {
-        Ok(f) => f,
-        Err(e) => {
-            alert!(e);
-            return Ok(());
+    match lint_root(&mut ctx, cmd.input.file.as_ref().try_into()?) {
+        Ok(problems) => {
+            for problem in problems.into_iter() {
+                alert!(problem);
+            }
         }
-    };
-
-    let problems = {
-        let mut problems = Vec::new();
-        file.lint(&mut lints::lints(), &mut problems);
-        problems
-    };
-
-    for problem in problems.into_iter() {
-        alert!(problem);
+        Err(e) => alert!(e),
     }
 
     Ok(())
+}
+
+fn lint_root<'i>(
+    ctx: &'i mut Context,
+    file: SearchResult,
+) -> Result<Vec<Log<'i>>, Box<ParseError<'i>>> {
+    let file = parser::parse_file(ctx, file)?;
+
+    let mut problems = Vec::new();
+    file.lint(&mut lints::lints(), &mut problems);
+    Ok(problems)
 }
 
 pub type Lints<'i> = Vec<Box<dyn Lint<'i>>>;
