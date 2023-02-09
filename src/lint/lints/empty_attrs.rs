@@ -36,3 +36,39 @@ impl<'i> Lint<'i> for EmptyAttrs {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::lint::lints::test::LintTest;
+
+    #[test]
+    fn lint() {
+        let tests = [
+            LintTest{
+                lint: EmptyAttrs::new(),
+                num_problems: 0,
+                matches: &[ ],
+                src: "",
+            },
+            LintTest{
+                lint: EmptyAttrs::new(),
+                num_problems: 0,
+                matches: &[ ],
+                src: ".foo",
+            },
+            LintTest{
+                lint: EmptyAttrs::new(),
+                num_problems: 1,
+                matches: &[
+                    ":1:5-6: found here",
+                ],
+                src: ".foo[]",
+            }
+        ];
+
+        for test in tests {
+            test.run();
+        }
+    }
+}
