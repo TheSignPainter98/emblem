@@ -54,3 +54,82 @@ impl<'i> Lint<'i> for AttrOrdering {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::lint::lints::test::LintTest;
+
+    #[test]
+    fn lint() {
+        let tests = [
+            LintTest {
+                lint: AttrOrdering::new(),
+                num_problems: 0,
+                matches: &[],
+                src: "",
+            },
+            LintTest {
+                lint: AttrOrdering::new(),
+                num_problems: 0,
+                matches: &[],
+                src: ".foo",
+            },
+            LintTest {
+                lint: AttrOrdering::new(),
+                num_problems: 0,
+                matches: &[],
+                src: ".foo[bar]",
+            },
+            LintTest {
+                lint: AttrOrdering::new(),
+                num_problems: 0,
+                matches: &[],
+                src: ".foo[bar,baz]",
+            },
+            LintTest {
+                lint: AttrOrdering::new(),
+                num_problems: 0,
+                matches: &[],
+                src: ".foo[bar,baz=baz]",
+            },
+            LintTest {
+                lint: AttrOrdering::new(),
+                num_problems: 0,
+                matches: &[],
+                src: ".foo[bar=bar,baz=baz]",
+            },
+            LintTest {
+                lint: AttrOrdering::new(),
+                num_problems: 1,
+                matches: &[
+                    "unnamed attribute after named attribute",
+                    ":1:14-16: found here",
+                ],
+                src: ".foo[bar=bar,baz]",
+            },
+            LintTest {
+                lint: AttrOrdering::new(),
+                num_problems: 2,
+                matches: &[
+                    "unnamed attribute after named attribute",
+                    ":1:(14-16|18-21): found here",
+                ],
+                src: ".foo[bar=bar,baz,quux]",
+            },
+            LintTest {
+                lint: AttrOrdering::new(),
+                num_problems: 2,
+                matches: &[
+                    "unnamed attribute after named attribute",
+                    ":1:(14-16|28-32): found here",
+                ],
+                src: ".foo[bar=bar,baz,quux=quux,corge]",
+            },
+        ];
+
+        for test in tests {
+            test.run();
+        }
+    }
+}
