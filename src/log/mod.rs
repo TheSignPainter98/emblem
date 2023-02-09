@@ -285,6 +285,16 @@ impl Log<'_> {
         ret
     }
 
+    pub fn get_annotation_text(&self) -> Vec<String> {
+        let mut ret = vec![self.msg.clone()];
+
+        for src in &self.srcs {
+            ret.extend(src.get_annotation_text());
+        }
+
+        ret
+    }
+
     pub fn is_explainable(&self) -> bool {
         self.explainable
     }
@@ -335,6 +345,10 @@ impl Note<'_> {
     fn get_text(&self) -> Vec<&str> {
         vec![&self.msg]
     }
+
+    fn get_annotation_text(&self) -> Vec<String> {
+        vec![format!("{}: {}", self.loc, self.msg)]
+    }
 }
 
 pub struct Src<'i> {
@@ -359,10 +373,18 @@ impl<'i> Src<'i> {
 #[cfg(test)]
 impl Src<'_> {
     fn get_text(&self) -> Vec<&str> {
-        let mut ret = Vec::new();
-        for annotation in &self.annotations {
-            ret.extend(annotation.get_text());
-        }
-        ret
+        self.annotations
+            .iter()
+            .map(|a| a.get_text())
+            .flatten()
+            .collect()
+    }
+
+    fn get_annotation_text(&self) -> Vec<String> {
+        self.annotations
+            .iter()
+            .map(|a| a.get_annotation_text())
+            .flatten()
+            .collect()
     }
 }
