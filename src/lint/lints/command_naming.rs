@@ -28,11 +28,11 @@ impl<'i> Lint<'i> for CommandNaming {
                 let name = name.as_ref();
                 if !CONFORMANT_NAME.is_match(name) {
                     return vec![Log::warn(format!(
-                        "commands should be lowercase with dashes: got .{name}"
+                        "commands should be lowercase with dashes: got '.{name}'"
                     ))
                     .src(Src::new(loc).annotate(Note::help(
                         invocation_loc,
-                        format!("try changing this to .{}", name.to_lowercase()),
+                        format!("try changing this to '.{}'", name.to_lowercase().replace('_', "-")),
                     )))
                     .note("command-names are case-insensitive but lowercase reads more fluidly")];
                 }
@@ -46,6 +46,61 @@ impl<'i> Lint<'i> for CommandNaming {
             | Content::Verbatim { .. }
             | Content::Comment { .. }
             | Content::MultiLineComment { .. } => vec![],
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::lint::lints::test::LintTest;
+
+    #[test]
+    fn lint() {
+        let tests = [
+            LintTest {
+                lint: CommandNaming::new(),
+                num_problems: 0,
+                matches: &[],
+                src: "",
+            },
+            LintTest {
+                lint: CommandNaming::new(),
+                num_problems: 0,
+                matches: &[],
+                src: ".foo-bar",
+            },
+            LintTest {
+                lint: CommandNaming::new(),
+                num_problems: 1,
+                matches: &[
+                    r"commands should be lowercase with dashes: got '\.foo_bar'",
+                    r":1:1-8: try changing this to '\.foo-bar'",
+                ],
+                src: ".foo_bar",
+            },
+            LintTest {
+                lint: CommandNaming::new(),
+                num_problems: 1,
+                matches: &[
+                    r"commands should be lowercase with dashes: got '\.FOO'",
+                    r":1:1-4: try changing this to '\.foo'",
+                ],
+                src: ".FOO",
+            },
+            LintTest {
+                lint: CommandNaming::new(),
+                num_problems: 1,
+                matches: &[
+                    r"commands should be lowercase with dashes: got '\.Φoo'",
+                    r":1:1-4: try changing this to '\.φoo'",
+                ],
+                src: ".Φoo",
+            },
+        ];
+
+        for test in tests {
+            test.run();
         }
     }
 }
