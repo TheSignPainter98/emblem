@@ -73,11 +73,28 @@ impl<'i> Lint<'i> for DuplicateAttrs {
 mod test {
     use super::*;
     use crate::lint::lints::test::LintTest;
-    use std::error::Error;
 
     #[test]
-    fn lint() -> Result<(), Box<dyn Error>> {
+    fn lint() {
         let tests = [
+            LintTest {
+                lint: DuplicateAttrs::new(),
+                num_problems: 0,
+                matches: &[],
+                src: "",
+            },
+            LintTest {
+                lint: DuplicateAttrs::new(),
+                num_problems: 0,
+                matches: &[],
+                src: ".foo",
+            },
+            LintTest {
+                lint: DuplicateAttrs::new(),
+                num_problems: 0,
+                matches: &[],
+                src: ".foo[]",
+            },
             LintTest {
                 lint: DuplicateAttrs::new(),
                 num_problems: 1,
@@ -105,12 +122,19 @@ mod test {
                 ],
                 src: ".foo[bar,bar=baz]",
             },
+            LintTest {
+                lint: DuplicateAttrs::new(),
+                num_problems: 2,
+                matches: &[
+                    ":(10-12|14-16): found duplicate 'bar'",
+                    ":6-8: 'bar' first defined here",
+                ],
+                src: ".foo[bar,bar,bar]",
+            },
         ];
 
         for test in tests {
             test.run();
         }
-
-        Ok(())
     }
 }
