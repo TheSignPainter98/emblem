@@ -29,6 +29,10 @@ pub fn lints<'i>() -> Lints<'i> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::{
+        lint::{Lint, Lintable},
+        parser::parse,
+    };
     use lazy_static::lazy_static;
     use regex::Regex;
     use std::collections::HashSet;
@@ -54,6 +58,40 @@ mod test {
         let mut ids = HashSet::new();
         for lint in lints() {
             assert!(ids.insert(lint.id()), "id {:?} is not unique", lint.id());
+        }
+    }
+
+    pub struct LintTest<'i, L: Lint<'i> + 'static> {
+        pub lint: L,
+        pub num_problems: usize,
+        pub matches: &'i [&'i str],
+        pub src: &'i str,
+    }
+
+    impl<'i, L: Lint<'i> + 'static> LintTest<'i, L> {
+        pub fn run(self) {
+            let file = parse("lint-test.em", self.src).expect("Failed to parse input");
+
+            let problems = {
+                let mut problems = Vec::new();
+                file.lint(&mut vec![Box::new(self.lint)], &mut problems);
+                problems
+            };
+
+            assert_eq!(self.num_problems, problems.len());
+
+            for problem in problems {
+                let text = problem.get_annotation_text().join("\n\t");
+                for r#match in self.matches {
+                    let re = Regex::new(r#match).unwrap();
+                    assert!(
+                        re.is_match(&text),
+                        "Could not match '{}' in:\n\t{}",
+                        r#match,
+                        text
+                    );
+                }
+            }
         }
     }
 }

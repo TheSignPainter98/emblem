@@ -71,45 +71,9 @@ impl<'i> Lint<'i> for DuplicateAttrs {
 
 #[cfg(test)]
 mod test {
-    use regex::Regex;
-
     use super::*;
-    use crate::{lint::Lintable, parser::parse};
+    use crate::lint::lints::test::LintTest;
     use std::error::Error;
-
-    struct LintTest<'i, L: Lint<'i> + 'static> {
-        lint: L,
-        num_problems: usize,
-        matches: &'i [&'i str],
-        src: &'i str,
-    }
-
-    impl<'i, L: Lint<'i> + 'static> LintTest<'i, L> {
-        pub fn run(self) {
-            let file = parse("lint-test.em", self.src).expect("Failed to parse input");
-
-            let problems = {
-                let mut problems = Vec::new();
-                file.lint(&mut vec![Box::new(self.lint)], &mut problems);
-                problems
-            };
-
-            assert_eq!(self.num_problems, problems.len());
-
-            for problem in problems {
-                let text = problem.get_annotation_text().join("\n\t");
-                for r#match in self.matches {
-                    let re = Regex::new(r#match).unwrap();
-                    assert!(
-                        re.is_match(&text),
-                        "Could not match '{}' in:\n\t{}",
-                        r#match,
-                        text
-                    );
-                }
-            }
-        }
-    }
 
     #[test]
     fn lint() -> Result<(), Box<dyn Error>> {
