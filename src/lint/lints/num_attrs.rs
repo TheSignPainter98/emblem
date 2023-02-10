@@ -63,10 +63,17 @@ impl<'i> Lint<'i> for NumAttrs {
                         ))
                         .src(Src::new(loc).annotate(Note::info(
                             report_loc,
-                            format!(
-                                "expected {max} {}",
-                                util::plural(*max, "attribute", "attributes")
-                            ),
+                            if *max == 0 {
+                                format!(
+                                    "expected no {}",
+                                    util::plural(*max, "attribute", "attributes")
+                                )
+                            } else {
+                                format!(
+                                    "expected {max} {}",
+                                    util::plural(*max, "attribute", "attributes")
+                                )
+                            },
                         )))];
                     } else if num_attrs > *max {
                         return vec![Log::warn(format!("too many attributes passed to .{name}"))
@@ -100,6 +107,149 @@ impl<'i> Lint<'i> for NumAttrs {
             | Content::Verbatim { .. }
             | Content::Comment { .. }
             | Content::MultiLineComment { .. } => vec![],
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::lint::lints::test::LintTest;
+
+    fn test_command(name: &str, num_stars: usize, num_attrs: Option<(usize, usize)>) -> String {
+        let mut args = vec![".", name];
+        for _ in 0..num_stars {
+            args.push("*");
+        }
+        if let Some((num_ordered_attrs, num_unordered_attrs)) = num_attrs {
+            args.push("[");
+            for i in 0..num_ordered_attrs {
+                if i > 0 {
+                    args.push(",");
+                }
+                args.push("foo");
+            }
+
+            for i in 0..num_unordered_attrs {
+                if num_ordered_attrs > 0 || i > 0 {
+                    args.push(",");
+                }
+                args.push("foo=bar");
+            }
+
+            args.push("]");
+        }
+
+        args.concat()
+    }
+
+    #[test]
+    fn lint() {
+        for (command, (min, max)) in AFFECTED_COMMANDS.iter() {
+            let valid = *min..=*max;
+            let start = if *min > 0 { min - 1 } else { *min };
+            let end = max + 1;
+
+            for stars in 0..=2 {
+                LintTest {
+                    lint: NumAttrs::new(),
+                    num_problems: !valid.contains(&0) as usize,
+                    matches: vec!["x"],
+                    src: &test_command(command, stars, None),
+                }
+                .run();
+
+                for num_ordered in start..=end {
+                    for num_unordered in start..=end {
+                        let tot = num_ordered + num_unordered;
+
+                        LintTest {
+                            lint: NumAttrs::new(),
+                            num_problems: !valid.contains(&(num_ordered + num_unordered)) as usize,
+                            matches: vec![
+                                &if tot < *min {
+                                    format!(r"too few attributes passed to \.{}", command)
+                                } else {
+                                    format!(r"too many attributes passed to \.{}", command)
+                                },
+                                &{
+                                    let start_col = 2 + command.len() + stars;
+                                    let end_col = start_col + 4 * num_ordered + 8 * num_unordered + (tot == 0) as usize;
+
+                                    if *max == 0 {
+                                        format!(
+                                            r":1:{}-{}: expected no attributes",
+                                            start_col, end_col,
+                                        )
+                                    } else if *max == *min {
+                                        format!(
+                                            r":1:{}-{}: expected {} {}",
+                                            start_col,
+                                            end_col,
+                                            *min,
+                                            util::plural(*min, "attribute", "attributes"),
+                                        )
+                                    } else if tot < *min {
+                                        format!(
+                                            r":1:{}-{}: expected at least {} {}",
+                                            start_col,
+                                            end_col,
+                                            *min,
+                                            util::plural(*min, "attribute", "attributes"),
+                                        )
+                                    } else {
+                                        format!(
+                                            r":1:{}-{}: expected at most {} {}",
+                                            start_col,
+                                            end_col,
+                                            *max,
+                                            util::plural(*min, "attribute", "attributes"),
+                                        )
+                                    }
+                                },
+                            ],
+                            src: &test_command(command, stars, Some((num_ordered, num_unordered))),
+                        }
+                        .run();
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn no_problems_by_default() {
+        LintTest {
+            lint: NumAttrs::new(),
+            num_problems: 0,
+            matches: vec![],
+            src: "",
+        }
+        .run();
+    }
+
+    #[test]
+    fn unaffected_ignored() {
+        for stars in 0..=2 {
+            LintTest {
+                lint: NumAttrs::new(),
+                num_problems: 0,
+                matches: vec![],
+                src: &test_command(".foo", stars, None),
+            }
+            .run();
+
+            for num_ordered in 0..=2 {
+                for num_unordered in 0..=3 {
+                    LintTest {
+                        lint: NumAttrs::new(),
+                        num_problems: 0,
+                        matches: vec![],
+                        src: &test_command(".foo", stars, Some((num_ordered, num_unordered))),
+                    }
+                    .run();
+                }
+            }
         }
     }
 }
