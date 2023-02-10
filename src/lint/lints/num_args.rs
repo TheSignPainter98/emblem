@@ -61,10 +61,17 @@ impl<'i> Lint<'i> for NumArgs {
                         ))
                         .src(Src::new(loc).annotate(Note::info(
                             invocation_loc,
-                            format!(
-                                "expected {max} {}",
-                                util::plural(*max, "argument", "arguments")
-                            ),
+                            if *max == 0 {
+                                format!(
+                                    "expected no {}",
+                                    util::plural(*max, "argument", "arguments")
+                                )
+                            } else {
+                                format!(
+                                    "expected {max} {}",
+                                    util::plural(*max, "argument", "arguments")
+                                )
+                            },
                         )))];
                     } else if num_args > *max {
                         return vec![Log::warn(format!("too many arguments passed to .{name}"))
@@ -98,6 +105,121 @@ impl<'i> Lint<'i> for NumArgs {
             | Content::Verbatim { .. }
             | Content::Comment { .. }
             | Content::MultiLineComment { .. } => vec![],
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::lint::lints::test::LintTest;
+    use typed_arena::Arena;
+
+    #[derive(Debug)]
+    enum ArgType {
+        Inline { with_remainder: bool },
+        Trailer,
+    }
+
+    fn test_command(name: &str, num_stars: usize, num_args: usize, arg_type: &ArgType) -> String {
+        let mut args = vec![".", name];
+        for _ in 0..num_stars {
+            args.push("*");
+        }
+        match arg_type {
+            ArgType::Inline { with_remainder } => {
+                let num_inline = match (*with_remainder, num_args) {
+                    (_, 0) => 0,
+                    (true, n) => n - 1,
+                    (_, n) => n,
+                };
+                for _ in 0..num_inline {
+                    args.push("{foo}");
+                }
+                if *with_remainder && num_args > 0 {
+                    args.push(":foo");
+                }
+            }
+            ArgType::Trailer => {
+                if num_args > 0 {
+                    args.push(":\n\tfoo");
+                }
+                for _ in 1..num_args {
+                    args.push("\n::\n\tfoo");
+                }
+            }
+        }
+
+        args.concat()
+    }
+
+    #[test]
+    fn lint() {
+        let arena = Arena::new();
+
+        let mut tests = vec![];
+        for (command, (min, max)) in AFFECTED_COMMANDS.iter() {
+            let valid = *min..=*max;
+            let start = if *min > 0 { min - 1 } else { *min };
+            let end = max + 1;
+
+            for arg_type in [
+                ArgType::Inline {
+                    with_remainder: false,
+                },
+                ArgType::Inline {
+                    with_remainder: true,
+                },
+                ArgType::Trailer,
+            ] {
+                for stars in 0..=2 {
+                    for i in start..=end {
+                        tests.push(LintTest {
+                            lint: NumArgs::new(),
+                            num_problems: !valid.contains(&i) as usize,
+                            matches: vec![
+                                arena.alloc(if i < *min {
+                                    format!(r"too few arguments passed to \.{}", command)
+                                } else {
+                                    format!(r"too many arguments passed to \.{}", command)
+                                }),
+                                arena.alloc(if *max == 0 {
+                                    format!(
+                                        r":1:1-{}: expected no arguments",
+                                        1 + command.len() + stars,
+                                    )
+                                } else if *max == *min {
+                                    format!(
+                                        r":1:1-{}: expected {} {}",
+                                        1 + command.len() + stars,
+                                        *min,
+                                        util::plural(*min, "argument", "arguments")
+                                    )
+                                } else if i < *min {
+                                    format!(
+                                        r":1:1-{}: expected at least {} {}",
+                                        1 + command.len() + stars,
+                                        *min,
+                                        util::plural(*min, "argument", "arguments")
+                                    )
+                                } else {
+                                    format!(
+                                        r":1:1-{}: expected at most {} {}",
+                                        1 + command.len() + stars,
+                                        *max,
+                                        util::plural(*max, "argument", "arguments")
+                                    )
+                                }),
+                            ],
+                            src: arena.alloc(test_command(command, stars, i, &arg_type)),
+                        });
+                    }
+                }
+            }
+        }
+
+        for test in tests {
+            test.run();
         }
     }
 }
