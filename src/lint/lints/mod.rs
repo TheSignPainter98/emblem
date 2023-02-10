@@ -61,14 +61,15 @@ mod test {
         }
     }
 
-    pub struct LintTest<'i, L: Lint<'i> + 'static> {
+    pub struct LintTest<'i, L> where L: Lint<'i> + 'static {
         pub lint: L,
         pub num_problems: usize,
-        pub matches: &'i [&'i str],
+        pub matches: Vec<&'i str>,
         pub src: &'i str,
     }
 
-    impl<'i, L: Lint<'i> + 'static> LintTest<'i, L> {
+    impl<'i, L> LintTest<'i, L> where L: Lint<'i> + 'static,
+    {
         pub fn run(self) {
             let file = parse("lint-test.em", self.src).expect("Failed to parse input");
 
@@ -82,7 +83,7 @@ mod test {
 
             for problem in problems {
                 let text = problem.get_annotation_text().join("\n\t");
-                for r#match in self.matches {
+                for r#match in &self.matches {
                     let re = Regex::new(r#match).unwrap();
                     assert!(
                         re.is_match(&text),

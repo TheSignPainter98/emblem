@@ -80,25 +80,25 @@ mod test {
             LintTest {
                 lint: DuplicateAttrs::new(),
                 num_problems: 0,
-                matches: &[],
+                matches: vec![],
                 src: "",
             },
             LintTest {
                 lint: DuplicateAttrs::new(),
                 num_problems: 0,
-                matches: &[],
+                matches: vec![],
                 src: ".foo",
             },
             LintTest {
                 lint: DuplicateAttrs::new(),
                 num_problems: 0,
-                matches: &[],
+                matches: vec![],
                 src: ".foo[]",
             },
             LintTest {
                 lint: DuplicateAttrs::new(),
                 num_problems: 1,
-                matches: &[
+                matches: vec![
                     ":10-12: found duplicate 'bar'",
                     ":6-8: 'bar' first defined here",
                 ],
@@ -107,7 +107,7 @@ mod test {
             LintTest {
                 lint: DuplicateAttrs::new(),
                 num_problems: 1,
-                matches: &[
+                matches: vec![
                     ":14-20: found duplicate 'bar'",
                     ":6-12: 'bar' first defined here",
                 ],
@@ -116,7 +116,7 @@ mod test {
             LintTest {
                 lint: DuplicateAttrs::new(),
                 num_problems: 1,
-                matches: &[
+                matches: vec![
                     ":10-16: found duplicate 'bar'",
                     ":6-8: 'bar' first defined here",
                 ],
@@ -125,7 +125,7 @@ mod test {
             LintTest {
                 lint: DuplicateAttrs::new(),
                 num_problems: 2,
-                matches: &[
+                matches: vec![
                     ":(10-12|14-16): found duplicate 'bar'",
                     ":6-8: 'bar' first defined here",
                 ],

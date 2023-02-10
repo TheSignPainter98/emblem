@@ -48,21 +48,19 @@ mod test {
             LintTest{
                 lint: EmptyAttrs::new(),
                 num_problems: 0,
-                matches: &[ ],
+                matches: vec![],
                 src: "",
             },
             LintTest{
                 lint: EmptyAttrs::new(),
                 num_problems: 0,
-                matches: &[ ],
+                matches: vec![],
                 src: ".foo",
             },
             LintTest{
                 lint: EmptyAttrs::new(),
                 num_problems: 1,
-                matches: &[
-                    ":1:5-6: found here",
-                ],
+                matches: vec![":1:5-6: found here"],
                 src: ".foo[]",
             }
         ];

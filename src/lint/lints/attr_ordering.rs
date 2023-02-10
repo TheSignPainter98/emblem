@@ -66,43 +66,43 @@ mod test {
             LintTest {
                 lint: AttrOrdering::new(),
                 num_problems: 0,
-                matches: &[],
+                matches: vec![],
                 src: "",
             },
             LintTest {
                 lint: AttrOrdering::new(),
                 num_problems: 0,
-                matches: &[],
+                matches: vec![],
                 src: ".foo",
             },
             LintTest {
                 lint: AttrOrdering::new(),
                 num_problems: 0,
-                matches: &[],
+                matches: vec![],
                 src: ".foo[bar]",
             },
             LintTest {
                 lint: AttrOrdering::new(),
                 num_problems: 0,
-                matches: &[],
+                matches: vec![],
                 src: ".foo[bar,baz]",
             },
             LintTest {
                 lint: AttrOrdering::new(),
                 num_problems: 0,
-                matches: &[],
+                matches: vec![],
                 src: ".foo[bar,baz=baz]",
             },
             LintTest {
                 lint: AttrOrdering::new(),
                 num_problems: 0,
-                matches: &[],
+                matches: vec![],
                 src: ".foo[bar=bar,baz=baz]",
             },
             LintTest {
                 lint: AttrOrdering::new(),
                 num_problems: 1,
-                matches: &[
+                matches: vec![
                     "unnamed attribute after named attribute",
                     ":1:14-16: found here",
                 ],
@@ -111,7 +111,7 @@ mod test {
             LintTest {
                 lint: AttrOrdering::new(),
                 num_problems: 2,
-                matches: &[
+                matches: vec![
                     "unnamed attribute after named attribute",
                     ":1:(14-16|18-21): found here",
                 ],
@@ -120,7 +120,7 @@ mod test {
             LintTest {
                 lint: AttrOrdering::new(),
                 num_problems: 2,
-                matches: &[
+                matches: vec![
                     "unnamed attribute after named attribute",
                     ":1:(14-16|28-32): found here",
                 ],

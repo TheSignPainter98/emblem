@@ -61,19 +61,19 @@ mod test {
             LintTest {
                 lint: CommandNaming::new(),
                 num_problems: 0,
-                matches: &[],
+                matches: vec![],
                 src: "",
             },
             LintTest {
                 lint: CommandNaming::new(),
                 num_problems: 0,
-                matches: &[],
+                matches: vec![],
                 src: ".foo-bar",
             },
             LintTest {
                 lint: CommandNaming::new(),
                 num_problems: 1,
-                matches: &[
+                matches: vec![
                     r"commands should be lowercase with dashes: got '\.foo_bar'",
                     r":1:1-8: try changing this to '\.foo-bar'",
                 ],
@@ -82,7 +82,7 @@ mod test {
             LintTest {
                 lint: CommandNaming::new(),
                 num_problems: 1,
-                matches: &[
+                matches: vec![
                     r"commands should be lowercase with dashes: got '\.FOO'",
                     r":1:1-4: try changing this to '\.foo'",
                 ],
@@ -91,7 +91,7 @@ mod test {
             LintTest {
                 lint: CommandNaming::new(),
                 num_problems: 1,
-                matches: &[
+                matches: vec![
                     r"commands should be lowercase with dashes: got '\.Φoo'",
                     r":1:1-4: try changing this to '\.φoo'",
                 ],
