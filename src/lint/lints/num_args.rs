@@ -156,8 +156,8 @@ mod test {
     fn lint() {
         for (command, (min, max)) in AFFECTED_COMMANDS.iter() {
             let valid = *min..=*max;
-            let start = if *min > 0 { min - 1 } else { *min };
-            let end = max + 1;
+            let min_args_to_test = if *min > 0 { min - 1 } else { *min };
+            let max_args_to_test = max + 1;
 
             for arg_type in [
                 ArgsType::Inline {
@@ -169,12 +169,12 @@ mod test {
                 ArgsType::Trailer,
             ] {
                 for stars in 0..=2 {
-                    for i in start..=end {
+                    for num_args in min_args_to_test..=max_args_to_test {
                         LintTest {
                             lint: NumArgs::new(),
-                            num_problems: !valid.contains(&i) as usize,
+                            num_problems: !valid.contains(&num_args) as usize,
                             matches: vec![
-                                &if i < *min {
+                                &if num_args < *min {
                                     format!(r"too few arguments passed to \.{}", command)
                                 } else {
                                     format!(r"too many arguments passed to \.{}", command)
@@ -191,7 +191,7 @@ mod test {
                                         *min,
                                         util::plural(*min, "argument", "arguments")
                                     )
-                                } else if i < *min {
+                                } else if num_args < *min {
                                     format!(
                                         r":1:1-{}: expected at least {} {}",
                                         1 + command.len() + stars,
@@ -207,7 +207,7 @@ mod test {
                                     )
                                 },
                             ],
-                            src: &test_command(command, stars, i, &arg_type),
+                            src: &test_command(command, stars, num_args, &arg_type),
                         }
                         .run();
                     }
@@ -239,12 +239,12 @@ mod test {
             ArgsType::Trailer,
         ] {
             for stars in 0..=2 {
-                for i in 0..=3 {
+                for num_args in 0..=3 {
                     LintTest {
                         lint: NumArgs::new(),
                         num_problems: 0,
                         matches: vec![],
-                        src: &test_command(".foo", stars, i, &arg_type),
+                        src: &test_command(".foo", stars, num_args, &arg_type),
                     }
                     .run();
                 }
