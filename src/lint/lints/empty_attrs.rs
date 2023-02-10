@@ -45,24 +45,24 @@ mod test {
     #[test]
     fn lint() {
         let tests = [
-            LintTest{
+            LintTest {
                 lint: EmptyAttrs::new(),
                 num_problems: 0,
                 matches: vec![],
                 src: "",
             },
-            LintTest{
+            LintTest {
                 lint: EmptyAttrs::new(),
                 num_problems: 0,
                 matches: vec![],
                 src: ".foo",
             },
-            LintTest{
+            LintTest {
                 lint: EmptyAttrs::new(),
                 num_problems: 1,
                 matches: vec![":1:5-6: found here"],
                 src: ".foo[]",
-            }
+            },
         ];
 
         for test in tests {

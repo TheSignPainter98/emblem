@@ -61,14 +61,19 @@ mod test {
         }
     }
 
-    pub struct LintTest<'i, L> where L: Lint<'i> + 'static {
+    pub struct LintTest<'i, L>
+    where
+        L: Lint<'i> + 'static,
+    {
         pub lint: L,
         pub num_problems: usize,
         pub matches: Vec<&'i str>,
         pub src: &'i str,
     }
 
-    impl<'i, L> LintTest<'i, L> where L: Lint<'i> + 'static,
+    impl<'i, L> LintTest<'i, L>
+    where
+        L: Lint<'i> + 'static,
     {
         pub fn run(self) {
             let file = parse("lint-test.em", self.src).expect("Failed to parse input");
@@ -79,7 +84,14 @@ mod test {
                 problems
             };
 
-            assert_eq!(self.num_problems, problems.len(), "{} problems testing {} (expected {})", problems.len(), self.src, self.num_problems);
+            assert_eq!(
+                self.num_problems,
+                problems.len(),
+                "{} problems testing {} (expected {})",
+                problems.len(),
+                self.src,
+                self.num_problems
+            );
 
             for problem in problems {
                 let text = problem.get_annotation_text().join("\n\t");

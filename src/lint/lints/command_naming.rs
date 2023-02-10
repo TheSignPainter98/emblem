@@ -32,7 +32,10 @@ impl<'i> Lint<'i> for CommandNaming {
                     ))
                     .src(Src::new(loc).annotate(Note::help(
                         invocation_loc,
-                        format!("try changing this to '.{}'", name.to_lowercase().replace('_', "-")),
+                        format!(
+                            "try changing this to '.{}'",
+                            name.to_lowercase().replace('_', "-")
+                        ),
                     )))
                     .note("command-names are case-insensitive but lowercase reads more fluidly")];
                 }
