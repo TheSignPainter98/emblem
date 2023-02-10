@@ -113,7 +113,6 @@ impl<'i> Lint<'i> for NumArgs {
 mod test {
     use super::*;
     use crate::lint::lints::test::LintTest;
-    use typed_arena::Arena;
 
     #[derive(Debug)]
     enum ArgsType {
@@ -155,9 +154,6 @@ mod test {
 
     #[test]
     fn lint() {
-        let arena = Arena::new();
-
-        let mut tests = vec![];
         for (command, (min, max)) in AFFECTED_COMMANDS.iter() {
             let valid = *min..=*max;
             let start = if *min > 0 { min - 1 } else { *min };
@@ -174,16 +170,16 @@ mod test {
             ] {
                 for stars in 0..=2 {
                     for i in start..=end {
-                        tests.push(LintTest {
+                        LintTest {
                             lint: NumArgs::new(),
                             num_problems: !valid.contains(&i) as usize,
                             matches: vec![
-                                arena.alloc(if i < *min {
+                                &if i < *min {
                                     format!(r"too few arguments passed to \.{}", command)
                                 } else {
                                     format!(r"too many arguments passed to \.{}", command)
-                                }),
-                                arena.alloc(if *max == 0 {
+                                },
+                                &if *max == 0 {
                                     format!(
                                         r":1:1-{}: expected no arguments",
                                         1 + command.len() + stars,
@@ -209,26 +205,29 @@ mod test {
                                         *max,
                                         util::plural(*max, "argument", "arguments")
                                     )
-                                }),
+                                },
                             ],
-                            src: arena.alloc(test_command(command, stars, i, &arg_type)),
-                        });
+                            src: &test_command(command, stars, i, &arg_type),
+                        }.run();
                     }
                 }
             }
         }
+    }
 
-        for test in tests {
-            test.run();
+    #[test]
+    fn no_problems_by_default() {
+        LintTest {
+            lint: NumArgs::new(),
+            num_problems: 0,
+            matches: vec![],
+            src: "",
         }
+        .run();
     }
 
     #[test]
     fn unaffected_ignored() {
-        let arena = Arena::new();
-
-        let mut tests = Vec::new();
-
         for arg_type in [
             ArgsType::Inline {
                 with_remainder: false,
@@ -240,18 +239,15 @@ mod test {
         ] {
             for stars in 0..=2 {
                 for i in 0..=3 {
-                    tests.push(LintTest {
+                    LintTest {
                         lint: NumArgs::new(),
                         num_problems: 0,
                         matches: vec![],
-                        src: arena.alloc(test_command(".foo", stars, i, &arg_type)),
-                    });
+                        src: &test_command(".foo", stars, i, &arg_type),
+                    }
+                    .run();
                 }
             }
-        }
-
-        for test in tests {
-            test.run();
         }
     }
 }
