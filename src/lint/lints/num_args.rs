@@ -208,7 +208,8 @@ mod test {
                                 },
                             ],
                             src: &test_command(command, stars, i, &arg_type),
-                        }.run();
+                        }
+                        .run();
                     }
                 }
             }

@@ -174,7 +174,10 @@ mod test {
                                 },
                                 &{
                                     let start_col = 2 + command.len() + stars;
-                                    let end_col = start_col + 4 * num_ordered + 8 * num_unordered + (tot == 0) as usize;
+                                    let end_col = start_col
+                                        + 4 * num_ordered
+                                        + 8 * num_unordered
+                                        + (tot == 0) as usize;
 
                                     if *max == 0 {
                                         format!(
