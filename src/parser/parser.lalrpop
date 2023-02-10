@@ -13,7 +13,7 @@ use crate::ast::{
 		MultiLineCommentPart,
 		ParsedFile,
 	},
-	Par, ParPart
+	Par, ParPart, Text
 };
 
 grammar<'input>;
@@ -33,9 +33,9 @@ Par: Par<ParPart<Content<'input>>> = {
 ParPart: ParPart<Content<'input>> = {
 	<MaybeLineContent> "\n" => ParPart::Line(<>),
 
-	<l:@L> <name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> <r:@R> => {
+	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> <r:@R> => {
 		ParPart::Command(Content::Command {
-			name: name.0.into(),
+			name: name.0,
 			stars: name.1,
 			attrs,
 			inline_args,
@@ -46,6 +46,7 @@ ParPart: ParPart<Content<'input>> = {
 				args
 			},
 			loc: Location::new(&l, &r),
+			invocation_loc: name.2,
 		})
 	},
 }
@@ -63,15 +64,20 @@ LineContent: Vec<Content<'input>> = {
 }
 
 RemainderCommand: Content<'input> = {
-	<l:@L> <name:Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> <r:@R> => Content::Command {
-		name: name.0.into(),
+	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> <r:@R> => Content::Command {
+		name: name.0,
 		stars: name.1,
 		attrs,
 		inline_args,
 		remainder_arg: Some(remainder_arg),
 		trailer_args: Vec::with_capacity(0),
 		loc: Location::new(&l, &r),
+		invocation_loc: name.2,
 	}
+}
+
+CommandName: (Text<'input>, usize, Location<'input>) = {
+	<l:@L> <command:Command> <r:@R> => (command.0.into(), command.1.into(), Location::new(&l, &r)),
 }
 
 LineElement: Content<'input> = {
@@ -83,24 +89,25 @@ LineElement: Content<'input> = {
 	<l:@L> <glue:Glue>             <r:@R> => Content::Glue{ glue: glue.into(), loc: Location::new(&l, &r) },
 	<l:@L> <verbatim:Verbatim>     <r:@R> => Content::Verbatim{ verbatim, loc: Location::new(&l, &r) },
 
-	<l:@L> <name: Command> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
-		name: name.0.into(),
+	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
+		name: name.0,
 		stars: name.1,
 		attrs,
 		inline_args,
 		remainder_arg: None,
 		trailer_args: Vec::with_capacity(0),
 		loc: Location::new(&l, &r),
+		invocation_loc: name.2,
 	},
 }
 
 Attrs: Attrs<'input> = {
-	"[" <MaybeSepList<Attr, ",">> "]" => Attrs::new(<>),
+	<l:@L> "[" <attrs:MaybeSepList<Attr, ",">> "]" <r:@R> => Attrs::new(attrs, Location::new(&l, &r)),
 }
 
 Attr: Attr<'input> = {
-	NamedAttr => Attr::named(<>),
-	UnnamedAttr => Attr::unnamed(<>),
+	<l:@L> <attr:NamedAttr> <r:@R> => Attr::named(attr, Location::new(&l, &r)),
+	<l:@L> <attr:UnnamedAttr> <r:@R> => Attr::unnamed(attr, Location::new(&l, &r)),
 };
 
 NestedComment: MultiLineComment<'input> = {

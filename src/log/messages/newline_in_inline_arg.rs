@@ -17,6 +17,7 @@ impl<'i> Message<'i> for NewlineInInlineArg<'i> {
     fn log(self) -> Log<'i> {
         Log::error("newline in inline (curly-braced) arguments")
             .id(Self::id())
+            .explainable()
             .src(
                 Src::new(&self.arg_start_loc.span_to(&self.newline_loc))
                     .annotate(Note::error(&self.newline_loc, "newline found here"))
@@ -28,10 +29,7 @@ impl<'i> Message<'i> for NewlineInInlineArg<'i> {
             .help("consider using trailer (colon) arguments")
     }
 
-    fn explain() -> &'static str
-    where
-        Self: Sized,
-    {
+    fn explain(&self) -> &'static str {
         concat!(
             "This error means that a newline was detected early in the parsing of arguments. ",
             "Command arguments have two forms:\n",

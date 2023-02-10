@@ -15,6 +15,7 @@ pub use unexpected_eof::UnexpectedEOF;
 pub use unexpected_token::UnexpectedToken;
 
 use crate::log::Log;
+use crate::parser::{self, error::LalrpopError, Location};
 
 pub trait Message<'i> {
     /// If implemented, returns the unique identifier for the message. This must have the form
@@ -38,12 +39,35 @@ pub trait Message<'i> {
 
     /// Explain the meaning of this error, why it usually comes up and if
     /// appropriate, how to avoid it.
-    fn explain() -> &'static str
-    where
-        Self: Sized,
-    {
-        // TODO(kcza): remove default empty implementation
+    fn explain(&self) -> &'static str {
         ""
+    }
+}
+
+impl<'i> Message<'i> for parser::Error<'i> {
+    fn log(self) -> Log<'i> {
+        match self {
+            parser::Error::StringConversion(e) => Log::error(e.to_string()),
+            parser::Error::Filesystem(e) => Log::error(e.to_string()),
+            parser::Error::Parse(e) => match e {
+                LalrpopError::InvalidToken { location } => {
+                    panic!("internal error: invalid token at {}", location)
+                }
+                LalrpopError::UnrecognizedEOF { location, expected } => {
+                    UnexpectedEOF::new(location, expected).log()
+                }
+                LalrpopError::UnrecognizedToken {
+                    token: (l, t, r),
+                    expected,
+                } => UnexpectedToken::new(Location::new(&l, &r), t, expected).log(),
+                LalrpopError::ExtraToken { token: (l, t, r) } => panic!(
+                    "internal error: extra token {} at {}",
+                    t,
+                    Location::new(&l, &r)
+                ),
+                LalrpopError::User { error } => error.log(),
+            },
+        }
     }
 }
 
@@ -70,11 +94,15 @@ pub fn messages() -> Vec<MessageInfo> {
             {
                 vec![
                     $(
-                        MessageInfo {
-                            id: $msg::id(),
-                            #[cfg(test)]
-                            default_log: <$msg as Message<'_>>::default().log(),
-                            explanation: $msg::explain()
+                        {
+                            let default = <$msg as Message<'_>>::default();
+                            let explanation = default.explain();
+                            MessageInfo {
+                                id: $msg::id(),
+                                #[cfg(test)]
+                                default_log: default.log(),
+                                explanation,
+                            }
                         },
                     )*
                 ]
@@ -158,6 +186,23 @@ mod test {
 
     mod explanations {
         use super::*;
+
+        #[test]
+        fn prompt_offered_correctly() {
+            for info in messages() {
+                assert_eq!(
+                    !info.id.is_empty(),
+                    info.default_log.is_explainable(),
+                    "message {} is {}explainable",
+                    info.id,
+                    if info.default_log.is_explainable() {
+                        ""
+                    } else {
+                        "not "
+                    }
+                );
+            }
+        }
 
         #[test]
         fn not_too_long() {

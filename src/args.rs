@@ -290,6 +290,10 @@ pub struct LintCmd {
     #[allow(missing_docs)]
     pub input: InputArgs,
 
+    /// Apply fixes
+    #[arg(long)]
+    pub fix: bool,
+
     #[command(flatten)]
     #[allow(missing_docs)]
     pub extensions: ExtensionArgs,
@@ -467,6 +471,12 @@ impl ArgPath {
 impl Default for ArgPath {
     fn default() -> Self {
         Self::Path("main.em".into())
+    }
+}
+
+impl AsRef<ArgPath> for ArgPath {
+    fn as_ref(&self) -> &ArgPath {
+        self
     }
 }
 
@@ -2025,7 +2035,7 @@ mod test {
 
             {
                 let a = ArgPath::Path(path.clone());
-                let mut s = SearchResult::try_from(&a)?;
+                let mut s: SearchResult = a.as_ref().try_into()?;
                 assert_eq!(a.path().unwrap(), s.path);
                 assert_eq!(
                     {
@@ -2039,7 +2049,7 @@ mod test {
 
             {
                 let a = ArgPath::Stdio;
-                let mut s = SearchResult::try_from(&a)?;
+                let mut s: SearchResult = a.as_ref().try_into()?;
                 assert_eq!(s.path, path::PathBuf::from("-"));
                 assert_eq!(
                     s.file().stdin().unwrap().as_raw_fd(),

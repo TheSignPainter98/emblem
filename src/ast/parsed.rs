@@ -16,6 +16,7 @@ pub enum Content<'i> {
         remainder_arg: Option<Vec<Content<'i>>>,
         trailer_args: Vec<Vec<Par<ParPart<Content<'i>>>>>,
         loc: Location<'i>,
+        invocation_loc: Location<'i>,
     },
     Word {
         word: Text<'i>,
@@ -95,57 +96,77 @@ impl AstDebug for Content<'_> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Attrs<'i>(Vec<Attr<'i>>);
+pub struct Attrs<'i> {
+    attrs: Vec<Attr<'i>>,
+    loc: Location<'i>,
+}
 
 impl<'i> Attrs<'i> {
-    pub fn new(attrs: Vec<Attr<'i>>) -> Self {
-        Self(attrs)
+    pub fn new(attrs: Vec<Attr<'i>>, loc: Location<'i>) -> Self {
+        Self { attrs, loc }
     }
 
-    #[allow(dead_code)]
     pub fn args(&self) -> &Vec<Attr<'i>> {
-        &self.0
+        &self.attrs
+    }
+
+    pub fn loc(&self) -> &Location<'i> {
+        &self.loc
     }
 }
 
 #[cfg(test)]
 impl AstDebug for Attrs<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
-        self.0.test_fmt(buf);
+        self.args().test_fmt(buf);
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Attr<'i> {
-    Named { eq_idx: usize, raw: &'i str },
-    Unnamed { raw: &'i str },
+    Named {
+        eq_idx: usize,
+        raw: &'i str,
+        loc: Location<'i>,
+    },
+    Unnamed {
+        raw: &'i str,
+        loc: Location<'i>,
+    },
 }
 
 impl<'i> Attr<'i> {
-    pub fn named(raw: &'i str) -> Self {
+    pub fn named(raw: &'i str, loc: Location<'i>) -> Self {
         Self::Named {
             eq_idx: raw.find('=').unwrap(),
             raw,
+            loc,
         }
     }
 
-    pub fn unnamed(raw: &'i str) -> Self {
-        Self::Unnamed { raw }
+    pub fn unnamed(raw: &'i str, loc: Location<'i>) -> Self {
+        Self::Unnamed { raw, loc }
     }
 
-    #[allow(dead_code)]
     pub fn name(&self) -> &str {
         match self {
-            Self::Named { raw, eq_idx } => raw[..*eq_idx].trim(),
-            Self::Unnamed { raw } => raw.trim(),
+            Self::Named { raw, eq_idx, .. } => raw[..*eq_idx].trim(),
+            Self::Unnamed { raw, .. } => raw.trim(),
         }
     }
 
     #[allow(dead_code)]
     pub fn value(&self) -> Option<&str> {
         match self {
-            Self::Named { raw, eq_idx } => Some(raw[eq_idx + 1..].trim()),
+            Self::Named { raw, eq_idx, .. } => Some(raw[eq_idx + 1..].trim()),
             Self::Unnamed { .. } => None,
+        }
+    }
+
+    pub fn loc(&self) -> &Location<'i> {
+        match self {
+            Self::Named { loc, .. } => loc,
+            Self::Unnamed { loc, .. } => loc,
         }
     }
 
@@ -209,16 +230,30 @@ impl AstDebug for MultiLineCommentPart<'_> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::parser::Point;
 
     mod attrs {
+
         use super::*;
 
         #[test]
         fn args() {
-            let tests = vec![vec![], vec![Attr::unnamed("hello"), Attr::unnamed("world")]];
+            let p1 = Point::new("fname.em", "helloworld");
+            let p2 = p1.clone().shift("hello");
+            let p3 = p2.clone().shift("world");
+            let tests = vec![
+                vec![],
+                vec![
+                    Attr::unnamed("hello", Location::new(&p1, &p2)),
+                    Attr::unnamed("world", Location::new(&p2, &p3)),
+                ],
+            ];
 
             for test in tests {
-                assert_eq!(Attrs::new(test.clone()).args(), &test);
+                assert_eq!(
+                    Attrs::new(test.clone(), Location::new(&p1, &p2)).args(),
+                    &test
+                );
             }
         }
     }
@@ -229,7 +264,8 @@ mod test {
         #[test]
         fn unnamed() {
             let raw = " \tfoo\t ";
-            let attr = Attr::unnamed(raw);
+            let p1 = Point::new("fname.em", raw);
+            let attr = Attr::unnamed(raw, Location::new(&p1, &p1.clone().shift(raw)));
 
             assert_eq!(attr.name(), "foo");
             assert_eq!(attr.value(), None);
@@ -239,7 +275,8 @@ mod test {
         #[test]
         fn named() {
             let raw = " \tfoo\t =\t bar \t";
-            let attr = Attr::named(raw);
+            let p1 = Point::new("fname.em", raw);
+            let attr = Attr::named(raw, Location::new(&p1, &p1.clone().shift(raw)));
 
             assert_eq!(attr.name(), "foo");
             assert_eq!(attr.value(), Some("bar"));

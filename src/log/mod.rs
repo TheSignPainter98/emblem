@@ -32,7 +32,7 @@ macro_rules! logger {
                 if unsafe { crate::log::VERBOSITY } >= crate::args::Verbosity::$verbosity {
                     #[allow(unused_imports)]
                     use crate::log::messages::Message;
-                    $msg.log().print();
+                    $msg.log().print()
                 }
             };
         }
@@ -87,6 +87,7 @@ pub struct Log<'i> {
     help: Option<String>,
     note: Option<String>,
     srcs: Vec<Src<'i>>,
+    explainable: bool,
 }
 
 impl<'i> Log<'i> {
@@ -98,6 +99,7 @@ impl<'i> Log<'i> {
             help: None,
             note: None,
             srcs: Vec::new(),
+            explainable: false,
         }
     }
 
@@ -170,10 +172,14 @@ impl<'i> Log<'i> {
             }
         }
 
-        if let Some(id) = self.id {
+        if self.explainable {
+            if self.id.is_none() {
+                panic!("internal error: explainable message has no id")
+            }
+
             let info_instruction = &format!(
                 "For more information about this error, try `em explain {}",
-                id
+                self.id.unwrap()
             );
             let mut display_list = DisplayList::from(snippet);
             display_list
@@ -190,9 +196,9 @@ impl<'i> Log<'i> {
                     source_aligned: false,
                     continuation: false,
                 }));
-            eprintln!("{}`", display_list);
+            eprintln!("{}", display_list);
         } else {
-            eprintln!("{}`", DisplayList::from(snippet));
+            eprintln!("{}", DisplayList::from(snippet));
         }
     }
 
@@ -211,6 +217,15 @@ impl<'i> Log<'i> {
 
     pub fn id(mut self, id: &'static str) -> Self {
         self.id = Some(id);
+        self
+    }
+
+    pub fn explainable(mut self) -> Self {
+        if self.id.is_none() {
+            panic!("internal error: attempted to mark log without id as explainable")
+        }
+
+        self.explainable = true;
         self
     }
 
@@ -269,6 +284,20 @@ impl Log<'_> {
 
         ret
     }
+
+    pub fn get_annotation_text(&self) -> Vec<String> {
+        let mut ret = vec![self.msg.clone()];
+
+        for src in &self.srcs {
+            ret.extend(src.get_annotation_text());
+        }
+
+        ret
+    }
+
+    pub fn is_explainable(&self) -> bool {
+        self.explainable
+    }
 }
 
 impl<'i> Message<'i> for Log<'i> {
@@ -316,6 +345,10 @@ impl Note<'_> {
     fn get_text(&self) -> Vec<&str> {
         vec![&self.msg]
     }
+
+    fn get_annotation_text(&self) -> Vec<String> {
+        vec![format!("{}: {}", self.loc, self.msg)]
+    }
 }
 
 pub struct Src<'i> {
@@ -340,10 +373,18 @@ impl<'i> Src<'i> {
 #[cfg(test)]
 impl Src<'_> {
     fn get_text(&self) -> Vec<&str> {
-        let mut ret = Vec::new();
-        for annotation in &self.annotations {
-            ret.extend(annotation.get_text());
-        }
-        ret
+        self.annotations
+            .iter()
+            .map(|a| a.get_text())
+            .flatten()
+            .collect()
+    }
+
+    fn get_annotation_text(&self) -> Vec<String> {
+        self.annotations
+            .iter()
+            .map(|a| a.get_annotation_text())
+            .flatten()
+            .collect()
     }
 }
