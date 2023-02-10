@@ -79,7 +79,7 @@ mod test {
                 problems
             };
 
-            assert_eq!(self.num_problems, problems.len(), "{} problems testing {}", problems.len(), self.src);
+            assert_eq!(self.num_problems, problems.len(), "{} problems testing {} (expected {})", problems.len(), self.src, self.num_problems);
 
             for problem in problems {
                 let text = problem.get_annotation_text().join("\n\t");
