@@ -116,18 +116,18 @@ mod test {
     use typed_arena::Arena;
 
     #[derive(Debug)]
-    enum ArgType {
+    enum ArgsType {
         Inline { with_remainder: bool },
         Trailer,
     }
 
-    fn test_command(name: &str, num_stars: usize, num_args: usize, arg_type: &ArgType) -> String {
+    fn test_command(name: &str, num_stars: usize, num_args: usize, arg_type: &ArgsType) -> String {
         let mut args = vec![".", name];
         for _ in 0..num_stars {
             args.push("*");
         }
         match arg_type {
-            ArgType::Inline { with_remainder } => {
+            ArgsType::Inline { with_remainder } => {
                 let num_inline = match (*with_remainder, num_args) {
                     (_, 0) => 0,
                     (true, n) => n - 1,
@@ -140,7 +140,7 @@ mod test {
                     args.push(":foo");
                 }
             }
-            ArgType::Trailer => {
+            ArgsType::Trailer => {
                 if num_args > 0 {
                     args.push(":\n\tfoo");
                 }
@@ -164,13 +164,13 @@ mod test {
             let end = max + 1;
 
             for arg_type in [
-                ArgType::Inline {
+                ArgsType::Inline {
                     with_remainder: false,
                 },
-                ArgType::Inline {
+                ArgsType::Inline {
                     with_remainder: true,
                 },
-                ArgType::Trailer,
+                ArgsType::Trailer,
             ] {
                 for stars in 0..=2 {
                     for i in start..=end {
@@ -214,6 +214,38 @@ mod test {
                             src: arena.alloc(test_command(command, stars, i, &arg_type)),
                         });
                     }
+                }
+            }
+        }
+
+        for test in tests {
+            test.run();
+        }
+    }
+
+    #[test]
+    fn unaffected_ignored() {
+        let arena = Arena::new();
+
+        let mut tests = Vec::new();
+
+        for arg_type in [
+            ArgsType::Inline {
+                with_remainder: false,
+            },
+            ArgsType::Inline {
+                with_remainder: true,
+            },
+            ArgsType::Trailer,
+        ] {
+            for stars in 0..=2 {
+                for i in 0..=3 {
+                    tests.push(LintTest {
+                        lint: NumArgs::new(),
+                        num_problems: 0,
+                        matches: vec![],
+                        src: arena.alloc(test_command(".foo", stars, i, &arg_type)),
+                    });
                 }
             }
         }
