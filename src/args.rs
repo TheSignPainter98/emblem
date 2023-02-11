@@ -963,8 +963,8 @@ mod test {
         #[test]
         fn default() {
             assert_eq!(
-                Args::try_parse_from(&["em"]).unwrap().command,
-                Args::try_parse_from(&["em", "build"]).unwrap().command
+                Args::try_parse_from(["em"]).unwrap().command,
+                Args::try_parse_from(["em", "build"]).unwrap().command
             );
         }
 
@@ -973,33 +973,27 @@ mod test {
 
             #[test]
             fn colourise_output() {
-                assert_eq!(
-                    Args::try_parse_from(&["em", "--colour", "never"])
+                assert!(
+                    !Args::try_parse_from(["em", "--colour", "never"])
                         .unwrap()
                         .log
-                        .colour,
-                    false
+                        .colour
                 );
                 assert!(
-                    Args::try_parse_from(&["em", "--colour", "always"])
+                    Args::try_parse_from(["em", "--colour", "always"])
                         .unwrap()
                         .log
                         .colour
                 );
 
-                assert!(Args::try_parse_from(&["em", "--colour", "crabcakes"]).is_err());
+                assert!(Args::try_parse_from(["em", "--colour", "crabcakes"]).is_err());
             }
 
             #[test]
             fn warnings_as_errors() {
+                assert!(!Args::try_parse_from(["em"]).unwrap().log.warnings_as_errors);
                 assert!(
-                    !Args::try_parse_from(&["em"])
-                        .unwrap()
-                        .log
-                        .warnings_as_errors
-                );
-                assert!(
-                    Args::try_parse_from(&["em", "-E"])
+                    Args::try_parse_from(["em", "-E"])
                         .unwrap()
                         .log
                         .warnings_as_errors
@@ -1037,7 +1031,7 @@ mod test {
             #[test]
             fn output_driver() {
                 assert_eq!(
-                    Args::try_parse_from(&["em"])
+                    Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
@@ -1047,7 +1041,7 @@ mod test {
                     None
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "-T", "pies"])
+                    Args::try_parse_from(["em", "build", "-T", "pies"])
                         .unwrap()
                         .command
                         .build()
@@ -1061,7 +1055,7 @@ mod test {
             #[test]
             fn input_file() {
                 assert_eq!(
-                    Args::try_parse_from(&["em"])
+                    Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
@@ -1071,7 +1065,7 @@ mod test {
                     ArgPath::try_from("main.em").unwrap(),
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "-"])
+                    Args::try_parse_from(["em", "build", "-"])
                         .unwrap()
                         .command
                         .build()
@@ -1081,7 +1075,7 @@ mod test {
                     ArgPath::Stdio
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "chickens"])
+                    Args::try_parse_from(["em", "build", "chickens"])
                         .unwrap()
                         .command
                         .build()
@@ -1095,7 +1089,7 @@ mod test {
             #[test]
             fn output_stem() {
                 assert_eq!(
-                    Args::try_parse_from(&["em"])
+                    Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
@@ -1104,7 +1098,7 @@ mod test {
                     ArgPath::try_from("main.em").unwrap(),
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "-"])
+                    Args::try_parse_from(["em", "build", "-"])
                         .unwrap()
                         .command
                         .build()
@@ -1113,7 +1107,7 @@ mod test {
                     ArgPath::Stdio,
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "-", "pies"])
+                    Args::try_parse_from(["em", "build", "-", "pies"])
                         .unwrap()
                         .command
                         .build()
@@ -1122,7 +1116,7 @@ mod test {
                     ArgPath::try_from("pies").unwrap(),
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "_", "-"])
+                    Args::try_parse_from(["em", "build", "_", "-"])
                         .unwrap()
                         .command
                         .build()
@@ -1131,7 +1125,7 @@ mod test {
                     ArgPath::Stdio,
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "_", "pies"])
+                    Args::try_parse_from(["em", "build", "_", "pies"])
                         .unwrap()
                         .command
                         .build()
@@ -1140,7 +1134,7 @@ mod test {
                     ArgPath::try_from("pies").unwrap(),
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "-", "pies"])
+                    Args::try_parse_from(["em", "build", "-", "pies"])
                         .unwrap()
                         .command
                         .build()
@@ -1153,7 +1147,7 @@ mod test {
             #[test]
             fn max_mem() {
                 assert_eq!(
-                    Args::try_parse_from(&["em"])
+                    Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
@@ -1163,7 +1157,7 @@ mod test {
                     MemoryLimit::Unlimited
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "--max-mem", "25"])
+                    Args::try_parse_from(["em", "build", "--max-mem", "25"])
                         .unwrap()
                         .command
                         .build()
@@ -1173,7 +1167,7 @@ mod test {
                     MemoryLimit::Limited(25)
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "--max-mem", "25K"])
+                    Args::try_parse_from(["em", "build", "--max-mem", "25K"])
                         .unwrap()
                         .command
                         .build()
@@ -1183,7 +1177,7 @@ mod test {
                     MemoryLimit::Limited(25 * 1024)
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "--max-mem", "25M"])
+                    Args::try_parse_from(["em", "build", "--max-mem", "25M"])
                         .unwrap()
                         .command
                         .build()
@@ -1193,7 +1187,7 @@ mod test {
                     MemoryLimit::Limited(25 * 1024 * 1024)
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "--max-mem", "25G"])
+                    Args::try_parse_from(["em", "build", "--max-mem", "25G"])
                         .unwrap()
                         .command
                         .build()
@@ -1203,13 +1197,13 @@ mod test {
                     MemoryLimit::Limited(25 * 1024 * 1024 * 1024)
                 );
 
-                assert!(Args::try_parse_from(&["em", "build", "--max-mem", "100T"]).is_err());
+                assert!(Args::try_parse_from(["em", "build", "--max-mem", "100T"]).is_err());
             }
 
             #[test]
             fn style() {
                 assert_eq!(
-                    Args::try_parse_from(&["em"])
+                    Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
@@ -1219,7 +1213,7 @@ mod test {
                     None
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "-s", "funk"])
+                    Args::try_parse_from(["em", "build", "-s", "funk"])
                         .unwrap()
                         .command
                         .build()
@@ -1233,7 +1227,7 @@ mod test {
             #[test]
             fn sandbox() {
                 assert_eq!(
-                    Args::try_parse_from(&["em"])
+                    Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
@@ -1243,7 +1237,7 @@ mod test {
                     SandboxLevel::Standard
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "--sandbox", "unrestricted"])
+                    Args::try_parse_from(["em", "build", "--sandbox", "unrestricted"])
                         .unwrap()
                         .command
                         .build()
@@ -1253,7 +1247,7 @@ mod test {
                     SandboxLevel::Unrestricted
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "--sandbox", "standard"])
+                    Args::try_parse_from(["em", "build", "--sandbox", "standard"])
                         .unwrap()
                         .command
                         .build()
@@ -1263,7 +1257,7 @@ mod test {
                     SandboxLevel::Standard
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "--sandbox", "strict"])
+                    Args::try_parse_from(["em", "build", "--sandbox", "strict"])
                         .unwrap()
                         .command
                         .build()
@@ -1273,13 +1267,13 @@ mod test {
                     SandboxLevel::Strict
                 );
 
-                assert!(Args::try_parse_from(&["em", "build", "--sandbox", "root"]).is_err());
+                assert!(Args::try_parse_from(["em", "build", "--sandbox", "root"]).is_err());
             }
 
             #[test]
             fn style_path() {
                 assert_eq!(
-                    Args::try_parse_from(&["em"])
+                    Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
@@ -1289,7 +1283,7 @@ mod test {
                     SearchPath::default()
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "--style-path", "club:house"])
+                    Args::try_parse_from(["em", "build", "--style-path", "club:house"])
                         .unwrap()
                         .command
                         .build()
@@ -1328,7 +1322,7 @@ mod test {
             #[test]
             fn extension_args() {
                 assert_eq!(
-                    Args::try_parse_from(&["em"])
+                    Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
@@ -1340,7 +1334,7 @@ mod test {
 
                 {
                     let valid_ext_args =
-                        Args::try_parse_from(&["em", "build", "-ak=v", "-ak2=v2", "-ak3="])
+                        Args::try_parse_from(["em", "build", "-ak=v", "-ak2=v2", "-ak3="])
                             .unwrap()
                             .command
                             .build()
@@ -1357,13 +1351,13 @@ mod test {
                     assert_eq!(valid_ext_args[2].value(), "");
                 }
 
-                assert!(Args::try_parse_from(&["em", "-a=v"]).is_err());
+                assert!(Args::try_parse_from(["em", "-a=v"]).is_err());
             }
 
             #[test]
             fn extension_path() {
                 assert_eq!(
-                    Args::try_parse_from(&["em"])
+                    Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
@@ -1373,7 +1367,7 @@ mod test {
                     SearchPath::default()
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "build", "--extension-path", "club:house"])
+                    Args::try_parse_from(["em", "build", "--extension-path", "club:house"])
                         .unwrap()
                         .command
                         .build()
@@ -1391,7 +1385,7 @@ mod test {
             #[test]
             fn code() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "explain", "E001"])
+                    Args::try_parse_from(["em", "explain", "E001"])
                         .unwrap()
                         .command
                         .explain()
@@ -1399,7 +1393,7 @@ mod test {
                         .id,
                     "E001"
                 );
-                assert!(Args::try_parse_from(&["em", "explain"]).is_err());
+                assert!(Args::try_parse_from(["em", "explain"]).is_err());
             }
         }
 
@@ -1409,7 +1403,7 @@ mod test {
             #[test]
             fn input_file() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "fmt"])
+                    Args::try_parse_from(["em", "fmt"])
                         .unwrap()
                         .command
                         .format()
@@ -1419,7 +1413,7 @@ mod test {
                     ArgPath::Path("main.em".into())
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "fmt", "-"])
+                    Args::try_parse_from(["em", "fmt", "-"])
                         .unwrap()
                         .command
                         .format()
@@ -1429,7 +1423,7 @@ mod test {
                     ArgPath::Stdio
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "fmt", "plain.txt"])
+                    Args::try_parse_from(["em", "fmt", "plain.txt"])
                         .unwrap()
                         .command
                         .format()
@@ -1447,7 +1441,7 @@ mod test {
             #[test]
             fn dir() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "init"])
+                    Args::try_parse_from(["em", "init"])
                         .unwrap()
                         .command
                         .init()
@@ -1456,7 +1450,7 @@ mod test {
                     ".",
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "init", "cool-doc"])
+                    Args::try_parse_from(["em", "init", "cool-doc"])
                         .unwrap()
                         .command
                         .init()
@@ -1473,7 +1467,7 @@ mod test {
             #[test]
             fn input_file() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "lint"])
+                    Args::try_parse_from(["em", "lint"])
                         .unwrap()
                         .command
                         .lint()
@@ -1483,7 +1477,7 @@ mod test {
                     ArgPath::Path("main.em".into())
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "lint", "-"])
+                    Args::try_parse_from(["em", "lint", "-"])
                         .unwrap()
                         .command
                         .lint()
@@ -1493,7 +1487,7 @@ mod test {
                     ArgPath::Stdio
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "lint", "plain.txt"])
+                    Args::try_parse_from(["em", "lint", "plain.txt"])
                         .unwrap()
                         .command
                         .lint()
@@ -1532,7 +1526,7 @@ mod test {
             #[test]
             fn extension_args() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "lint"])
+                    Args::try_parse_from(["em", "lint"])
                         .unwrap()
                         .command
                         .lint()
@@ -1544,7 +1538,7 @@ mod test {
 
                 {
                     let valid_ext_args =
-                        Args::try_parse_from(&["em", "lint", "-ak=v", "-ak2=v2", "-ak3="])
+                        Args::try_parse_from(["em", "lint", "-ak=v", "-ak2=v2", "-ak3="])
                             .unwrap()
                             .command
                             .lint()
@@ -1561,13 +1555,13 @@ mod test {
                     assert_eq!(valid_ext_args[2].value(), "");
                 }
 
-                assert!(Args::try_parse_from(&["em", "lint", "-a=v"]).is_err());
+                assert!(Args::try_parse_from(["em", "lint", "-a=v"]).is_err());
             }
 
             #[test]
             fn extension_path() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "lint"])
+                    Args::try_parse_from(["em", "lint"])
                         .unwrap()
                         .command
                         .lint()
@@ -1577,7 +1571,7 @@ mod test {
                     SearchPath::default()
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "lint", "--extension-path", "club:house"])
+                    Args::try_parse_from(["em", "lint", "--extension-path", "club:house"])
                         .unwrap()
                         .command
                         .lint()
@@ -1595,7 +1589,7 @@ mod test {
             #[test]
             fn list_info() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "list", "output-formats"])
+                    Args::try_parse_from(["em", "list", "output-formats"])
                         .unwrap()
                         .command
                         .list()
@@ -1604,7 +1598,7 @@ mod test {
                     RequestedInfo::OutputFormats
                 );
                 assert_eq!(
-                    Args::try_parse_from(&["em", "list", "output-extensions"])
+                    Args::try_parse_from(["em", "list", "output-extensions"])
                         .unwrap()
                         .command
                         .list()
@@ -1612,7 +1606,7 @@ mod test {
                         .what,
                     RequestedInfo::OutputExtensions
                 );
-                assert!(Args::try_parse_from(&["em", "list", "root-passwd"]).is_err());
+                assert!(Args::try_parse_from(["em", "list", "root-passwd"]).is_err());
             }
 
             #[test]
@@ -1653,7 +1647,7 @@ mod test {
             #[test]
             fn extension_args() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "list", "output-formats"])
+                    Args::try_parse_from(["em", "list", "output-formats"])
                         .unwrap()
                         .command
                         .list()
@@ -1664,7 +1658,7 @@ mod test {
                 );
 
                 {
-                    let valid_ext_args = Args::try_parse_from(&[
+                    let valid_ext_args = Args::try_parse_from([
                         "em",
                         "list",
                         "output-formats",
@@ -1688,13 +1682,13 @@ mod test {
                     assert_eq!(valid_ext_args[2].value(), "");
                 }
 
-                assert!(Args::try_parse_from(&["em", "list", "-a=v"]).is_err());
+                assert!(Args::try_parse_from(["em", "list", "-a=v"]).is_err());
             }
 
             #[test]
             fn extension_path() {
                 assert_eq!(
-                    Args::try_parse_from(&["em", "list", "output-formats"])
+                    Args::try_parse_from(["em", "list", "output-formats"])
                         .unwrap()
                         .command
                         .list()
@@ -1704,7 +1698,7 @@ mod test {
                     SearchPath::default()
                 );
                 assert_eq!(
-                    Args::try_parse_from(&[
+                    Args::try_parse_from([
                         "em",
                         "list",
                         "output-formats",
@@ -1802,7 +1796,7 @@ mod test {
                 SearchPath::from(
                     vec!["foo", "bar", "baz"]
                         .iter()
-                        .map(|d| path::PathBuf::from(d))
+                        .map(path::PathBuf::from)
                         .collect::<Vec<_>>()
                 ),
                 SearchPath {
@@ -1887,7 +1881,7 @@ mod test {
             {
                 let abs_path = tmppath.join("a.txt");
                 let abs_result =
-                    path.open(&tmppath, &path::PathBuf::from(&abs_path).canonicalize()?);
+                    path.open(&tmppath, path::PathBuf::from(&abs_path).canonicalize()?);
                 assert!(abs_result.is_err());
                 let err = abs_result.unwrap_err();
                 assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
@@ -1980,7 +1974,7 @@ mod test {
             let tmpdir = tempfile::tempdir()?;
             let path = tmpdir.path().join("fields.txt");
             let mut file = fs::File::create(&path)?;
-            file.write(b"file-content")?;
+            file.write_all(b"file-content")?;
 
             let file = fs::File::open(&path)?;
             let mut s = SearchResult {
@@ -2008,7 +2002,7 @@ mod test {
             let tmpdir = tempfile::tempdir()?;
             let path = tmpdir.path().join(src);
             let mut file = fs::File::create(&path)?;
-            file.write(b"file-content")?;
+            file.write_all(b"file-content")?;
 
             let mut s = SearchResult::try_from(path.to_str().unwrap())?;
             assert_eq!(s.path, path);
@@ -2031,10 +2025,10 @@ mod test {
             let tmpdir = tempfile::tempdir()?;
             let path = tmpdir.path().join(src);
             let mut file = fs::File::create(&path)?;
-            file.write(b"file-content")?;
+            file.write_all(b"file-content")?;
 
             {
-                let a = ArgPath::Path(path.clone());
+                let a = ArgPath::Path(path);
                 let mut s: SearchResult = a.as_ref().try_into()?;
                 assert_eq!(a.path().unwrap(), s.path);
                 assert_eq!(
@@ -2065,7 +2059,7 @@ mod test {
             let tmpdir = tempfile::tempdir()?;
             let path = tmpdir.path().join("file.txt");
             let mut file = fs::File::create(&path)?;
-            file.write(b"1234567890")?;
+            file.write_all(b"1234567890")?;
 
             assert_eq!(InputFile::from(io::stdin()).len_hint(), None);
             assert_eq!(InputFile::from(File::open(path)?).len_hint(), Some(10));

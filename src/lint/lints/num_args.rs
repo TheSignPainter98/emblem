@@ -122,9 +122,7 @@ mod test {
 
     fn test_command(name: &str, num_stars: usize, num_args: usize, arg_type: &ArgsType) -> String {
         let mut args = vec![".", name];
-        for _ in 0..num_stars {
-            args.push("*");
-        }
+        args.resize(args.len() + num_stars, "*");
         match arg_type {
             ArgsType::Inline { with_remainder } => {
                 let num_inline = match (*with_remainder, num_args) {
@@ -132,9 +130,7 @@ mod test {
                     (true, n) => n - 1,
                     (_, n) => n,
                 };
-                for _ in 0..num_inline {
-                    args.push("{foo}");
-                }
+                args.resize(args.len() + num_inline, "{foo}");
                 if *with_remainder && num_args > 0 {
                     args.push(":foo");
                 }
@@ -143,8 +139,8 @@ mod test {
                 if num_args > 0 {
                     args.push(":\n\tfoo");
                 }
-                for _ in 1..num_args {
-                    args.push("\n::\n\tfoo");
+                if num_args > 1 {
+                    args.resize(args.len() + num_args - 1, "\n::\n\tfoo");
                 }
             }
         }

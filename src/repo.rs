@@ -69,7 +69,7 @@ mod test {
 
         {
             let mut file = File::create(dir.path().join("dirt.txt"))?;
-            file.write(b"some dirt")?;
+            file.write_all(b"some dirt")?;
         }
 
         println!("c");

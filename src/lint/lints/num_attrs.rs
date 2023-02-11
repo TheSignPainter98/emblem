@@ -118,9 +118,7 @@ mod test {
 
     fn test_command(name: &str, num_stars: usize, num_attrs: Option<(usize, usize)>) -> String {
         let mut args = vec![".", name];
-        for _ in 0..num_stars {
-            args.push("*");
-        }
+        args.resize(args.len() + num_stars, "*");
         if let Some((num_ordered_attrs, num_unordered_attrs)) = num_attrs {
             args.push("[");
             for i in 0..num_ordered_attrs {
