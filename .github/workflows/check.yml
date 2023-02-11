@@ -10,6 +10,9 @@ jobs:
   check:
     name: Check code-quality
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
 
     strategy:
       matrix:
@@ -38,7 +41,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Source cargo environment
-        run: <
+        run: |
           [[ -f ~/.cargo/env ]] && source ~/.cargo/env || true
 
       - name: Install rust
