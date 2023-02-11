@@ -13,7 +13,6 @@ use std::{
     fmt::Display,
     fs::{self, File},
     io::{self, Read, Stdin},
-    os::fd::AsRawFd,
     path,
 };
 
@@ -781,16 +780,6 @@ impl InputFile {
         match self {
             Self::File(f) => f.metadata().ok().map(|m| m.len()),
             Self::Stdin(_) => None,
-        }
-    }
-}
-
-impl PartialEq for InputFile {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Stdin(_), Self::Stdin(_)) => false,
-            (Self::File(f1), Self::File(f2)) => f1.as_raw_fd() == f2.as_raw_fd(),
-            _ => false,
         }
     }
 }
@@ -2043,12 +2032,9 @@ mod test {
 
             {
                 let a = ArgPath::Stdio;
-                let mut s: SearchResult = a.as_ref().try_into()?;
+                let s: SearchResult = a.as_ref().try_into()?;
                 assert_eq!(s.path, path::PathBuf::from("-"));
-                assert_eq!(
-                    s.file().stdin().unwrap().as_raw_fd(),
-                    io::stdin().as_raw_fd()
-                );
+                assert!(s.file.stdin().is_some());
             }
 
             Ok(())
