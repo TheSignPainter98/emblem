@@ -36,7 +36,7 @@ ParPart: ParPart<Content<'input>> = {
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> <r:@R> => {
 		ParPart::Command(Content::Command {
 			name: name.0,
-			stars: name.1,
+			pluses: name.1,
 			attrs,
 			inline_args,
 			remainder_arg: None,
@@ -66,7 +66,7 @@ LineContent: Vec<Content<'input>> = {
 RemainderCommand: Content<'input> = {
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> <r:@R> => Content::Command {
 		name: name.0,
-		stars: name.1,
+		pluses: name.1,
 		attrs,
 		inline_args,
 		remainder_arg: Some(remainder_arg),
@@ -91,7 +91,7 @@ LineElement: Content<'input> = {
 
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
 		name: name.0,
-		stars: name.1,
+		pluses: name.1,
 		attrs,
 		inline_args,
 		remainder_arg: None,
