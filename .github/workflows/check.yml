@@ -9,7 +9,16 @@ on:
 jobs:
   check:
     name: Check code-quality
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+      fail-fast: true
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
