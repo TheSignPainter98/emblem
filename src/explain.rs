@@ -17,7 +17,7 @@ pub fn explain(cmd: ExplainCmd) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn get_explanation<'a>(id: &'a str) -> Result<&'static str, NoSuchErrorCode<'a>> {
+fn get_explanation(id: &str) -> Result<&'static str, NoSuchErrorCode<'_>> {
     if id.is_empty() {
         return Err(NoSuchErrorCode::new(id));
     }
