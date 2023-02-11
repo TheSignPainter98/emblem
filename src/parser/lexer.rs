@@ -120,7 +120,7 @@ impl<'input> Iterator for Lexer<'input> {
             let COLON          = r":[ \t]*";
             let DOUBLE_COLON   = r"::";
             let INITIAL_INDENT = r"[ \t]*";
-            let COMMAND        = r"\.[^ \t{}\[\]\r\n:*]+\**";
+            let COMMAND        = r"\.[^ \t{}\[\]\r\n:+]+\+*";
             let VERBATIM       = r"![^\r\n]*!";
             let BRACE_LEFT     = r"\{";
             let BRACE_RIGHT    = r"\}";
@@ -298,8 +298,8 @@ impl<'input> Iterator for Lexer<'input> {
             },
 
             COMMAND    => |s:&'input str| {
-                let stars = s.chars().rev().take_while(|c| *c == '*').count();
-                Ok(Tok::Command(&s[1..s.len()-stars], stars))
+                let pluses = s.chars().rev().take_while(|c| *c == '+').count();
+                Ok(Tok::Command(&s[1..s.len()-pluses], pluses))
             },
             DASH       => |s:&'input str| Ok(Tok::Dash(s)),
             GLUE       => |s:&'input str| Ok(Tok::Glue(s)),

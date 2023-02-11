@@ -10,7 +10,7 @@ pub type ParsedFile<'i> = File<ParPart<Content<'i>>>;
 pub enum Content<'i> {
     Command {
         name: Text<'i>,
-        stars: usize,
+        pluses: usize,
         attrs: Option<Attrs<'i>>,
         inline_args: Vec<Vec<Content<'i>>>,
         remainder_arg: Option<Vec<Content<'i>>>,
@@ -54,7 +54,7 @@ impl AstDebug for Content<'_> {
         match self {
             Self::Command {
                 name,
-                stars,
+                pluses,
                 attrs,
                 inline_args,
                 remainder_arg,
@@ -66,8 +66,8 @@ impl AstDebug for Content<'_> {
                 if let Some(attrs) = attrs {
                     attrs.test_fmt(buf);
                 }
-                if *stars > 0 {
-                    "*".repeat(*stars).surround(buf, "(", ")")
+                if *pluses > 0 {
+                    "+".repeat(*pluses).surround(buf, "(", ")")
                 }
                 for arg in inline_args.iter() {
                     arg.surround(buf, "{", "}");

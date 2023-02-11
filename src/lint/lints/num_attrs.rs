@@ -116,9 +116,9 @@ mod test {
     use super::*;
     use crate::lint::lints::test::LintTest;
 
-    fn test_command(name: &str, num_stars: usize, num_attrs: Option<(usize, usize)>) -> String {
+    fn test_command(name: &str, num_pluses: usize, num_attrs: Option<(usize, usize)>) -> String {
         let mut args = vec![".", name];
-        args.resize(args.len() + num_stars, "*");
+        args.resize(args.len() + num_pluses, "+");
         if let Some((num_ordered_attrs, num_unordered_attrs)) = num_attrs {
             args.push("[");
             for i in 0..num_ordered_attrs {
@@ -148,12 +148,12 @@ mod test {
             let start = if *min > 0 { min - 1 } else { *min };
             let end = max + 1;
 
-            for stars in 0..=2 {
+            for pluses in 0..=2 {
                 LintTest {
                     lint: NumAttrs::new(),
                     num_problems: !valid.contains(&0) as usize,
                     matches: vec!["x"],
-                    src: &test_command(command, stars, None),
+                    src: &test_command(command, pluses, None),
                 }
                 .run();
 
@@ -171,7 +171,7 @@ mod test {
                                     format!(r"too many attributes passed to \.{}", command)
                                 },
                                 &{
-                                    let start_col = 2 + command.len() + stars;
+                                    let start_col = 2 + command.len() + pluses;
                                     let end_col = start_col
                                         + 4 * num_ordered
                                         + 8 * num_unordered
@@ -209,7 +209,7 @@ mod test {
                                     }
                                 },
                             ],
-                            src: &test_command(command, stars, Some((num_ordered, num_unordered))),
+                            src: &test_command(command, pluses, Some((num_ordered, num_unordered))),
                         }
                         .run();
                     }
@@ -231,12 +231,12 @@ mod test {
 
     #[test]
     fn unaffected_ignored() {
-        for stars in 0..=2 {
+        for pluses in 0..=2 {
             LintTest {
                 lint: NumAttrs::new(),
                 num_problems: 0,
                 matches: vec![],
-                src: &test_command(".foo", stars, None),
+                src: &test_command("foo", pluses, None),
             }
             .run();
 
@@ -246,7 +246,7 @@ mod test {
                         lint: NumAttrs::new(),
                         num_problems: 0,
                         matches: vec![],
-                        src: &test_command(".foo", stars, Some((num_ordered, num_unordered))),
+                        src: &test_command("foo", pluses, Some((num_ordered, num_unordered))),
                     }
                     .run();
                 }

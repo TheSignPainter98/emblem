@@ -120,9 +120,9 @@ mod test {
         Trailer,
     }
 
-    fn test_command(name: &str, num_stars: usize, num_args: usize, arg_type: &ArgsType) -> String {
+    fn test_command(name: &str, num_pluses: usize, num_args: usize, arg_type: &ArgsType) -> String {
         let mut args = vec![".", name];
-        args.resize(args.len() + num_stars, "*");
+        args.resize(args.len() + num_pluses, "+");
         match arg_type {
             ArgsType::Inline { with_remainder } => {
                 let num_inline = match (*with_remainder, num_args) {
@@ -164,7 +164,7 @@ mod test {
                 },
                 ArgsType::Trailer,
             ] {
-                for stars in 0..=2 {
+                for pluses in 0..=2 {
                     for num_args in min_args_to_test..=max_args_to_test {
                         LintTest {
                             lint: NumArgs::new(),
@@ -178,32 +178,32 @@ mod test {
                                 &if *max == 0 {
                                     format!(
                                         r":1:1-{}: expected no arguments",
-                                        1 + command.len() + stars,
+                                        1 + command.len() + pluses,
                                     )
                                 } else if *max == *min {
                                     format!(
                                         r":1:1-{}: expected {} {}",
-                                        1 + command.len() + stars,
+                                        1 + command.len() + pluses,
                                         *min,
                                         util::plural(*min, "argument", "arguments")
                                     )
                                 } else if num_args < *min {
                                     format!(
                                         r":1:1-{}: expected at least {} {}",
-                                        1 + command.len() + stars,
+                                        1 + command.len() + pluses,
                                         *min,
                                         util::plural(*min, "argument", "arguments")
                                     )
                                 } else {
                                     format!(
                                         r":1:1-{}: expected at most {} {}",
-                                        1 + command.len() + stars,
+                                        1 + command.len() + pluses,
                                         *max,
                                         util::plural(*max, "argument", "arguments")
                                     )
                                 },
                             ],
-                            src: &test_command(command, stars, num_args, &arg_type),
+                            src: &test_command(command, pluses, num_args, &arg_type),
                         }
                         .run();
                     }
@@ -234,13 +234,13 @@ mod test {
             },
             ArgsType::Trailer,
         ] {
-            for stars in 0..=2 {
+            for pluses in 0..=2 {
                 for num_args in 0..=3 {
                     LintTest {
                         lint: NumArgs::new(),
                         num_problems: 0,
                         matches: vec![],
-                        src: &test_command(".foo", stars, num_args, &arg_type),
+                        src: &test_command("foo", pluses, num_args, &arg_type),
                     }
                     .run();
                 }
