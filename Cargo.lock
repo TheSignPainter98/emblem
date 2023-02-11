@@ -214,7 +214,6 @@ dependencies = [
  "lalrpop",
  "lalrpop-util",
  "lazy_static",
- "pager",
  "parking_lot",
  "regex",
  "supports-color",
@@ -558,16 +557,6 @@ name = "os_str_bytes"
 version = "6.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
-
-[[package]]
-name = "pager"
-version = "0.16.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2599211a5c97fbbb1061d3dc751fa15f404927e4846e07c643287d6d1f462880"
-dependencies = [
- "errno",
- "libc",
-]
 
 [[package]]
 name = "parking_lot"
