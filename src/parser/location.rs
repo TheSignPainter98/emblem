@@ -152,7 +152,7 @@ mod test {
             (Location::new(&p1, &p3), Location::new(&p2, &p4)),
             (Location::new(&p1, &p4), Location::new(&p2, &p3)),
         ] {
-            for (l1, l2) in vec![(&l1, &l2), (&l2, &l1)] {
+            for (l1, l2) in &[(&l1, &l2), (&l2, &l1)] {
                 let span = l1.span_to(l2);
                 assert_eq!(
                     span.indices.0,

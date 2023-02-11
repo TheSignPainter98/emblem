@@ -99,7 +99,7 @@ mod test {
     #[test]
     fn shift_multi_line() {
         let raw_src = "Welcome! Welcome to City 17! You have chosen, or been chosen, to relocate to one of our finest remaining urban centres";
-        let src = raw_src.replace(" ", "\n");
+        let src = raw_src.replace(' ', "\n");
         let start = Point::new("file_name", &src);
         let end = start.clone().shift(&src);
 

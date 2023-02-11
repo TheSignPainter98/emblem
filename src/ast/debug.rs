@@ -95,7 +95,7 @@ mod test {
 
     #[test]
     fn boxed() {
-        test_str_like(|s| Box::new(s));
+        test_str_like(Box::new);
     }
 
     #[test]

@@ -373,18 +373,13 @@ impl<'i> Src<'i> {
 #[cfg(test)]
 impl Src<'_> {
     fn get_text(&self) -> Vec<&str> {
-        self.annotations
-            .iter()
-            .map(|a| a.get_text())
-            .flatten()
-            .collect()
+        self.annotations.iter().flat_map(|a| a.get_text()).collect()
     }
 
     fn get_annotation_text(&self) -> Vec<String> {
         self.annotations
             .iter()
-            .map(|a| a.get_annotation_text())
-            .flatten()
+            .flat_map(|a| a.get_annotation_text())
             .collect()
     }
 }
