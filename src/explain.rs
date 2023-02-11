@@ -2,15 +2,11 @@ use crate::{
     args::ExplainCmd,
     log::messages::{self, NoSuchErrorCode},
 };
-use pager::Pager;
 use std::error::Error;
 
 pub fn explain(cmd: ExplainCmd) -> Result<(), Box<dyn Error>> {
     match get_explanation(&cmd.id) {
-        Ok(expl) => {
-            Pager::with_default_pager("less").setup();
-            println!("{}", expl);
-        }
+        Ok(expl) => println!("{}", expl),
         Err(m) => alert!(m),
     }
 
