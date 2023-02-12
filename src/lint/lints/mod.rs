@@ -78,6 +78,7 @@ mod test {
         L: Lint<'i> + 'static,
     {
         pub fn run(self) {
+            let id = self.lint.id();
             let file = parse("lint-test.em", self.src).expect("Failed to parse input");
 
             let problems = {
@@ -96,6 +97,10 @@ mod test {
             );
 
             for problem in problems {
+                problem.test();
+
+                assert_eq!(problem.get_id(), Some(id), "Incorrect ID");
+
                 let text = problem.get_annotation_text().join("\n\t");
                 for r#match in &self.matches {
                     let re = Regex::new(r#match).unwrap();

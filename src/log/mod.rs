@@ -295,8 +295,50 @@ impl Log<'_> {
         ret
     }
 
+    pub fn get_log_levels(&self) -> Vec<AnnotationType> {
+        let mut ret = vec![self.msg_type];
+
+        for src in &self.srcs {
+            ret.extend(src.get_log_levels());
+        }
+
+        ret
+    }
+
     pub fn is_explainable(&self) -> bool {
         self.explainable
+    }
+
+    pub fn test(&self) {
+        for text in self.get_annotation_text() {
+            assert!(!text.is_empty(), "Got empty an message");
+            assert!(
+                text.chars().next().unwrap().is_lowercase(),
+                "Message does not start with lowercase: {:?}",
+                text
+            );
+        }
+
+        for log_level in self.get_log_levels() {
+            let ok = match self.msg_type {
+                AnnotationType::Error => true,
+                AnnotationType::Warning => log_level != AnnotationType::Error,
+                AnnotationType::Info => {
+                    [AnnotationType::Error, AnnotationType::Warning].contains(&log_level)
+                }
+                AnnotationType::Note | AnnotationType::Help => [
+                    AnnotationType::Error,
+                    AnnotationType::Warning,
+                    AnnotationType::Info,
+                ]
+                .contains(&log_level),
+            };
+            assert!(
+                ok,
+                "Log level of sub-message ({:?}) exceeds parent ({:?})",
+                log_level, self.msg_type
+            );
+        }
     }
 }
 
@@ -349,6 +391,10 @@ impl Note<'_> {
     fn get_annotation_text(&self) -> Vec<String> {
         vec![format!("{}: {}", self.loc, self.msg)]
     }
+
+    fn get_log_levels(&self) -> Vec<AnnotationType> {
+        vec![self.msg_type]
+    }
 }
 
 pub struct Src<'i> {
@@ -380,6 +426,13 @@ impl Src<'_> {
         self.annotations
             .iter()
             .flat_map(|a| a.get_annotation_text())
+            .collect()
+    }
+
+    fn get_log_levels(&self) -> Vec<AnnotationType> {
+        self.annotations
+            .iter()
+            .flat_map(|a| a.get_log_levels())
             .collect()
     }
 }
