@@ -1,6 +1,10 @@
 #[macro_use]
 mod log;
 
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
+
 mod args;
 mod ast;
 mod build;
