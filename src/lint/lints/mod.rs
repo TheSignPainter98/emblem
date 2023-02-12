@@ -4,6 +4,7 @@ mod duplicate_attrs;
 mod empty_attrs;
 mod num_args;
 mod num_attrs;
+mod num_pluses;
 
 use super::Lints;
 
@@ -23,6 +24,7 @@ pub fn lints<'i>() -> Lints<'i> {
         empty_attrs::EmptyAttrs::new(),
         num_args::NumArgs::new(),
         num_attrs::NumAttrs::new(),
+        num_pluses::NumPluses::new(),
     ]
 }
 
