@@ -97,7 +97,7 @@ mod test {
             );
 
             for problem in problems {
-                problem.test();
+                problem.assert_compliant();
 
                 assert_eq!(problem.get_id(), Some(id), "Incorrect ID");
 

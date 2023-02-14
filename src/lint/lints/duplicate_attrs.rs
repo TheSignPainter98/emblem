@@ -45,11 +45,11 @@ impl<'i> Lint<'i> for DuplicateAttrs {
                                 Src::new(loc)
                                     .annotate(Note::warn(
                                         dup.loc(),
-                                        format!("found duplicate '{}' here", name),
+                                        format!("found duplicate ‘{}’ here", name),
                                     ))
                                     .annotate(Note::info(
                                         def.loc(),
-                                        format!("'{}' first defined here", name),
+                                        format!("‘{}’ first defined here", name),
                                     ))
                             })
                             .help("remove multiple occurrences of the same attribute"),
@@ -99,8 +99,8 @@ mod test {
                 lint: DuplicateAttrs::new(),
                 num_problems: 1,
                 matches: vec![
-                    ":10-12: found duplicate 'bar'",
-                    ":6-8: 'bar' first defined here",
+                    ":10-12: found duplicate ‘bar’",
+                    ":6-8: ‘bar’ first defined here",
                 ],
                 src: ".foo[bar,bar]",
             },
@@ -108,8 +108,8 @@ mod test {
                 lint: DuplicateAttrs::new(),
                 num_problems: 1,
                 matches: vec![
-                    ":14-20: found duplicate 'bar'",
-                    ":6-12: 'bar' first defined here",
+                    ":14-20: found duplicate ‘bar’",
+                    ":6-12: ‘bar’ first defined here",
                 ],
                 src: ".foo[bar=baz,bar=baz]",
             },
@@ -117,8 +117,8 @@ mod test {
                 lint: DuplicateAttrs::new(),
                 num_problems: 1,
                 matches: vec![
-                    ":10-16: found duplicate 'bar'",
-                    ":6-8: 'bar' first defined here",
+                    ":10-16: found duplicate ‘bar’",
+                    ":6-8: ‘bar’ first defined here",
                 ],
                 src: ".foo[bar,bar=baz]",
             },
@@ -126,8 +126,8 @@ mod test {
                 lint: DuplicateAttrs::new(),
                 num_problems: 2,
                 matches: vec![
-                    ":(10-12|14-16): found duplicate 'bar'",
-                    ":6-8: 'bar' first defined here",
+                    ":(10-12|14-16): found duplicate ‘bar’",
+                    ":6-8: ‘bar’ first defined here",
                 ],
                 src: ".foo[bar,bar,bar]",
             },

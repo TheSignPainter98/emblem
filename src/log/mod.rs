@@ -80,6 +80,7 @@ pub fn report() -> ExitCode {
     }
 }
 
+#[derive(Debug)]
 pub struct Log<'i> {
     msg: String,
     msg_type: AnnotationType,
@@ -309,13 +310,48 @@ impl Log<'_> {
         self.explainable
     }
 
-    pub fn test(&self) {
-        for text in self.get_annotation_text() {
+    pub fn assert_compliant(&self) {
+        for text in self.get_text() {
             assert!(!text.is_empty(), "Got empty an message");
+
+            let nchars = text.chars().count();
+            assert!(nchars > 0, "Empty text in message {:?}", self);
             assert!(
-                text.chars().next().unwrap().is_lowercase(),
-                "Message does not start with lowercase: {:?}",
+                nchars < 60,
+                "Message is not concise enough ({nchars} chars): {text} in {:?}",
+                self
+            );
+            assert!(
+                nchars >= 10,
+                "Message is not long enough ({nchars} chars): {text} in {:?}",
+                self
+            );
+
+            assert!(
+                text.chars().filter(|c| *c == '\'').count() == 0,
+                "Found dumb-quotes in message {:?}",
                 text
+            );
+
+            assert!(
+                text.chars().filter(|c| ['"', '“', '”'].contains(c)).count() == 0,
+                "Found double quotes in message {:?} use directional single quotes only",
+                text
+            );
+
+            let first_text_char = text.chars().find(|c| {
+                !('0' <= *c && *c <= '9') && ![':', '\'', '‘', '’', '"', '“', '”', '-'].contains(c)
+            });
+            assert!(
+                first_text_char.is_some(),
+                "Message contains no human-friendly text {:?}",
+                text
+            );
+            assert!(
+                first_text_char.unwrap().is_lowercase(),
+                "Message does not start with lowercase: {:?} in {:?}",
+                text,
+                self
             );
         }
 
@@ -348,6 +384,7 @@ impl<'i> Message<'i> for Log<'i> {
     }
 }
 
+#[derive(Debug)]
 pub struct Note<'i> {
     loc: Location<'i>,
     msg: String,
@@ -397,6 +434,7 @@ impl Note<'_> {
     }
 }
 
+#[derive(Debug)]
 pub struct Src<'i> {
     loc: Location<'i>,
     annotations: Vec<Note<'i>>,

@@ -28,12 +28,12 @@ impl<'i> Lint<'i> for CommandNaming {
                 let name = name.as_ref();
                 if !CONFORMANT_NAME.is_match(name) {
                     return vec![Log::warn(format!(
-                        "commands should be lowercase with dashes: got '.{name}'"
+                        "commands should be lowercase with dashes: got ‘.{name}’"
                     ))
                     .src(Src::new(loc).annotate(Note::help(
                         invocation_loc,
                         format!(
-                            "try changing this to '.{}'",
+                            "try changing this to ‘.{}’",
                             name.to_lowercase().replace('_', "-")
                         ),
                     )))
@@ -77,8 +77,8 @@ mod test {
                 lint: CommandNaming::new(),
                 num_problems: 1,
                 matches: vec![
-                    r"commands should be lowercase with dashes: got '\.foo_bar'",
-                    r":1:1-8: try changing this to '\.foo-bar'",
+                    r"commands should be lowercase with dashes: got ‘.foo_bar’",
+                    r":1:1-8: try changing this to ‘.foo-bar’",
                 ],
                 src: ".foo_bar",
             },
@@ -86,8 +86,8 @@ mod test {
                 lint: CommandNaming::new(),
                 num_problems: 1,
                 matches: vec![
-                    r"commands should be lowercase with dashes: got '\.FOO'",
-                    r":1:1-4: try changing this to '\.foo'",
+                    r"commands should be lowercase with dashes: got ‘.FOO’",
+                    r":1:1-4: try changing this to ‘.foo’",
                 ],
                 src: ".FOO",
             },
@@ -95,8 +95,8 @@ mod test {
                 lint: CommandNaming::new(),
                 num_problems: 1,
                 matches: vec![
-                    r"commands should be lowercase with dashes: got '\.Φoo'",
-                    r":1:1-4: try changing this to '\.φoo'",
+                    r"commands should be lowercase with dashes: got ‘.Φoo’",
+                    r":1:1-4: try changing this to ‘.φoo’",
                 ],
                 src: ".Φoo",
             },
