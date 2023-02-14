@@ -18,6 +18,7 @@ pub enum Content<'i> {
         loc: Location<'i>,
         invocation_loc: Location<'i>,
     },
+    Sugar(Sugar<'i>),
     Word {
         word: Text<'i>,
         loc: Location<'i>,
@@ -81,6 +82,7 @@ impl AstDebug for Content<'_> {
                     arg.test_fmt(buf);
                 }
             }
+            Self::Sugar(s) => s.test_fmt(buf),
             Self::Word { word, .. } => word.surround(buf, "Word(", ")"),
             Self::Whitespace { whitespace, .. } => whitespace.surround(buf, "<", ">"),
             Self::Dash { dash, .. } => dash.test_fmt(buf),
@@ -191,6 +193,63 @@ impl AstDebug for Attr<'_> {
                 (&raw[..*eq_idx]).surround(buf, "(", ")");
                 buf.push("=".into());
                 (&raw[*eq_idx + 1..]).surround(buf, "(", ")");
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Sugar<'i> {
+    Italic {
+        delimiter: &'i str,
+        arg: Vec<Content<'i>>,
+        loc: Location<'i>,
+    },
+    Bold {
+        delimiter: &'i str,
+        arg: Vec<Content<'i>>,
+        loc: Location<'i>,
+    },
+    Monospace {
+        delimiter: &'i str,
+        arg: Vec<Content<'i>>,
+        loc: Location<'i>,
+    },
+    Smallcaps {
+        delimiter: &'i str,
+        arg: Vec<Content<'i>>,
+        loc: Location<'i>,
+    },
+    AlternateFace {
+        delimiter: &'i str,
+        arg: Vec<Content<'i>>,
+        loc: Location<'i>,
+    },
+}
+
+#[cfg(test)]
+impl<'i> AstDebug for Sugar<'i> {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
+        match self {
+            Self::Italic { arg, .. } => {
+                buf.push("$it".into());
+                arg.surround(buf, "{", "}");
+            }
+            Self::Bold { arg, .. } => {
+                buf.push("$bf".into());
+                arg.surround(buf, "{", "}");
+            }
+            Self::Monospace { arg, .. } => {
+                buf.push("$tt".into());
+                arg.surround(buf, "{", "}");
+            }
+            Self::Smallcaps { arg, .. } => {
+                buf.push("$sc".into());
+                arg.surround(buf, "{", "}");
+            }
+            Self::AlternateFace { arg, .. } => {
+                buf.push("$af".into());
+                arg.surround(buf, "{", "}");
             }
         }
     }

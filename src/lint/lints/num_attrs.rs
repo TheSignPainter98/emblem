@@ -101,6 +101,7 @@ impl<'i> Lint<'i> for NumAttrs {
                 vec![]
             }
             Content::Word { .. }
+            | Content::Sugar(_)
             | Content::Whitespace { .. }
             | Content::Dash { .. }
             | Content::Glue { .. }

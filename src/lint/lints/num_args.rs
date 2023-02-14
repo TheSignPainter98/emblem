@@ -99,6 +99,7 @@ impl<'i> Lint<'i> for NumArgs {
                 vec![]
             }
             Content::Word { .. }
+            | Content::Sugar(_)
             | Content::Whitespace { .. }
             | Content::Dash { .. }
             | Content::Glue { .. }

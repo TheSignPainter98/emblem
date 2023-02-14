@@ -1,5 +1,6 @@
 use crate::log::messages::{
-    ExtraCommentClose, NewlineInInlineArg, UnclosedComments, UnexpectedChar, UnexpectedEOF,
+    DelimiterMismatch, ExtraCommentClose, NewlineInInlineArg, UnclosedComments, UnexpectedChar,
+    UnexpectedEOF,
 };
 use crate::log::Log;
 use crate::parser::Location;
@@ -25,6 +26,8 @@ pub struct Lexer<'input> {
     multi_line_comment_starts: Vec<Location<'input>>,
     last_tok: Option<Tok<'input>>,
     parsing_attrs: bool,
+    opening_delimiters: bool,
+    open_delimiters: Vec<(&'input str, Location<'input>)>,
 }
 
 impl<'input> Lexer<'input> {
@@ -42,6 +45,8 @@ impl<'input> Lexer<'input> {
             multi_line_comment_starts: Vec::new(),
             last_tok: None,
             parsing_attrs: false,
+            opening_delimiters: true,
+            open_delimiters: Vec::new(),
         }
     }
 
@@ -98,6 +103,42 @@ impl<'input> Lexer<'input> {
     fn location(&self) -> Location<'input> {
         Location::new(&self.prev_point, &self.curr_point)
     }
+
+    fn emph(&mut self, raw: &'input str) -> Result<Tok<'input>, LexicalError<'input>> {
+        if self.opening_delimiters {
+            self.open_delimiters.push((raw, self.location()));
+
+            return match raw {
+                "_" | "*" => Ok(Tok::ItalicOpen(raw)),
+                "__" | "**" => Ok(Tok::BoldOpen(raw)),
+                "=" => Ok(Tok::SmallcapsOpen(raw)),
+                "==" => Ok(Tok::AlternateFaceOpen(raw)),
+                "`" => Ok(Tok::MonospaceOpen(raw)),
+                _ => panic!("internal error: unknown emphasis string {:?}", raw),
+            };
+        }
+
+        if !self.open_delimiters.is_empty() {
+            let (to_close, to_close_loc) = self.open_delimiters.pop().unwrap();
+            if to_close != raw {
+                self.failed = true;
+                return Err(LexicalError::DelimiterMismatch {
+                    loc: self.location(),
+                    to_close_loc,
+                    expected: to_close,
+                });
+            }
+        }
+
+        match raw {
+            "_" | "*" => Ok(Tok::ItalicClose),
+            "__" | "**" => Ok(Tok::BoldClose),
+            "=" => Ok(Tok::SmallcapsClose),
+            "==" => Ok(Tok::AlternateFaceClose),
+            "`" => Ok(Tok::MonospaceClose),
+            _ => panic!("internal error: unknown emphasis string {:?}", raw),
+        }
+    }
 }
 
 impl<'input> Iterator for Lexer<'input> {
@@ -113,7 +154,7 @@ impl<'input> Iterator for Lexer<'input> {
         }
 
         token_patterns! {
-            let WORD           = r"([^ /\t\r\n}~-]|/[^ /\t\r\n~-])+";
+            let WORD           = r"([^ /\t\r\n}_*`=~-]|/[^ /\t\r\n}_*`=~-])+";
             let WHITESPACE     = r"[ \t]+";
             let PAR_BREAKS     = r"([ \t]*(\n|\r\n|\r))+";
             let LN             = r"(\n|\r\n|\r)";
@@ -127,6 +168,10 @@ impl<'input> Iterator for Lexer<'input> {
             let COMMENT        = r"//[^\r\n]*";
             let DASH           = r"-{1,3}";
             let GLUE           = r"~~?";
+            let UNDERSCORES    = r"_{1,2}";
+            let ASTERISKS      = r"\*{1,2}";
+            let EQUALS         = r"={1,2}";
+            let BACKTICKS      = r"`";
 
             let OPEN_ATTRS   = r"\[";
             let CLOSE_ATTRS  = r"]";
@@ -235,6 +280,7 @@ impl<'input> Iterator for Lexer<'input> {
 
         if self.try_consume(&LN).is_some() {
             self.start_of_line = true;
+            self.opening_delimiters = true;
 
             if !self.open_braces.is_empty() {
                 self.failed = true;
@@ -302,10 +348,28 @@ impl<'input> Iterator for Lexer<'input> {
                 Ok(Tok::Command(&s[1..s.len()-pluses], pluses))
             },
             DASH       => |s:&'input str| Ok(Tok::Dash(s)),
-            GLUE       => |s:&'input str| Ok(Tok::Glue(s)),
-            VERBATIM   => |s:&'input str| Ok(Tok::Verbatim(&s[1..s.len()-1])),
-            WORD       => |s:&'input str| Ok(Tok::Word(s)),
-            WHITESPACE => |s:&'input str| Ok(Tok::Whitespace(s)),
+            GLUE       => |s:&'input str| {
+                if s.len() == 2 {
+                    self.opening_delimiters = true;
+                }
+                Ok(Tok::Glue(s))
+            },
+            UNDERSCORES    => |s:&'input str| self.emph(s),
+            ASTERISKS      => |s:&'input str| self.emph(s),
+            EQUALS         => |s:&'input str| self.emph(s),
+            BACKTICKS      => |s:&'input str| self.emph(s),
+            VERBATIM   => |s:&'input str| {
+                self.opening_delimiters = false;
+                Ok(Tok::Verbatim(&s[1..s.len()-1]))
+            },
+            WORD       => |s:&'input str| {
+                self.opening_delimiters = false;
+                Ok(Tok::Word(s))
+            },
+            WHITESPACE => |s:&'input str| {
+                self.opening_delimiters = true;
+                Ok(Tok::Whitespace(s))
+            },
         }
     }
 }
@@ -324,6 +388,16 @@ pub enum Tok<'input> {
     UnnamedAttr(&'input str),
     AttrComma,
     Command(&'input str, usize),
+    ItalicOpen(&'input str),
+    BoldOpen(&'input str),
+    MonospaceOpen(&'input str),
+    SmallcapsOpen(&'input str),
+    AlternateFaceOpen(&'input str),
+    ItalicClose,
+    BoldClose,
+    MonospaceClose,
+    SmallcapsClose,
+    AlternateFaceClose,
     ParBreak,
     Word(&'input str),
     Whitespace(&'input str),
@@ -351,6 +425,16 @@ impl Display for Tok<'_> {
             Tok::UnnamedAttr(_) => "unnamed-attr",
             Tok::AttrComma => "comma",
             Tok::Command(_, _) => "command",
+            Tok::ItalicOpen(_) => "italic-open",
+            Tok::ItalicClose => "italic-close",
+            Tok::BoldOpen(_) => "bold-open",
+            Tok::BoldClose => "bold-close",
+            Tok::MonospaceOpen(_) => "monospace-open",
+            Tok::MonospaceClose => "monospace-close",
+            Tok::SmallcapsOpen(_) => "smallcaps-open",
+            Tok::SmallcapsClose => "smallcaps-close",
+            Tok::AlternateFaceOpen(_) => "alternate-face-open",
+            Tok::AlternateFaceClose => "alternate-face-close",
             Tok::ParBreak => "par-break",
             Tok::Word(_) => "word",
             Tok::Whitespace(_) => "whitespace",
@@ -404,6 +488,11 @@ pub enum LexicalError<'input> {
         arg_start_loc: Location<'input>,
         newline_loc: Location<'input>,
     },
+    DelimiterMismatch {
+        loc: Location<'input>,
+        to_close_loc: Location<'input>,
+        expected: &'input str,
+    },
 }
 
 impl<'input> Message<'input> for LexicalError<'input> {
@@ -417,6 +506,11 @@ impl<'input> Message<'input> for LexicalError<'input> {
                 arg_start_loc,
                 newline_loc,
             } => NewlineInInlineArg::new(arg_start_loc, newline_loc).log(),
+            Self::DelimiterMismatch {
+                loc,
+                to_close_loc,
+                expected,
+            } => DelimiterMismatch::new(loc, to_close_loc, expected).log(),
         }
     }
 }
@@ -440,6 +534,17 @@ impl Display for LexicalError<'_> {
             }
             Self::NewlineInArg { arg_start_loc, .. } => {
                 write!(f, "newline in braced args found at {}", arg_start_loc)
+            }
+            Self::DelimiterMismatch {
+                loc,
+                to_close_loc,
+                expected,
+            } => {
+                write!(
+                    f,
+                    "delimiter mismatch for {} found at {} (failed to match at {})",
+                    expected, loc, to_close_loc
+                )
             }
         }
     }

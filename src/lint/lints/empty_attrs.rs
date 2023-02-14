@@ -26,6 +26,7 @@ impl<'i> Lint<'i> for EmptyAttrs {
                 vec![]
             }
             Content::Command { .. }
+            | Content::Sugar(_)
             | Content::Word { .. }
             | Content::Whitespace { .. }
             | Content::Dash { .. }
