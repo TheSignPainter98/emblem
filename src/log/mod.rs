@@ -339,9 +339,9 @@ impl Log<'_> {
                 text
             );
 
-            let first_text_char = text.chars().find(|c| {
-                !('0' <= *c && *c <= '9') && !['\'', '‘', '"', '“'].contains(c)
-            });
+            let first_text_char = text
+                .chars()
+                .find(|c| !('0' <= *c && *c <= '9') && !['\'', '‘', '"', '“'].contains(c));
             assert!(
                 first_text_char.is_some(),
                 "Message contains no human-friendly text {:?}",
