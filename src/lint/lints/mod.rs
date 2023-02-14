@@ -5,6 +5,7 @@ mod empty_attrs;
 mod num_args;
 mod num_attrs;
 mod num_pluses;
+mod emph_delimiters;
 
 use super::Lints;
 
@@ -21,6 +22,7 @@ pub fn lints<'i>() -> Lints<'i> {
         attr_ordering::AttrOrdering::new(),
         command_naming::CommandNaming::new(),
         duplicate_attrs::DuplicateAttrs::new(),
+        emph_delimiters::EmphDelimiters::new(),
         empty_attrs::EmptyAttrs::new(),
         num_args::NumArgs::new(),
         num_attrs::NumAttrs::new(),

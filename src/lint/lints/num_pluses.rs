@@ -29,6 +29,7 @@ impl<'i> Lint<'i> for NumPluses {
                 vec![]
             }
             Content::Word { .. }
+            | Content::Sugar(_)
             | Content::Whitespace { .. }
             | Content::Dash { .. }
             | Content::Glue { .. }
