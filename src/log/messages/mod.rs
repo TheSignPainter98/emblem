@@ -165,22 +165,8 @@ mod test {
 
     #[test]
     fn text() {
-        for (i, info) in messages().iter().enumerate() {
-            for text in info.default_log.get_text() {
-                let nchars = text.chars().count();
-
-                assert!(nchars > 0, "Empty text in message of type {i}");
-                assert!(
-                    nchars < 60,
-                    "Default message is not concise enough ({nchars} chars): {text}",
-                );
-
-                assert!(
-                    text.chars().next().unwrap().is_lowercase(),
-                    "Does not start with a lowercase character: {}",
-                    text
-                );
-            }
+        for info in messages() {
+            info.default_log.assert_compliant()
         }
     }
 

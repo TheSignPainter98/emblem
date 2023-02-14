@@ -16,7 +16,7 @@ impl<'a> Message<'a> for NoSuchErrorCode<'a> {
     }
 
     fn log(self) -> Log<'a> {
-        Log::error(format!("no such error code {:?}", self.id))
+        Log::error(format!("no such error code ‘{}’", self.id))
             .id(Self::id())
             .explainable()
             .help("perhaps there is a typo here?")
