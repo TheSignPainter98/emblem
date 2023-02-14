@@ -211,17 +211,14 @@ pub enum Sugar<'i> {
         loc: Location<'i>,
     },
     Monospace {
-        delimiter: &'i str,
         arg: Vec<Content<'i>>,
         loc: Location<'i>,
     },
     Smallcaps {
-        delimiter: &'i str,
         arg: Vec<Content<'i>>,
         loc: Location<'i>,
     },
     AlternateFace {
-        delimiter: &'i str,
         arg: Vec<Content<'i>>,
         loc: Location<'i>,
     },
@@ -231,12 +228,14 @@ pub enum Sugar<'i> {
 impl<'i> AstDebug for Sugar<'i> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
-            Self::Italic { arg, .. } => {
+            Self::Italic { arg, delimiter, .. } => {
                 buf.push("$it".into());
+                delimiter.surround(buf, "(", ")");
                 arg.surround(buf, "{", "}");
             }
-            Self::Bold { arg, .. } => {
+            Self::Bold { arg, delimiter, .. } => {
                 buf.push("$bf".into());
+                delimiter.surround(buf, "(", ")");
                 arg.surround(buf, "{", "}");
             }
             Self::Monospace { arg, .. } => {

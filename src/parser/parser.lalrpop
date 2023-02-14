@@ -119,23 +119,20 @@ EmphSugar: Content<'input> = {
 			loc: Location::new(&l, &r),
 		},
 	),
-	<l:@L> <delimiter:MonospaceOpen> <arg:LineElement+> MonospaceClose <r:@R> => Content::Sugar(
+	<l:@L> MonospaceOpen <arg:LineElement+> MonospaceClose <r:@R> => Content::Sugar(
 		Sugar::Monospace{
-			delimiter,
 			arg,
 			loc: Location::new(&l, &r),
 		},
 	),
-	<l:@L> <delimiter:SmallcapsOpen> <arg:LineElement+> SmallcapsClose <r:@R> => Content::Sugar(
+	<l:@L> SmallcapsOpen <arg:LineElement+> SmallcapsClose <r:@R> => Content::Sugar(
 		Sugar::Smallcaps{
-			delimiter,
 			arg,
 			loc: Location::new(&l, &r),
 		},
 	),
-	<l:@L> <delimiter:AlternateFaceOpen> <arg:LineElement+> AlternateFaceClose <r:@R> => Content::Sugar(
+	<l:@L> AlternateFaceOpen <arg:LineElement+> AlternateFaceClose <r:@R> => Content::Sugar(
 		Sugar::AlternateFace{
-			delimiter,
 			arg,
 			loc: Location::new(&l, &r),
 		},
