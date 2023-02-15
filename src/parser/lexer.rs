@@ -1,5 +1,5 @@
 use crate::log::messages::{
-    DelimiterMismatch, ExtraCommentClose, NewlineInInlineArg, UnclosedComments, UnexpectedChar,
+    DelimiterMismatch, ExtraCommentClose, NewlineInInlineArg, NewlineInEmphDelimiter, UnclosedComments, UnexpectedChar,
     UnexpectedEOF,
 };
 use crate::log::Log;
@@ -210,10 +210,10 @@ impl<'input> Iterator for Lexer<'input> {
                 else {
                     self.failed = true;
                     Some(Err(Box::new(
-                        LexicalError::UnexpectedChar {
-                            found: self.input.chars().next().unwrap(),
-                            loc: self.location(),
-                        }
+                                LexicalError::UnexpectedChar {
+                                    found: self.input.chars().next().unwrap(),
+                                    loc: self.location(),
+                                }
                     )))
                 }
             };
@@ -287,6 +287,16 @@ impl<'input> Iterator for Lexer<'input> {
                 return Some(Err(Box::new(LexicalError::NewlineInArg {
                     arg_start_loc: self.open_braces.pop().unwrap(),
                     newline_loc: self.location(),
+                })));
+            }
+
+            if !self.open_delimiters.is_empty() {
+                self.failed = true;
+                let (expected, from_loc) = self.open_delimiters.pop().unwrap();
+                return Some(Err(Box::new(LexicalError::NewlineInEmphDelimiter {
+                    delimiter_start_loc: from_loc,
+                    newline_loc: self.location(),
+                    expected,
                 })));
             }
 
@@ -488,6 +498,11 @@ pub enum LexicalError<'input> {
         arg_start_loc: Location<'input>,
         newline_loc: Location<'input>,
     },
+    NewlineInEmphDelimiter {
+        delimiter_start_loc: Location<'input>,
+        newline_loc: Location<'input>,
+        expected: &'input str,
+    },
     DelimiterMismatch {
         loc: Location<'input>,
         to_close_loc: Location<'input>,
@@ -506,6 +521,11 @@ impl<'input> Message<'input> for LexicalError<'input> {
                 arg_start_loc,
                 newline_loc,
             } => NewlineInInlineArg::new(arg_start_loc, newline_loc).log(),
+            Self::NewlineInEmphDelimiter {
+                delimiter_start_loc,
+                newline_loc,
+                expected
+            } => NewlineInEmphDelimiter::new(delimiter_start_loc, newline_loc, expected).log(),
             Self::DelimiterMismatch {
                 loc,
                 to_close_loc,
@@ -534,6 +554,9 @@ impl Display for LexicalError<'_> {
             }
             Self::NewlineInArg { arg_start_loc, .. } => {
                 write!(f, "newline in braced args found at {}", arg_start_loc)
+            }
+            Self::NewlineInEmphDelimiter { newline_loc, expected, .. } => {
+                write!(f, "newline in {:?} emphasis found at {}", expected, newline_loc)
             }
             Self::DelimiterMismatch {
                 loc,

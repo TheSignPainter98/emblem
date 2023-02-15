@@ -1003,13 +1003,14 @@ mod test {
             #[test]
             fn multi_line() {
                 for (delim, _) in &DELIMS {
+                    let sanitised = delim.replace('*', r"\*");
                     assert_parse_error(
                         &format!("multi-line {delim}"),
                         &format!("{delim}foo\nbar{delim}"),
                         &format!(
-                            "Unrecognised token `newline` found at 1:{}:2:1",
+                            r#"newline in "{sanitised}" emphasis found at multi-line {sanitised}[^:]*:1:{}-2:1"#,
                             4 + delim.len()
-                        ), // TODO(kcza): make this lowercase!
+                        ),
                     );
                 }
             }

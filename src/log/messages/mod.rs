@@ -1,5 +1,6 @@
 mod delimiter_mismatch;
 mod extra_comment_close;
+mod newline_in_emph_delimiter;
 mod newline_in_inline_arg;
 mod no_such_error_code;
 mod unclosed_comments;
@@ -9,6 +10,7 @@ mod unexpected_token;
 
 pub use delimiter_mismatch::DelimiterMismatch;
 pub use extra_comment_close::ExtraCommentClose;
+pub use newline_in_emph_delimiter::NewlineInEmphDelimiter;
 pub use newline_in_inline_arg::NewlineInInlineArg;
 pub use no_such_error_code::NoSuchErrorCode;
 pub use unclosed_comments::UnclosedComments;
@@ -115,6 +117,7 @@ pub fn messages() -> Vec<MessageInfo> {
     messages![
         DelimiterMismatch,
         ExtraCommentClose,
+        NewlineInEmphDelimiter,
         NewlineInInlineArg,
         NoSuchErrorCode,
         UnclosedComments,
