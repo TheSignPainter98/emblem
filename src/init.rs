@@ -69,6 +69,11 @@ fn try_create_file(path: &Path, contents: &str, dir_not_empty: bool) -> Result<(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::parser;
+    use std::{
+        fs::{self, File},
+        io::{BufRead, BufReader},
+    };
     use tempfile::TempDir;
 
     fn do_init(tmpdir: &TempDir, dir_not_empty: bool) -> Result<(), Box<dyn Error>> {
@@ -77,70 +82,66 @@ mod test {
         Ok(())
     }
 
-    mod empty_dir {
-        use super::*;
-        use std::{
-            fs::{self, File},
-            io::{BufRead, BufReader},
-        };
+    fn test_files(dir: &TempDir) -> Result<(), Box<dyn Error>> {
+        let dot_git = dir.path().join(".git");
+        assert!(dot_git.exists(), "no .git");
+        assert!(dot_git.is_dir(), ".git is not a directory");
 
-        fn test_files(dir: &TempDir) -> Result<(), Box<dyn Error>> {
-            let dot_git = dir.path().join(".git");
-            assert!(dot_git.exists(), "no .git");
-            assert!(dot_git.is_dir(), ".git is not a directory");
+        let dot_gitignore = dir.path().join(".gitignore");
+        assert!(dot_gitignore.exists(), "no .gitignore");
+        assert!(dot_gitignore.is_file(), ".gitignore is not a file");
 
-            let dot_gitignore = dir.path().join(".gitignore");
-            assert!(dot_gitignore.exists(), "no .gitignore");
-            assert!(dot_gitignore.is_file(), ".gitignore is not a file");
+        const IGNORES: &[&str] = &["*.pdf"];
 
-            const IGNORES: &[&str] = &["*.pdf"];
+        let lines: Vec<String> = BufReader::new(File::open(dot_gitignore)?)
+            .lines()
+            .filter_map(|l| l.ok())
+            .collect::<Vec<_>>();
 
-            let lines: Vec<String> = BufReader::new(File::open(dot_gitignore)?)
-                .lines()
-                .filter_map(|l| l.ok())
-                .collect::<Vec<_>>();
-
-            for ignore in IGNORES {
-                assert!(
-                    lines.contains(&ignore.to_string()),
-                    "Missing ignore: {}",
-                    ignore
-                );
-            }
-
-            let main_file = dir.path().join("main.em");
-            assert!(main_file.exists(), "no main.em");
-            assert!(main_file.is_file(), "main.em is not a file");
-            // TODO(kcza): test the main file builds
-
-            Ok(())
-        }
-
-        #[test]
-        fn empty_dir() -> Result<(), Box<dyn Error>> {
-            let tmpdir = tempfile::tempdir()?;
-            do_init(&tmpdir, false)?;
-            test_files(&tmpdir)
-        }
-
-        #[test]
-        fn non_empty_dir() -> Result<(), Box<dyn Error>> {
-            let tmpdir = tempfile::tempdir()?;
-            let main_file_path = tmpdir.path().join("main.em");
-            let main_file_content = "hello, world!";
-            fs::write(&main_file_path, main_file_content)?;
-
-            assert!(do_init(&tmpdir, false).is_err());
+        for ignore in IGNORES {
             assert!(
-                do_init(&tmpdir, true).is_ok(),
-                "failed to force file initialisation"
+                lines.contains(&ignore.to_string()),
+                "Missing ignore: {}",
+                ignore
             );
-
-            test_files(&tmpdir)?;
-
-            assert_eq!(main_file_content, fs::read_to_string(&main_file_path)?);
-
-            Ok(())
         }
+
+        let main_file = dir.path().join("main.em");
+        assert!(main_file.exists(), "no main.em");
+        assert!(main_file.is_file(), "main.em is not a file");
+
+        assert!(
+            parser::parse("main.em", &fs::read_to_string(main_file)?).is_ok(),
+            "main file does not parse!"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn empty_dir() -> Result<(), Box<dyn Error>> {
+        let tmpdir = tempfile::tempdir()?;
+        do_init(&tmpdir, false)?;
+        test_files(&tmpdir)
+    }
+
+    #[test]
+    fn non_empty_dir() -> Result<(), Box<dyn Error>> {
+        let tmpdir = tempfile::tempdir()?;
+        let main_file_path = tmpdir.path().join("main.em");
+        let main_file_content = "hello, world!";
+        fs::write(&main_file_path, main_file_content)?;
+
+        assert!(do_init(&tmpdir, false).is_err());
+        assert!(
+            do_init(&tmpdir, true).is_ok(),
+            "failed to force file initialisation"
+        );
+
+        test_files(&tmpdir)?;
+
+        assert_eq!(main_file_content, fs::read_to_string(&main_file_path)?);
+
+        Ok(())
     }
 }
