@@ -1,3 +1,4 @@
+mod delimiter_mismatch;
 mod extra_comment_close;
 mod newline_in_inline_arg;
 mod no_such_error_code;
@@ -5,8 +6,8 @@ mod unclosed_comments;
 mod unexpected_char;
 mod unexpected_eof;
 mod unexpected_token;
-mod delimiter_mismatch;
 
+pub use delimiter_mismatch::DelimiterMismatch;
 pub use extra_comment_close::ExtraCommentClose;
 pub use newline_in_inline_arg::NewlineInInlineArg;
 pub use no_such_error_code::NoSuchErrorCode;
@@ -14,7 +15,6 @@ pub use unclosed_comments::UnclosedComments;
 pub use unexpected_char::UnexpectedChar;
 pub use unexpected_eof::UnexpectedEOF;
 pub use unexpected_token::UnexpectedToken;
-pub use delimiter_mismatch::DelimiterMismatch;
 
 use crate::log::Log;
 use crate::parser::{self, error::LalrpopError, Location};

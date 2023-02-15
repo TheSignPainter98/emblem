@@ -72,14 +72,20 @@ mod test {
         LintTest {
             lint: EmphDelimiters::new(),
             num_problems: 1,
-            matches: vec!["underscores used to delimit bold text", ":1:1-7: use asterisks instead"],
+            matches: vec![
+                "underscores used to delimit bold text",
+                ":1:1-7: use asterisks instead",
+            ],
             src: "__foo__",
         }
         .run();
         LintTest {
             lint: EmphDelimiters::new(),
             num_problems: 1,
-            matches: vec!["asterisks used to delimit italic text", ":1:1-5: use underscores instead"],
+            matches: vec![
+                "asterisks used to delimit italic text",
+                ":1:1-5: use underscores instead",
+            ],
             src: "*foo*",
         }
         .run();

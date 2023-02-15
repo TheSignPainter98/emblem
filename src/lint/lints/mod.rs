@@ -1,11 +1,11 @@
 mod attr_ordering;
 mod command_naming;
 mod duplicate_attrs;
+mod emph_delimiters;
 mod empty_attrs;
 mod num_args;
 mod num_attrs;
 mod num_pluses;
-mod emph_delimiters;
 
 use super::Lints;
 

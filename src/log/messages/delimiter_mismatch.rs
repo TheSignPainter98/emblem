@@ -21,8 +21,14 @@ impl<'i> Message<'i> for DelimiterMismatch<'i> {
             .explainable()
             .src(
                 Src::new(&self.to_close_loc.span_to(&self.loc))
-                    .annotate(Note::error(&self.loc, format!("expected ‘{}’ here", self.expected)))
-                    .annotate(Note::info(&self.to_close_loc, format!("to close ‘{}’ found here", self.expected)))
+                    .annotate(Note::error(
+                        &self.loc,
+                        format!("expected ‘{}’ here", self.expected),
+                    ))
+                    .annotate(Note::info(
+                        &self.to_close_loc,
+                        format!("to close ‘{}’ found here", self.expected),
+                    )),
             )
     }
 

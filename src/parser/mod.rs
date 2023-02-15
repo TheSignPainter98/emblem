@@ -934,7 +934,7 @@ mod test {
         mod emph_delimiters {
             use super::*;
 
-            static DELIMS: [(&str, &str);7] = [
+            static DELIMS: [(&str, &str); 7] = [
                 ("_", "$it(_)"),
                 ("*", "$it(*)"),
                 ("__", "$bf(__)"),
@@ -1006,7 +1006,10 @@ mod test {
                     assert_parse_error(
                         &format!("multi-line {delim}"),
                         &format!("{delim}foo\nbar{delim}"),
-                        &format!("Unrecognised token `newline` found at 1:{}:2:1", 4 + delim.len()), // TODO(kcza): make this lowercase!
+                        &format!(
+                            "Unrecognised token `newline` found at 1:{}:2:1",
+                            4 + delim.len()
+                        ), // TODO(kcza): make this lowercase!
                     );
                 }
             }
