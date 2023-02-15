@@ -248,7 +248,6 @@ mod test {
         #[test]
         fn command_only() {
             for num_pluses in 0..=3 {
-                println!("{} {}", num_pluses, ast_debug_pluses(num_pluses));
                 assert_structure(
                     "command",
                     &format!(".order-66{}", "+".repeat(num_pluses)),

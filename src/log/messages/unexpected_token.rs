@@ -25,7 +25,7 @@ impl<'i> Message<'i> for UnexpectedToken<'i> {
         Log::error("unexpected token")
             .src(Src::new(&self.loc).annotate(Note::error(
                 &self.loc,
-                format!("found a {} here", self.token),
+                format!("found {} here", self.token),
             )))
             .expect_one_of(&self.expected)
     }
