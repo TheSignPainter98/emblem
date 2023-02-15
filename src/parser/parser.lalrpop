@@ -191,7 +191,7 @@ MaybeIndented<T>: T = {
 
 extern {
 	type Location = Point<'input>;
-	type Error = LexicalError<'input>;
+	type Error = Box<LexicalError<'input>>;
 
 	enum Tok<'input> {
 		Indent             => Tok::Indent,

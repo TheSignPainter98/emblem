@@ -104,7 +104,7 @@ impl<'input> Lexer<'input> {
         Location::new(&self.prev_point, &self.curr_point)
     }
 
-    fn emph(&mut self, raw: &'input str) -> Result<Tok<'input>, LexicalError<'input>> {
+    fn emph(&mut self, raw: &'input str) -> Result<Tok<'input>, Box<LexicalError<'input>>> {
         if self.opening_delimiters {
             self.open_delimiters.push((raw, self.location()));
 
@@ -122,11 +122,11 @@ impl<'input> Lexer<'input> {
             let (to_close, to_close_loc) = self.open_delimiters.pop().unwrap();
             if to_close != raw {
                 self.failed = true;
-                return Err(LexicalError::DelimiterMismatch {
+                return Err(Box::new(LexicalError::DelimiterMismatch {
                     loc: self.location(),
                     to_close_loc,
                     expected: to_close,
-                });
+                }));
             }
         }
 
@@ -142,7 +142,7 @@ impl<'input> Lexer<'input> {
 }
 
 impl<'input> Iterator for Lexer<'input> {
-    type Item = Result<SpannedTok<'input>, LexicalError<'input>>;
+    type Item = Result<SpannedTok<'input>, Box<LexicalError<'input>>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         macro_rules! token_patterns {
@@ -209,12 +209,12 @@ impl<'input> Iterator for Lexer<'input> {
                 })*
                 else {
                     self.failed = true;
-                    Some(Err(
+                    Some(Err(Box::new(
                         LexicalError::UnexpectedChar {
                             found: self.input.chars().next().unwrap(),
                             loc: self.location(),
                         }
-                    ))
+                    )))
                 }
             };
         }
@@ -223,9 +223,9 @@ impl<'input> Iterator for Lexer<'input> {
             return match_token![
                 ! => {
                     self.failed = true;
-                    Err(LexicalError::UnmatchedCommentOpen {
+                    Err(Box::new(LexicalError::UnmatchedCommentOpen {
                         unclosed: self.multi_line_comment_starts.clone(),
-                    })
+                    }))
                 },
 
                 NESTED_COMMENT_PART => |s: &'input str| Ok(Tok::Comment(s)) ,
@@ -245,10 +245,10 @@ impl<'input> Iterator for Lexer<'input> {
             return match_token! {
                 ! => {
                     self.failed = true;
-                    Err(LexicalError::UnexpectedEOF {
+                    Err(Box::new(LexicalError::UnexpectedEOF {
                         point: self.curr_point.clone(),
                         expected: vec![],
-                    })
+                    }))
                 },
 
                 NAMED_ATTR   => |s: &'input str| Ok(Tok::NamedAttr(s)),
@@ -264,10 +264,10 @@ impl<'input> Iterator for Lexer<'input> {
         if self.input.is_empty() {
             if !self.open_braces.is_empty() {
                 self.failed = true;
-                return Some(Err(LexicalError::UnexpectedEOF {
+                return Some(Err(Box::new(LexicalError::UnexpectedEOF {
                     point: self.curr_point.clone(),
                     expected: vec!["\"}\"".into()],
-                }));
+                })));
             }
 
             if self.last_tok != Some(Tok::Newline) {
@@ -284,10 +284,10 @@ impl<'input> Iterator for Lexer<'input> {
 
             if !self.open_braces.is_empty() {
                 self.failed = true;
-                return Some(Err(LexicalError::NewlineInArg {
+                return Some(Err(Box::new(LexicalError::NewlineInArg {
                     arg_start_loc: self.open_braces.pop().unwrap(),
                     newline_loc: self.location(),
-                }));
+                })));
             }
 
             self.enqueue(self.span(Tok::Newline));
@@ -340,7 +340,7 @@ impl<'input> Iterator for Lexer<'input> {
             },
             NESTED_COMMENT_CLOSE => |_| {
                 self.failed = true;
-                Err(LexicalError::UnmatchedCommentClose { loc: self.location() })
+                Err(Box::new(LexicalError::UnmatchedCommentClose { loc: self.location() }))
             },
 
             COMMAND    => |s:&'input str| {
