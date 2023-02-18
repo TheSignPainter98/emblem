@@ -1,6 +1,6 @@
 use crate::log::messages::{
-    DelimiterMismatch, ExtraCommentClose, NewlineInInlineArg, NewlineInEmphDelimiter, UnclosedComments, UnexpectedChar,
-    UnexpectedEOF,
+    DelimiterMismatch, ExtraCommentClose, NewlineInEmphDelimiter, NewlineInInlineArg,
+    UnclosedComments, UnexpectedChar, UnexpectedEOF,
 };
 use crate::log::Log;
 use crate::parser::Location;
@@ -524,7 +524,7 @@ impl<'input> Message<'input> for LexicalError<'input> {
             Self::NewlineInEmphDelimiter {
                 delimiter_start_loc,
                 newline_loc,
-                expected
+                expected,
             } => NewlineInEmphDelimiter::new(delimiter_start_loc, newline_loc, expected).log(),
             Self::DelimiterMismatch {
                 loc,
@@ -555,8 +555,16 @@ impl Display for LexicalError<'_> {
             Self::NewlineInArg { arg_start_loc, .. } => {
                 write!(f, "newline in braced args found at {}", arg_start_loc)
             }
-            Self::NewlineInEmphDelimiter { newline_loc, expected, .. } => {
-                write!(f, "newline in {:?} emphasis found at {}", expected, newline_loc)
+            Self::NewlineInEmphDelimiter {
+                newline_loc,
+                expected,
+                ..
+            } => {
+                write!(
+                    f,
+                    "newline in {:?} emphasis found at {}",
+                    expected, newline_loc
+                )
             }
             Self::DelimiterMismatch {
                 loc,
