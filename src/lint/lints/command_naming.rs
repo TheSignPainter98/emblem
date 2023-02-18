@@ -25,7 +25,7 @@ impl<'i> Lint<'i> for CommandNaming {
                 invocation_loc,
                 ..
             } => {
-                let name = name.as_ref();
+                let name = name.as_str();
                 if !CONFORMANT_NAME.is_match(name) {
                     return vec![Log::warn(format!(
                         "commands should be lowercase with dashes: got ‘.{name}’"

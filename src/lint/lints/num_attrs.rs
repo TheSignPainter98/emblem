@@ -47,7 +47,7 @@ impl<'i> Lint<'i> for NumAttrs {
                 attrs,
                 ..
             } => {
-                if let Some((min, max)) = AFFECTED_COMMANDS.get(name.as_ref()) {
+                if let Some((min, max)) = AFFECTED_COMMANDS.get(name.as_str()) {
                     let num_attrs = attrs.as_ref().map(|a| a.args().len()).unwrap_or_default();
 
                     let report_loc = if let Some(attrs) = attrs {
