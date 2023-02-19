@@ -974,8 +974,9 @@ mod test {
                         if outer_chars == inner_chars
                             && outer.len() >= inner.len()
                             && inner.len() != 2
-                            && outer_chars != ['`'] // There is no clash-nest for backticks
+                            && outer_chars != ['`']
                         {
+                            // Check for troublesome nesting
                             assert_parse_error(
                                 &format!("clash-nesting {inner} and {outer}"),
                                 &format!("{outer}spaghetti {inner}and meatballs{inner}{outer}"),
@@ -988,6 +989,7 @@ mod test {
                                 ),
                             );
                         } else {
+                            // Check nesting is okay
                             assert_structure(
                                 &format!("chash-nesting nesting {outer} and meatballs{inner}"),
                                 &format!("{outer}spaghetti {inner}and meatballs{inner}{outer}"),
