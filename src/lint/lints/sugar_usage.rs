@@ -29,7 +29,7 @@ fn emph_warning<'i>(
     Log::warn("explicit styling call")
         .src(Src::new(loc).annotate(Note::help(
             invocation_loc,
-            format!("syntactic sugar exists for this command"),
+            "syntactic sugar exists for this command",
         )))
         .help(format!(
             "try surrounding argument in ‘{suggested_delim}’ instead"
