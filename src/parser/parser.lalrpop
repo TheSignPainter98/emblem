@@ -24,7 +24,7 @@ pub File: ParsedFile<'input> = {
 };
 
 FileContent: Vec<Par<ParPart<Content<'input>>>> = {
-	MaybeSepList<Par, ParBreak>
+	MaybeSepList<Par, par_break>
 }
 
 Par: Par<ParPart<Content<'input>>> = {
@@ -78,17 +78,17 @@ RemainderCommand: Content<'input> = {
 }
 
 CommandName: (Text<'input>, usize, Location<'input>) = {
-	<l:@L> <command:Command> <r:@R> => (command.0.into(), command.1.into(), Location::new(&l, &r)),
+	<l:@L> <command:command> <r:@R> => (command.0.into(), command.1.into(), Location::new(&l, &r)),
 }
 
 LineElement: Content<'input> = {
-	<l:@L> <comment:Comment>       <r:@R> => Content::Comment{ comment, loc: Location::new(&l, &r) },
+	<l:@L> <comment:comment>       <r:@R> => Content::Comment{ comment, loc: Location::new(&l, &r) },
 	<l:@L> <content:NestedComment> <r:@R> => Content::MultiLineComment{ content, loc: Location::new(&l, &r) },
-	<l:@L> <whitespace:Whitespace> <r:@R> => Content::Whitespace{ whitespace, loc: Location::new(&l, &r) },
-	<l:@L> <word:Word>             <r:@R> => Content::Word{ word: word.into(), loc: Location::new(&l, &r) },
-	<l:@L> <dash:Dash>             <r:@R> => Content::Dash{ dash: dash.into(), loc: Location::new(&l, &r) },
-	<l:@L> <glue:Glue>             <r:@R> => Content::Glue{ glue: glue.into(), loc: Location::new(&l, &r) },
-	<l:@L> <verbatim:Verbatim>     <r:@R> => Content::Verbatim{ verbatim, loc: Location::new(&l, &r) },
+	<l:@L> <whitespace:whitespace> <r:@R> => Content::Whitespace{ whitespace, loc: Location::new(&l, &r) },
+	<l:@L> <word:word>             <r:@R> => Content::Word{ word: word.into(), loc: Location::new(&l, &r) },
+	<l:@L> <dash:dash>             <r:@R> => Content::Dash{ dash: dash.into(), loc: Location::new(&l, &r) },
+	<l:@L> <glue:glue>             <r:@R> => Content::Glue{ glue: glue.into(), loc: Location::new(&l, &r) },
+	<l:@L> <verbatim:verbatim>     <r:@R> => Content::Verbatim{ verbatim, loc: Location::new(&l, &r) },
 
 	EmphSugar,
 
@@ -105,33 +105,33 @@ LineElement: Content<'input> = {
 }
 
 EmphSugar: Content<'input> = {
-	<l:@L> <delimiter:ItalicOpen> <arg:LineElement+> ItalicClose <r:@R> => Content::Sugar(
+	<l:@L> <delimiter:italic_open> <arg:LineElement+> italic_close <r:@R> => Content::Sugar(
 		Sugar::Italic{
 			delimiter,
 			arg,
 			loc: Location::new(&l, &r),
 		},
 	),
-	<l:@L> <delimiter:BoldOpen> <arg:LineElement+> BoldClose <r:@R> => Content::Sugar(
+	<l:@L> <delimiter:bold_open> <arg:LineElement+> bold_close <r:@R> => Content::Sugar(
 		Sugar::Bold{
 			delimiter,
 			arg,
 			loc: Location::new(&l, &r),
 		},
 	),
-	<l:@L> MonospaceOpen <arg:LineElement+> MonospaceClose <r:@R> => Content::Sugar(
+	<l:@L> monospace_open <arg:LineElement+> monospace_close <r:@R> => Content::Sugar(
 		Sugar::Monospace{
 			arg,
 			loc: Location::new(&l, &r),
 		},
 	),
-	<l:@L> SmallcapsOpen <arg:LineElement+> SmallcapsClose <r:@R> => Content::Sugar(
+	<l:@L> smallcaps_open <arg:LineElement+> smallcaps_close <r:@R> => Content::Sugar(
 		Sugar::Smallcaps{
 			arg,
 			loc: Location::new(&l, &r),
 		},
 	),
-	<l:@L> AlternateFaceOpen <arg:LineElement+> AlternateFaceClose <r:@R> => Content::Sugar(
+	<l:@L> alternate_face_open <arg:LineElement+> alternate_face_close <r:@R> => Content::Sugar(
 		Sugar::AlternateFace{
 			arg,
 			loc: Location::new(&l, &r),
@@ -144,8 +144,8 @@ Attrs: Attrs<'input> = {
 }
 
 Attr: Attr<'input> = {
-	<l:@L> <attr:NamedAttr> <r:@R> => Attr::named(attr, Location::new(&l, &r)),
-	<l:@L> <attr:UnnamedAttr> <r:@R> => Attr::unnamed(attr, Location::new(&l, &r)),
+	<l:@L> <attr:named_attr> <r:@R> => Attr::named(attr, Location::new(&l, &r)),
+	<l:@L> <attr:unnamed_attr> <r:@R> => Attr::unnamed(attr, Location::new(&l, &r)),
 };
 
 NestedComment: MultiLineComment<'input> = {
@@ -158,7 +158,7 @@ NestedCommentContent: MultiLineComment<'input> = {
 
 NestedCommentPart: MultiLineCommentPart<'input> = {
 	"\n"          => MultiLineCommentPart::Newline,
-	Comment       => MultiLineCommentPart::Comment(<>),
+	comment       => MultiLineCommentPart::Comment(<>),
 	NestedComment => MultiLineCommentPart::Nested(<>),
 }
 
@@ -181,12 +181,12 @@ MaybeSepList<T, Sep>: Vec<T> = {
 }
 
 Indented<T>: T = {
-	Indent <MaybeIndented<T>> Dedent,
+	indent <MaybeIndented<T>> dedent,
 }
 
 MaybeIndented<T>: T = {
 	T,
-	Indent <MaybeIndented<T>> Dedent,
+	indent <MaybeIndented<T>> dedent,
 }
 
 extern {
@@ -194,37 +194,37 @@ extern {
 	type Error = Box<LexicalError<'input>>;
 
 	enum Tok<'input> {
-		Indent             => Tok::Indent,
-		Dedent             => Tok::Dedent,
-		":"                => Tok::Colon,
-		"::"               => Tok::DoubleColon,
-		"{"                => Tok::LBrace,
-		"}"                => Tok::RBrace,
-		Command            => Tok::Command(<&'input str>, <usize>),
-		ItalicOpen         => Tok::ItalicOpen(<&'input str>),
-		BoldOpen           => Tok::BoldOpen(<&'input str>),
-		MonospaceOpen      => Tok::MonospaceOpen(<&'input str>),
-		SmallcapsOpen      => Tok::SmallcapsOpen(<&'input str>),
-		AlternateFaceOpen  => Tok::AlternateFaceOpen(<&'input str>),
-		ItalicClose        => Tok::ItalicClose,
-		BoldClose          => Tok::BoldClose,
-		MonospaceClose     => Tok::MonospaceClose,
-		SmallcapsClose     => Tok::SmallcapsClose,
-		AlternateFaceClose => Tok::AlternateFaceClose,
-		ParBreak           => Tok::ParBreak,
-		Word               => Tok::Word(<&'input str>),
-		Dash               => Tok::Dash(<&'input str>),
-		Glue               => Tok::Glue(<&'input str>),
-		Verbatim           => Tok::Verbatim(<&'input str>),
-		Whitespace         => Tok::Whitespace(<&'input str>),
-		"["                => Tok::LBracket,
-		"]"                => Tok::RBracket,
-		","                => Tok::AttrComma,
-		NamedAttr          => Tok::NamedAttr(<&'input str>),
-		UnnamedAttr        => Tok::UnnamedAttr(<&'input str>),
-		"/*"               => Tok::NestedCommentOpen,
-		"*/"               => Tok::NestedCommentClose,
-		"\n"               => Tok::Newline,
-		Comment            => Tok::Comment(<&'input str>),
+		indent               => Tok::Indent,
+		dedent               => Tok::Dedent,
+		":"                  => Tok::Colon,
+		"::"                 => Tok::DoubleColon,
+		"{"                  => Tok::LBrace,
+		"}"                  => Tok::RBrace,
+		command              => Tok::Command(<&'input str>, <usize>),
+		italic_open          => Tok::ItalicOpen(<&'input str>),
+		bold_open            => Tok::BoldOpen(<&'input str>),
+		monospace_open       => Tok::MonospaceOpen(<&'input str>),
+		smallcaps_open       => Tok::SmallcapsOpen(<&'input str>),
+		alternate_face_open  => Tok::AlternateFaceOpen(<&'input str>),
+		italic_close         => Tok::ItalicClose,
+		bold_close           => Tok::BoldClose,
+		monospace_close      => Tok::MonospaceClose,
+		smallcaps_close      => Tok::SmallcapsClose,
+		alternate_face_close => Tok::AlternateFaceClose,
+		par_break            => Tok::ParBreak,
+		word                 => Tok::Word(<&'input str>),
+		dash                 => Tok::Dash(<&'input str>),
+		glue                 => Tok::Glue(<&'input str>),
+		verbatim             => Tok::Verbatim(<&'input str>),
+		whitespace           => Tok::Whitespace(<&'input str>),
+		"["                  => Tok::LBracket,
+		"]"                  => Tok::RBracket,
+		","                  => Tok::AttrComma,
+		named_attr           => Tok::NamedAttr(<&'input str>),
+		unnamed_attr         => Tok::UnnamedAttr(<&'input str>),
+		"/*"                 => Tok::NestedCommentOpen,
+		"*/"                 => Tok::NestedCommentClose,
+		"\n"                 => Tok::Newline,
+		comment              => Tok::Comment(<&'input str>),
 	}
 }
