@@ -293,6 +293,10 @@ impl Log<'_> {
             ret.extend(src.get_annotation_text());
         }
 
+        if let Some(help) = &self.help {
+            ret.push(help.clone());
+        }
+
         ret
     }
 

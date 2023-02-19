@@ -22,19 +22,17 @@ lazy_static! {
 }
 
 fn emph_warning<'i>(
-    name: &str,
     suggested_delim: &str,
     loc: &Location<'i>,
     invocation_loc: &Location<'i>,
 ) -> Log<'i> {
-    Log::warn("emphasis command used on single argument")
-        .src(Src::new(loc).annotate(Note::info(
+    Log::warn("explicit styling call")
+        .src(Src::new(loc).annotate(Note::help(
             invocation_loc,
-            format!("syntactic sugar exists for '.{}'", name),
+            format!("syntactic sugar exists for this command"),
         )))
         .help(format!(
-            "syntactic sugar exists for this, try surrounding the arg in '{}' instead",
-            suggested_delim
+            "try surrounding argument in ‘{suggested_delim}’ instead"
         ))
 }
 
@@ -56,21 +54,12 @@ impl<'i> Lint<'i> for SugarUsage {
             } => {
                 if let Some(delim) = CALLS_TO_SUGARS.get(name.as_str()) {
                     match (&inline_args[..], &remainder_arg, &trailer_args[..]) {
-                        ([_], None, []) => {
-                            return vec![emph_warning(name.as_str(), delim, loc, invocation_loc)]
-                        }
-                        ([], Some(_), []) => {
-                            return vec![emph_warning(name.as_str(), delim, loc, invocation_loc)]
-                        }
+                        ([_], None, []) => return vec![emph_warning(delim, loc, invocation_loc)],
+                        ([], Some(_), []) => return vec![emph_warning(delim, loc, invocation_loc)],
                         ([], None, [a]) => {
                             let [p] = &a[..] else { return vec![]; };
                             if let [_] = &p.parts[..] {
-                                return vec![emph_warning(
-                                    name.as_str(),
-                                    delim,
-                                    loc,
-                                    invocation_loc,
-                                )];
+                                return vec![emph_warning(delim, loc, invocation_loc)];
                             }
                         }
                         _ => {}
@@ -78,10 +67,8 @@ impl<'i> Lint<'i> for SugarUsage {
                 }
                 vec![]
             }
-            Content::Sugar(_) => {
-                vec![]
-            }
-            Content::Word { .. }
+            Content::Sugar(_)
+            | Content::Word { .. }
             | Content::Whitespace { .. }
             | Content::Dash { .. }
             | Content::Glue { .. }
@@ -120,5 +107,38 @@ mod test {
             src: ".foo",
         }
         .run();
+        for (call, delim) in CALLS_TO_SUGARS.iter() {
+            LintTest {
+                lint: SugarUsage::new(),
+                num_problems: 0,
+                matches: vec![],
+                src: &format!(".{call}"),
+            }
+            .run();
+            LintTest {
+                lint: SugarUsage::new(),
+                num_problems: 0,
+                matches: vec![],
+                src: &format!(".{call}{{foo}}{{bar}}"),
+            }
+            .run();
+            LintTest {
+                lint: SugarUsage::new(),
+                num_problems: 1,
+                matches: vec![
+                    "explicit styling call",
+                    &format!(
+                        ":1:1-{}: syntactic sugar exists for this command",
+                        1 + call.len(),
+                    ),
+                    &format!(
+                        "try surrounding argument in ‘{}’ instead",
+                        delim.replace('*', r"\*")
+                    ),
+                ],
+                src: &format!(".{call}{{foo}}"),
+            }
+            .run();
+        }
     }
 }
