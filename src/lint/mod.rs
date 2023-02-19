@@ -2,7 +2,7 @@ mod lints;
 
 use crate::args::LintCmd;
 use crate::args::SearchResult;
-use crate::ast::parsed::Content;
+use crate::ast::parsed::{Content, Sugar};
 use crate::ast::{File, Par, ParPart};
 use crate::context::Context;
 use crate::log::Log;
@@ -95,6 +95,7 @@ impl<'i> Lintable<'i> for Content<'i> {
                 remainder_arg.lint(lints, problems);
                 trailer_args.lint(lints, problems);
             }
+            Self::Sugar(sugar) => sugar.lint(lints, problems),
             Self::Word { .. }
             | Self::Whitespace { .. }
             | Self::Dash { .. }
@@ -102,6 +103,18 @@ impl<'i> Lintable<'i> for Content<'i> {
             | Self::Verbatim { .. }
             | Self::Comment { .. }
             | Self::MultiLineComment { .. } => {}
+        }
+    }
+}
+
+impl<'i> Lintable<'i> for Sugar<'i> {
+    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
+        match self {
+            Self::Italic { arg, .. } => arg.lint(lints, problems),
+            Self::Bold { arg, .. } => arg.lint(lints, problems),
+            Self::Monospace { arg, .. } => arg.lint(lints, problems),
+            Self::Smallcaps { arg, .. } => arg.lint(lints, problems),
+            Self::AlternateFace { arg, .. } => arg.lint(lints, problems),
         }
     }
 }

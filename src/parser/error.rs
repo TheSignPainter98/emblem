@@ -8,7 +8,7 @@ use std::ffi::OsString;
 use std::fmt::Display;
 use std::io;
 
-pub type LalrpopError<'i> = LalrpopParseError<Point<'i>, Tok<'i>, LexicalError<'i>>;
+pub type LalrpopError<'i> = LalrpopParseError<Point<'i>, Tok<'i>, Box<LexicalError<'i>>>;
 
 #[derive(Debug)]
 pub enum Error<'i> {

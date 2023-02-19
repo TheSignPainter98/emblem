@@ -50,7 +50,7 @@ impl<'i> Lint<'i> for NumArgs {
                 invocation_loc,
                 ..
             } => {
-                if let Some((min, max)) = AFFECTED_COMMANDS.get(name.as_ref()) {
+                if let Some((min, max)) = AFFECTED_COMMANDS.get(name.as_str()) {
                     let num_args =
                         inline_args.len() + remainder_arg.iter().len() + trailer_args.len();
 
@@ -99,6 +99,7 @@ impl<'i> Lint<'i> for NumArgs {
                 vec![]
             }
             Content::Word { .. }
+            | Content::Sugar(_)
             | Content::Whitespace { .. }
             | Content::Dash { .. }
             | Content::Glue { .. }

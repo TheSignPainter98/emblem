@@ -8,8 +8,8 @@ pub enum Text<'t> {
     Borrowed(&'t str),
 }
 
-impl AsRef<str> for Text<'_> {
-    fn as_ref(&self) -> &str {
+impl<'t> Text<'t> {
+    pub fn as_str(&'t self) -> &'t str {
         match self {
             Text::Owned(s) => s,
             Text::Borrowed(s) => s,
@@ -40,13 +40,13 @@ impl From<String> for Text<'_> {
 
 impl Display for Text<'_> {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        self.as_ref().fmt(f)
+        self.as_str().fmt(f)
     }
 }
 
 #[cfg(test)]
 impl AstDebug for Text<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
-        self.as_ref().test_fmt(buf);
+        self.as_str().test_fmt(buf);
     }
 }

@@ -248,7 +248,6 @@ mod test {
         #[test]
         fn command_only() {
             for num_pluses in 0..=3 {
-                println!("{} {}", num_pluses, ast_debug_pluses(num_pluses));
                 assert_structure(
                     "command",
                     &format!(".order-66{}", "+".repeat(num_pluses)),
@@ -926,6 +925,120 @@ mod test {
                 "/*spaghetti*/.and:\n\tmeatballs",
                 "Unrecognised token `newline` found at 1:19",
             );
+        }
+    }
+
+    mod syntactic_sugar {
+        use super::*;
+
+        mod emph_delimiters {
+            use super::*;
+
+            static DELIMS: [(&str, &str); 7] = [
+                ("_", "$it(_)"),
+                ("*", "$it(*)"),
+                ("__", "$bf(__)"),
+                ("**", "$bf(**)"),
+                ("`", "$tt"),
+                ("=", "$sc"),
+                ("==", "$af"),
+            ];
+
+            #[test]
+            fn mixed_nesting() {
+                for (outer, outer_repr) in &DELIMS {
+                    let sanitised_outer = outer.replace('*', r"\*");
+                    let outer_chars = {
+                        let mut outer_chars: Vec<_> = outer.chars().collect();
+                        outer_chars.sort();
+                        outer_chars.dedup();
+                        outer_chars
+                    };
+
+                    for (inner, inner_repr) in &DELIMS {
+                        let sanitised_inner = inner.replace('*', r"\*");
+
+                        assert_structure(
+                            &format!("normal nesting {outer} and {inner}"),
+                            &format!("{outer}spaghetti {inner}and{inner} meatballs{outer}"),
+                            &format!("File[Par[[{outer_repr}{{[Word(spaghetti)|< >|{inner_repr}{{[Word(and)]}}|< >|Word(meatballs)]}}]]]"),
+                        );
+
+                        let inner_chars = {
+                            let mut inner_chars: Vec<_> = inner.chars().collect();
+                            inner_chars.sort();
+                            inner_chars.dedup();
+                            inner_chars
+                        };
+
+                        if outer_chars == inner_chars
+                            && outer.len() >= inner.len()
+                            && inner.len() != 2
+                            && outer_chars != ['`']
+                        {
+                            // Check for troublesome nesting
+                            assert_parse_error(
+                                &format!("clash-nesting {inner} and {outer}"),
+                                &format!("{outer}spaghetti {inner}and meatballs{inner}{outer}"),
+                                &format!(
+                                    r"delimiter mismatch for {sanitised_inner} found at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{} \(failed to match at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{}\)",
+                                    24 + outer.len() + inner.len(),
+                                    24 + outer.len() + 2 * inner.len(),
+                                    11 + outer.len(),
+                                    10 + outer.len() + inner.len()
+                                ),
+                            );
+                        } else {
+                            // Check nesting is okay
+                            assert_structure(
+                                &format!("chash-nesting nesting {outer} and meatballs{inner}"),
+                                &format!("{outer}spaghetti {inner}and meatballs{inner}{outer}"),
+                                &format!("File[Par[[{outer_repr}{{[Word(spaghetti)|< >|{inner_repr}{{[Word(and)|< >|Word(meatballs)]}}]}}]]]"),
+                            );
+                        }
+                    }
+                }
+            }
+
+            #[test]
+            fn multi_line() {
+                for (delim, _) in &DELIMS {
+                    let sanitised = delim.replace('*', r"\*");
+                    assert_parse_error(
+                        &format!("multi-line {delim}"),
+                        &format!("{delim}foo\nbar{delim}"),
+                        &format!(
+                            r#"newline in "{sanitised}" emphasis found at multi-line {sanitised}[^:]*:1:{}-2:1"#,
+                            4 + delim.len()
+                        ),
+                    );
+                }
+            }
+
+            #[test]
+            fn mismatched() {
+                for (left, _) in &DELIMS {
+                    for (right, _) in &DELIMS {
+                        if left == right {
+                            continue;
+                        }
+
+                        let sanitised_left = left.replace('*', r"\*");
+                        let sanitised_right = right.replace('*', r"\*");
+
+                        assert_parse_error(
+                            &format!("mismatch({left},{right})"),
+                            &format!("{left}foo{right}"),
+                            &format!(
+                                r"delimiter mismatch for {sanitised_left} found at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:{}-{} \(failed to match at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:1-{}\)",
+                                4 + left.len(),
+                                3 + left.len() + right.len(),
+                                left.len(),
+                            ),
+                        );
+                    }
+                }
+            }
         }
     }
 }

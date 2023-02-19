@@ -12,6 +12,7 @@ use crate::ast::{
 		MultiLineComment,
 		MultiLineCommentPart,
 		ParsedFile,
+		Sugar,
 	},
 	Par, ParPart, Text
 };
@@ -89,6 +90,8 @@ LineElement: Content<'input> = {
 	<l:@L> <glue:Glue>             <r:@R> => Content::Glue{ glue: glue.into(), loc: Location::new(&l, &r) },
 	<l:@L> <verbatim:Verbatim>     <r:@R> => Content::Verbatim{ verbatim, loc: Location::new(&l, &r) },
 
+	EmphSugar,
+
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
 		name: name.0,
 		pluses: name.1,
@@ -99,6 +102,41 @@ LineElement: Content<'input> = {
 		loc: Location::new(&l, &r),
 		invocation_loc: name.2,
 	},
+}
+
+EmphSugar: Content<'input> = {
+	<l:@L> <delimiter:ItalicOpen> <arg:LineElement+> ItalicClose <r:@R> => Content::Sugar(
+		Sugar::Italic{
+			delimiter,
+			arg,
+			loc: Location::new(&l, &r),
+		},
+	),
+	<l:@L> <delimiter:BoldOpen> <arg:LineElement+> BoldClose <r:@R> => Content::Sugar(
+		Sugar::Bold{
+			delimiter,
+			arg,
+			loc: Location::new(&l, &r),
+		},
+	),
+	<l:@L> MonospaceOpen <arg:LineElement+> MonospaceClose <r:@R> => Content::Sugar(
+		Sugar::Monospace{
+			arg,
+			loc: Location::new(&l, &r),
+		},
+	),
+	<l:@L> SmallcapsOpen <arg:LineElement+> SmallcapsClose <r:@R> => Content::Sugar(
+		Sugar::Smallcaps{
+			arg,
+			loc: Location::new(&l, &r),
+		},
+	),
+	<l:@L> AlternateFaceOpen <arg:LineElement+> AlternateFaceClose <r:@R> => Content::Sugar(
+		Sugar::AlternateFace{
+			arg,
+			loc: Location::new(&l, &r),
+		},
+	),
 }
 
 Attrs: Attrs<'input> = {
@@ -153,30 +191,40 @@ MaybeIndented<T>: T = {
 
 extern {
 	type Location = Point<'input>;
-	type Error = LexicalError<'input>;
+	type Error = Box<LexicalError<'input>>;
 
 	enum Tok<'input> {
-		Indent      => Tok::Indent,
-		Dedent      => Tok::Dedent,
-		":"         => Tok::Colon,
-		"::"        => Tok::DoubleColon,
-		"{"         => Tok::LBrace,
-		"}"         => Tok::RBrace,
-		Command     => Tok::Command(<&'input str>, <usize>),
-		ParBreak    => Tok::ParBreak,
-		Word        => Tok::Word(<&'input str>),
-		Dash        => Tok::Dash(<&'input str>),
-		Glue        => Tok::Glue(<&'input str>),
-		Verbatim    => Tok::Verbatim(<&'input str>),
-		Whitespace  => Tok::Whitespace(<&'input str>),
-		"["         => Tok::LBracket,
-		"]"         => Tok::RBracket,
-		","         => Tok::AttrComma,
-		NamedAttr   => Tok::NamedAttr(<&'input str>),
-		UnnamedAttr => Tok::UnnamedAttr(<&'input str>),
-		"/*"        => Tok::NestedCommentOpen,
-		"*/"        => Tok::NestedCommentClose,
-		"\n"        => Tok::Newline,
-		Comment     => Tok::Comment(<&'input str>),
+		Indent             => Tok::Indent,
+		Dedent             => Tok::Dedent,
+		":"                => Tok::Colon,
+		"::"               => Tok::DoubleColon,
+		"{"                => Tok::LBrace,
+		"}"                => Tok::RBrace,
+		Command            => Tok::Command(<&'input str>, <usize>),
+		ItalicOpen         => Tok::ItalicOpen(<&'input str>),
+		BoldOpen           => Tok::BoldOpen(<&'input str>),
+		MonospaceOpen      => Tok::MonospaceOpen(<&'input str>),
+		SmallcapsOpen      => Tok::SmallcapsOpen(<&'input str>),
+		AlternateFaceOpen  => Tok::AlternateFaceOpen(<&'input str>),
+		ItalicClose        => Tok::ItalicClose,
+		BoldClose          => Tok::BoldClose,
+		MonospaceClose     => Tok::MonospaceClose,
+		SmallcapsClose     => Tok::SmallcapsClose,
+		AlternateFaceClose => Tok::AlternateFaceClose,
+		ParBreak           => Tok::ParBreak,
+		Word               => Tok::Word(<&'input str>),
+		Dash               => Tok::Dash(<&'input str>),
+		Glue               => Tok::Glue(<&'input str>),
+		Verbatim           => Tok::Verbatim(<&'input str>),
+		Whitespace         => Tok::Whitespace(<&'input str>),
+		"["                => Tok::LBracket,
+		"]"                => Tok::RBracket,
+		","                => Tok::AttrComma,
+		NamedAttr          => Tok::NamedAttr(<&'input str>),
+		UnnamedAttr        => Tok::UnnamedAttr(<&'input str>),
+		"/*"               => Tok::NestedCommentOpen,
+		"*/"               => Tok::NestedCommentClose,
+		"\n"               => Tok::Newline,
+		Comment            => Tok::Comment(<&'input str>),
 	}
 }

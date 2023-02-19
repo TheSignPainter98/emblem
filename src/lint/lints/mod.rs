@@ -1,10 +1,12 @@
 mod attr_ordering;
 mod command_naming;
 mod duplicate_attrs;
+mod emph_delimiters;
 mod empty_attrs;
 mod num_args;
 mod num_attrs;
 mod num_pluses;
+mod sugar_usage;
 
 use super::Lints;
 
@@ -21,10 +23,12 @@ pub fn lints<'i>() -> Lints<'i> {
         attr_ordering::AttrOrdering::new(),
         command_naming::CommandNaming::new(),
         duplicate_attrs::DuplicateAttrs::new(),
+        emph_delimiters::EmphDelimiters::new(),
         empty_attrs::EmptyAttrs::new(),
         num_args::NumArgs::new(),
         num_attrs::NumAttrs::new(),
         num_pluses::NumPluses::new(),
+        sugar_usage::SugarUsage::new(),
     ]
 }
 

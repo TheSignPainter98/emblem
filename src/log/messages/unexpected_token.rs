@@ -23,10 +23,10 @@ impl Default for UnexpectedToken<'_> {
 impl<'i> Message<'i> for UnexpectedToken<'i> {
     fn log(self) -> Log<'i> {
         Log::error("unexpected token")
-            .src(Src::new(&self.loc).annotate(Note::error(
-                &self.loc,
-                format!("found a {} here", self.token),
-            )))
+            .src(
+                Src::new(&self.loc)
+                    .annotate(Note::error(&self.loc, format!("found {} here", self.token))),
+            )
             .expect_one_of(&self.expected)
     }
 }

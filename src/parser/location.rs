@@ -92,14 +92,12 @@ impl Display for Location<'_> {
                 "{}:{}:{}-{}:{}",
                 self.file_name, self.lines.0, self.cols.0, self.lines.1, self.cols.1
             )
-        } else if self.cols.0 != self.cols.1 {
+        } else {
             write!(
                 f,
                 "{}:{}:{}-{}",
                 self.file_name, self.lines.0, self.cols.0, self.cols.1
             )
-        } else {
-            write!(f, "{}:{}:{}", self.file_name, self.lines.0, self.cols.0)
         }
     }
 }
