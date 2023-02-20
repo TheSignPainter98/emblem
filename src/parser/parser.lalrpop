@@ -1,5 +1,6 @@
 use crate::parser::{
 	LexicalError,
+	error::LalrpopError,
 	Location,
 	lexer::Tok,
 	point::Point,
@@ -17,25 +18,25 @@ use crate::ast::{
 	Par, ParPart, Text
 };
 
-grammar<'input>;
+grammar<'input>(errors: &mut Vec<LalrpopError<'input>>);
 
 pub File: ParsedFile<'input> = {
     FileContent => <>.into(),
 };
 
 FileContent: Vec<Par<ParPart<Content<'input>>>> = {
-	MaybeSepList<Par, par_break>
+	MaybeSepList<Par, par_break>,
 }
 
 Par: Par<ParPart<Content<'input>>> = {
-	ParPart+ => <>.into(),
+	ParPart+ => <>.into_iter().flatten().collect::<Vec<_>>().into()
 }
 
-ParPart: ParPart<Content<'input>> = {
-	<MaybeLineContent> "\n" => ParPart::Line(<>),
+ParPart: Option<ParPart<Content<'input>>> = {
+	<MaybeLineContent> "\n" => Some(ParPart::Line(<>)),
 
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> <r:@R> => {
-		ParPart::Command(Content::Command {
+		Some(ParPart::Command(Content::Command {
 			name: name.0,
 			pluses: name.1,
 			attrs,
@@ -48,8 +49,14 @@ ParPart: ParPart<Content<'input>> = {
 			},
 			loc: Location::new(&l, &r),
 			invocation_loc: name.2,
-		})
+		}))
 	},
+
+	! => {
+		panic!("?? {:?} |-> {:?}", <>.error, <>.dropped_tokens);
+		errors.push(<>.error);
+		None
+	}
 }
 
 MaybeLineContent: Vec<Content<'input>> = {

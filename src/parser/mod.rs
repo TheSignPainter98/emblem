@@ -29,7 +29,7 @@ lalrpop_mod!(
 pub fn parse_file<'ctx, 'input>(
     ctx: &'ctx mut Context,
     mut to_parse: SearchResult,
-) -> Result<ParsedFile<'input>, Box<Error<'input>>>
+) -> Result<ParsedFile<'input>, Vec<Error<'input>>>
 where
     'ctx: 'input,
 {
@@ -42,7 +42,9 @@ where
             .and_then(|len| usize::try_from(len).ok())
             .map(String::with_capacity)
             .unwrap_or_default();
-        reader.read_to_string(&mut buf)?;
+        reader
+            .read_to_string(&mut buf)
+            .map_err(|e| vec![Error::Filesystem(e)])?;
         buf
     };
 
@@ -51,7 +53,7 @@ where
             .path
             .into_os_string()
             .into_string()
-            .map_err(StringConversionError::new)?;
+            .map_err(|e| vec![Error::StringConversion(StringConversionError::new(e))])?;
         if path == "-" {
             path = "(stdin)".into();
         }
@@ -65,11 +67,27 @@ where
 pub fn parse<'file>(
     name: &'file str,
     content: &'file str,
-) -> Result<ParsedFile<'file>, Box<Error<'file>>> {
+) -> Result<ParsedFile<'file>, Vec<Error<'file>>> {
     let lexer = Lexer::new(name, content);
     let parser = parser::FileParser::new();
+    let mut parse_errors = vec![];
 
-    Ok(parser.parse(lexer)?)
+    for r in Lexer::new(name, content) {
+        match r {
+            Ok(t) => println!(".. {:?}", t.1),
+            Err(e) => println!("!! {}", e),
+        }
+    }
+
+    match parser.parse(&mut parse_errors, lexer) {
+        Ok(d) => {
+            if parse_errors.is_empty() {
+                return Ok(d);
+            }
+        }
+        Err(e) => parse_errors.push(e),
+    }
+    Err(parse_errors.into_iter().map(Error::Parse).collect())
 }
 
 #[cfg(test)]

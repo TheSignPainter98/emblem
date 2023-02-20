@@ -18,13 +18,15 @@ pub fn lint(cmd: LintCmd) -> Result<(), Box<dyn Error>> {
                 alert!(problem);
             }
         }
-        Err(e) => alert!(e),
+        Err(errs) => for e in errs {
+            alert!(e);
+        },
     }
 
     Ok(())
 }
 
-fn lint_root(ctx: &mut Context, file: SearchResult) -> Result<Vec<Log<'_>>, Box<ParseError<'_>>> {
+fn lint_root(ctx: &mut Context, file: SearchResult) -> Result<Vec<Log<'_>>, Vec<ParseError<'_>>> {
     let file = parser::parse_file(ctx, file)?;
 
     let mut problems = Vec::new();

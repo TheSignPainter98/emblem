@@ -10,7 +10,9 @@ pub fn build(cmd: BuildCmd) -> Result<(), Box<dyn error::Error>> {
 
     match parser::parse_file(&mut ctx, fname) {
         Ok(d) => println!("{:?}", d),
-        Err(e) => alert!(e),
+        Err(errs) => for e in errs {
+            alert!(e);
+        },
     }
 
     Ok(())

@@ -16,7 +16,6 @@ use std::{
 pub struct Lexer<'input> {
     input: &'input str,
     done: bool,
-    failed: bool,
     start_of_line: bool,
     current_indent: u32,
     curr_point: Point<'input>,
@@ -35,7 +34,6 @@ impl<'input> Lexer<'input> {
         Self {
             input,
             done: false,
-            failed: false,
             start_of_line: true,
             current_indent: 0,
             curr_point: Point::new(file, input),
@@ -121,7 +119,6 @@ impl<'input> Lexer<'input> {
         if !self.open_delimiters.is_empty() {
             let (to_close, to_close_loc) = self.open_delimiters.pop().unwrap();
             if to_close != raw {
-                self.failed = true;
                 return Err(Box::new(LexicalError::DelimiterMismatch {
                     loc: self.location(),
                     to_close_loc,
@@ -184,10 +181,6 @@ impl<'input> Iterator for Lexer<'input> {
             let NESTED_COMMENT_PART  = r"([^*/\r\n]|\*[^/\r\n]|/[^*\r\n])+";
         }
 
-        if self.failed {
-            return None;
-        }
-
         if let Some(t) = self.dequeue() {
             return Some(Ok(t));
         }
@@ -208,12 +201,11 @@ impl<'input> Iterator for Lexer<'input> {
                     Some(ret)
                 })*
                 else {
-                    self.failed = true;
                     Some(Err(Box::new(
-                                LexicalError::UnexpectedChar {
-                                    found: self.input.chars().next().unwrap(),
-                                    loc: self.location(),
-                                }
+                        LexicalError::UnexpectedChar {
+                            found: self.input.chars().next().unwrap(),
+                            loc: self.location(),
+                        }
                     )))
                 }
             };
@@ -222,7 +214,6 @@ impl<'input> Iterator for Lexer<'input> {
         if !self.multi_line_comment_starts.is_empty() {
             return match_token![
                 ! => {
-                    self.failed = true;
                     Err(Box::new(LexicalError::UnmatchedCommentOpen {
                         unclosed: self.multi_line_comment_starts.clone(),
                     }))
@@ -244,7 +235,7 @@ impl<'input> Iterator for Lexer<'input> {
         if self.parsing_attrs {
             return match_token! {
                 ! => {
-                    self.failed = true;
+                    self.done = true;
                     Err(Box::new(LexicalError::UnexpectedEOF {
                         point: self.curr_point.clone(),
                         expected: vec![],
@@ -262,8 +253,8 @@ impl<'input> Iterator for Lexer<'input> {
         }
 
         if self.input.is_empty() {
+            self.done = true;
             if !self.open_braces.is_empty() {
-                self.failed = true;
                 return Some(Err(Box::new(LexicalError::UnexpectedEOF {
                     point: self.curr_point.clone(),
                     expected: vec!["\"}\"".into()],
@@ -274,7 +265,6 @@ impl<'input> Iterator for Lexer<'input> {
                 self.enqueue(self.span(Tok::Newline));
             }
             self.enqueue_indentation_level(0);
-            self.done = true;
             return self.dequeue().map(Ok);
         }
 
@@ -283,7 +273,6 @@ impl<'input> Iterator for Lexer<'input> {
             self.opening_delimiters = true;
 
             if !self.open_braces.is_empty() {
-                self.failed = true;
                 return Some(Err(Box::new(LexicalError::NewlineInArg {
                     arg_start_loc: self.open_braces.pop().unwrap(),
                     newline_loc: self.location(),
@@ -291,7 +280,6 @@ impl<'input> Iterator for Lexer<'input> {
             }
 
             if !self.open_delimiters.is_empty() {
-                self.failed = true;
                 let (expected, from_loc) = self.open_delimiters.pop().unwrap();
                 return Some(Err(Box::new(LexicalError::NewlineInEmphDelimiter {
                     delimiter_start_loc: from_loc,
@@ -349,7 +337,6 @@ impl<'input> Iterator for Lexer<'input> {
                 Ok(Tok::NestedCommentOpen)
             },
             NESTED_COMMENT_CLOSE => |_| {
-                self.failed = true;
                 Err(Box::new(LexicalError::UnmatchedCommentClose { loc: self.location() }))
             },
 
