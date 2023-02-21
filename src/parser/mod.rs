@@ -548,7 +548,12 @@ mod test {
                 r"File[Par[.heave[(the)|(old)=(wheel)|(round)]::[Par[[Word(and)]]]::[Par[[Word(round)]]]]]",
             );
 
-            assert_parse_error("unclosed", ".heave[", "unexpected EOF found at (1:8|2:1)");
+            assert_parse_error("unclosed", ".heave[", "(unexpected EOF found at 1:8|newline in attributes found at unclosed with newline:1:7-7)");
+            assert_parse_error(
+                "unexpected open bracket",
+                ".heave[[",
+                r"(unexpected EOF found at 1:9|unexpected character '\[' found at unexpected open bracket[^:]*:1:8-8)",
+            );
         }
     }
 
