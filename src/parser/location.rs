@@ -44,6 +44,16 @@ impl<'i> Location<'i> {
         (start - context_start, end - context_start)
     }
 
+    pub fn end(&self) -> Point<'i> {
+        Point {
+            file_name: self.file_name,
+            src: self.src,
+            line: self.lines.1,
+            col: self.cols.1,
+            index: self.indices.1,
+        }
+    }
+
     pub fn span_to(&self, other: &Self) -> Self {
         if self.file_name != other.file_name {
             panic!(
@@ -135,6 +145,16 @@ mod test {
             assert_eq!((start.line, end.line), loc.lines());
             assert_eq!((start.col, 1), loc.cols());
         }
+    }
+
+    #[test]
+    fn end() {
+        let text = "my name is methos\n";
+        let start = Point::new("fname.em", text);
+        let end = start.clone().shift(text);
+
+        let loc = Location::new(&start, &end);
+        assert_eq!(loc.end(), end);
     }
 
     #[test]

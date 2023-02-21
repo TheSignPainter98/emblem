@@ -115,6 +115,7 @@ impl<'i> Lintable<'i> for Sugar<'i> {
             Self::Monospace { arg, .. } => arg.lint(lints, problems),
             Self::Smallcaps { arg, .. } => arg.lint(lints, problems),
             Self::AlternateFace { arg, .. } => arg.lint(lints, problems),
+            Self::Heading { arg, .. } => arg.lint(lints, problems),
         }
     }
 }

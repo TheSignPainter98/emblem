@@ -222,6 +222,14 @@ pub enum Sugar<'i> {
         arg: Vec<Content<'i>>,
         loc: Location<'i>,
     },
+    Heading {
+        level: usize,
+        pluses: usize,
+        standoff: &'i str,
+        arg: Vec<Content<'i>>,
+        loc: Location<'i>,
+        invocation_loc: Location<'i>,
+    },
 }
 
 #[cfg(test)]
@@ -248,6 +256,15 @@ impl<'i> AstDebug for Sugar<'i> {
             }
             Self::AlternateFace { arg, .. } => {
                 buf.push("$af".into());
+                arg.surround(buf, "{", "}");
+            }
+            Self::Heading {
+                level, arg, pluses, ..
+            } => {
+                buf.push(format!("$h{level}"));
+                if *pluses > 0 {
+                    "+".repeat(*pluses).surround(buf, "(", ")");
+                }
                 arg.surround(buf, "{", "}");
             }
         }

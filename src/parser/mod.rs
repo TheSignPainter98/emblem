@@ -1045,5 +1045,70 @@ mod test {
                 }
             }
         }
+
+        mod headings {
+            use super::*;
+
+            #[test]
+            fn start_of_line() {
+                for level in 1..=6 {
+                    for pluses in 0..=2 {
+                        assert_structure(
+                            &format!("level:{level}, pluses:{pluses}"),
+                            &format!("{}{} foo", "#".repeat(level), "+".repeat(pluses)),
+                            &format!(
+                                "File[Par[[$h{level}{}{{[Word(foo)]}}]]]",
+                                if pluses > 0 {
+                                    format!("({})", "+".repeat(pluses))
+                                } else {
+                                    "".into()
+                                }
+                            ),
+                        );
+                    }
+                }
+
+                assert_structure(
+                    "nested inline args",
+                    "## .bar{baz}",
+                    "File[Par[[$h2{[.bar{[Word(baz)]}]}]]]",
+                );
+                assert_structure(
+                    "nested remainder args",
+                    "## .bar: baz",
+                    "File[Par[[$h2{[.bar:[Word(baz)]]}]]]",
+                );
+                assert_parse_error(
+                    "nested trailer args",
+                    "## .foo:\n\tbar",
+                    "Unrecognised token `newline` found at 1:9:2:1",
+                );
+
+                assert_parse_error(
+                    "nested headings",
+                    "## ## foo",
+                    "unexpected heading at nested headings[^:]*:1:4-5",
+                );
+                assert_parse_error(
+                    "no argument",
+                    "##",
+                    "Unrecognised token `newline` found at (1:1:1:3|1:3:2:1)",
+                );
+            }
+
+            #[test]
+            fn midline() {
+                assert_parse_error(
+                    "inline",
+                    "foo ###+ bar",
+                    "unexpected heading at inline[^:]*:1:5-8",
+                );
+                assert_parse_error(
+                    "inline",
+                    "foo .bar: ###+ baz",
+                    "unexpected heading at inline[^:]*:1:11-14",
+                );
+            }
+        }
     }
 }
