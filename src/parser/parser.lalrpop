@@ -104,6 +104,7 @@ LineElement: Content<'input> = {
 	<l:@L> <word:word>             <r:@R> => Content::Word{ word: word.into(), loc: Location::new(&l, &r) },
 	<l:@L> <dash:dash>             <r:@R> => Content::Dash{ dash: dash.into(), loc: Location::new(&l, &r) },
 	<l:@L> <glue:glue>             <r:@R> => Content::Glue{ glue: glue.into(), loc: Location::new(&l, &r) },
+	<l:@L> <raw:spilt_glue>        <r:@R> => Content::SpiltGlue{ raw, loc: Location::new(&l, &r) },
 	<l:@L> <verbatim:verbatim>     <r:@R> => Content::Verbatim{ verbatim, loc: Location::new(&l, &r) },
 
 	EmphSugar,
@@ -232,6 +233,7 @@ extern {
 		word                 => Tok::Word(<&'input str>),
 		dash                 => Tok::Dash(<&'input str>),
 		glue                 => Tok::Glue(<&'input str>),
+		spilt_glue           => Tok::SpiltGlue(<&'input str>),
 		verbatim             => Tok::Verbatim(<&'input str>),
 		whitespace           => Tok::Whitespace(<&'input str>),
 		"["                  => Tok::LBracket,

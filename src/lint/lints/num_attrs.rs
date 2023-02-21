@@ -105,6 +105,7 @@ impl<'i> Lint<'i> for NumAttrs {
             | Content::Whitespace { .. }
             | Content::Dash { .. }
             | Content::Glue { .. }
+            | Content::SpiltGlue { .. }
             | Content::Verbatim { .. }
             | Content::Comment { .. }
             | Content::MultiLineComment { .. } => vec![],

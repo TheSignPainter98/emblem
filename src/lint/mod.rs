@@ -100,6 +100,7 @@ impl<'i> Lintable<'i> for Content<'i> {
             | Self::Whitespace { .. }
             | Self::Dash { .. }
             | Self::Glue { .. }
+            | Self::SpiltGlue { .. }
             | Self::Verbatim { .. }
             | Self::Comment { .. }
             | Self::MultiLineComment { .. } => {}

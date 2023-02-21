@@ -43,6 +43,7 @@ impl<'i> Lint<'i> for NumPluses {
             | Content::Whitespace { .. }
             | Content::Dash { .. }
             | Content::Glue { .. }
+            | Content::SpiltGlue { .. }
             | Content::Verbatim { .. }
             | Content::Comment { .. }
             | Content::MultiLineComment { .. } => vec![],
