@@ -7,6 +7,7 @@ mod no_such_error_code;
 mod unclosed_comments;
 mod unexpected_char;
 mod unexpected_eof;
+mod unexpected_heading;
 mod unexpected_token;
 
 pub use delimiter_mismatch::DelimiterMismatch;
@@ -18,6 +19,7 @@ pub use no_such_error_code::NoSuchErrorCode;
 pub use unclosed_comments::UnclosedComments;
 pub use unexpected_char::UnexpectedChar;
 pub use unexpected_eof::UnexpectedEOF;
+pub use unexpected_heading::UnexpectedHeading;
 pub use unexpected_token::UnexpectedToken;
 
 use crate::log::Log;

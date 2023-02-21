@@ -66,10 +66,11 @@ LineContent: Vec<Content<'input>> = {
 }
 
 HeadingLine: Content<'input> = {
-	<l:@L> <marker:HeadingMarker> <arg:LineContent> <r:@R> => Content::Sugar(Sugar::Heading{
+	<l:@L> <marker:HeadingMarker> <standoff:whitespace> <arg:LineContent> <r:@R> => Content::Sugar(Sugar::Heading{
 		level: marker.0,
 		pluses: marker.1,
 		arg,
+		standoff,
 		loc: Location::new(&l, &r),
 		invocation_loc: marker.2,
 	}),
@@ -240,7 +241,7 @@ extern {
 		unnamed_attr         => Tok::UnnamedAttr(<&'input str>),
 		"/*"                 => Tok::NestedCommentOpen,
 		"*/"                 => Tok::NestedCommentClose,
-		"\n"                 => Tok::Newline,
+		"\n"                 => Tok::Newline { .. },
 		comment              => Tok::Comment(<&'input str>),
 	}
 }

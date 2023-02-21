@@ -6,7 +6,7 @@ lazy_static! {
     static ref NEWLINE: Regex = Regex::new("(\n|\r\n|\r)").unwrap();
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Point<'input> {
     pub file_name: &'input str,
     pub src: &'input str,

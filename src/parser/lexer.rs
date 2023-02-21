@@ -1,6 +1,6 @@
 use crate::log::messages::{
     DelimiterMismatch, ExtraCommentClose, NewlineInAttrs, NewlineInEmphDelimiter,
-    NewlineInInlineArg, UnclosedComments, UnexpectedChar, UnexpectedEOF,
+    NewlineInInlineArg, UnclosedComments, UnexpectedChar, UnexpectedEOF, UnexpectedHeading,
 };
 use crate::log::Log;
 use crate::parser::Location;
@@ -53,15 +53,18 @@ impl<'input> Lexer<'input> {
     fn try_consume(&mut self, re: &Regex) -> Option<&'input str> {
         if let Some(mat) = re.find(self.input) {
             self.input = &self.input[mat.end()..];
-
-            let curr_point = self.curr_point.clone();
-            self.prev_point = curr_point.clone();
-            self.curr_point = curr_point.shift(mat.as_str());
+            self.shift_locs(mat.as_str());
 
             Some(mat.as_str())
         } else {
             None
         }
+    }
+
+    fn shift_locs(&mut self, s: &'input str) {
+        let curr_point = self.curr_point.clone();
+        self.prev_point = curr_point.clone();
+        self.curr_point = curr_point.shift(s);
     }
 
     fn span(&self, tok: Tok<'input>) -> SpannedTok<'input> {
@@ -172,7 +175,7 @@ impl<'input> Iterator for Lexer<'input> {
             let ASTERISKS      = r"\*{1,2}";
             let EQUALS         = r"={1,2}";
             let BACKTICKS      = r"`";
-            let HEADING        = r"#+\+*[ \t]+";
+            let HEADING        = r"#+\+*";
 
             let OPEN_ATTRS   = r"\[";
             let CLOSE_ATTRS  = r"]";
@@ -230,7 +233,7 @@ impl<'input> Iterator for Lexer<'input> {
                 },
 
                 NESTED_COMMENT_PART => |s: &'input str| Ok(Tok::Comment(s)) ,
-                LN                  => |_| Ok(Tok::Newline) ,
+                LN                  => |_| Ok(Tok::Newline{ at_eof: false }) ,
                 NESTED_COMMENT_OPEN => |_| {
                     self.multi_line_comment_starts.push(self.location());
                     Ok(Tok::NestedCommentOpen)
@@ -285,8 +288,8 @@ impl<'input> Iterator for Lexer<'input> {
                 })));
             }
 
-            if self.last_tok != Some(Tok::Newline) {
-                self.enqueue(self.span(Tok::Newline));
+            if !matches!(self.last_tok, Some(Tok::Newline { .. })) {
+                self.enqueue(self.span(Tok::Newline { at_eof: true }));
             }
             self.enqueue_indentation_level(0);
             self.done = true;
@@ -315,7 +318,7 @@ impl<'input> Iterator for Lexer<'input> {
                 })));
             }
 
-            self.enqueue(self.span(Tok::Newline));
+            self.enqueue(self.span(Tok::Newline { at_eof: false }));
             let enqueue_par_break = self.try_consume(&PAR_BREAKS).is_some();
 
             {
@@ -338,6 +341,8 @@ impl<'input> Iterator for Lexer<'input> {
 
         if self.start_of_line {
             if let Some(heading) = &&self.try_consume(&HEADING) {
+                self.start_of_line = false;
+
                 let heading = heading.trim_end();
                 let level = heading.find('+').unwrap_or(heading.len());
                 let pluses = heading.len() - level;
@@ -393,11 +398,12 @@ impl<'input> Iterator for Lexer<'input> {
             ASTERISKS      => |s:&'input str| self.emph(s),
             EQUALS         => |s:&'input str| self.emph(s),
             BACKTICKS      => |s:&'input str| self.emph(s),
-            VERBATIM   => |s:&'input str| {
+            HEADING        => |_| Err(Box::new(LexicalError::UnexpectedHeading{ loc: self.location() })),
+            VERBATIM       => |s:&'input str| {
                 self.opening_delimiters = false;
                 Ok(Tok::Verbatim(&s[1..s.len()-1]))
             },
-            WORD       => |s:&'input str| {
+            WORD => |s:&'input str| {
                 self.opening_delimiters = false;
                 Ok(Tok::Word(s))
             },
@@ -443,7 +449,7 @@ pub enum Tok<'input> {
     NestedCommentOpen,
     NestedCommentClose,
     Comment(&'input str),
-    Newline,
+    Newline { at_eof: bool },
 }
 
 impl Display for Tok<'_> {
@@ -480,7 +486,7 @@ impl Display for Tok<'_> {
             Tok::Verbatim(_) => "verbatim",
             Tok::NestedCommentOpen => "/*",
             Tok::NestedCommentClose => "*/",
-            Tok::Newline => "newline",
+            Tok::Newline { .. } => "newline",
             Tok::Comment(_) => "comment",
         }
         .fmt(f)
@@ -539,6 +545,9 @@ pub enum LexicalError<'input> {
         to_close_loc: Location<'input>,
         expected: &'input str,
     },
+    UnexpectedHeading {
+        loc: Location<'input>,
+    },
 }
 
 impl<'input> Message<'input> for LexicalError<'input> {
@@ -566,6 +575,7 @@ impl<'input> Message<'input> for LexicalError<'input> {
                 to_close_loc,
                 expected,
             } => DelimiterMismatch::new(loc, to_close_loc, expected).log(),
+            Self::UnexpectedHeading { loc } => UnexpectedHeading::new(loc).log(),
         }
     }
 }
@@ -614,6 +624,9 @@ impl Display for LexicalError<'_> {
                     "delimiter mismatch for {} found at {} (failed to match at {})",
                     expected, loc, to_close_loc
                 )
+            }
+            Self::UnexpectedHeading { loc } => {
+                write!(f, "unexpected heading at {loc}")
             }
         }
     }

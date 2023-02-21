@@ -225,6 +225,7 @@ pub enum Sugar<'i> {
     Heading {
         level: usize,
         pluses: usize,
+        standoff: &'i str,
         arg: Vec<Content<'i>>,
         loc: Location<'i>,
         invocation_loc: Location<'i>,
@@ -257,8 +258,13 @@ impl<'i> AstDebug for Sugar<'i> {
                 buf.push("$af".into());
                 arg.surround(buf, "{", "}");
             }
-            Self::Heading { level, arg, .. } => {
+            Self::Heading {
+                level, arg, pluses, ..
+            } => {
                 buf.push(format!("$h{level}"));
+                if *pluses > 0 {
+                    "+".repeat(*pluses).surround(buf, "(", ")");
+                }
                 arg.surround(buf, "{", "}");
             }
         }

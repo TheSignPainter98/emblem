@@ -127,7 +127,7 @@ mod test {
                 num_problems: 1,
                 matches: vec![
                     "extra plus modifiers ignored",
-                    &format!(":1:1-{}: remove all but one plus symbol", level+3),
+                    &format!(":1:1-{}: remove all but one plus symbol", level + 2),
                 ],
                 src: &format!("{}++ foo", "#".repeat(level)),
             }
