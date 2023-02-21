@@ -73,12 +73,12 @@ pub fn parse<'file>(
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::*;
     use crate::ast::AstDebug;
     use regex::Regex;
 
-    fn assert_structure(name: &str, input: &str, expected: &str) {
+    pub fn assert_structure(name: &str, input: &str, expected: &str) {
         assert_eq!(
             {
                 let parse_result = parse(name, input);
