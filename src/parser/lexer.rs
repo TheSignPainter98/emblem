@@ -172,6 +172,7 @@ impl<'input> Iterator for Lexer<'input> {
             let ASTERISKS      = r"\*{1,2}";
             let EQUALS         = r"={1,2}";
             let BACKTICKS      = r"`";
+            let HEADING        = r"#+\+*[ \t]+";
 
             let OPEN_ATTRS   = r"\[";
             let CLOSE_ATTRS  = r"]";
@@ -334,6 +335,16 @@ impl<'input> Iterator for Lexer<'input> {
             self.last_tok = Some(ret.1.clone());
             return Some(Ok(ret));
         }
+
+        if self.start_of_line {
+            if let Some(heading) = &&self.try_consume(&HEADING) {
+                let heading = heading.trim_end();
+                let level = heading.find('+').unwrap_or(heading.len());
+                let pluses = heading.len() - level;
+                return Some(Ok(self.span(Tok::Heading { level, pluses })));
+            }
+        }
+
         self.start_of_line = false;
 
         if self.can_start_attrs() && self.try_consume(&OPEN_ATTRS).is_some() {
@@ -417,6 +428,7 @@ pub enum Tok<'input> {
     MonospaceOpen(&'input str),
     SmallcapsOpen(&'input str),
     AlternateFaceOpen(&'input str),
+    Heading { level: usize, pluses: usize },
     ItalicClose,
     BoldClose,
     MonospaceClose,
@@ -459,6 +471,7 @@ impl Display for Tok<'_> {
             Tok::SmallcapsClose => "smallcaps-close",
             Tok::AlternateFaceOpen(_) => "alternate-face-open",
             Tok::AlternateFaceClose => "alternate-face-close",
+            Tok::Heading { .. } => "heading",
             Tok::ParBreak => "par-break",
             Tok::Word(_) => "word",
             Tok::Whitespace(_) => "whitespace",

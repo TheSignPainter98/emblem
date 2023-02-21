@@ -58,10 +58,25 @@ MaybeLineContent: Vec<Content<'input>> = {
 
 LineContent: Vec<Content<'input>> = {
 	LineElement+,
+	HeadingLine => vec![<>],
 	<mut content:LineElement*> <tail:RemainderCommand> => {
 		content.push(tail);
 		content
 	},
+}
+
+HeadingLine: Content<'input> = {
+	<l:@L> <marker:HeadingMarker> <arg:LineContent> <r:@R> => Content::Sugar(Sugar::Heading{
+		level: marker.0,
+		pluses: marker.1,
+		arg,
+		loc: Location::new(&l, &r),
+		invocation_loc: marker.2,
+	}),
+}
+
+HeadingMarker: (usize, usize, Location<'input>) = {
+	<l:@L> <h:heading> <r:@R> => (h.0, h.1, Location::new(&l, &r)),
 }
 
 RemainderCommand: Content<'input> = {
@@ -211,6 +226,7 @@ extern {
 		monospace_close      => Tok::MonospaceClose,
 		smallcaps_close      => Tok::SmallcapsClose,
 		alternate_face_close => Tok::AlternateFaceClose,
+		heading              => Tok::Heading{level: <usize>, pluses: <usize>},
 		par_break            => Tok::ParBreak,
 		word                 => Tok::Word(<&'input str>),
 		dash                 => Tok::Dash(<&'input str>),
