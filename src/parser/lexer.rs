@@ -1,6 +1,6 @@
 use crate::log::messages::{
-    DelimiterMismatch, ExtraCommentClose, NewlineInEmphDelimiter, NewlineInInlineArg,
-    UnclosedComments, UnexpectedChar, UnexpectedEOF,
+    DelimiterMismatch, ExtraCommentClose, NewlineInAttrs, NewlineInEmphDelimiter,
+    NewlineInInlineArg, UnclosedComments, UnexpectedChar, UnexpectedEOF,
 };
 use crate::log::Log;
 use crate::parser::Location;
@@ -25,7 +25,7 @@ pub struct Lexer<'input> {
     next_toks: VecDeque<SpannedTok<'input>>,
     multi_line_comment_starts: Vec<Location<'input>>,
     last_tok: Option<Tok<'input>>,
-    parsing_attrs: bool,
+    attr_open: Option<Location<'input>>,
     opening_delimiters: bool,
     open_delimiters: Vec<(&'input str, Location<'input>)>,
 }
@@ -44,7 +44,7 @@ impl<'input> Lexer<'input> {
             next_toks: VecDeque::new(),
             multi_line_comment_starts: Vec::new(),
             last_tok: None,
-            parsing_attrs: false,
+            attr_open: None,
             opening_delimiters: true,
             open_delimiters: Vec::new(),
         }
@@ -176,8 +176,8 @@ impl<'input> Iterator for Lexer<'input> {
             let OPEN_ATTRS   = r"\[";
             let CLOSE_ATTRS  = r"]";
             let COMMA        = r",";
-            let UNNAMED_ATTR = r"[ \t]*([^,= \t\[\]]|\\[,=\[\]])+[ \t]*";
-            let NAMED_ATTR   = r"[ \t]*([^,= \t\[\]]|\\[,=\[\]])+[ \t]*=[ \t]*([^,\[\]]|\\[,\[\]])*[ \t]*";
+            let UNNAMED_ATTR = r"[ \t]*([^,= \r\n\t\[\]]|\\[,=\[\]])+[ \t]*";
+            let NAMED_ATTR   = r"[ \t]*([^,= \r\n\t\[\]]|\\[,=\[\]])+[ \t]*=[ \t]*([^,\[\]\r\n]|\\[,\[\]])*[ \t]*";
 
             let NESTED_COMMENT_OPEN  = r"/\*";
             let NESTED_COMMENT_CLOSE = r"\*/";
@@ -210,10 +210,10 @@ impl<'input> Iterator for Lexer<'input> {
                 else {
                     self.failed = true;
                     Some(Err(Box::new(
-                                LexicalError::UnexpectedChar {
-                                    found: self.input.chars().next().unwrap(),
-                                    loc: self.location(),
-                                }
+                        LexicalError::UnexpectedChar {
+                            found: self.input.chars().next().unwrap(),
+                            loc: self.location(),
+                        }
                     )))
                 }
             };
@@ -241,7 +241,8 @@ impl<'input> Iterator for Lexer<'input> {
             ];
         }
 
-        if self.parsing_attrs {
+        if let Some(attr_start_loc) = &self.attr_open {
+            let attr_start_loc = attr_start_loc.clone();
             return match_token! {
                 ! => {
                     self.failed = true;
@@ -254,9 +255,22 @@ impl<'input> Iterator for Lexer<'input> {
                 NAMED_ATTR   => |s: &'input str| Ok(Tok::NamedAttr(s)),
                 UNNAMED_ATTR => |s: &'input str| Ok(Tok::UnnamedAttr(s)),
                 COMMA        => |_| Ok(Tok::AttrComma),
-                CLOSE_ATTRS  => |_| {
-                    self.parsing_attrs = false;
+                OPEN_ATTRS   => |s: &'input str| {
+                    Err(Box::new(LexicalError::UnexpectedChar {
+                        found: s.chars().next().unwrap(),
+                        loc: self.location(),
+                    }))
+                },
+                CLOSE_ATTRS => |_| {
+                    self.attr_open = None;
                     Ok(Tok::RBracket)
+                },
+                LN => |_| {
+                    self.attr_open = None;
+                    Err(Box::new(LexicalError::NewlineInAttrs {
+                        attr_start_loc: attr_start_loc.clone(),
+                        newline_loc: self.location(),
+                    }))
                 },
             };
         }
@@ -323,7 +337,7 @@ impl<'input> Iterator for Lexer<'input> {
         self.start_of_line = false;
 
         if self.can_start_attrs() && self.try_consume(&OPEN_ATTRS).is_some() {
-            self.parsing_attrs = true;
+            self.attr_open = Some(self.location());
             return Some(Ok(self.span(Tok::LBracket)));
         }
 
@@ -498,6 +512,10 @@ pub enum LexicalError<'input> {
         arg_start_loc: Location<'input>,
         newline_loc: Location<'input>,
     },
+    NewlineInAttrs {
+        attr_start_loc: Location<'input>,
+        newline_loc: Location<'input>,
+    },
     NewlineInEmphDelimiter {
         delimiter_start_loc: Location<'input>,
         newline_loc: Location<'input>,
@@ -521,6 +539,10 @@ impl<'input> Message<'input> for LexicalError<'input> {
                 arg_start_loc,
                 newline_loc,
             } => NewlineInInlineArg::new(arg_start_loc, newline_loc).log(),
+            Self::NewlineInAttrs {
+                attr_start_loc,
+                newline_loc,
+            } => NewlineInAttrs::new(attr_start_loc, newline_loc).log(),
             Self::NewlineInEmphDelimiter {
                 delimiter_start_loc,
                 newline_loc,
@@ -541,7 +563,7 @@ impl Display for LexicalError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnexpectedChar { found, loc } => {
-                write!(f, "unexpected character '{:?}' found at {}", found, loc)
+                write!(f, "unexpected character {:?} found at {}", found, loc)
             }
             Self::UnexpectedEOF { point, .. } => write!(f, "unexpected EOF found at {}", point),
             Self::UnmatchedCommentOpen { unclosed } => write!(
@@ -554,6 +576,9 @@ impl Display for LexicalError<'_> {
             }
             Self::NewlineInArg { arg_start_loc, .. } => {
                 write!(f, "newline in braced args found at {}", arg_start_loc)
+            }
+            Self::NewlineInAttrs { attr_start_loc, .. } => {
+                write!(f, "newline in attributes found at {}", attr_start_loc)
             }
             Self::NewlineInEmphDelimiter {
                 newline_loc,
