@@ -160,10 +160,7 @@ mod test {
                         num_problems: 1,
                         matches: vec![
                             &format!(r"syntactic sugar exists for \.{call}"),
-                            &format!(
-                                ":1:1-{}: found here",
-                                1 + call.len(),
-                            ),
+                            &format!(":1:1-{}: found here", 1 + call.len()),
                             &format!("try using ‘{}’ instead", pre.replace('*', r"\*")),
                         ],
                         src: &format!(".{call}{{foo}}"),
@@ -175,10 +172,7 @@ mod test {
                             num_problems: 1,
                             matches: vec![
                                 &format!(r"syntactic sugar exists for \.{call}+"),
-                                &format!(
-                                    ":1:1-{}: found here",
-                                    2 + call.len(),
-                                ),
+                                &format!(":1:1-{}: found here", 2 + call.len()),
                                 &format!(
                                     "try using ‘{}’ instead",
                                     alternative_pre.replace('*', r"\*").replace('+', r"\+")
@@ -194,10 +188,7 @@ mod test {
                     num_problems: 1,
                     matches: vec![
                         &format!(r"syntactic sugar exists for \.{call}"),
-                        &format!(
-                            ":1:1-{}: found here",
-                            1 + call.len(),
-                        ),
+                        &format!(":1:1-{}: found here", 1 + call.len()),
                         &format!(
                             "try surrounding argument in ‘{}’ instead",
                             delim.replace('*', r"\*")

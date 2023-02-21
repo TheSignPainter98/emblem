@@ -108,7 +108,7 @@ mod test {
             LintTest {
                 lint: NumPluses::new(),
                 num_problems: 0,
-                matches: vec![ ],
+                matches: vec![],
                 src: &format!("{} foo", "#".repeat(level)),
             }
             .run();
