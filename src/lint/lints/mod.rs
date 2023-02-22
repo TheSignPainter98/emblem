@@ -6,6 +6,7 @@ mod empty_attrs;
 mod num_args;
 mod num_attrs;
 mod num_pluses;
+mod spilt_glue;
 mod sugar_usage;
 
 use super::Lints;
@@ -28,6 +29,7 @@ pub fn lints<'i>() -> Lints<'i> {
         num_args::NumArgs::new(),
         num_attrs::NumAttrs::new(),
         num_pluses::NumPluses::new(),
+        spilt_glue::SpiltGlue::new(),
         sugar_usage::SugarUsage::new(),
     ]
 }

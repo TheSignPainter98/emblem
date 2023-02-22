@@ -49,6 +49,7 @@ impl<'i> Lint<'i> for AttrOrdering {
             | Content::Whitespace { .. }
             | Content::Dash { .. }
             | Content::Glue { .. }
+            | Content::SpiltGlue { .. }
             | Content::Verbatim { .. }
             | Content::Comment { .. }
             | Content::MultiLineComment { .. } => vec![],

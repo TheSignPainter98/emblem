@@ -170,7 +170,7 @@ impl<'input> Iterator for Lexer<'input> {
             let BRACE_RIGHT    = r"\}";
             let COMMENT        = r"//[^\r\n]*";
             let DASH           = r"-{1,3}";
-            let GLUE           = r"~~?";
+            let GLUE           = r" *~~? *";
             let UNDERSCORES    = r"_{1,2}";
             let ASTERISKS      = r"\*{1,2}";
             let EQUALS         = r"={1,2}";
@@ -350,6 +350,7 @@ impl<'input> Iterator for Lexer<'input> {
             }
         }
 
+        let line_started_before_match = self.start_of_line;
         self.start_of_line = false;
 
         if self.can_start_attrs() && self.try_consume(&OPEN_ATTRS).is_some() {
@@ -389,6 +390,16 @@ impl<'input> Iterator for Lexer<'input> {
             },
             DASH       => |s:&'input str| Ok(Tok::Dash(s)),
             GLUE       => |s:&'input str| {
+                let newline_after = matches!(self.input.chars().next(), None | Some('\r') | Some('\n'));
+                if newline_after
+                    || line_started_before_match
+                    || s.starts_with(' ')
+                    || s.ends_with(' ') {
+                    self.opening_delimiters = true;
+                    return Ok(Tok::SpiltGlue(s));
+                }
+
+                // Captured text is either ~ or ~~
                 if s.len() == 2 {
                     self.opening_delimiters = true;
                 }
@@ -445,6 +456,7 @@ pub enum Tok<'input> {
     Whitespace(&'input str),
     Dash(&'input str),
     Glue(&'input str),
+    SpiltGlue(&'input str),
     Verbatim(&'input str),
     NestedCommentOpen,
     NestedCommentClose,
@@ -483,6 +495,7 @@ impl Display for Tok<'_> {
             Tok::Whitespace(_) => "whitespace",
             Tok::Dash(_) => "dash",
             Tok::Glue(_) => "glue",
+            Tok::SpiltGlue(_) => "spilt-glue",
             Tok::Verbatim(_) => "verbatim",
             Tok::NestedCommentOpen => "/*",
             Tok::NestedCommentClose => "*/",

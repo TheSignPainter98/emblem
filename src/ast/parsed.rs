@@ -35,6 +35,10 @@ pub enum Content<'i> {
         glue: Glue,
         loc: Location<'i>,
     },
+    SpiltGlue {
+        raw: &'i str,
+        loc: Location<'i>,
+    },
     Verbatim {
         verbatim: &'i str,
         loc: Location<'i>,
@@ -87,6 +91,7 @@ impl AstDebug for Content<'_> {
             Self::Whitespace { whitespace, .. } => whitespace.surround(buf, "<", ">"),
             Self::Dash { dash, .. } => dash.test_fmt(buf),
             Self::Glue { glue, .. } => glue.test_fmt(buf),
+            Self::SpiltGlue { raw, .. } => raw.surround(buf, "SpiltGlue(", ")"),
             Self::Verbatim { verbatim, .. } => verbatim.surround(buf, "!", "!"),
             Self::Comment { comment, .. } => {
                 buf.push("//".into());
