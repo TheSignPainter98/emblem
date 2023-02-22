@@ -82,7 +82,7 @@ mod test {
         Ok(())
     }
 
-    fn test_files(dir: &TempDir) -> Result<(), Box<dyn Error>> {
+    fn test_files(dir: &TempDir, expected_ast_structure: &str) -> Result<(), Box<dyn Error>> {
         let dot_git = dir.path().join(".git");
         assert!(dot_git.exists(), "no .git");
         assert!(dot_git.is_dir(), ".git is not a directory");
@@ -110,9 +110,10 @@ mod test {
         assert!(main_file.exists(), "no main.em");
         assert!(main_file.is_file(), "main.em is not a file");
 
-        assert!(
-            parser::parse("main.em", &fs::read_to_string(main_file)?).is_ok(),
-            "main file does not parse!"
+        parser::test::assert_structure(
+            "main.em",
+            &fs::read_to_string(main_file)?,
+            expected_ast_structure,
         );
 
         Ok(())
@@ -122,7 +123,7 @@ mod test {
     fn empty_dir() -> Result<(), Box<dyn Error>> {
         let tmpdir = tempfile::tempdir()?;
         do_init(&tmpdir, false)?;
-        test_files(&tmpdir)
+        test_files(&tmpdir, "File[Par[[$h1{[Word(Emblem)|< >|Word(document)]}]]|Par[[Word(Welcome)|< >|Word(to)|< >|$it(_){[Word(Emblem.)]}]]]")
     }
 
     #[test]
@@ -138,10 +139,6 @@ mod test {
             "failed to force file initialisation"
         );
 
-        test_files(&tmpdir)?;
-
-        assert_eq!(main_file_content, fs::read_to_string(&main_file_path)?);
-
-        Ok(())
+        test_files(&tmpdir, "File[Par[[Word(hello,)|< >|Word(world!)]]]")
     }
 }
