@@ -340,7 +340,7 @@ impl<'input> Iterator for Lexer<'input> {
         }
 
         if self.start_of_line {
-            if let Some(heading) = &&self.try_consume(&HEADING) {
+            if let Some(heading) = &self.try_consume(&HEADING) {
                 self.start_of_line = false;
 
                 let heading = heading.trim_end();
