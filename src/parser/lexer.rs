@@ -390,16 +390,11 @@ impl<'input> Iterator for Lexer<'input> {
             },
             DASH       => |s:&'input str| Ok(Tok::Dash(s)),
             GLUE       => |s:&'input str| {
-                let newline_after = match self.input.chars().next() {
-                    None
-                    | Some('\r')
-                    | Some('\n') => true,
-                    _ => false,
-                };
+                let newline_after = matches!(self.input.chars().next(), None | Some('\r') | Some('\n'));
                 if newline_after
                     || line_started_before_match
-                    || s.chars().next() == Some(' ')
-                    || s.chars().rev().next() == Some(' ') {
+                    || s.starts_with(' ')
+                    || s.ends_with(' ') {
                     self.opening_delimiters = true;
                     return Ok(Tok::SpiltGlue(s));
                 }

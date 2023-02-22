@@ -686,7 +686,7 @@ pub mod test {
                 assert_structure(
                     name,
                     &format!("a{to_test}b"),
-                    &format!("File[Par[[Word(a)|{repr}|Word(b)]]]")
+                    &format!("File[Par[[Word(a)|{repr}|Word(b)]]]"),
                 );
             }
 
