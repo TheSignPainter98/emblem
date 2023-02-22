@@ -8,9 +8,9 @@ use std::{
 };
 
 static MAIN_CONTENTS: &str = r#"
-# Emblem document
+# Welcome! Welcome to Emblem.
 
-Welcome to _Emblem._
+You have chosen, or been chosen, to relocate to one of our finest remaining typesetters.
 "#;
 
 static GITIGNORE_CONTENTS: &str = r#"
@@ -123,7 +123,7 @@ mod test {
     fn empty_dir() -> Result<(), Box<dyn Error>> {
         let tmpdir = tempfile::tempdir()?;
         do_init(&tmpdir, false)?;
-        test_files(&tmpdir, "File[Par[[$h1{[Word(Emblem)|< >|Word(document)]}]]|Par[[Word(Welcome)|< >|Word(to)|< >|$it(_){[Word(Emblem.)]}]]]")
+        test_files(&tmpdir, "File[Par[[$h1{[Word(Welcome!)|< >|Word(Welcome)|< >|Word(to)|< >|Word(Emblem.)]}]]|Par[[Word(You)|< >|Word(have)|< >|Word(chosen,)|< >|Word(or)|< >|Word(been)|< >|Word(chosen,)|< >|Word(to)|< >|Word(relocate)|< >|Word(to)|< >|Word(one)|< >|Word(of)|< >|Word(our)|< >|Word(finest)|< >|Word(remaining)|< >|Word(typesetters.)]]]")
     }
 
     #[test]
