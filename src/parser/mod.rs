@@ -681,24 +681,33 @@ pub mod test {
             test_dash("em-hyph", "----", "---|-");
             test_dash("em-en", "-----", "---|--");
             test_dash("em-em", "------", "---|---");
-            // test_glue("glue-mixed-1-dash-1",  "~-", "~|-");
-            // test_glue("glue-mixed-1-dash-2",  "-~", "-|~");
-            // test_glue("glue-mixed-2-dashes-1", "~--", "~|--");
-            // test_glue("glue-mixed-2-dashes-2", "-~-", "-|~|-");
-            // test_glue("glue-mixed-2-dashes-3", "--~", "--|~");
-            // test_glue("glue-mixed-3-dashes-1", "~---", "~|---");
-            // test_glue("glue-mixed-3-dashes-2", "-~--", "-|~|--");
-            // test_glue("glue-mixed-3-dashes-3", "--~-", "--|~|-");
-            // test_glue("glue-mixed-3-dashes-4", "---~", "---|~");
-            // test_glue("glue-mixed-1-dashes-1", "~~-", "~~|-");
-            // test_glue("glue-mixed-1-dashes-2", "-~~", "-|~~");
-            // test_glue("glue-mixed-2-dashes-1", "~~--", "~~|--");
-            // test_glue("glue-mixed-2-dashes-2", "-~~-", "-|~~|-");
-            // test_glue("glue-mixed-2-dashes-3", "--~~", "--|~~");
-            // test_glue("glue-mixed-3-dashes-1", "~~---", "~~|---");
-            // test_glue("glue-mixed-3-dashes-2", "-~~--", "-|~~|--");
-            // test_glue("glue-mixed-3-dashes-3", "--~~-", "--|~~|-");
-            // test_glue("glue-mixed-3-dashes-4", "---~~", "---|~~");
+
+            fn test_mix(name: &str, to_test: &str, repr: &str) {
+                assert_structure(
+                    name,
+                    &format!("a{to_test}b"),
+                    &format!("File[Par[[Word(a)|{repr}|Word(b)]]]")
+                );
+            }
+
+            let glues = [
+                ("~", "~"),
+                ("~~", "~~"),
+                ("~ ", "SpiltGlue(~ )"),
+                (" ~", "SpiltGlue( ~)"),
+                (" ~ ", "SpiltGlue( ~ )"),
+            ];
+            for (raw, repr) in glues {
+                test_mix("glue-mixed-1-dash-1",   &format!("{raw}-",  ), &format!("{repr}|-"));
+                test_mix("glue-mixed-1-dash-2",   &format!("-{raw}",  ), &format!("-|{repr}"));
+                test_mix("glue-mixed-2-dashes-1", &format!("{raw}--", ), &format!("{repr}|--"));
+                test_mix("glue-mixed-2-dashes-2", &format!("-{raw}-", ), &format!("-|{repr}|-"));
+                test_mix("glue-mixed-2-dashes-3", &format!("--{raw}", ), &format!("--|{repr}"));
+                test_mix("glue-mixed-3-dashes-1", &format!("{raw}---",), &format!("{repr}|---"));
+                test_mix("glue-mixed-3-dashes-2", &format!("-{raw}--",), &format!("-|{repr}|--"));
+                test_mix("glue-mixed-3-dashes-3", &format!("--{raw}-",), &format!("--|{repr}|-"));
+                test_mix("glue-mixed-3-dashes-4", &format!("---{raw}",), &format!("---|{repr}"));
+            }
         }
     }
 
