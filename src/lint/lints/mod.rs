@@ -6,8 +6,8 @@ mod empty_attrs;
 mod num_args;
 mod num_attrs;
 mod num_pluses;
-mod sugar_usage;
 mod spilt_glue;
+mod sugar_usage;
 
 use super::Lints;
 

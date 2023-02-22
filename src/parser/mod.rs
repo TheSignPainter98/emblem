@@ -698,15 +698,51 @@ pub mod test {
                 (" ~ ", "SpiltGlue( ~ )"),
             ];
             for (raw, repr) in glues {
-                test_mix("glue-mixed-1-dash-1",   &format!("{raw}-",  ), &format!("{repr}|-"));
-                test_mix("glue-mixed-1-dash-2",   &format!("-{raw}",  ), &format!("-|{repr}"));
-                test_mix("glue-mixed-2-dashes-1", &format!("{raw}--", ), &format!("{repr}|--"));
-                test_mix("glue-mixed-2-dashes-2", &format!("-{raw}-", ), &format!("-|{repr}|-"));
-                test_mix("glue-mixed-2-dashes-3", &format!("--{raw}", ), &format!("--|{repr}"));
-                test_mix("glue-mixed-3-dashes-1", &format!("{raw}---",), &format!("{repr}|---"));
-                test_mix("glue-mixed-3-dashes-2", &format!("-{raw}--",), &format!("-|{repr}|--"));
-                test_mix("glue-mixed-3-dashes-3", &format!("--{raw}-",), &format!("--|{repr}|-"));
-                test_mix("glue-mixed-3-dashes-4", &format!("---{raw}",), &format!("---|{repr}"));
+                test_mix(
+                    "glue-mixed-1-dash-1",
+                    &format!("{raw}-",),
+                    &format!("{repr}|-"),
+                );
+                test_mix(
+                    "glue-mixed-1-dash-2",
+                    &format!("-{raw}",),
+                    &format!("-|{repr}"),
+                );
+                test_mix(
+                    "glue-mixed-2-dashes-1",
+                    &format!("{raw}--",),
+                    &format!("{repr}|--"),
+                );
+                test_mix(
+                    "glue-mixed-2-dashes-2",
+                    &format!("-{raw}-",),
+                    &format!("-|{repr}|-"),
+                );
+                test_mix(
+                    "glue-mixed-2-dashes-3",
+                    &format!("--{raw}",),
+                    &format!("--|{repr}"),
+                );
+                test_mix(
+                    "glue-mixed-3-dashes-1",
+                    &format!("{raw}---",),
+                    &format!("{repr}|---"),
+                );
+                test_mix(
+                    "glue-mixed-3-dashes-2",
+                    &format!("-{raw}--",),
+                    &format!("-|{repr}|--"),
+                );
+                test_mix(
+                    "glue-mixed-3-dashes-3",
+                    &format!("--{raw}-",),
+                    &format!("--|{repr}|-"),
+                );
+                test_mix(
+                    "glue-mixed-3-dashes-4",
+                    &format!("---{raw}",),
+                    &format!("---|{repr}"),
+                );
             }
         }
     }

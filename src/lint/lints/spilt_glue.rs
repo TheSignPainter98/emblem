@@ -13,8 +13,10 @@ impl<'i> Lint<'i> for SpiltGlue {
 
     fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
         match content {
-            Content::SpiltGlue { loc, .. } => vec![Log::warn("glue does not connect text fragments")
-                .src(Src::new(loc).annotate(Note::info(loc, "found here")))],
+            Content::SpiltGlue { loc, .. } => {
+                vec![Log::warn("glue does not connect text fragments")
+                    .src(Src::new(loc).annotate(Note::info(loc, "found here")))]
+            }
             Content::Command { .. }
             | Content::Sugar(_)
             | Content::Word { .. }
@@ -51,46 +53,31 @@ mod test {
             LintTest {
                 lint: SpiltGlue::new(),
                 num_problems: 1,
-                matches: vec![
-                    "glue does not connect text fragments",
-                    ":1:2-3: found here"
-                ],
+                matches: vec!["glue does not connect text fragments", ":1:2-3: found here"],
                 src: "a ~b",
             },
             LintTest {
                 lint: SpiltGlue::new(),
                 num_problems: 1,
-                matches: vec![
-                    "glue does not connect text fragments",
-                    ":1:2-3: found here"
-                ],
+                matches: vec!["glue does not connect text fragments", ":1:2-3: found here"],
                 src: "a~ b",
             },
             LintTest {
                 lint: SpiltGlue::new(),
                 num_problems: 1,
-                matches: vec![
-                    "glue does not connect text fragments",
-                    ":1:2-4: found here"
-                ],
+                matches: vec!["glue does not connect text fragments", ":1:2-4: found here"],
                 src: "a ~ b",
             },
             LintTest {
                 lint: SpiltGlue::new(),
                 num_problems: 1,
-                matches: vec![
-                    "glue does not connect text fragments",
-                    ":1:2-2: found here"
-                ],
+                matches: vec!["glue does not connect text fragments", ":1:2-2: found here"],
                 src: "a~",
             },
             LintTest {
                 lint: SpiltGlue::new(),
                 num_problems: 1,
-                matches: vec![
-                    "glue does not connect text fragments",
-                    ":1:1-1: found here"
-                ],
+                matches: vec!["glue does not connect text fragments", ":1:1-1: found here"],
                 src: "~b",
             },
         ];
