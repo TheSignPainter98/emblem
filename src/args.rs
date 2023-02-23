@@ -224,12 +224,31 @@ pub struct BuildCmd {
     #[command(flatten)]
     #[allow(missing_docs)]
     pub style: StyleArgs,
+
+    #[command(flatten)]
+    #[allow(missing_docs)]
+    pub typesetter_args: TypesetterArgs,
 }
 
 impl BuildCmd {
     #[allow(dead_code)]
     pub fn output_stem(&self) -> ArgPath {
         self.output.stem.infer_from(&self.input.file)
+    }
+}
+
+/// Configuration for the typesetter
+#[derive(Clone, Debug, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct TypesetterArgs {
+    /// Maximum number iterations of the typesetter loop
+    #[arg(long, default_value = "5", value_name = "num")]
+    pub max_iters: u8,
+}
+
+impl Default for TypesetterArgs {
+    fn default() -> Self {
+        Self { max_iters: 5 }
     }
 }
 
@@ -1187,6 +1206,31 @@ mod test {
                 );
 
                 assert!(Args::try_parse_from(["em", "build", "--max-mem", "100T"]).is_err());
+            }
+
+            #[test]
+            fn max_iters() {
+                assert_eq!(
+                    Args::try_parse_from(["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .typesetter_args
+                        .max_iters,
+                    5
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-iters", "25"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .typesetter_args
+                        .max_iters,
+                    25
+                );
+                assert!(Args::try_parse_from(["em", "build", "--max-iters", "foo"]).is_err());
             }
 
             #[test]
