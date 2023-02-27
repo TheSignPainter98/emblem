@@ -25,8 +25,7 @@ impl<'i> Lint<'i> for CommandNaming {
                 invocation_loc,
                 ..
             } => {
-                let name = name.as_str();
-                if !CONFORMANT_NAME.is_match(name) {
+                if !CONFORMANT_NAME.is_match(name.as_str()) {
                     return vec![Log::warn(format!(
                         "commands should be lowercase with dashes: got ‘.{name}’"
                     ))
@@ -34,7 +33,7 @@ impl<'i> Lint<'i> for CommandNaming {
                         invocation_loc,
                         format!(
                             "try changing this to ‘.{}’",
-                            name.to_lowercase().replace('_', "-")
+                            name.as_str().to_lowercase().replace('_', "-")
                         ),
                     )))
                     .note("command-names are case-insensitive but lowercase reads more fluidly")];

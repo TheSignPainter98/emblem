@@ -2,7 +2,7 @@
 use crate::ast::AstDebug;
 use core::fmt::{self, Display, Formatter};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Text<'t> {
     Owned(String),
     Borrowed(&'t str),

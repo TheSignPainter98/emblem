@@ -3,11 +3,11 @@ use crate::log::Log;
 use derive_new::new;
 
 #[derive(Default, new)]
-pub struct NoSuchErrorCode<'a> {
-    id: &'a str,
+pub struct NoSuchErrorCode {
+    id: String,
 }
 
-impl<'a> Message<'a> for NoSuchErrorCode<'a> {
+impl<'a> Message<'a> for NoSuchErrorCode {
     fn id() -> &'static str
     where
         Self: Sized,

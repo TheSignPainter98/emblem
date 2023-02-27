@@ -20,11 +20,11 @@ impl<'i> Lint<'i> for NumPluses {
                 invocation_loc,
                 ..
             } => {
-                if *pluses >= 2 {
-                    return vec![self.message(loc, invocation_loc)];
+                if *pluses <= 1 {
+                    return vec![];
                 }
 
-                vec![]
+                vec![self.message(loc, invocation_loc)]
             }
             Content::Sugar(Sugar::Heading {
                 pluses,
@@ -32,11 +32,11 @@ impl<'i> Lint<'i> for NumPluses {
                 invocation_loc,
                 ..
             }) => {
-                if *pluses >= 2 {
-                    return vec![self.message(loc, invocation_loc)];
+                if *pluses <= 1 {
+                    return vec![];
                 }
 
-                vec![]
+                vec![self.message(loc, invocation_loc)]
             }
             Content::Word { .. }
             | Content::Sugar(_)

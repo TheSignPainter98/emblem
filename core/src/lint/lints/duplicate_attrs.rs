@@ -37,18 +37,18 @@ impl<'i> Lint<'i> for DuplicateAttrs {
                 }
 
                 let mut ret = vec![];
-                for (dup, def) in dups {
+                for (duplicate, original) in dups {
                     ret.push(
                         Log::warn("duplicate attributes")
                             .src({
-                                let name = dup.name();
+                                let name = duplicate.name();
                                 Src::new(loc)
                                     .annotate(Note::warn(
-                                        dup.loc(),
+                                        duplicate.loc(),
                                         format!("found duplicate ‘{}’ here", name),
                                     ))
                                     .annotate(Note::info(
-                                        def.loc(),
+                                        original.loc(),
                                         format!("‘{}’ first defined here", name),
                                     ))
                             })

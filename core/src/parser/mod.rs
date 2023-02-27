@@ -10,9 +10,9 @@ pub use location::Location;
 pub use location_context::LocationContext;
 pub use point::Point;
 
-use crate::args::SearchResult;
 use crate::ast;
 use crate::context::Context;
+use crate::path::SearchResult;
 use ast::parsed::ParsedFile;
 use error::StringConversionError;
 use lalrpop_util::lalrpop_mod;
@@ -48,7 +48,8 @@ where
 
     let file = {
         let mut path: String = to_parse
-            .path
+            .path()
+            .to_owned()
             .into_os_string()
             .into_string()
             .map_err(StringConversionError::new)?;

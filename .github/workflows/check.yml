@@ -55,20 +55,22 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
+          args: --workspace
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check
+          args: --check
 
       - name: Run cargo clippy
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features -- -D warnings
+          args: --workspace --all-features -- -D warnings
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --workspace --all-features

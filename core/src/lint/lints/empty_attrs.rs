@@ -18,12 +18,12 @@ impl<'i> Lint<'i> for EmptyAttrs {
                 attrs: Some(attrs),
                 ..
             } => {
-                if attrs.args().is_empty() {
-                    return vec![Log::warn("empty attributes")
-                        .src(Src::new(loc).annotate(Note::info(attrs.loc(), "found here")))];
+                if !attrs.args().is_empty() {
+                    return vec![];
                 }
 
-                vec![]
+                vec![Log::warn("empty attributes")
+                    .src(Src::new(loc).annotate(Note::info(attrs.loc(), "found here")))]
             }
             Content::Command { .. }
             | Content::Sugar(_)

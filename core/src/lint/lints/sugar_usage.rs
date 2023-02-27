@@ -10,7 +10,8 @@ use lazy_static::lazy_static;
 #[derive(new)]
 pub struct SugarUsage {}
 
-enum SugarType {
+#[derive(Clone)]
+pub enum SugarType {
     Prefix(&'static str, Option<&'static str>),
     Delimiters(&'static str),
     // Surround {
@@ -74,18 +75,28 @@ impl<'i> Lint<'i> for SugarUsage {
                 pluses,
                 ..
             } => {
-                if let Some(delim) = CALLS_TO_SUGARS.get(name.as_str()) {
+                if let Some(expected) = CALLS_TO_SUGARS.get(name.as_str()) {
                     match (&inline_args[..], &remainder_arg, &trailer_args[..]) {
                         ([_], None, []) => {
-                            return vec![delim.suggest(name.as_str(), *pluses, loc, invocation_loc)]
+                            return vec![expected.suggest(
+                                name.as_str(),
+                                *pluses,
+                                loc,
+                                invocation_loc,
+                            )];
                         }
                         ([], Some(_), []) => {
-                            return vec![delim.suggest(name.as_str(), *pluses, loc, invocation_loc)]
+                            return vec![expected.suggest(
+                                name.as_str(),
+                                *pluses,
+                                loc,
+                                invocation_loc,
+                            )];
                         }
                         ([], None, [a]) => {
                             let [p] = &a[..] else { return vec![]; };
                             if let [_] = &p.parts[..] {
-                                return vec![delim.suggest(
+                                return vec![expected.suggest(
                                     name.as_str(),
                                     *pluses,
                                     loc,

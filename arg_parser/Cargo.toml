@@ -1,0 +1,19 @@
+# TODO(kcza): change these fields!
+[package]
+name = "arg_parser"
+authors = [ "kcza" ]
+description = "A minimalist, format-agnostic typesetter"
+documentation = "https://kcza.net/emblem"
+license = "GPL-3.0-or-later"
+readme = "README.md"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.0.12", features = ["derive", "env", "wrap_help"] }
+clap-verbosity-flag = "2.0.0"
+emblem_core = { path = "../core" }
+supports-color = "1.3.1"
+
+[dev-dependencies]
+pretty_assertions = "1.3.0"

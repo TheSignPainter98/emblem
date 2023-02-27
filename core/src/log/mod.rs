@@ -3,10 +3,7 @@ pub mod messages;
 use std::process::ExitCode;
 
 use self::messages::Message;
-use crate::{
-    args::{LogArgs, Verbosity},
-    parser::Location,
-};
+use crate::parser::Location;
 use annotate_snippets::{
     display_list::{
         DisplayAnnotationType, DisplayLine, DisplayList, DisplayRawLine, DisplayTextFragment,
@@ -14,55 +11,91 @@ use annotate_snippets::{
     },
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
-use parking_lot::Mutex;
 
-pub static mut VERBOSITY: Verbosity = Verbosity::Terse;
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Verbosity {
+    Terse,
+    Verbose,
+    Debug,
+}
 
-static mut COLOURISE: bool = true;
-static mut WARNINGS_AS_ERRORS: bool = false;
-static mut TOT_ERRORS: Mutex<i32> = Mutex::new(0);
-static mut TOT_WARNINGS: Mutex<i32> = Mutex::new(0);
+impl Verbosity {
+    pub fn permits_printing(&self, msg_type: AnnotationType) -> bool {
+        match (self, msg_type) {
+            (Self::Terse, AnnotationType::Error) | (Self::Terse, AnnotationType::Warning) => true,
+            (Self::Terse, _) => false,
+            _ => true,
+        }
+    }
+}
 
-macro_rules! logger {
-    ($name:ident, $verbosity:ident) => {
+#[derive(Debug)]
+pub struct LogArgs {
+    /// Colourise log messages
+    pub colour: bool,
+
+    /// Make warnings into errors
+    pub warnings_as_errors: bool,
+
+    /// Output verbosity
+    pub verbosity: Verbosity,
+}
+
+macro_rules! log_filter {
+    ($name:ident, $verbosity:path) => {
         #[allow(clippy::crate_in_macro_def)]
         #[macro_export]
         macro_rules! $name {
-            ($msg:expr) => {
-                if unsafe { crate::log::VERBOSITY } >= crate::args::Verbosity::$verbosity {
+            ($logger:ident, $msg:expr) => {
+                if $logger.verbosity >= $verbosity {
                     #[allow(unused_imports)]
                     use crate::log::messages::Message;
-                    $msg.log().print()
+                    $msg.log().print($logger)
                 }
             };
         }
     };
 }
 
-logger!(alert, Terse);
-logger!(inform, Verbose);
-logger!(debug, Debug);
+log_filter!(alert, Verbosity::Terse);
+log_filter!(inform, Verbosity::Verbose);
+log_filter!(debug, Verbosity::Debug);
 
-pub fn init(args: LogArgs) {
-    unsafe {
-        COLOURISE = args.colour;
-        WARNINGS_AS_ERRORS = args.warnings_as_errors;
-        VERBOSITY = args.verbosity;
-    }
+pub struct Logger {
+    verbosity: Verbosity,
+    colourise: bool,
+    warnings_as_errors: bool,
+    tot_errors: i32,
+    tot_warnings: i32,
 }
 
-pub fn report() -> ExitCode {
-    let tot_warnings = unsafe { *TOT_WARNINGS.lock() };
-    let tot_errors = unsafe { *TOT_ERRORS.lock() };
-
-    if tot_warnings > 0 {
-        let plural = if tot_warnings > 1 { "s" } else { "" };
-        alert!(Log::warn(&format!(
-            "generated {tot_warnings} warning{plural}"
-        )));
+impl Logger {
+    pub fn new(verbosity: Verbosity, colourise: bool, warnings_as_errors: bool) -> Self {
+        Self {
+            verbosity,
+            colourise,
+            warnings_as_errors,
+            tot_errors: 0,
+            tot_warnings: 0,
+        }
     }
 
-    if tot_errors > 0 {
+    pub fn report(&mut self) {
+        let tot_warnings = self.tot_warnings;
+        let tot_errors = self.tot_errors;
+
+        if tot_warnings > 0 {
+            let plural = if tot_warnings > 1 { "s" } else { "" };
+            alert!(
+                self,
+                Log::warn(&format!("generated {} warning{plural}", tot_warnings))
+            );
+        }
+
+        if tot_errors == 0 {
+            return;
+        }
+
         let plural = if tot_errors > 1 { "s" } else { "" };
         let exe = std::env::current_exe().unwrap();
         let exe = exe
@@ -71,12 +104,21 @@ pub fn report() -> ExitCode {
             .to_os_string()
             .into_string()
             .unwrap();
-        alert!(Log::error(&format!(
-            "`{exe}` failed due to {tot_errors} error{plural}"
-        )));
-        ExitCode::FAILURE
-    } else {
-        ExitCode::SUCCESS
+        alert!(
+            self,
+            Log::error(&format!(
+                "`{exe}` failed due to {} error{plural}",
+                tot_errors
+            ))
+        );
+    }
+
+    pub fn exit_code(self) -> ExitCode {
+        if self.tot_errors > 0 {
+            ExitCode::FAILURE
+        } else {
+            ExitCode::SUCCESS
+        }
     }
 }
 
@@ -104,7 +146,11 @@ impl<'i> Log<'i> {
         }
     }
 
-    pub fn print(self) {
+    pub fn print(self, logger: &mut Logger) {
+        if !logger.verbosity.permits_printing(self.msg_type) {
+            return;
+        }
+
         let footer = {
             let mut footer = vec![];
 
@@ -131,7 +177,7 @@ impl<'i> Log<'i> {
             title: Some(Annotation {
                 id: self.id,
                 label: Some(&self.msg),
-                annotation_type: match (unsafe { WARNINGS_AS_ERRORS }, self.msg_type) {
+                annotation_type: match (logger.warnings_as_errors, self.msg_type) {
                     (true, AnnotationType::Warning) => AnnotationType::Error,
                     _ => self.msg_type,
                 },
@@ -160,15 +206,15 @@ impl<'i> Log<'i> {
                 .collect(),
             footer,
             opt: FormatOptions {
-                color: unsafe { COLOURISE },
+                color: logger.colourise,
                 ..Default::default()
             },
         };
 
         if let Some(title) = &snippet.title {
             match title.annotation_type {
-                AnnotationType::Error => unsafe { *TOT_ERRORS.lock() += 1 },
-                AnnotationType::Warning => unsafe { *TOT_WARNINGS.lock() += 1 },
+                AnnotationType::Error => logger.tot_errors += 1,
+                AnnotationType::Warning => logger.tot_warnings += 1,
                 _ => {}
             }
         }
