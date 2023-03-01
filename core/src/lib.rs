@@ -48,6 +48,7 @@ impl<'em> EmblemResult<'em> {
 #[derive(Debug, PartialEq)]
 pub enum ActionResult {
     Build {
+        // TODO(kcza): expose the typeset doc here
         output_files: Option<Vec<(ArgPath, String)>>,
     },
     Explain {
