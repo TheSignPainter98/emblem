@@ -1,8 +1,8 @@
-use crate::ActionResult;
-use crate::EmblemResult;
 use crate::repo;
 use crate::Action;
+use crate::ActionResult;
 use crate::Context;
+use crate::EmblemResult;
 use crate::Log;
 use derive_new::new;
 use std::error::Error;
@@ -98,7 +98,11 @@ mod test {
     };
     use tempfile::TempDir;
 
-    fn do_init<'em>(ctx: &'em mut Context, tmpdir: &TempDir, dir_not_empty: bool) -> EmblemResult<'em> {
+    fn do_init<'em>(
+        ctx: &'em mut Context,
+        tmpdir: &TempDir,
+        dir_not_empty: bool,
+    ) -> EmblemResult<'em> {
         Initialiser::new(tmpdir.path().to_str().unwrap().to_owned(), dir_not_empty).run(ctx)
     }
 

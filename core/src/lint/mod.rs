@@ -3,13 +3,13 @@ mod lints;
 use crate::args::ArgPath;
 use crate::ast::parsed::{Content, Sugar};
 use crate::ast::{File, Par, ParPart};
-use crate::{context, EmblemResult, ActionResult};
 use crate::context::Context;
 use crate::log::messages::Message;
 use crate::parser;
 use crate::path::SearchResult;
 use crate::Action;
 use crate::Log;
+use crate::{context, ActionResult, EmblemResult};
 use derive_new::new;
 
 #[derive(new)]
