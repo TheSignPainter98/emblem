@@ -1,7 +1,7 @@
 use crate::{
     context::Context,
     log::messages::{self, Message, NoSuchErrorCode},
-    Action, Log,
+    Action, ActionResult, EmblemResult
 };
 use derive_new::new;
 
@@ -11,13 +11,20 @@ pub struct Explainer {
 }
 
 impl Action for Explainer {
-    fn run<'em>(&self, _: &'em mut Context) -> Vec<Log<'em>> {
+    fn run<'ctx>(&self, _: &'ctx mut Context) -> EmblemResult<'ctx> {
         match self.get_explanation() {
-            Some(expl) => {
-                println!("{}", expl);
-                vec![]
+            Some(e) => {
+                EmblemResult::new(
+                    vec![],
+                    ActionResult::Explain {
+                        explanation: Some(e),
+                    },
+                )
             }
-            None => vec![NoSuchErrorCode::new(self.id.clone()).log()],
+            None => EmblemResult::new(
+                vec![NoSuchErrorCode::new(self.id.clone()).log()],
+                ActionResult::Explain { explanation: None },
+            ),
         }
     }
 }

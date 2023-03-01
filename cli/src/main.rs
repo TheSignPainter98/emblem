@@ -1,9 +1,10 @@
 use arg_parser::{Args, Command};
-use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Initialiser, Linter};
+use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Initialiser, Linter, Log};
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let args = Args::parse();
+    let warnings_as_errors = args.log.warnings_as_errors;
 
     let cmd: Box<dyn Action> = match args.command {
         Command::Build(args) => Box::new(Builder::from(args)),
@@ -15,16 +16,27 @@ fn main() -> ExitCode {
     };
 
     let mut ctx = Context::new();
-    let msgs = cmd.run(&mut ctx);
+    let result = cmd.run(&mut ctx);
+    let successful = result.successful(warnings_as_errors);
 
     let mut logger = Logger::new(
         args.log.verbosity.into(),
         args.log.colour,
-        args.log.warnings_as_errors,
+        warnings_as_errors,
     );
-    for msg in msgs {
-        msg.print(&mut logger);
+    for log in result.logs {
+        log.print(&mut logger);
     }
+
+    if let Err(e) = result.result.output() {
+        Log::error(e.to_string()).print(&mut logger);
+    }
+
     logger.report();
-    logger.exit_code()
+
+    if successful {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
 }

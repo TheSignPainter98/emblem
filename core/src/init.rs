@@ -1,3 +1,5 @@
+use crate::ActionResult;
+use crate::EmblemResult;
 use crate::repo;
 use crate::Action;
 use crate::Context;
@@ -28,11 +30,12 @@ pub struct Initialiser {
 }
 
 impl Action for Initialiser {
-    fn run<'em>(&self, _: &'em mut Context) -> Vec<Log<'em>> {
-        match self.run_internal() {
+    fn run<'ctx>(&self, _: &'ctx mut Context) -> EmblemResult<'ctx> {
+        let logs = match self.run_internal() {
             Ok(_) => vec![],
             Err(e) => vec![Log::error(e.to_string())],
-        }
+        };
+        EmblemResult::new(logs, ActionResult::Init)
     }
 }
 
@@ -88,14 +91,14 @@ impl Initialiser {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::parser;
+    use crate::{parser, EmblemResult};
     use std::{
         fs::{self, File},
         io::{BufRead, BufReader},
     };
     use tempfile::TempDir;
 
-    fn do_init<'em>(ctx: &'em mut Context, tmpdir: &TempDir, dir_not_empty: bool) -> Vec<Log<'em>> {
+    fn do_init<'em>(ctx: &'em mut Context, tmpdir: &TempDir, dir_not_empty: bool) -> EmblemResult<'em> {
         Initialiser::new(tmpdir.path().to_str().unwrap().to_owned(), dir_not_empty).run(ctx)
     }
 
@@ -142,7 +145,11 @@ mod test {
 
         let mut ctx = Context::new();
         let problems = do_init(&mut ctx, &tmpdir, false);
-        assert!(problems.is_empty(), "unexpected problems: {:?}", problems);
+        assert!(
+            problems.logs.is_empty(),
+            "unexpected problems: {:?}",
+            problems.logs
+        );
 
         test_files(&tmpdir, "File[Par[[$h1{[Word(Welcome!)|< >|Word(Welcome)|< >|Word(to)|< >|Word(Emblem.)]}]]|Par[[Word(You)|< >|Word(have)|< >|Word(chosen,)|< >|Word(or)|< >|Word(been)|< >|Word(chosen,)|< >|Word(to)|< >|Word(relocate)|< >|Word(to)|< >|Word(one)|< >|Word(of)|< >|Word(our)|< >|Word(finest)|< >|Word(remaining)|< >|Word(typesetters.)]]]")
     }
@@ -157,15 +164,19 @@ mod test {
         {
             let mut ctx = Context::new();
             let problems = do_init(&mut ctx, &tmpdir, false);
-            assert!(!problems.is_empty(), "expected problems");
+            assert!(!problems.logs.is_empty(), "expected problems");
         }
 
         {
             let mut ctx = Context::new();
             let problems = do_init(&mut ctx, &tmpdir, true);
-            assert!(problems.is_empty(), "unexpected problems: {:?}", problems);
-        }
+            assert!(
+                problems.logs.is_empty(),
+                "unexpected problems: {:?}",
+                problems
+            );
 
-        test_files(&tmpdir, "File[Par[[Word(hello,)|< >|Word(world!)]]]")
+            test_files(&tmpdir, "File[Par[[Word(hello,)|< >|Word(world!)]]]")
+        }
     }
 }

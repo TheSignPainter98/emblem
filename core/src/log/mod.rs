@@ -1,7 +1,5 @@
 pub mod messages;
 
-use std::process::ExitCode;
-
 use self::messages::Message;
 use crate::parser::Location;
 use annotate_snippets::{
@@ -46,7 +44,7 @@ macro_rules! log_filter {
         #[allow(clippy::crate_in_macro_def)]
         #[macro_export]
         macro_rules! $name {
-            ($logger:ident, $msg:expr) => {
+            ($logger:expr, $msg:expr) => {
                 if $logger.verbosity >= $verbosity {
                     #[allow(unused_imports)]
                     use crate::log::messages::Message;
@@ -80,14 +78,14 @@ impl Logger {
         }
     }
 
-    pub fn report(&mut self) {
+    pub fn report(mut self) {
         let tot_warnings = self.tot_warnings;
         let tot_errors = self.tot_errors;
 
         if tot_warnings > 0 {
             let plural = if tot_warnings > 1 { "s" } else { "" };
             alert!(
-                self,
+                &mut self,
                 Log::warn(&format!("generated {} warning{plural}", tot_warnings))
             );
         }
@@ -105,20 +103,12 @@ impl Logger {
             .into_string()
             .unwrap();
         alert!(
-            self,
+            &mut self,
             Log::error(&format!(
                 "`{exe}` failed due to {} error{plural}",
                 tot_errors
             ))
         );
-    }
-
-    pub fn exit_code(self) -> ExitCode {
-        if self.tot_errors > 0 {
-            ExitCode::FAILURE
-        } else {
-            ExitCode::SUCCESS
-        }
     }
 }
 
@@ -309,6 +299,14 @@ impl<'i> Log<'i> {
         }
 
         self.note(format!("expected one of {}", pretty_expected.concat()))
+    }
+
+    pub fn successful(&self, warnings_as_errors: bool) -> bool {
+        match self.msg_type {
+            AnnotationType::Error => false,
+            AnnotationType::Warning => !warnings_as_errors,
+            _ => true,
+        }
     }
 }
 
@@ -522,5 +520,22 @@ impl Src<'_> {
             .iter()
             .flat_map(|a| a.get_log_levels())
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn successful() {
+        for warnings_as_errors in [false, true] {
+            assert!(!Log::error("foo").successful(warnings_as_errors));
+            assert_eq!(
+                Log::warn("foo").successful(warnings_as_errors),
+                !warnings_as_errors
+            );
+            assert!(Log::info("foo").successful(warnings_as_errors));
+        }
     }
 }

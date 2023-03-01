@@ -1,6 +1,6 @@
 use std::{fmt, path};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum ArgPath {
     Stdio,
     Path(path::PathBuf),

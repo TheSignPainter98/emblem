@@ -3,7 +3,7 @@ mod lints;
 use crate::args::ArgPath;
 use crate::ast::parsed::{Content, Sugar};
 use crate::ast::{File, Par, ParPart};
-use crate::context;
+use crate::{context, EmblemResult, ActionResult};
 use crate::context::Context;
 use crate::log::messages::Message;
 use crate::parser;
@@ -21,12 +21,12 @@ pub struct Linter {
 }
 
 impl Action for Linter {
-    fn run<'em>(&self, ctx: &'em mut context::Context) -> Vec<Log<'em>> {
-        let root: SearchResult = match self.input.as_ref().try_into() {
-            Ok(r) => r,
-            Err(e) => return vec![Log::error(e.to_string())],
+    fn run<'ctx>(&self, ctx: &'ctx mut context::Context) -> EmblemResult<'ctx> {
+        let problems = match self.input.as_ref().try_into() {
+            Ok(r) => self.lint_root(ctx, r),
+            Err(e) => vec![Log::error(e.to_string())],
         };
-        self.lint_root(ctx, root)
+        EmblemResult::new(problems, ActionResult::Lint)
     }
 }
 

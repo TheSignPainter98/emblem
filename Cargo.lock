@@ -28,6 +28,7 @@ dependencies = [
  "clap",
  "clap-verbosity-flag",
  "emblem_core",
+ "pretty_assertions",
  "supports-color",
 ]
 
