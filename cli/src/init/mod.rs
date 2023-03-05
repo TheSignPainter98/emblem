@@ -1,10 +1,11 @@
-use crate::repo;
-use crate::Action;
 use crate::Context;
-use crate::EmblemResult;
 use crate::Log;
+use arg_parser::InitCmd;
 use derive_new::new;
+use emblem_core::{Action, EmblemResult};
+use git2::{Error as GitError, Repository, RepositoryInitOptions};
 use std::error::Error;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::{
     fs::OpenOptions,
@@ -23,12 +24,17 @@ static GITIGNORE_CONTENTS: &str = r#"
 "#;
 
 #[derive(new)]
-pub struct Initialiser {
-    dir: String,
-    allow_non_empty_dir: bool,
+pub struct Initialiser<T: AsRef<Path>> {
+    dir: T,
 }
 
-impl Action for Initialiser {
+impl From<InitCmd> for Initialiser<PathBuf> {
+    fn from(cmd: InitCmd) -> Self {
+        Self::new(PathBuf::from(cmd.dir))
+    }
+}
+
+impl<T: AsRef<Path>> Action for Initialiser<T> {
     type Response = ();
 
     fn run<'ctx>(&self, _: &'ctx mut Context) -> EmblemResult<'ctx, Self::Response> {
@@ -40,36 +46,25 @@ impl Action for Initialiser {
     }
 }
 
-impl Initialiser {
+impl<T: AsRef<Path>> Initialiser<T> {
     fn run_internal(&self) -> Result<(), Box<dyn Error>> {
+        let p;
         let dir = {
-            let dir = Path::new(&self.dir);
-            if !dir.is_absolute() && !dir.starts_with("./") {
-                PathBuf::from(".").join(dir)
+            if !self.dir.as_ref().is_absolute() && !self.dir.as_ref().starts_with("./") {
+                p = PathBuf::from(".").join(&self.dir);
+                &p
             } else {
-                dir.into()
+                self.dir.as_ref()
             }
         };
 
-        if !self.allow_non_empty_dir
-            && dir.try_exists().ok() == Some(true)
-            && dir.read_dir()?.next().is_some()
-        {
-            // TODO(kcza): change error kind to DirectoryNotEmpty once stable
-            return Err(Box::new(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Directory {:?} is not empty", dir),
-            )));
-        }
         let git_ignore = dir.join(".gitignore");
         let main_file = dir.join("main.em");
 
-        repo::init(&dir)?;
+        self.init_repo()?;
 
         self.try_create_file(&git_ignore, GITIGNORE_CONTENTS)?;
         self.try_create_file(&main_file, MAIN_CONTENTS)?;
-
-        eprintln!("New emblem document created in {:?}", main_file);
 
         Ok(())
     }
@@ -77,37 +72,34 @@ impl Initialiser {
     /// Try to create a new file with given contents. Optionally skip if file is already present.
     fn try_create_file(&self, path: &Path, contents: &str) -> Result<(), io::Error> {
         match OpenOptions::new().write(true).create_new(true).open(path) {
-            Ok(mut file) => write!(file, "{}", contents.trim()),
-            Err(e) => {
-                if self.allow_non_empty_dir {
-                    Ok(())
-                } else {
-                    Err(e)
-                }
-            }
+            Ok(mut file) => writeln!(file, "{}", contents.trim()),
+            Err(e) if e.kind() == ErrorKind::AlreadyExists => Ok(()),
+            e => e.map(|_| ()),
         }
+    }
+
+    /// Create a new code repository at the given path.
+    fn init_repo(&self) -> Result<Repository, GitError> {
+        Repository::init_opts(&self.dir, RepositoryInitOptions::new().mkdir(true))
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{parser, EmblemResult};
+    use emblem_core::{parser, EmblemResult};
+    use std::error::Error;
     use std::{
         fs::{self, File},
         io::{BufRead, BufReader},
     };
     use tempfile::TempDir;
 
-    fn do_init<'em>(
-        ctx: &'em mut Context,
-        tmpdir: &TempDir,
-        dir_not_empty: bool,
-    ) -> EmblemResult<'em, <Initialiser as Action>::Response> {
-        Initialiser::new(tmpdir.path().to_str().unwrap().to_owned(), dir_not_empty).run(ctx)
+    fn do_init<'em>(ctx: &'em mut Context, tmpdir: &TempDir) -> EmblemResult<'em, ()> {
+        Initialiser::new(tmpdir).run(ctx)
     }
 
-    fn test_files(dir: &TempDir, expected_ast_structure: &str) -> Result<(), Box<dyn Error>> {
+    fn test_files(dir: &TempDir, expected_content: &str) -> Result<(), Box<dyn Error>> {
         let dot_git = dir.path().join(".git");
         assert!(dot_git.exists(), "no .git");
         assert!(dot_git.is_dir(), ".git is not a directory");
@@ -131,15 +123,14 @@ mod test {
             );
         }
 
-        let main_file = dir.path().join("main.em");
+        let main_file_name = "main.em";
+        let main_file = dir.path().join(main_file_name);
         assert!(main_file.exists(), "no main.em");
         assert!(main_file.is_file(), "main.em is not a file");
+        let found_content = &fs::read_to_string(&main_file)?;
 
-        parser::test::assert_structure(
-            "main.em",
-            &fs::read_to_string(main_file)?,
-            expected_ast_structure,
-        );
+        assert_eq!(expected_content, found_content);
+        assert!(parser::parse(main_file.as_path().to_str().unwrap(), expected_content).is_ok());
 
         Ok(())
     }
@@ -149,14 +140,14 @@ mod test {
         let tmpdir = tempfile::tempdir()?;
 
         let mut ctx = Context::new();
-        let problems = do_init(&mut ctx, &tmpdir, false);
+        let problems = do_init(&mut ctx, &tmpdir);
         assert!(
             problems.logs.is_empty(),
             "unexpected problems: {:?}",
             problems.logs
         );
 
-        test_files(&tmpdir, "File[Par[[$h1{[Word(Welcome!)|< >|Word(Welcome)|< >|Word(to)|< >|Word(Emblem.)]}]]|Par[[Word(You)|< >|Word(have)|< >|Word(chosen,)|< >|Word(or)|< >|Word(been)|< >|Word(chosen,)|< >|Word(to)|< >|Word(relocate)|< >|Word(to)|< >|Word(one)|< >|Word(of)|< >|Word(our)|< >|Word(finest)|< >|Word(remaining)|< >|Word(typesetters.)]]]")
+        test_files(&tmpdir, &MAIN_CONTENTS[1..])
     }
 
     #[test]
@@ -168,20 +159,42 @@ mod test {
 
         {
             let mut ctx = Context::new();
-            let problems = do_init(&mut ctx, &tmpdir, false);
-            assert!(!problems.logs.is_empty(), "expected problems");
+            let problems = do_init(&mut ctx, &tmpdir);
+            assert_eq!(
+                0,
+                problems.logs.len(),
+                "unexpected problems: {:?})",
+                problems.logs
+            );
+            test_files(&tmpdir, main_file_content)?;
         }
 
         {
             let mut ctx = Context::new();
-            let problems = do_init(&mut ctx, &tmpdir, true);
+            let problems = do_init(&mut ctx, &tmpdir);
             assert!(
                 problems.logs.is_empty(),
                 "unexpected problems: {:?}",
                 problems
             );
 
-            test_files(&tmpdir, "File[Par[[Word(hello,)|< >|Word(world!)]]]")
+            test_files(&tmpdir, main_file_content)
         }
+    }
+
+    #[test]
+    fn init_repo() -> Result<(), Box<dyn Error>> {
+        let dir = tempfile::tempdir()?;
+
+        let initialiser = Initialiser::new(dir.path());
+        initialiser.init_repo()?;
+
+        let dot_git = dir.path().join(".git");
+        assert!(dot_git.exists(), "no .git");
+        assert!(dot_git.is_dir(), ".git is not a directory");
+
+        initialiser.init_repo()?;
+
+        Ok(())
     }
 }

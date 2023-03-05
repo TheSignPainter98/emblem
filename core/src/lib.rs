@@ -10,20 +10,18 @@ mod ast;
 pub mod build;
 mod context;
 pub mod explain;
-pub mod init;
 pub mod lint;
-mod parser;
+pub mod parser;
 mod path;
 mod repo;
 mod util;
 
-pub use args::ArgPath;
-pub use build::Builder;
-pub use context::Context;
-pub use explain::Explainer;
-pub use init::Initialiser;
-pub use lint::Linter;
-pub use log::{Log, Verbosity};
+pub use crate::args::ArgPath;
+pub use crate::build::Builder;
+pub use crate::context::Context;
+pub use crate::explain::Explainer;
+pub use crate::lint::Linter;
+pub use crate::log::{Log, Verbosity};
 
 use derive_new::new;
 

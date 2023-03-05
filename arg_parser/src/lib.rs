@@ -261,17 +261,7 @@ pub struct FormatCmd {
 pub struct InitCmd {
     /// Directory to contain the new document
     #[arg(value_name = "dir", value_hint = DirPath, default_value = ".")]
-    dir: String,
-
-    /// Allow writing to non-empty directories
-    #[arg(long = "dir_not_empty")]
-    allow_non_empty_dir: bool,
-}
-
-impl From<InitCmd> for emblem_core::Initialiser {
-    fn from(cmd: InitCmd) -> Self {
-        Self::new(cmd.dir, cmd.allow_non_empty_dir)
-    }
+    pub dir: String,
 }
 
 /// Arguments to the lint subcommand

@@ -169,7 +169,11 @@ dependencies = [
  "clap",
  "clap_complete",
  "clap_mangen",
+ "derive-new",
  "emblem_core",
+ "git2",
+ "pretty_assertions",
+ "tempfile",
 ]
 
 [[package]]

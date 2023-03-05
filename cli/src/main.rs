@@ -1,5 +1,12 @@
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
+
+mod init;
+
+pub use crate::init::Initialiser;
 use arg_parser::{Args, Command};
-use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Initialiser, Linter, Log};
+use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Linter, Log};
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
