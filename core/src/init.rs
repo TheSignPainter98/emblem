@@ -1,6 +1,5 @@
 use crate::repo;
 use crate::Action;
-use crate::ActionResult;
 use crate::Context;
 use crate::EmblemResult;
 use crate::Log;
@@ -30,12 +29,14 @@ pub struct Initialiser {
 }
 
 impl Action for Initialiser {
-    fn run<'ctx>(&self, _: &'ctx mut Context) -> EmblemResult<'ctx> {
+    type Response = ();
+
+    fn run<'ctx>(&self, _: &'ctx mut Context) -> EmblemResult<'ctx, Self::Response> {
         let logs = match self.run_internal() {
             Ok(_) => vec![],
             Err(e) => vec![Log::error(e.to_string())],
         };
-        EmblemResult::new(logs, ActionResult::Init)
+        EmblemResult::new(logs, ())
     }
 }
 
@@ -102,7 +103,7 @@ mod test {
         ctx: &'em mut Context,
         tmpdir: &TempDir,
         dir_not_empty: bool,
-    ) -> EmblemResult<'em> {
+    ) -> EmblemResult<'em, <Initialiser as Action>::Response> {
         Initialiser::new(tmpdir.path().to_str().unwrap().to_owned(), dir_not_empty).run(ctx)
     }
 

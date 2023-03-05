@@ -9,7 +9,7 @@ use crate::parser;
 use crate::path::SearchResult;
 use crate::Action;
 use crate::Log;
-use crate::{context, ActionResult, EmblemResult};
+use crate::{context, EmblemResult};
 use derive_new::new;
 
 #[derive(new)]
@@ -21,12 +21,14 @@ pub struct Linter {
 }
 
 impl Action for Linter {
-    fn run<'ctx>(&self, ctx: &'ctx mut context::Context) -> EmblemResult<'ctx> {
+    type Response = ();
+
+    fn run<'ctx>(&self, ctx: &'ctx mut context::Context) -> EmblemResult<'ctx, Self::Response> {
         let problems = match self.input.as_ref().try_into() {
             Ok(r) => self.lint_root(ctx, r),
             Err(e) => vec![Log::error(e.to_string())],
         };
-        EmblemResult::new(problems, ActionResult::Lint)
+        EmblemResult::new(problems, ())
     }
 }
 
