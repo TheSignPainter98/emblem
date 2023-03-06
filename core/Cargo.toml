@@ -13,7 +13,7 @@ edition = "2021"
 [dependencies]
 annotate-snippets = { version = "0.9.1", features = ["color"] }
 derive-new = "0.5.9"
-git2 = "0.16.1"
+git2 = { version = "0.16.1", optional = true }
 lalrpop = "0.19.8"
 lalrpop-util = "0.19.8"
 lazy_static = "1.4.0"
