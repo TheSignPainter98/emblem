@@ -13,7 +13,7 @@ name = "em"
 path = "src/main.rs"
 
 [dependencies]
-emblem_core = { path = "../core" }
+emblem_core = { path = "../emblem_core" }
 arg_parser = { path = "../arg_parser" }
 git2 = "0.16.1"
 derive-new = "0.5.9"

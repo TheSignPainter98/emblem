@@ -10,9 +10,9 @@ edition = "2021"
 
 [workspace]
 members = [
-	"cli",
-	"arg_parser",
-	"core",
+	"crates/cli",
+	"crates/arg_parser",
+	"crates/emblem_core",
 ]
 
 [profile.release]
