@@ -5,8 +5,8 @@ pub mod log;
 #[macro_use]
 extern crate pretty_assertions;
 
-mod args;
-mod ast;
+pub mod args;
+pub mod ast;
 pub mod build;
 mod context;
 pub mod explain;
