@@ -8,6 +8,9 @@ readme = "README.md"
 version = "0.0.0"
 edition = "2021"
 
+[features]
+default = [ "git2" ]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
