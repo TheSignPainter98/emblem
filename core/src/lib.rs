@@ -8,7 +8,7 @@ extern crate pretty_assertions;
 pub mod args;
 pub mod ast;
 pub mod build;
-mod context;
+pub mod context;
 pub mod explain;
 pub mod lint;
 pub mod parser;
