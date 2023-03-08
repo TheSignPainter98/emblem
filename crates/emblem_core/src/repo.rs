@@ -45,6 +45,7 @@ pub fn is_dirty(dir: &Path) -> Result<bool, Box<dyn Error>> {
     Ok(false)
 }
 
+#[cfg(feature = "git2")]
 #[cfg(test)]
 mod test {
     use super::*;
@@ -52,7 +53,6 @@ mod test {
 
     use git2::{Repository, RepositoryInitOptions};
 
-    #[cfg(feature = "git2")]
     #[test]
     fn dirt_detection() -> Result<(), Box<dyn Error>> {
         let dir = tempfile::tempdir()?;
