@@ -1,0 +1,29 @@
+[package]
+name = "cli"
+authors = [ "kcza" ]
+description = "A minimalist, format-agnostic typesetter"
+documentation = "https://kcza.net/emblem"
+license = "GPL-3.0-or-later"
+readme = "README.md"
+version = "0.0.0"
+edition = "2021"
+
+[[bin]]
+name = "em"
+path = "src/main.rs"
+
+[dependencies]
+emblem_core = { path = "../emblem_core" }
+arg_parser = { path = "../arg_parser" }
+git2 = "0.16.1"
+derive-new = "0.5.9"
+
+[build-dependencies]
+arg_parser = { path = "../arg_parser" }
+clap = { version = "4.0.12", features = ["derive", "env", "wrap_help"] }
+clap_complete = "4.0.2"
+clap_mangen = "0.2.2"
+
+[dev-dependencies]
+tempfile = "3.3.0"
+pretty_assertions = "1.3.0"
