@@ -7,7 +7,7 @@ on:
       - master
 
 jobs:
-  check-desktop:
+  check-native:
     needs: check-wasm
     name: Check code-quality
     runs-on: ${{ matrix.os }}
