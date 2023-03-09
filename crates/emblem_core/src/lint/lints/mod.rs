@@ -105,9 +105,9 @@ mod test {
             for problem in problems {
                 problem.assert_compliant();
 
-                assert_eq!(problem.get_id(), Some(id), "Incorrect ID");
+                assert_eq!(problem.id(), Some(id), "Incorrect ID");
 
-                let text = problem.get_annotation_text().join("\n\t");
+                let text = problem.annotation_text().join("\n\t");
                 for r#match in &self.matches {
                     let re = Regex::new(r#match).unwrap();
                     assert!(

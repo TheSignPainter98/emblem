@@ -311,15 +311,15 @@ impl<'i> Log<'i> {
 
 #[cfg(test)]
 impl Log<'_> {
-    pub fn get_id(&self) -> Option<&str> {
+    pub fn id(&self) -> Option<&str> {
         self.id
     }
 
-    pub fn get_text(&self) -> Vec<&str> {
+    pub fn text(&self) -> Vec<&str> {
         let mut ret = vec![&self.msg[..]];
 
         for src in &self.srcs {
-            ret.extend(src.get_text());
+            ret.extend(src.text());
         }
 
         if let Some(h) = &self.help {
@@ -329,11 +329,11 @@ impl Log<'_> {
         ret
     }
 
-    pub fn get_annotation_text(&self) -> Vec<String> {
+    pub fn annotation_text(&self) -> Vec<String> {
         let mut ret = vec![self.msg.clone()];
 
         for src in &self.srcs {
-            ret.extend(src.get_annotation_text());
+            ret.extend(src.annotation_text());
         }
 
         if let Some(help) = &self.help {
@@ -343,11 +343,11 @@ impl Log<'_> {
         ret
     }
 
-    pub fn get_log_levels(&self) -> Vec<AnnotationType> {
+    pub fn log_levels(&self) -> Vec<AnnotationType> {
         let mut ret = vec![self.msg_type];
 
         for src in &self.srcs {
-            ret.extend(src.get_log_levels());
+            ret.extend(src.log_levels());
         }
 
         ret
@@ -358,7 +358,7 @@ impl Log<'_> {
     }
 
     pub fn assert_compliant(&self) {
-        for text in self.get_text() {
+        for text in self.text() {
             assert!(!text.is_empty(), "Got empty an message");
 
             let nchars = text.chars().count();
@@ -402,7 +402,7 @@ impl Log<'_> {
             );
         }
 
-        for log_level in self.get_log_levels() {
+        for log_level in self.log_levels() {
             let ok = match self.msg_type {
                 AnnotationType::Error => true,
                 AnnotationType::Warning => log_level != AnnotationType::Error,
@@ -468,15 +468,15 @@ impl<'i> Note<'i> {
 
 #[cfg(test)]
 impl Note<'_> {
-    fn get_text(&self) -> Vec<&str> {
+    fn text(&self) -> Vec<&str> {
         vec![&self.msg]
     }
 
-    fn get_annotation_text(&self) -> Vec<String> {
+    fn annotation_text(&self) -> Vec<String> {
         vec![format!("{}: {}", self.loc, self.msg)]
     }
 
-    fn get_log_levels(&self) -> Vec<AnnotationType> {
+    fn log_levels(&self) -> Vec<AnnotationType> {
         vec![self.msg_type]
     }
 }
@@ -495,7 +495,7 @@ impl<'i> Src<'i> {
         }
     }
 
-    pub fn annotate(mut self, note: Note<'i>) -> Self {
+    pub fn with_annotation(mut self, note: Note<'i>) -> Self {
         self.annotations.push(note);
         self
     }
@@ -503,21 +503,21 @@ impl<'i> Src<'i> {
 
 #[cfg(test)]
 impl Src<'_> {
-    fn get_text(&self) -> Vec<&str> {
-        self.annotations.iter().flat_map(|a| a.get_text()).collect()
+    fn text(&self) -> Vec<&str> {
+        self.annotations.iter().flat_map(|a| a.text()).collect()
     }
 
-    fn get_annotation_text(&self) -> Vec<String> {
+    fn annotation_text(&self) -> Vec<String> {
         self.annotations
             .iter()
-            .flat_map(|a| a.get_annotation_text())
+            .flat_map(|a| a.annotation_text())
             .collect()
     }
 
-    fn get_log_levels(&self) -> Vec<AnnotationType> {
+    fn log_levels(&self) -> Vec<AnnotationType> {
         self.annotations
             .iter()
-            .flat_map(|a| a.get_log_levels())
+            .flat_map(|a| a.log_levels())
             .collect()
     }
 }
