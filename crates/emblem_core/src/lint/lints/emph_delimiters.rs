@@ -15,11 +15,11 @@ impl<'i> Lint<'i> for EmphDelimiters {
         match content {
             Content::Sugar(Sugar::Italic { delimiter, loc, .. }) if *delimiter == "*" => {
                 vec![Log::warn("asterisks used to delimit italic text")
-                    .src(Src::new(loc).annotate(Note::help(loc, "use underscores instead")))]
+                    .with_src(Src::new(loc).with_annotation(Note::help(loc, "use underscores instead")))]
             }
             Content::Sugar(Sugar::Bold { delimiter, loc, .. }) if *delimiter == "__" => {
                 vec![Log::warn("underscores used to delimit bold text")
-                    .src(Src::new(loc).annotate(Note::help(loc, "use asterisks instead")))]
+                    .with_src(Src::new(loc).with_annotation(Note::help(loc, "use asterisks instead")))]
             }
             Content::Word { .. }
             | Content::Sugar(_)

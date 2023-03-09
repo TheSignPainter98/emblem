@@ -252,7 +252,7 @@ impl<'i> Log<'i> {
         Self::new(AnnotationType::Info, msg)
     }
 
-    pub fn id(mut self, id: &'static str) -> Self {
+    pub fn with_id(mut self, id: &'static str) -> Self {
         self.id = Some(id);
         self
     }
@@ -266,28 +266,27 @@ impl<'i> Log<'i> {
         self
     }
 
-    #[allow(dead_code)]
-    pub fn note<S: Into<String>>(mut self, note: S) -> Self {
+    pub fn with_note<S: Into<String>>(mut self, note: S) -> Self {
         self.note = Some(note.into());
         self
     }
 
-    pub fn help<S: Into<String>>(mut self, help: S) -> Self {
+    pub fn with_help<S: Into<String>>(mut self, help: S) -> Self {
         assert!(self.help.is_none());
 
         self.help = Some(help.into());
         self
     }
 
-    pub fn src(mut self, src: Src<'i>) -> Self {
+    pub fn with_src(mut self, src: Src<'i>) -> Self {
         self.srcs.push(src);
         self
     }
 
-    pub fn expect_one_of(self, expected: &Vec<String>) -> Self {
+    pub fn with_expectation_note(self, expected: &Vec<String>) -> Self {
         let len = expected.len();
         if len == 1 {
-            return self.note(format!("expected {}", expected[0]));
+            return self.with_note(format!("expected {}", expected[0]));
         }
 
         let mut pretty_expected = Vec::new();
@@ -298,7 +297,7 @@ impl<'i> Log<'i> {
             pretty_expected.push(e);
         }
 
-        self.note(format!("expected one of {}", pretty_expected.concat()))
+        self.with_note(format!("expected one of {}", pretty_expected.concat()))
     }
 
     pub fn successful(&self, warnings_as_errors: bool) -> bool {

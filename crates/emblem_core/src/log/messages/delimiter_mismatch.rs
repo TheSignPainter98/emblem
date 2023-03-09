@@ -17,15 +17,15 @@ impl<'i> Message<'i> for DelimiterMismatch<'i> {
 
     fn log(self) -> Log<'i> {
         Log::error("mismatching delimiter")
-            .id(Self::id())
+            .with_id(Self::id())
             .explainable()
-            .src(
+            .with_src(
                 Src::new(&self.to_close_loc.span_to(&self.loc))
-                    .annotate(Note::error(
+                    .with_annotation(Note::error(
                         &self.loc,
                         format!("expected ‘{}’ here", self.expected),
                     ))
-                    .annotate(Note::info(
+                    .with_annotation(Note::info(
                         &self.to_close_loc,
                         format!("to close ‘{}’ found here", self.expected),
                     )),

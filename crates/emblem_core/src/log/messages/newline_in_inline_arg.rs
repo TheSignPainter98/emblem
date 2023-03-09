@@ -16,17 +16,17 @@ impl<'i> Message<'i> for NewlineInInlineArg<'i> {
 
     fn log(self) -> Log<'i> {
         Log::error("newline in inline (curly-braced) arguments")
-            .id(Self::id())
+            .with_id(Self::id())
             .explainable()
-            .src(
+            .with_src(
                 Src::new(&self.arg_start_loc.span_to(&self.newline_loc))
-                    .annotate(Note::error(&self.newline_loc, "newline found here"))
-                    .annotate(Note::info(
+                    .with_annotation(Note::error(&self.newline_loc, "newline found here"))
+                    .with_annotation(Note::info(
                         &self.arg_start_loc,
                         "in inline argument started here",
                     )),
             )
-            .help("consider using trailer (colon) arguments")
+            .with_help("consider using trailer (colon) arguments")
     }
 
     fn explain(&self) -> &'static str {

@@ -11,10 +11,10 @@ pub struct NewlineInAttrs<'i> {
 
 impl<'i> Message<'i> for NewlineInAttrs<'i> {
     fn log(self) -> Log<'i> {
-        Log::error("newline in attributes").src(
+        Log::error("newline in attributes").with_src(
             Src::new(&self.attr_start_loc.span_to(&self.newline_loc))
-                .annotate(Note::error(&self.newline_loc, "newline found here"))
-                .annotate(Note::info(
+                .with_annotation(Note::error(&self.newline_loc, "newline found here"))
+                .with_annotation(Note::info(
                     &self.attr_start_loc,
                     "in inline attributes started here",
                 )),

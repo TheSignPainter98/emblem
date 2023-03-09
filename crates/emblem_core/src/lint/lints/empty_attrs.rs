@@ -23,7 +23,7 @@ impl<'i> Lint<'i> for EmptyAttrs {
                 }
 
                 vec![Log::warn("empty attributes")
-                    .src(Src::new(loc).annotate(Note::info(attrs.loc(), "found here")))]
+                    .with_src(Src::new(loc).with_annotation(Note::info(attrs.loc(), "found here")))]
             }
             Content::Command { .. }
             | Content::Sugar(_)

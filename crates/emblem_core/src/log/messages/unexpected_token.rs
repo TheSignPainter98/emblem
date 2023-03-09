@@ -26,10 +26,10 @@ impl<'i> Message<'i> for UnexpectedToken<'i> {
             return UnexpectedEOF::new(self.loc.end(), vec![]).log();
         }
         Log::error("unexpected token")
-            .src(
+            .with_src(
                 Src::new(&self.loc)
-                    .annotate(Note::error(&self.loc, format!("found {} here", self.token))),
+                    .with_annotation(Note::error(&self.loc, format!("found {} here", self.token))),
             )
-            .expect_one_of(&self.expected)
+            .with_expectation_note(&self.expected)
     }
 }

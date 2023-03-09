@@ -29,8 +29,8 @@ impl SugarType {
         invocation_loc: &Location<'i>,
     ) -> Log<'i> {
         Log::warn(format!("syntactic sugar exists for .{name}"))
-            .src(Src::new(loc).annotate(Note::help(invocation_loc, "found here")))
-            .help(match self {
+            .with_src(Src::new(loc).with_annotation(Note::help(invocation_loc, "found here")))
+            .with_help(match self {
                 Self::Prefix(_, Some(pre)) if pluses > 0 => format!("try using ‘{pre}’ instead"),
                 Self::Prefix(pre, _) => format!("try using ‘{pre}’ instead"),
                 Self::Delimiters(delim) => format!("try surrounding argument in ‘{delim}’ instead"),
