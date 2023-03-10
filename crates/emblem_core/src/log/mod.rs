@@ -127,6 +127,10 @@ impl<'i> Log<'i> {
         }
     }
 
+    pub fn msg(&self) -> &str {
+        &self.msg
+    }
+
     pub fn print(self, logger: &mut Logger) {
         if !logger.verbosity.permits_printing(self.msg_type) {
             return;
@@ -266,6 +270,10 @@ impl<'i> Log<'i> {
     #[allow(dead_code)]
     pub fn info<S: Into<String>>(msg: S) -> Self {
         Self::new(AnnotationType::Info, msg)
+    }
+
+    pub fn msg_type(&self) -> AnnotationType {
+        self.msg_type
     }
 
     pub fn with_id(mut self, id: &'static str) -> Self {
