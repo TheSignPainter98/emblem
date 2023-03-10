@@ -52,3 +52,42 @@ impl Src<'_> {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::parser::{Point, Location};
+    use super::*;
+
+    fn dummy_loc() -> Location<'static> {
+        let p = Point::new("main.em", "1111111111111");
+        let shifted = p.clone().shift("1111111111111");
+        Location::new(&p, &shifted)
+    }
+
+    #[test]
+    fn loc() {
+        let p = Point::new("main.em", "1111111111111");
+        let shifted = p.clone().shift("1111111111111");
+        let loc = Location::new(&p, &shifted);
+
+        assert_eq!(&loc, Src::new(&loc).loc());
+    }
+
+    #[test]
+    fn annotations() {
+        let start = Point::new("main.em", "111111222222");
+        let mid = start.clone().shift("111111");
+        let end = mid.clone().shift("222222");
+
+        let mut src = Src::new(&dummy_loc());
+        let annotations = [
+            Note::error(&Location::new(&start, &mid), "foo"),
+            Note::error(&Location::new(&mid, &end), "foo"),
+        ];
+        for annotation in &annotations {
+            src = src.with_annotation(annotation.clone());
+        }
+
+        assert_eq!(annotations, src.annotations().as_slice());
+    }
+}

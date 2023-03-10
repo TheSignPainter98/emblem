@@ -466,8 +466,7 @@ mod test {
 
     #[test]
     fn msg() {
-        let msg = "hello, world!";
-        assert_eq!(msg, Log::new(AnnotationType::Error, msg).msg(),);
+        assert_eq!("hello, world!", Log::new(AnnotationType::Error, "hello, world!").msg(),);
     }
 
     #[test]
