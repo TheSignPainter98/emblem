@@ -1,7 +1,13 @@
 pub mod messages;
+mod verbosity;
+mod note;
+mod src;
+
+pub use note::Note;
+pub use src::Src;
+pub use verbosity::Verbosity;
 
 use self::messages::Message;
-use crate::parser::Location;
 use annotate_snippets::{
     display_list::{
         DisplayAnnotationType, DisplayLine, DisplayList, DisplayRawLine, DisplayTextFragment,
@@ -10,22 +16,6 @@ use annotate_snippets::{
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Verbosity {
-    Terse,
-    Verbose,
-    Debug,
-}
-
-impl Verbosity {
-    pub fn permits_printing(&self, msg_type: AnnotationType) -> bool {
-        match (self, msg_type) {
-            (Self::Terse, AnnotationType::Error) | (Self::Terse, AnnotationType::Warning) => true,
-            (Self::Terse, _) => false,
-            _ => true,
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct LogArgs {
@@ -176,19 +166,19 @@ impl<'i> Log<'i> {
                 .srcs
                 .iter()
                 .map(|s| {
-                    let context = s.loc.context();
+                    let context = s.loc().context();
                     Slice {
                         source: context.src(),
-                        line_start: s.loc.lines().0,
-                        origin: Some(s.loc.file_name()),
+                        line_start: s.loc().lines().0,
+                        origin: Some(s.loc().file_name()),
                         fold: true,
                         annotations: s
-                            .annotations
+                            .annotations()
                             .iter()
                             .map(|a| SourceAnnotation {
-                                annotation_type: a.msg_type,
-                                label: &a.msg,
-                                range: a.loc.indices(&context),
+                                annotation_type: a.msg_type(),
+                                label: &a.msg(),
+                                range: a.loc().indices(&context),
                             })
                             .collect(),
                     }
@@ -440,97 +430,6 @@ impl Log<'_> {
 impl<'i> Message<'i> for Log<'i> {
     fn log(self) -> Log<'i> {
         self
-    }
-}
-
-#[derive(Debug)]
-pub struct Note<'i> {
-    loc: Location<'i>,
-    msg: String,
-    msg_type: AnnotationType,
-}
-
-impl<'i> Note<'i> {
-    fn new<S: Into<String>>(msg_type: AnnotationType, loc: &Location<'i>, msg: S) -> Self {
-        Self {
-            loc: loc.clone(),
-            msg: msg.into(),
-            msg_type,
-        }
-    }
-
-    pub fn error<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
-        Self::new(AnnotationType::Error, loc, msg)
-    }
-
-    #[allow(dead_code)]
-    pub fn warn<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
-        Self::new(AnnotationType::Warning, loc, msg)
-    }
-
-    pub fn info<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
-        Self::new(AnnotationType::Info, loc, msg)
-    }
-
-    #[allow(dead_code)]
-    pub fn help<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
-        Self::new(AnnotationType::Help, loc, msg)
-    }
-}
-
-#[cfg(test)]
-impl Note<'_> {
-    fn text(&self) -> Vec<&str> {
-        vec![&self.msg]
-    }
-
-    fn annotation_text(&self) -> Vec<String> {
-        vec![format!("{}: {}", self.loc, self.msg)]
-    }
-
-    fn log_levels(&self) -> Vec<AnnotationType> {
-        vec![self.msg_type]
-    }
-}
-
-#[derive(Debug)]
-pub struct Src<'i> {
-    loc: Location<'i>,
-    annotations: Vec<Note<'i>>,
-}
-
-impl<'i> Src<'i> {
-    pub fn new(loc: &Location<'i>) -> Self {
-        Self {
-            loc: loc.clone(),
-            annotations: Vec::new(),
-        }
-    }
-
-    pub fn with_annotation(mut self, note: Note<'i>) -> Self {
-        self.annotations.push(note);
-        self
-    }
-}
-
-#[cfg(test)]
-impl Src<'_> {
-    fn text(&self) -> Vec<&str> {
-        self.annotations.iter().flat_map(|a| a.text()).collect()
-    }
-
-    fn annotation_text(&self) -> Vec<String> {
-        self.annotations
-            .iter()
-            .flat_map(|a| a.annotation_text())
-            .collect()
-    }
-
-    fn log_levels(&self) -> Vec<AnnotationType> {
-        self.annotations
-            .iter()
-            .flat_map(|a| a.log_levels())
-            .collect()
     }
 }
 
