@@ -257,6 +257,10 @@ impl<'i> Log<'i> {
         self
     }
 
+    pub fn id(&self) -> Option<&'static str> {
+        self.id
+    }
+
     pub fn explainable(mut self) -> Self {
         if self.id.is_none() {
             panic!("internal error: attempted to mark log without id as explainable")
@@ -266,9 +270,17 @@ impl<'i> Log<'i> {
         self
     }
 
+    pub fn is_explainable(&self) -> bool {
+        self.explainable
+    }
+
     pub fn with_note<S: Into<String>>(mut self, note: S) -> Self {
         self.note = Some(note.into());
         self
+    }
+
+    pub fn note(&self) -> &Option<String> {
+        &self.note
     }
 
     pub fn with_help<S: Into<String>>(mut self, help: S) -> Self {
@@ -278,9 +290,17 @@ impl<'i> Log<'i> {
         self
     }
 
+    pub fn help(&self) -> &Option<String> {
+        &self.help
+    }
+
     pub fn with_src(mut self, src: Src<'i>) -> Self {
         self.srcs.push(src);
         self
+    }
+
+    pub fn srcs(&self) -> &Vec<Src<'i>> {
+        &self.srcs
     }
 
     pub fn with_expected(self, expected: &Vec<String>) -> Self {
@@ -311,10 +331,6 @@ impl<'i> Log<'i> {
 
 #[cfg(test)]
 impl Log<'_> {
-    pub fn id(&self) -> Option<&str> {
-        self.id
-    }
-
     pub fn text(&self) -> Vec<&str> {
         let mut ret = vec![&self.msg[..]];
 
@@ -351,10 +367,6 @@ impl Log<'_> {
         }
 
         ret
-    }
-
-    pub fn is_explainable(&self) -> bool {
-        self.explainable
     }
 
     pub fn assert_compliant(&self) {
