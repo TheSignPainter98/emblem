@@ -1,7 +1,7 @@
 use crate::parser::Location;
 use annotate_snippets::snippet::AnnotationType;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Note<'i> {
     loc: Location<'i>,
     msg: String,

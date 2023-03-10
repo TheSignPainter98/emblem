@@ -4,7 +4,7 @@ use crate::parser::Location;
 #[cfg(test)]
 use annotate_snippets::snippet::AnnotationType;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Src<'i> {
     loc: Location<'i>,
     annotations: Vec<Note<'i>>,

@@ -462,6 +462,87 @@ impl<'i> Message<'i> for Log<'i> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::parser::{Location, Point};
+
+    #[test]
+    fn msg() {
+        let msg = "hello, world!";
+        assert_eq!(msg, Log::new(AnnotationType::Error, msg).msg(),);
+    }
+
+    #[test]
+    fn id() {
+        let id = "E69";
+        assert_eq!(Some(id), Log::error("foo").with_id(id).id(),);
+    }
+
+    #[test]
+    fn msg_type() {
+        assert_eq!(AnnotationType::Error, Log::error("foo").msg_type());
+        assert_eq!(AnnotationType::Warning, Log::warn("foo").msg_type());
+        assert_eq!(AnnotationType::Info, Log::info("foo").msg_type());
+    }
+
+    #[test]
+    fn is_explainable() {
+        assert!(Log::error("foo")
+            .with_id("E025")
+            .explainable()
+            .is_explainable());
+        assert!(!Log::error("foo").is_explainable());
+    }
+
+    #[test]
+    fn note() {
+        let note = "william taylor".to_owned();
+        assert_eq!(
+            &Some(note.clone()),
+            Log::error("foo").with_note(note.clone()).note()
+        );
+    }
+
+    #[test]
+    fn help() {
+        let help = "is not coming".to_owned();
+        assert_eq!(
+            &Some(help.clone()),
+            Log::error("foo").with_help(help.clone()).help()
+        );
+    }
+
+    #[test]
+    fn srcs() {
+        let content = "hello, world";
+        let srcs = [
+            Point::new("main.em", content),
+            Point::new("something-else.em", content),
+        ]
+        .into_iter()
+        .map(|p| {
+            let shifted = p.clone().shift("hello");
+            Location::new(&p, &shifted)
+        })
+        .map(|l| Src::new(&l))
+        .collect::<Vec<_>>();
+
+        let mut log = Log::error("foo");
+        for src in &srcs {
+            log = log.with_src(src.clone());
+        }
+
+        assert_eq!(&srcs, log.srcs());
+    }
+
+    #[test]
+    fn expected() {
+        let expected = ["foo".into(), "bar".into()];
+        assert_eq!(
+            &Some(expected.to_vec()),
+            Log::error("baz")
+                .with_expected(expected.to_vec())
+                .expected()
+        );
+    }
 
     #[test]
     fn successful() {
