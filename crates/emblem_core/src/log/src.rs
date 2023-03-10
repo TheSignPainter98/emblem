@@ -55,8 +55,8 @@ impl Src<'_> {
 
 #[cfg(test)]
 mod test {
-    use crate::parser::{Point, Location};
     use super::*;
+    use crate::parser::{Location, Point};
 
     fn dummy_loc() -> Location<'static> {
         let p = Point::new("main.em", "1111111111111");

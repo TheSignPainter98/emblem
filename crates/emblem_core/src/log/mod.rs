@@ -1,7 +1,7 @@
 pub mod messages;
-mod verbosity;
 mod note;
 mod src;
+mod verbosity;
 
 pub use note::Note;
 pub use src::Src;
@@ -207,7 +207,7 @@ impl<'i> Log<'i> {
                             .iter()
                             .map(|a| SourceAnnotation {
                                 annotation_type: a.msg_type(),
-                                label: &a.msg(),
+                                label: a.msg(),
                                 range: a.loc().indices(&context),
                             })
                             .collect(),
@@ -466,7 +466,10 @@ mod test {
 
     #[test]
     fn msg() {
-        assert_eq!("hello, world!", Log::new(AnnotationType::Error, "hello, world!").msg(),);
+        assert_eq!(
+            "hello, world!",
+            Log::new(AnnotationType::Error, "hello, world!").msg(),
+        );
     }
 
     #[test]

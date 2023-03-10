@@ -65,8 +65,8 @@ impl Note<'_> {
 
 #[cfg(test)]
 mod test {
-    use crate::parser::{Point, Location};
     use super::*;
+    use crate::parser::{Location, Point};
 
     fn dummy_loc() -> Location<'static> {
         let p = Point::new("main.em", "hello, world!");
@@ -91,9 +91,21 @@ mod test {
 
     #[test]
     pub fn msg_type() {
-        assert_eq!(AnnotationType::Error, Note::error(&dummy_loc(), "foo").msg_type());
-        assert_eq!(AnnotationType::Warning, Note::warn(&dummy_loc(), "foo").msg_type());
-        assert_eq!(AnnotationType::Info, Note::info(&dummy_loc(), "foo").msg_type());
-        assert_eq!(AnnotationType::Help, Note::help(&dummy_loc(), "foo").msg_type());
+        assert_eq!(
+            AnnotationType::Error,
+            Note::error(&dummy_loc(), "foo").msg_type()
+        );
+        assert_eq!(
+            AnnotationType::Warning,
+            Note::warn(&dummy_loc(), "foo").msg_type()
+        );
+        assert_eq!(
+            AnnotationType::Info,
+            Note::info(&dummy_loc(), "foo").msg_type()
+        );
+        assert_eq!(
+            AnnotationType::Help,
+            Note::help(&dummy_loc(), "foo").msg_type()
+        );
     }
 }

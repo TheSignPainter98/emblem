@@ -36,7 +36,9 @@ impl<'i> Lint<'i> for CommandNaming {
                             name.as_str().to_lowercase().replace('_', "-")
                         ),
                     )))
-                    .with_note("command-names are case-insensitive but lowercase reads more fluidly")];
+                    .with_note(
+                        "command-names are case-insensitive but lowercase reads more fluidly",
+                    )];
                 }
 
                 vec![]
