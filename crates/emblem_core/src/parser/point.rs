@@ -27,7 +27,7 @@ impl<'input> Point<'input> {
     }
 
     pub fn shift(mut self, text: &'input str) -> Self {
-        let lines: Vec<&str> = NEWLINE.split(text).into_iter().collect();
+        let lines: Vec<&str> = NEWLINE.split(text).collect();
         let num_lines = lines.len();
 
         self.line += num_lines - 1;
