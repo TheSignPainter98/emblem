@@ -26,6 +26,6 @@ impl<'i> Message<'i> for UnexpectedEOF<'i> {
         let loc = Location::new(&self.point, &self.point.clone().shift("\0"));
         Log::error("unexpected eof")
             .with_src(Src::new(&loc).with_annotation(Note::error(&loc, "file ended early here")))
-            .with_expected(&self.expected)
+            .with_expected(self.expected)
     }
 }

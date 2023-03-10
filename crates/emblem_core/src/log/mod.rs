@@ -16,7 +16,6 @@ use annotate_snippets::{
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
 
-
 #[derive(Debug)]
 pub struct LogArgs {
     /// Colourise log messages
@@ -111,6 +110,7 @@ pub struct Log<'i> {
     note: Option<String>,
     srcs: Vec<Src<'i>>,
     explainable: bool,
+    expected: Option<Vec<String>>,
 }
 
 impl<'i> Log<'i> {
@@ -123,6 +123,7 @@ impl<'i> Log<'i> {
             note: None,
             srcs: Vec::new(),
             explainable: false,
+            expected: None,
         }
     }
 
@@ -131,6 +132,7 @@ impl<'i> Log<'i> {
             return;
         }
 
+        let expected_string;
         let footer = {
             let mut footer = vec![];
 
@@ -148,6 +150,30 @@ impl<'i> Log<'i> {
                     label: Some(note),
                     annotation_type: AnnotationType::Note,
                 });
+            }
+
+            if let Some(ref expected) = self.expected {
+                let len = expected.len();
+
+                expected_string = if len == 1 {
+                    format!("expected {}", expected[0])
+                } else {
+                    let mut pretty_expected = Vec::new();
+                    for (i, e) in expected.iter().enumerate() {
+                        if i > 0 {
+                            pretty_expected.push(if i < len - 1 { ", " } else { " or " })
+                        }
+                        pretty_expected.push(e);
+                    }
+
+                    format!("expected one of {}", pretty_expected.concat())
+                };
+
+                footer.push(Annotation {
+                    id: None,
+                    label: Some(&expected_string),
+                    annotation_type: AnnotationType::Note,
+                })
             }
 
             footer
@@ -293,21 +319,13 @@ impl<'i> Log<'i> {
         &self.srcs
     }
 
-    pub fn with_expected(self, expected: &Vec<String>) -> Self {
-        let len = expected.len();
-        if len == 1 {
-            return self.with_note(format!("expected {}", expected[0]));
-        }
+    pub fn with_expected(mut self, expected: Vec<String>) -> Self {
+        self.expected = Some(expected);
+        self
+    }
 
-        let mut pretty_expected = Vec::new();
-        for (i, e) in expected.iter().enumerate() {
-            if i > 0 {
-                pretty_expected.push(if i < len - 1 { ", " } else { " or " })
-            }
-            pretty_expected.push(e);
-        }
-
-        self.with_note(format!("expected one of {}", pretty_expected.concat()))
+    pub fn expected(&self) -> &Option<Vec<String>> {
+        &self.expected
     }
 
     pub fn successful(&self, warnings_as_errors: bool) -> bool {
