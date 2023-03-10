@@ -30,6 +30,6 @@ impl<'i> Message<'i> for UnexpectedToken<'i> {
                 Src::new(&self.loc)
                     .with_annotation(Note::error(&self.loc, format!("found {} here", self.token))),
             )
-            .with_expectation_note(&self.expected)
+            .with_expected(&self.expected)
     }
 }

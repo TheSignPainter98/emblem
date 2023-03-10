@@ -283,7 +283,7 @@ impl<'i> Log<'i> {
         self
     }
 
-    pub fn with_expectation_note(self, expected: &Vec<String>) -> Self {
+    pub fn with_expected(self, expected: &Vec<String>) -> Self {
         let len = expected.len();
         if len == 1 {
             return self.with_note(format!("expected {}", expected[0]));
