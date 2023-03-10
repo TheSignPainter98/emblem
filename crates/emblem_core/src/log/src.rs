@@ -18,13 +18,13 @@ impl<'i> Src<'i> {
         }
     }
 
+    pub fn loc(&self) -> &Location<'i> {
+        &self.loc
+    }
+
     pub fn with_annotation(mut self, note: Note<'i>) -> Self {
         self.annotations.push(note);
         self
-    }
-
-    pub fn loc(&self) -> &Location<'i> {
-        &self.loc
     }
 
     pub fn annotations(&self) -> &Vec<Note<'i>> {
