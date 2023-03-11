@@ -6,8 +6,8 @@ mod verbosity;
 pub use note::Note;
 pub use src::Src;
 pub use verbosity::Verbosity;
+pub use self::messages::Message;
 
-use self::messages::Message;
 use annotate_snippets::{
     display_list::{
         DisplayAnnotationType, DisplayLine, DisplayList, DisplayRawLine, DisplayTextFragment,

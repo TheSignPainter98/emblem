@@ -1,6 +1,11 @@
-use crate::parser::{
-    lexer::{LexicalError, Tok},
-    point::Point,
+use crate::{
+    log::{Message, messages::{UnexpectedEOF, UnexpectedToken}, Log},
+    parser::{
+        self,
+        lexer::{LexicalError, Tok},
+        Point,
+        Location,
+    },
 };
 use lalrpop_util::ParseError as LalrpopParseError;
 use std::error;
@@ -15,6 +20,33 @@ pub enum Error<'i> {
     StringConversion(StringConversionError),
     Filesystem(io::Error),
     Parse(LalrpopError<'i>),
+}
+
+impl<'i> Message<'i> for parser::Error<'i> {
+    fn log(self) -> Log<'i> {
+        match self {
+            parser::Error::StringConversion(e) => Log::error(e.to_string()),
+            parser::Error::Filesystem(e) => Log::error(e.to_string()),
+            parser::Error::Parse(e) => match e {
+                LalrpopError::InvalidToken { location } => {
+                    panic!("internal error: invalid token at {}", location)
+                }
+                LalrpopError::UnrecognizedEOF { location, expected } => {
+                    UnexpectedEOF::new(location, expected).log()
+                }
+                LalrpopError::UnrecognizedToken {
+                    token: (l, t, r),
+                    expected,
+                } => UnexpectedToken::new(Location::new(&l, &r), t, expected).log(),
+                LalrpopError::ExtraToken { token: (l, t, r) } => panic!(
+                    "internal error: extra token {} at {}",
+                    t,
+                    Location::new(&l, &r)
+                ),
+                LalrpopError::User { error } => error.log(),
+            },
+        }
+    }
 }
 
 impl error::Error for Error<'_> {}
