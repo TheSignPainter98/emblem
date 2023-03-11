@@ -2,21 +2,22 @@ use crate::{Context, Log};
 use serde::Deserialize as Deserialise;
 use std::{collections::HashMap, fs};
 
-pub(crate) fn load(ctx: &mut Context, manifest: String) -> Result<DocManifest<'_>, Log<'_>> {
+pub(crate) fn load(ctx: &mut Context, manifest: String) -> Result<DocManifest<'_>, Box<Log<'_>>> {
     let content = match fs::read_to_string(&manifest) {
         Ok(c) => c,
-        Err(e) => return Err(Log::error(e.to_string())),
+        Err(e) => return Err(Box::new(Log::error(e.to_string()))),
     };
     let file = ctx.alloc_file(manifest, content);
 
     load_str(file.content())
 }
 
-pub(crate) fn load_str(src: &str) -> Result<DocManifest<'_>, Log<'_>> {
+pub(crate) fn load_str(src: &str) -> Result<DocManifest<'_>, Box<Log<'_>>> {
     // TODO(kcza): parse the errors into something pretty
-    let parsed: DocManifest<'_> = serde_yaml::from_str(src).map_err(|e| Log::error(e.to_string()))?;
+    let parsed: DocManifest<'_> =
+        serde_yaml::from_str(src).map_err(|e| Log::error(e.to_string()))?;
 
-    parsed.validate().map_err(|e| Log::error(*e))?;
+    parsed.validate().map_err(|e| Log::error(&*e))?;
 
     Ok(parsed)
 }
@@ -36,12 +37,12 @@ pub(crate) struct DocManifest<'m> {
 impl<'m> DocManifest<'m> {
     #[allow(unused)]
     pub fn name(&self) -> &'m str {
-        &self.name
+        self.name
     }
 
     #[allow(unused)]
     pub fn emblem_version(&self) -> &'m str {
-        &self.emblem_version
+        self.emblem_version
     }
 
     #[allow(unused)]
@@ -73,7 +74,7 @@ impl<'m> DocManifest<'m> {
         self.output
     }
 
-    fn validate(&self) -> Result<(), Box<String>> {
+    fn validate(&self) -> Result<(), String> {
         if let Some(requires) = &self.requires {
             for spec in requires.values() {
                 spec.validate()?;
@@ -117,11 +118,11 @@ impl<'m> Module<'m> {
         }
     }
 
-    pub fn validate(&self) -> Result<(), Box<String>> {
+    pub fn validate(&self) -> Result<(), String> {
         match (&self.tag, &self.hash) {
             (Some(_), None) | (None, Some(_)) => Ok(()),
-            (None, None) => Err(Box::new("expected `tag` or `hash` field".into())),
-            _ => Err(Box::new("multiple version specifiers found".into())),
+            (None, None) => Err("expected `tag` or `hash` field".into()),
+            _ => Err("multiple version specifiers found".into()),
         }
     }
 }
