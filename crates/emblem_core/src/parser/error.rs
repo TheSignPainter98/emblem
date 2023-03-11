@@ -1,10 +1,12 @@
 use crate::{
-    log::{Message, messages::{UnexpectedEOF, UnexpectedToken}, Log},
+    log::{
+        messages::{UnexpectedEOF, UnexpectedToken},
+        Log, Message,
+    },
     parser::{
         self,
         lexer::{LexicalError, Tok},
-        Point,
-        Location,
+        Location, Point,
     },
 };
 use lalrpop_util::ParseError as LalrpopParseError;
