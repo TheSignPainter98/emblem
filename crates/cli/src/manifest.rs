@@ -9,10 +9,10 @@ pub(crate) fn load(ctx: &mut Context, manifest: String) -> Result<DocManifest<'_
     };
     let file = ctx.alloc_file(manifest, content);
 
-    load_from_str(file.content())
+    load_str(file.content())
 }
 
-fn load_from_str(src: &str) -> Result<DocManifest<'_>, Log<'_>> {
+pub(crate) fn load_str(src: &str) -> Result<DocManifest<'_>, Log<'_>> {
     // TODO(kcza): parse the errors into something pretty
     let parsed: DocManifest<'_> = serde_yaml::from_str(src).map_err(|e| Log::error(e.to_string()))?;
 
@@ -129,7 +129,7 @@ mod test {
         "#
             .into(),
         );
-        let manifest = load_from_str(&raw).unwrap();
+        let manifest = load_str(&raw).unwrap();
 
         assert_eq!("foo", manifest.name());
         assert_eq!(None, manifest.authors());
@@ -160,7 +160,7 @@ mod test {
         "#
             .into(),
         );
-        let manifest = load_from_str(&raw).unwrap();
+        let manifest = load_str(&raw).unwrap();
 
         assert_eq!("foo", manifest.name());
         assert_eq!(
@@ -204,7 +204,7 @@ mod test {
         "#
             .into(),
         );
-        let err = load_from_str(&raw).unwrap_err();
+        let err = load_str(&raw).unwrap_err();
         let re = Regex::new("expected `tag` or `hash` field").unwrap();
         let msg = err.msg();
         assert!(re.is_match(msg), "Unknown message doesn't match regex '{re:?}': got {msg}");
@@ -219,7 +219,7 @@ mod test {
         "#
             .into(),
         );
-        let err = load_from_str(&raw).unwrap_err();
+        let err = load_str(&raw).unwrap_err();
         let re = Regex::new("unknown field `INTERLOPER`").unwrap();
         let msg = err.msg();
         assert!(re.is_match(msg), "Unknown message doesn't match regex '{re:?}': got {msg}");
