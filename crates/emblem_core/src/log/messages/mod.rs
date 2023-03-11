@@ -128,6 +128,7 @@ pub fn messages() -> Vec<MessageInfo> {
         UnclosedComments,
         UnexpectedChar,
         UnexpectedEOF,
+        UnexpectedHeading,
         UnexpectedToken,
     ]
 }
