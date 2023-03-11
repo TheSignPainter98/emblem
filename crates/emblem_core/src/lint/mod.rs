@@ -67,7 +67,7 @@ impl<'i, T: Lintable<'i>> Lintable<'i> for File<T> {
 
         for lint in lints {
             for problem in lint.done() {
-                problems.push(problem.id(lint.id()));
+                problems.push(problem.with_id(lint.id()));
             }
         }
     }
@@ -92,7 +92,7 @@ impl<'i> Lintable<'i> for Content<'i> {
     fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
         for lint in lints.iter_mut() {
             for problem in lint.analyse(self) {
-                problems.push(problem.id(lint.id()));
+                problems.push(problem.with_id(lint.id()));
             }
         }
 

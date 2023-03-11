@@ -11,6 +11,6 @@ pub struct ExtraCommentClose<'i> {
 impl<'i> Message<'i> for ExtraCommentClose<'i> {
     fn log(self) -> Log<'i> {
         Log::error("no comment to close")
-            .src(Src::new(&self.loc).annotate(Note::error(&self.loc, "found here")))
+            .with_src(Src::new(&self.loc).with_annotation(Note::error(&self.loc, "found here")))
     }
 }

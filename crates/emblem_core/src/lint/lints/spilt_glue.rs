@@ -15,7 +15,7 @@ impl<'i> Lint<'i> for SpiltGlue {
         match content {
             Content::SpiltGlue { loc, .. } => {
                 vec![Log::warn("glue does not connect text fragments")
-                    .src(Src::new(loc).annotate(Note::info(loc, "found here")))]
+                    .with_src(Src::new(loc).with_annotation(Note::info(loc, "found here")))]
             }
             Content::Command { .. }
             | Content::Sugar(_)

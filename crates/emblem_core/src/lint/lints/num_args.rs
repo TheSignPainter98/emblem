@@ -59,7 +59,7 @@ impl<'i> Lint<'i> for NumArgs {
                             "too {} arguments passed to .{name}",
                             if num_args > *max { "many" } else { "few" }
                         ))
-                        .src(Src::new(loc).annotate(Note::info(
+                        .with_src(Src::new(loc).with_annotation(Note::info(
                             invocation_loc,
                             if *max == 0 {
                                 format!(
@@ -75,7 +75,7 @@ impl<'i> Lint<'i> for NumArgs {
                         )))];
                     } else if num_args > *max {
                         return vec![Log::warn(format!("too many arguments passed to .{name}"))
-                            .src(Src::new(loc).annotate(Note::info(
+                            .with_src(Src::new(loc).with_annotation(Note::info(
                                 invocation_loc,
                                 format!(
                                     "expected at most {} {}",
@@ -85,7 +85,7 @@ impl<'i> Lint<'i> for NumArgs {
                             )))];
                     } else if num_args < *min {
                         return vec![Log::warn(format!("too few arguments passed to .{name}"))
-                            .src(Src::new(loc).annotate(Note::info(
+                            .with_src(Src::new(loc).with_annotation(Note::info(
                                 invocation_loc,
                                 format!(
                                     "expected at least {} {}",

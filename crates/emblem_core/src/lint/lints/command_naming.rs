@@ -29,14 +29,16 @@ impl<'i> Lint<'i> for CommandNaming {
                     return vec![Log::warn(format!(
                         "commands should be lowercase with dashes: got ‘.{name}’"
                     ))
-                    .src(Src::new(loc).annotate(Note::help(
+                    .with_src(Src::new(loc).with_annotation(Note::help(
                         invocation_loc,
                         format!(
                             "try changing this to ‘.{}’",
                             name.as_str().to_lowercase().replace('_', "-")
                         ),
                     )))
-                    .note("command-names are case-insensitive but lowercase reads more fluidly")];
+                    .with_note(
+                        "command-names are case-insensitive but lowercase reads more fluidly",
+                    )];
                 }
 
                 vec![]

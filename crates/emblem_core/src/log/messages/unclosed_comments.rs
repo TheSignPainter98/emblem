@@ -18,7 +18,7 @@ impl<'i> Message<'i> for UnclosedComments<'i> {
 
         let mut ret = Log::error(msg);
         for loc in self.unclosed {
-            ret = ret.src(Src::new(&loc).annotate(Note::error(&loc, "found here")))
+            ret = ret.with_src(Src::new(&loc).with_annotation(Note::error(&loc, "found here")))
         }
         ret
     }

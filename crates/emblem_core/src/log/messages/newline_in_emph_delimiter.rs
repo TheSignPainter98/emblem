@@ -12,10 +12,10 @@ pub struct NewlineInEmphDelimiter<'i> {
 
 impl<'i> Message<'i> for NewlineInEmphDelimiter<'i> {
     fn log(self) -> Log<'i> {
-        Log::error(format!("newline in ‘{}’ emphasis", self.expected)).src(
+        Log::error(format!("newline in ‘{}’ emphasis", self.expected)).with_src(
             Src::new(&self.delimiter_start_loc.span_to(&self.newline_loc))
-                .annotate(Note::error(&self.newline_loc, "newline found here"))
-                .annotate(Note::info(
+                .with_annotation(Note::error(&self.newline_loc, "newline found here"))
+                .with_annotation(Note::info(
                     &self.delimiter_start_loc,
                     "in emphasis started here",
                 )),

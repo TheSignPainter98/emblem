@@ -1,7 +1,13 @@
 pub mod messages;
+mod note;
+mod src;
+mod verbosity;
+
+pub use note::Note;
+pub use src::Src;
+pub use verbosity::Verbosity;
 
 use self::messages::Message;
-use crate::parser::Location;
 use annotate_snippets::{
     display_list::{
         DisplayAnnotationType, DisplayLine, DisplayList, DisplayRawLine, DisplayTextFragment,
@@ -9,23 +15,6 @@ use annotate_snippets::{
     },
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Verbosity {
-    Terse,
-    Verbose,
-    Debug,
-}
-
-impl Verbosity {
-    pub fn permits_printing(&self, msg_type: AnnotationType) -> bool {
-        match (self, msg_type) {
-            (Self::Terse, AnnotationType::Error) | (Self::Terse, AnnotationType::Warning) => true,
-            (Self::Terse, _) => false,
-            _ => true,
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct LogArgs {
@@ -121,6 +110,7 @@ pub struct Log<'i> {
     note: Option<String>,
     srcs: Vec<Src<'i>>,
     explainable: bool,
+    expected: Option<Vec<String>>,
 }
 
 impl<'i> Log<'i> {
@@ -133,7 +123,12 @@ impl<'i> Log<'i> {
             note: None,
             srcs: Vec::new(),
             explainable: false,
+            expected: None,
         }
+    }
+
+    pub fn msg(&self) -> &str {
+        &self.msg
     }
 
     pub fn print(self, logger: &mut Logger) {
@@ -141,6 +136,7 @@ impl<'i> Log<'i> {
             return;
         }
 
+        let expected_string;
         let footer = {
             let mut footer = vec![];
 
@@ -160,6 +156,30 @@ impl<'i> Log<'i> {
                 });
             }
 
+            if let Some(ref expected) = self.expected {
+                let len = expected.len();
+
+                expected_string = if len == 1 {
+                    format!("expected {}", expected[0])
+                } else {
+                    let mut pretty_expected = Vec::new();
+                    for (i, e) in expected.iter().enumerate() {
+                        if i > 0 {
+                            pretty_expected.push(if i < len - 1 { ", " } else { " or " })
+                        }
+                        pretty_expected.push(e);
+                    }
+
+                    format!("expected one of {}", pretty_expected.concat())
+                };
+
+                footer.push(Annotation {
+                    id: None,
+                    label: Some(&expected_string),
+                    annotation_type: AnnotationType::Note,
+                })
+            }
+
             footer
         };
 
@@ -176,19 +196,19 @@ impl<'i> Log<'i> {
                 .srcs
                 .iter()
                 .map(|s| {
-                    let context = s.loc.context();
+                    let context = s.loc().context();
                     Slice {
                         source: context.src(),
-                        line_start: s.loc.lines().0,
-                        origin: Some(s.loc.file_name()),
+                        line_start: s.loc().lines().0,
+                        origin: Some(s.loc().file_name()),
                         fold: true,
                         annotations: s
-                            .annotations
+                            .annotations()
                             .iter()
                             .map(|a| SourceAnnotation {
-                                annotation_type: a.msg_type,
-                                label: &a.msg,
-                                range: a.loc.indices(&context),
+                                annotation_type: a.msg_type(),
+                                label: a.msg(),
+                                range: a.loc().indices(&context),
                             })
                             .collect(),
                     }
@@ -252,9 +272,17 @@ impl<'i> Log<'i> {
         Self::new(AnnotationType::Info, msg)
     }
 
-    pub fn id(mut self, id: &'static str) -> Self {
+    pub fn msg_type(&self) -> AnnotationType {
+        self.msg_type
+    }
+
+    pub fn with_id(mut self, id: &'static str) -> Self {
         self.id = Some(id);
         self
+    }
+
+    pub fn id(&self) -> Option<&'static str> {
+        self.id
     }
 
     pub fn explainable(mut self) -> Self {
@@ -266,39 +294,46 @@ impl<'i> Log<'i> {
         self
     }
 
-    #[allow(dead_code)]
-    pub fn note<S: Into<String>>(mut self, note: S) -> Self {
+    pub fn is_explainable(&self) -> bool {
+        self.explainable
+    }
+
+    pub fn with_note<S: Into<String>>(mut self, note: S) -> Self {
         self.note = Some(note.into());
         self
     }
 
-    pub fn help<S: Into<String>>(mut self, help: S) -> Self {
+    pub fn note(&self) -> &Option<String> {
+        &self.note
+    }
+
+    pub fn with_help<S: Into<String>>(mut self, help: S) -> Self {
         assert!(self.help.is_none());
 
         self.help = Some(help.into());
         self
     }
 
-    pub fn src(mut self, src: Src<'i>) -> Self {
+    pub fn help(&self) -> &Option<String> {
+        &self.help
+    }
+
+    pub fn with_src(mut self, src: Src<'i>) -> Self {
         self.srcs.push(src);
         self
     }
 
-    pub fn expect_one_of(self, expected: &Vec<String>) -> Self {
-        let len = expected.len();
-        if len == 1 {
-            return self.note(format!("expected {}", expected[0]));
-        }
+    pub fn srcs(&self) -> &Vec<Src<'i>> {
+        &self.srcs
+    }
 
-        let mut pretty_expected = Vec::new();
-        for (i, e) in expected.iter().enumerate() {
-            if i > 0 {
-                pretty_expected.push(if i < len - 1 { ", " } else { " or " })
-            }
-            pretty_expected.push(e);
-        }
+    pub fn with_expected(mut self, expected: Vec<String>) -> Self {
+        self.expected = Some(expected);
+        self
+    }
 
-        self.note(format!("expected one of {}", pretty_expected.concat()))
+    pub fn expected(&self) -> &Option<Vec<String>> {
+        &self.expected
     }
 
     pub fn successful(&self, warnings_as_errors: bool) -> bool {
@@ -312,15 +347,11 @@ impl<'i> Log<'i> {
 
 #[cfg(test)]
 impl Log<'_> {
-    pub fn get_id(&self) -> Option<&str> {
-        self.id
-    }
-
-    pub fn get_text(&self) -> Vec<&str> {
+    pub fn text(&self) -> Vec<&str> {
         let mut ret = vec![&self.msg[..]];
 
         for src in &self.srcs {
-            ret.extend(src.get_text());
+            ret.extend(src.text());
         }
 
         if let Some(h) = &self.help {
@@ -330,11 +361,11 @@ impl Log<'_> {
         ret
     }
 
-    pub fn get_annotation_text(&self) -> Vec<String> {
+    pub fn annotation_text(&self) -> Vec<String> {
         let mut ret = vec![self.msg.clone()];
 
         for src in &self.srcs {
-            ret.extend(src.get_annotation_text());
+            ret.extend(src.annotation_text());
         }
 
         if let Some(help) = &self.help {
@@ -344,22 +375,18 @@ impl Log<'_> {
         ret
     }
 
-    pub fn get_log_levels(&self) -> Vec<AnnotationType> {
+    pub fn log_levels(&self) -> Vec<AnnotationType> {
         let mut ret = vec![self.msg_type];
 
         for src in &self.srcs {
-            ret.extend(src.get_log_levels());
+            ret.extend(src.log_levels());
         }
 
         ret
     }
 
-    pub fn is_explainable(&self) -> bool {
-        self.explainable
-    }
-
     pub fn assert_compliant(&self) {
-        for text in self.get_text() {
+        for text in self.text() {
             assert!(!text.is_empty(), "Got empty an message");
 
             let nchars = text.chars().count();
@@ -403,7 +430,7 @@ impl Log<'_> {
             );
         }
 
-        for log_level in self.get_log_levels() {
+        for log_level in self.log_levels() {
             let ok = match self.msg_type {
                 AnnotationType::Error => true,
                 AnnotationType::Warning => log_level != AnnotationType::Error,
@@ -432,100 +459,92 @@ impl<'i> Message<'i> for Log<'i> {
     }
 }
 
-#[derive(Debug)]
-pub struct Note<'i> {
-    loc: Location<'i>,
-    msg: String,
-    msg_type: AnnotationType,
-}
-
-impl<'i> Note<'i> {
-    fn new<S: Into<String>>(msg_type: AnnotationType, loc: &Location<'i>, msg: S) -> Self {
-        Self {
-            loc: loc.clone(),
-            msg: msg.into(),
-            msg_type,
-        }
-    }
-
-    pub fn error<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
-        Self::new(AnnotationType::Error, loc, msg)
-    }
-
-    #[allow(dead_code)]
-    pub fn warn<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
-        Self::new(AnnotationType::Warning, loc, msg)
-    }
-
-    pub fn info<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
-        Self::new(AnnotationType::Info, loc, msg)
-    }
-
-    #[allow(dead_code)]
-    pub fn help<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
-        Self::new(AnnotationType::Help, loc, msg)
-    }
-}
-
-#[cfg(test)]
-impl Note<'_> {
-    fn get_text(&self) -> Vec<&str> {
-        vec![&self.msg]
-    }
-
-    fn get_annotation_text(&self) -> Vec<String> {
-        vec![format!("{}: {}", self.loc, self.msg)]
-    }
-
-    fn get_log_levels(&self) -> Vec<AnnotationType> {
-        vec![self.msg_type]
-    }
-}
-
-#[derive(Debug)]
-pub struct Src<'i> {
-    loc: Location<'i>,
-    annotations: Vec<Note<'i>>,
-}
-
-impl<'i> Src<'i> {
-    pub fn new(loc: &Location<'i>) -> Self {
-        Self {
-            loc: loc.clone(),
-            annotations: Vec::new(),
-        }
-    }
-
-    pub fn annotate(mut self, note: Note<'i>) -> Self {
-        self.annotations.push(note);
-        self
-    }
-}
-
-#[cfg(test)]
-impl Src<'_> {
-    fn get_text(&self) -> Vec<&str> {
-        self.annotations.iter().flat_map(|a| a.get_text()).collect()
-    }
-
-    fn get_annotation_text(&self) -> Vec<String> {
-        self.annotations
-            .iter()
-            .flat_map(|a| a.get_annotation_text())
-            .collect()
-    }
-
-    fn get_log_levels(&self) -> Vec<AnnotationType> {
-        self.annotations
-            .iter()
-            .flat_map(|a| a.get_log_levels())
-            .collect()
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::parser::{Location, Point};
+
+    #[test]
+    fn msg() {
+        assert_eq!(
+            "hello, world!",
+            Log::new(AnnotationType::Error, "hello, world!").msg(),
+        );
+    }
+
+    #[test]
+    fn id() {
+        let id = "E69";
+        assert_eq!(Some(id), Log::error("foo").with_id(id).id(),);
+    }
+
+    #[test]
+    fn msg_type() {
+        assert_eq!(AnnotationType::Error, Log::error("foo").msg_type());
+        assert_eq!(AnnotationType::Warning, Log::warn("foo").msg_type());
+        assert_eq!(AnnotationType::Info, Log::info("foo").msg_type());
+    }
+
+    #[test]
+    fn is_explainable() {
+        assert!(Log::error("foo")
+            .with_id("E025")
+            .explainable()
+            .is_explainable());
+        assert!(!Log::error("foo").is_explainable());
+    }
+
+    #[test]
+    fn note() {
+        let note = "william taylor".to_owned();
+        assert_eq!(
+            &Some(note.clone()),
+            Log::error("foo").with_note(note.clone()).note()
+        );
+    }
+
+    #[test]
+    fn help() {
+        let help = "is not coming".to_owned();
+        assert_eq!(
+            &Some(help.clone()),
+            Log::error("foo").with_help(help.clone()).help()
+        );
+    }
+
+    #[test]
+    fn srcs() {
+        let content = "hello, world";
+        let srcs = [
+            Point::new("main.em", content),
+            Point::new("something-else.em", content),
+        ]
+        .into_iter()
+        .map(|p| {
+            let shifted = p.clone().shift("hello");
+            Location::new(&p, &shifted)
+        })
+        .map(|l| Src::new(&l))
+        .collect::<Vec<_>>();
+
+        let mut log = Log::error("foo");
+        for src in &srcs {
+            log = log.with_src(src.clone());
+        }
+
+        assert_eq!(&srcs, log.srcs());
+    }
+
+    #[test]
+    fn expected() {
+        let expected = ["foo".into(), "bar".into()];
+        assert_eq!(
+            &Some(expected.to_vec()),
+            Log::error("baz")
+                .with_expected(expected.to_vec())
+                .expected()
+        );
+    }
 
     #[test]
     fn successful() {

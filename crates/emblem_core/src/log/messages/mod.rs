@@ -165,7 +165,7 @@ mod test {
                 let log = &info.default_log;
                 assert_eq!(
                     id,
-                    log.get_id(),
+                    log.id(),
                     "Incorrect id in log for {:?} (message type {})",
                     info.id,
                     i,

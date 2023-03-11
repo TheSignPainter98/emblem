@@ -40,19 +40,19 @@ impl<'i> Lint<'i> for DuplicateAttrs {
                 for (duplicate, original) in dups {
                     ret.push(
                         Log::warn("duplicate attributes")
-                            .src({
+                            .with_src({
                                 let name = duplicate.name();
                                 Src::new(loc)
-                                    .annotate(Note::warn(
+                                    .with_annotation(Note::warn(
                                         duplicate.loc(),
                                         format!("found duplicate ‘{}’ here", name),
                                     ))
-                                    .annotate(Note::info(
+                                    .with_annotation(Note::info(
                                         original.loc(),
                                         format!("‘{}’ first defined here", name),
                                     ))
                             })
-                            .help("remove multiple occurrences of the same attribute"),
+                            .with_help("remove multiple occurrences of the same attribute"),
                     );
                 }
                 ret

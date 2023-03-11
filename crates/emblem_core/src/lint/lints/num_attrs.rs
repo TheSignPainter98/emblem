@@ -61,7 +61,7 @@ impl<'i> Lint<'i> for NumAttrs {
                             "too {} attributes passed to .{name}",
                             if num_attrs > *max { "many" } else { "few" }
                         ))
-                        .src(Src::new(loc).annotate(Note::info(
+                        .with_src(Src::new(loc).with_annotation(Note::info(
                             report_loc,
                             if *max == 0 {
                                 format!(
@@ -77,7 +77,7 @@ impl<'i> Lint<'i> for NumAttrs {
                         )))];
                     } else if num_attrs > *max {
                         return vec![Log::warn(format!("too many attributes passed to .{name}"))
-                            .src(Src::new(loc).annotate(Note::info(
+                            .with_src(Src::new(loc).with_annotation(Note::info(
                                 report_loc,
                                 format!(
                                     "expected at most {} {}",
@@ -87,7 +87,7 @@ impl<'i> Lint<'i> for NumAttrs {
                             )))];
                     } else if num_attrs < *min {
                         return vec![Log::warn(format!("too few attributes passed to .{name}"))
-                            .src(Src::new(loc).annotate(Note::info(
+                            .with_src(Src::new(loc).with_annotation(Note::info(
                                 report_loc,
                                 format!(
                                     "expected at least {} {}",

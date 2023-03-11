@@ -33,10 +33,11 @@ impl<'i> Lint<'i> for AttrOrdering {
                         (&ExpectationState::Named, &Attr::Unnamed { loc: attr_loc, .. }) => ret
                             .push(
                                 Log::warn("unnamed attribute after named attributes")
-                                    .src({
-                                        Src::new(loc).annotate(Note::warn(attr_loc, "found here"))
+                                    .with_src({
+                                        Src::new(loc)
+                                            .with_annotation(Note::warn(attr_loc, "found here"))
                                     })
-                                    .help("place unnamed attributes before named ones"),
+                                    .with_help("place unnamed attributes before named ones"),
                             ),
                         _ => {}
                     }
