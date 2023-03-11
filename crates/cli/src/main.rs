@@ -3,6 +3,7 @@
 extern crate pretty_assertions;
 
 mod init;
+mod manifest;
 
 pub use crate::init::Initialiser;
 use arg_parser::{Args, Command};
