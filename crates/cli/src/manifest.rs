@@ -25,9 +25,12 @@ pub(crate) fn load_str(src: &str) -> Result<DocManifest<'_>, Log<'_>> {
 #[serde(deny_unknown_fields)]
 pub(crate) struct DocManifest<'m> {
     name: &'m str,
+    #[serde(rename = "emblem")]
+    emblem_version: &'m str,
     authors: Option<Vec<&'m str>>,
-    requires: Option<HashMap<&'m str, Module<'m>>>,
+    keywords: Option<Vec<&'m str>>,
     output: Option<&'m str>,
+    requires: Option<HashMap<&'m str, Module<'m>>>,
 }
 
 impl<'m> DocManifest<'m> {
@@ -37,8 +40,21 @@ impl<'m> DocManifest<'m> {
     }
 
     #[allow(unused)]
+    pub fn emblem_version(&self) -> &'m str {
+        &self.emblem_version
+    }
+
+    #[allow(unused)]
     pub fn authors(&self) -> Option<&[&'m str]> {
         match &self.authors {
+            None => None,
+            Some(a) => Some(a.as_slice()),
+        }
+    }
+
+    #[allow(unused)]
+    pub fn keywords(&self) -> Option<&[&'m str]> {
+        match &self.keywords {
             None => None,
             Some(a) => Some(a.as_slice()),
         }
@@ -126,12 +142,14 @@ mod test {
         let raw = textwrap::dedent(
             r#"
             name: foo
-        "#
+            emblem: v1.0
+            "#
             .into(),
         );
         let manifest = load_str(&raw).unwrap();
 
         assert_eq!("foo", manifest.name());
+        assert_eq!("v1.0", manifest.emblem_version());
         assert_eq!(None, manifest.authors());
         assert_eq!(None, manifest.requires());
         assert_eq!(None, manifest.output());
@@ -142,11 +160,17 @@ mod test {
         let raw = textwrap::dedent(
             r#"
             name: foo
+            emblem: v1.0
             authors:
             - Gordon
             - Eli
             - Isaac
             - Walter
+            keywords:
+            - DARGH!
+            - NO!
+            - STAHP!
+            - HUEAG!
             requires:
               foo-tagged:
                 tag: edge
@@ -157,7 +181,7 @@ mod test {
               bar-hashed:
                 hash: 0123456789abcdef
             output: pdf
-        "#
+            "#
             .into(),
         );
         let manifest = load_str(&raw).unwrap();
@@ -167,6 +191,11 @@ mod test {
             ["Gordon", "Eli", "Isaac", "Walter"],
             manifest.authors().unwrap()
         );
+        assert_eq!(
+            ["DARGH!", "NO!", "STAHP!", "HUEAG!"],
+            manifest.keywords().unwrap()
+        );
+        assert_eq!("v1.0", manifest.emblem_version());
 
         {
             let requires = manifest.requires().unwrap();
@@ -193,21 +222,35 @@ mod test {
     }
 
     #[test]
-    fn missing_version() {
+    fn incorrect_emblem_version() {
+        let missing = textwrap::dedent(
+            r#"
+            name: foo
+            emblem: null
+            "#,
+        );
+    }
+
+    #[test]
+    fn missing_dependency_version() {
         let raw = textwrap::dedent(
             r#"
             name: foo
+            emblem: v1.0
             requires:
               bar:
                 args:
                   asdf: fdas
-        "#
+            "#
             .into(),
         );
         let err = load_str(&raw).unwrap_err();
         let re = Regex::new("expected `tag` or `hash` field").unwrap();
         let msg = err.msg();
-        assert!(re.is_match(msg), "Unknown message doesn't match regex '{re:?}': got {msg}");
+        assert!(
+            re.is_match(msg),
+            "Unknown message doesn't match regex '{re:?}': got {msg}"
+        );
     }
 
     #[test]
@@ -216,13 +259,16 @@ mod test {
             r#"
             INTERLOPER: true
             name: foo
-        "#
+            "#
             .into(),
         );
         let err = load_str(&raw).unwrap_err();
         let re = Regex::new("unknown field `INTERLOPER`").unwrap();
         let msg = err.msg();
-        assert!(re.is_match(msg), "Unknown message doesn't match regex '{re:?}': got {msg}");
+        assert!(
+            re.is_match(msg),
+            "Unknown message doesn't match regex '{re:?}': got {msg}"
+        );
     }
 }
 
