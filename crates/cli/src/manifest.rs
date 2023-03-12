@@ -1,16 +1,10 @@
-use crate::{Context, Log};
+use crate::Log;
+use emblem_core::{
+    context::{Dependency as EmblemDependency, DependencyVersion as EmblemDependencyVersion},
+    Version as EmblemVersion,
+};
 use serde::Deserialize as Deserialise;
-use std::{collections::HashMap, fs};
-
-pub(crate) fn load(ctx: &mut Context, manifest: String) -> Result<DocManifest<'_>, Box<Log<'_>>> {
-    let content = match fs::read_to_string(&manifest) {
-        Ok(c) => c,
-        Err(e) => return Err(Box::new(Log::error(e.to_string()))),
-    };
-    let file = ctx.alloc_file(manifest, content);
-
-    load_str(file.content())
-}
+use std::collections::HashMap;
 
 pub(crate) fn load_str(src: &str) -> Result<DocManifest<'_>, Box<Log<'_>>> {
     // TODO(kcza): parse the errors into something pretty
@@ -25,54 +19,15 @@ pub(crate) fn load_str(src: &str) -> Result<DocManifest<'_>, Box<Log<'_>>> {
 #[derive(Debug, Deserialise)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct DocManifest<'m> {
-    name: &'m str,
+    pub name: &'m str,
     #[serde(rename = "emblem")]
-    emblem_version: Version,
-    authors: Option<Vec<&'m str>>,
-    keywords: Option<Vec<&'m str>>,
-    output: Option<&'m str>,
-    requires: Option<HashMap<&'m str, Module<'m>>>,
+    pub emblem_version: Version,
+    pub authors: Option<Vec<&'m str>>,
+    pub keywords: Option<Vec<&'m str>>,
+    pub requires: Option<HashMap<&'m str, Module<'m>>>,
 }
 
 impl<'m> DocManifest<'m> {
-    #[allow(unused)]
-    pub fn name(&self) -> &'m str {
-        self.name
-    }
-
-    pub fn emblem_version(&self) -> Version {
-        self.emblem_version
-    }
-
-    #[allow(unused)]
-    pub fn authors(&self) -> Option<&[&'m str]> {
-        match &self.authors {
-            None => None,
-            Some(a) => Some(a.as_slice()),
-        }
-    }
-
-    #[allow(unused)]
-    pub fn keywords(&self) -> Option<&[&'m str]> {
-        match &self.keywords {
-            None => None,
-            Some(a) => Some(a.as_slice()),
-        }
-    }
-
-    #[allow(unused)]
-    pub fn requires(&self) -> Option<&HashMap<&'m str, Module<'m>>> {
-        match &self.requires {
-            None => None,
-            Some(a) => Some(a),
-        }
-    }
-
-    #[allow(unused)]
-    pub fn output(&self) -> Option<&'m str> {
-        self.output
-    }
-
     fn validate(&self) -> Result<(), String> {
         if let Some(requires) = &self.requires {
             for spec in requires.values() {
@@ -90,6 +45,7 @@ pub(crate) enum Version {
 }
 
 impl Version {
+    #[allow(unused)]
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::V1_0 => "v1.0",
@@ -121,12 +77,12 @@ impl<'m> Module<'m> {
     }
 
     #[allow(unused)]
-    pub fn version(&self) -> Option<ModuleVersion<'m>> {
+    pub fn version(&self) -> ModuleVersion<'m> {
         if let Some(tag) = self.tag {
-            return Some(ModuleVersion::Tag(tag));
+            return ModuleVersion::Tag(tag);
         }
         if let Some(hash) = self.hash {
-            return Some(ModuleVersion::Hash(hash));
+            return ModuleVersion::Hash(hash);
         }
         panic!("internal error: no version specified for {self:?}");
     }
@@ -148,10 +104,29 @@ impl<'m> Module<'m> {
     }
 }
 
+impl<'m> From<Module<'m>> for EmblemDependency<'m> {
+    fn from(module: Module<'m>) -> Self {
+        Self::new(
+            module.rename_as,
+            module.version().into(),
+            module.args.unwrap_or_default(),
+        )
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum ModuleVersion<'m> {
     Tag(&'m str),
     Hash(&'m str),
+}
+
+impl<'m> From<ModuleVersion<'m>> for EmblemDependencyVersion<'m> {
+    fn from(version: ModuleVersion<'m>) -> Self {
+        match version {
+            ModuleVersion::Tag(t) => Self::Tag(t),
+            ModuleVersion::Hash(h) => Self::Hash(h),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -170,11 +145,10 @@ mod test {
         );
         let manifest = load_str(&raw).unwrap();
 
-        assert_eq!("foo", manifest.name());
-        assert_eq!(Version::V1_0, manifest.emblem_version());
-        assert_eq!(None, manifest.authors());
-        assert_eq!(None, manifest.requires());
-        assert_eq!(None, manifest.output());
+        assert_eq!("foo", manifest.name);
+        assert_eq!(Version::V1_0, manifest.emblem_version);
+        assert_eq!(None, manifest.authors);
+        assert_eq!(None, manifest.requires);
     }
 
     #[test]
@@ -202,29 +176,28 @@ mod test {
                   key2: value2
               bar-hashed:
                 hash: 0123456789abcdef
-            output: pdf
             "#
             .into(),
         );
         let manifest = load_str(&raw).unwrap();
 
-        assert_eq!("foo", manifest.name());
+        assert_eq!("foo", manifest.name);
         assert_eq!(
-            ["Gordon", "Eli", "Isaac", "Walter"],
-            manifest.authors().unwrap()
+            &["Gordon", "Eli", "Isaac", "Walter"],
+            manifest.authors.unwrap().as_slice()
         );
         assert_eq!(
-            ["DARGH!", "NO!", "STAHP!", "HUEAG!"],
-            manifest.keywords().unwrap()
+            &["DARGH!", "NO!", "STAHP!", "HUEAG!"],
+            manifest.keywords.unwrap().as_slice()
         );
-        assert_eq!(Version::V1_0, manifest.emblem_version());
+        assert_eq!(Version::V1_0, manifest.emblem_version);
 
         {
-            let requires = manifest.requires().unwrap();
+            let requires = manifest.requires.unwrap();
             {
                 let foo_tagged = requires.get("foo-tagged").unwrap();
                 assert_eq!("qux", foo_tagged.rename_as().unwrap());
-                assert_eq!(ModuleVersion::Tag("edge"), foo_tagged.version().unwrap());
+                assert_eq!(ModuleVersion::Tag("edge"), foo_tagged.version());
                 assert_eq!(&"value1", foo_tagged.args().unwrap().get("key1").unwrap());
                 assert_eq!(&"value2", foo_tagged.args().unwrap().get("key2").unwrap());
             }
@@ -234,13 +207,11 @@ mod test {
                 assert_eq!(None, baz_hashed.rename_as());
                 assert_eq!(
                     ModuleVersion::Hash("0123456789abcdef"),
-                    baz_hashed.version().unwrap()
+                    baz_hashed.version()
                 );
                 assert_eq!(None, baz_hashed.args());
             }
         }
-
-        assert_eq!("pdf", manifest.output().unwrap());
     }
 
     #[test]

@@ -43,7 +43,41 @@ fn main() -> ExitCode {
     }
 }
 
-fn execute<C, R>(ctx: &mut Context, cmd: C, warnings_as_errors: bool) -> (Vec<Log<'_>>, bool)
+fn load_manifest<'ctx, 'm>(ctx: &'ctx mut Context<'m>, src: &'m str) -> Result<(), Box<Log<'m>>>
+where
+    'm: 'ctx,
+{
+    let manifest = manifest::load_str(src)?;
+
+    let doc_info = ctx.doc_info_mut();
+    doc_info.set_name(manifest.name);
+    doc_info.set_emblem_version(manifest.emblem_version.into());
+
+    if let Some(authors) = manifest.authors {
+        doc_info.set_authors(authors);
+    }
+
+    if let Some(keywords) = manifest.keywords {
+        doc_info.set_keywords(keywords);
+    }
+
+    if let Some(dependencies) = manifest.requires {
+        ctx.set_dependencies(
+            dependencies
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+        );
+    }
+
+    Ok(())
+}
+
+fn execute<'m, C, R>(
+    ctx: &'m mut Context<'m>,
+    cmd: C,
+    warnings_as_errors: bool,
+) -> (Vec<Log<'_>>, bool)
 where
     C: Action<Response = R>,
 {
