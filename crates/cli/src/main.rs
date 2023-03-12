@@ -8,14 +8,32 @@ mod manifest;
 pub use crate::init::Initialiser;
 use arg_parser::{Args, Command};
 use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Linter, Log};
-use std::process::ExitCode;
+use std::{fs, process::ExitCode};
 
 fn main() -> ExitCode {
     let args = Args::parse();
-    let warnings_as_errors = args.log.warnings_as_errors;
 
     let mut ctx = Context::new();
 
+    let mut logger = Logger::new(
+        args.log.verbosity.into(),
+        args.log.colour,
+        args.log.warnings_as_errors,
+    );
+
+    let raw_manifest = match fs::read_to_string("emblem.yml") {
+        Ok(m) => m,
+        Err(e) => {
+            Log::error(e.to_string()).print(&mut logger);
+            return ExitCode::FAILURE;
+        }
+    };
+    if let Err(e) = load_manifest(&mut ctx, &raw_manifest) {
+        e.print(&mut logger);
+        return ExitCode::FAILURE;
+    };
+
+    let warnings_as_errors = args.log.warnings_as_errors;
     let (logs, successful) = match args.command {
         Command::Build(args) => execute(&mut ctx, Builder::from(args), warnings_as_errors),
         Command::Explain(args) => execute(&mut ctx, Explainer::from(args), warnings_as_errors),
@@ -24,12 +42,6 @@ fn main() -> ExitCode {
         Command::Lint(args) => execute(&mut ctx, Linter::from(args), warnings_as_errors),
         Command::List(_) => todo!(),
     };
-
-    let mut logger = Logger::new(
-        args.log.verbosity.into(),
-        args.log.colour,
-        warnings_as_errors,
-    );
     for log in logs {
         log.print(&mut logger);
     }
