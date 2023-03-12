@@ -16,7 +16,7 @@ static MANIFEST_CONTENTS: &str = r#"
 name: My Cool Document
 authors: []
 keywords: []
-emblem: 1.0
+emblem: v1.0
 
 # Use `em add <package>` to make <package> available to this document
 requires: {}

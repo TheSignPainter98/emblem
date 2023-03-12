@@ -27,7 +27,7 @@ pub(crate) fn load_str(src: &str) -> Result<DocManifest<'_>, Box<Log<'_>>> {
 pub(crate) struct DocManifest<'m> {
     name: &'m str,
     #[serde(rename = "emblem")]
-    emblem_version: &'m str,
+    emblem_version: Version,
     authors: Option<Vec<&'m str>>,
     keywords: Option<Vec<&'m str>>,
     output: Option<&'m str>,
@@ -40,8 +40,7 @@ impl<'m> DocManifest<'m> {
         self.name
     }
 
-    #[allow(unused)]
-    pub fn emblem_version(&self) -> &'m str {
+    pub fn emblem_version(&self) -> Version {
         self.emblem_version
     }
 
@@ -81,6 +80,28 @@ impl<'m> DocManifest<'m> {
             }
         }
         Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialise, Eq, PartialEq)]
+pub(crate) enum Version {
+    #[serde(rename = "v1.0")]
+    V1_0,
+}
+
+impl Version {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::V1_0 => "v1.0",
+        }
+    }
+}
+
+impl From<Version> for EmblemVersion {
+    fn from(version: Version) -> Self {
+        match version {
+            Version::V1_0 => Self::V1_0,
+        }
     }
 }
 
@@ -150,7 +171,7 @@ mod test {
         let manifest = load_str(&raw).unwrap();
 
         assert_eq!("foo", manifest.name());
-        assert_eq!("v1.0", manifest.emblem_version());
+        assert_eq!(Version::V1_0, manifest.emblem_version());
         assert_eq!(None, manifest.authors());
         assert_eq!(None, manifest.requires());
         assert_eq!(None, manifest.output());
@@ -196,7 +217,7 @@ mod test {
             ["DARGH!", "NO!", "STAHP!", "HUEAG!"],
             manifest.keywords().unwrap()
         );
-        assert_eq!("v1.0", manifest.emblem_version());
+        assert_eq!(Version::V1_0, manifest.emblem_version());
 
         {
             let requires = manifest.requires().unwrap();
