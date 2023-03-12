@@ -222,6 +222,27 @@ mod test {
             emblem: null
             "#,
         );
+        let missing_err = load_str(&missing).unwrap_err();
+        let re = Regex::new("emblem: unknown variant `null`, expected").unwrap();
+        let msg = missing_err.msg();
+        assert!(
+            re.is_match(msg),
+            "Unknown message doesn't match regex '{re:?}': got {msg}"
+        );
+
+        let unknown = textwrap::dedent(
+            r#"
+            name: foo
+            emblem: UNKNOWN
+            "#
+        );
+        let unknown_err = load_str(&unknown).unwrap_err();
+        let re = Regex::new("emblem: unknown variant `UNKNOWN`, expected").unwrap();
+        let msg = unknown_err.msg();
+        assert!(
+            re.is_match(msg),
+            "Unknown message doesn't match regex '{re:?}': got {msg}"
+        );
     }
 
     #[test]
