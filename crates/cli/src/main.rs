@@ -35,6 +35,7 @@ fn main() -> ExitCode {
 
     let warnings_as_errors = args.log.warnings_as_errors;
     let (logs, successful) = match args.command {
+        Command::Add(args) => todo!("{:?}", args),
         Command::Build(args) => execute(&mut ctx, Builder::from(args), warnings_as_errors),
         Command::Explain(args) => execute(&mut ctx, Explainer::from(args), warnings_as_errors),
         Command::Format(_) => todo!(),

@@ -36,6 +36,12 @@ impl Args {
     }
 }
 
+impl Args {
+    pub fn extension_args(&self) -> Option<&ExtensionArgs> {
+        self.command.extension_args()
+    }
+}
+
 impl TryFrom<RawArgs> for Args {
     type Error = clap::Error;
 
@@ -125,6 +131,9 @@ pub struct RawLogArgs {
 #[derive(Clone, Debug, PartialEq, Eq, Subcommand)]
 #[warn(missing_docs)]
 pub enum Command {
+    /// Add a dependency to the current document
+    Add(AddCmd),
+
     /// Build a given document
     Build(BuildCmd),
 
@@ -145,8 +154,30 @@ pub enum Command {
     List(ListCmd),
 }
 
+impl Command {
+    // TODO(kcza): test me!
+    pub fn extension_args(&self) -> Option<&ExtensionArgs> {
+        match self {
+            Self::Add(_) => None,
+            Self::Build(cmd) => Some(&cmd.extensions),
+            Self::Explain(_) => None,
+            Self::Format(_) => None,
+            Self::Init(_) => None,
+            Self::Lint(cmd) => Some(&cmd.extensions),
+            Self::List(cmd) => Some(&cmd.extensions),
+        }
+    }
+}
+
 #[cfg(test)]
 impl Command {
+    fn add(&self) -> Option<&AddCmd> {
+        match self {
+            Self::Add(a) => Some(a),
+            _ => None,
+        }
+    }
+
     fn build(&self) -> Option<&BuildCmd> {
         match self {
             Self::Build(b) => Some(b),
@@ -194,6 +225,27 @@ impl Default for Command {
     fn default() -> Self {
         Self::Build(BuildCmd::default())
     }
+}
+
+/// Arguments to the add subcommand
+#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct AddCmd {
+    /// The extension to add
+    #[arg(value_name = "source")]
+    pub to_add: String,
+
+    /// Use a specific commit in the dependency's history
+    #[arg(long, value_name = "hash", group = "dependency-version")]
+    pub commit: Option<String>,
+
+    /// Override the dependency name
+    #[arg(long, value_name = "name")]
+    pub rename_as: Option<String>,
+
+    /// Use version of dependency at given tag
+    #[arg(long, value_name = "tag-name", group = "dependency-version")]
+    pub tag: Option<String>,
 }
 
 /// Arguments to the build subcommand
@@ -767,6 +819,90 @@ mod test {
                     Verbosity::Debug
                 );
                 assert!(Args::try_parse_from(["em", "-vvv"]).is_err());
+            }
+        }
+
+        mod add {
+            use super::*;
+
+            #[test]
+            fn to_add() {
+                assert_eq!(
+                    "pootis",
+                    Args::try_parse_from(["em", "add", "pootis"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .to_add,
+                );
+                assert!(Args::try_parse_from(["em", "add"]).is_err());
+            }
+
+            #[test]
+            fn version() {
+                assert_eq!(
+                    None,
+                    Args::try_parse_from(["em", "add", "pootis"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .commit
+                );
+                assert_eq!(
+                    None,
+                    Args::try_parse_from(["em", "add", "pootis"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .tag
+                );
+                assert_eq!(
+                    Some("deadbeef".into()),
+                    Args::try_parse_from(["em", "add", "pootis", "--commit", "deadbeef"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .commit
+                );
+                assert_eq!(
+                    Some("v4.5.0".into()),
+                    Args::try_parse_from(["em", "add", "pootis", "--tag", "v4.5.0"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .tag
+                );
+                assert!(Args::try_parse_from([
+                    "em", "add", "pootis", "--commit", "COMMIT", "--tag", "TAG"
+                ])
+                .is_err());
+            }
+
+            #[test]
+            fn rename_as() {
+                assert_eq!(
+                    None,
+                    Args::try_parse_from(["em", "add", "pootis"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .rename_as
+                );
+                assert_eq!(
+                    Some("nope".into()),
+                    Args::try_parse_from(["em", "add", "pootis", "--rename-as", "nope"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .rename_as
+                );
             }
         }
 
