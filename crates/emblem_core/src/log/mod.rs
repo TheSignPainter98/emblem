@@ -3,11 +3,11 @@ mod note;
 mod src;
 mod verbosity;
 
+pub use self::messages::Message;
 pub use note::Note;
 pub use src::Src;
 pub use verbosity::Verbosity;
 
-use self::messages::Message;
 use annotate_snippets::{
     display_list::{
         DisplayAnnotationType, DisplayLine, DisplayList, DisplayRawLine, DisplayTextFragment,
