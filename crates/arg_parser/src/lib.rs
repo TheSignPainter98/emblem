@@ -156,7 +156,6 @@ pub enum Command {
 }
 
 impl Command {
-    // TODO(kcza): test me!
     pub fn extension_args(&self) -> Option<&ExtensionArgs> {
         match self {
             Self::Add(_) => None,
