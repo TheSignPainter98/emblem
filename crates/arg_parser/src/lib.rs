@@ -38,8 +38,8 @@ impl Args {
 }
 
 impl Args {
-    pub fn extension_args(&self) -> Option<&ExtensionArgs> {
-        self.command.extension_args()
+    pub fn module_args(&self) -> Option<&ModuleArgs> {
+        self.command.module_args()
     }
 }
 
@@ -90,7 +90,7 @@ impl TryFrom<RawLogArgs> for LogArgs {
     }
 }
 
-const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format. Extensions can be used to include arbitrary functionality; device drivers are also extensions.";
+const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format. Modules can be used to include arbitrary functionality; device drivers can be defined by modules.";
 
 /// Internal command-line argument parser
 #[derive(Parser, Debug)]
@@ -156,15 +156,15 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn extension_args(&self) -> Option<&ExtensionArgs> {
+    pub fn module_args(&self) -> Option<&ModuleArgs> {
         match self {
             Self::Add(_) => None,
-            Self::Build(cmd) => Some(&cmd.extensions),
+            Self::Build(cmd) => Some(&cmd.modules),
             Self::Explain(_) => None,
             Self::Format(_) => None,
             Self::Init(_) => None,
-            Self::Lint(cmd) => Some(&cmd.extensions),
-            Self::List(cmd) => Some(&cmd.extensions),
+            Self::Lint(cmd) => Some(&cmd.modules),
+            Self::List(cmd) => Some(&cmd.modules),
         }
     }
 }
@@ -231,7 +231,7 @@ impl Default for Command {
 #[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
 pub struct AddCmd {
-    /// The extension to add
+    /// The module to add
     #[arg(value_name = "source")]
     pub to_add: String,
 
@@ -262,7 +262,7 @@ pub struct BuildCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub extensions: ExtensionArgs,
+    pub modules: ModuleArgs,
 }
 
 impl BuildCmd {
@@ -330,7 +330,7 @@ pub struct LintCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub extensions: ExtensionArgs,
+    pub modules: ModuleArgs,
 }
 
 impl From<&LintCmd> for emblem_core::Linter {
@@ -349,7 +349,7 @@ pub struct ListCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub extensions: ExtensionArgs,
+    pub modules: ModuleArgs,
 }
 
 /// Holds the source of the user's document
@@ -374,12 +374,13 @@ pub struct OutputArgs {
     pub driver: Option<String>,
 }
 
-/// Holds the user's preferences for the extensions used when running the program
+/// Holds the user's preferences for the modules used when running the program
 #[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
-pub struct ExtensionArgs {
-    /// Pass variable into extension-space
-    #[arg(short = 'a', action = Append, value_parser = ExtArg::parser(),  value_name="arg=value")]
+pub struct ModuleArgs {
+    /// Pass a named argument into module-space. If module name is omitted, pass argument as
+    /// variable in document
+    #[arg(short = 'a', action = Append, value_parser = ExtArg::parser(), value_name="mod.arg=value")]
     pub args: Vec<ExtArg>,
 
     /// Limit lua memory usage
@@ -679,7 +680,7 @@ impl From<Verbosity> for emblem_core::Verbosity {
 
 #[derive(ValueEnum, Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum SandboxLevel {
-    /// Extensions have no restrictions placed upon them.
+    /// Modules have no restrictions placed upon them.
     Unrestricted,
 
     /// Prohibit creation of new subprocesses and file system access outside of the current
@@ -1056,7 +1057,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .max_mem,
                     MemoryLimit::Unlimited
                 );
@@ -1066,7 +1067,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .max_mem,
                     MemoryLimit::Limited(25)
                 );
@@ -1076,7 +1077,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .max_mem,
                     MemoryLimit::Limited(25 * 1024)
                 );
@@ -1086,7 +1087,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .max_mem,
                     MemoryLimit::Limited(25 * 1024 * 1024)
                 );
@@ -1096,7 +1097,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .max_mem,
                     MemoryLimit::Limited(25 * 1024 * 1024 * 1024)
                 );
@@ -1112,7 +1113,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .sandbox,
                     SandboxLevel::Standard
                 );
@@ -1122,7 +1123,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .sandbox,
                     SandboxLevel::Unrestricted
                 );
@@ -1132,7 +1133,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .sandbox,
                     SandboxLevel::Standard
                 );
@@ -1142,7 +1143,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .sandbox,
                     SandboxLevel::Strict
                 );
@@ -1151,14 +1152,14 @@ mod test {
             }
 
             #[test]
-            fn extension_args() {
+            fn module_args() {
                 assert_eq!(
                     Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .args,
                     vec![]
                 );
@@ -1170,7 +1171,7 @@ mod test {
                             .command
                             .build()
                             .unwrap()
-                            .extensions
+                            .modules
                             .args
                             .clone();
                     assert_eq!(valid_ext_args.len(), 3);
@@ -1306,14 +1307,14 @@ mod test {
             }
 
             #[test]
-            fn extension_args() {
+            fn module_args() {
                 assert_eq!(
                     Args::try_parse_from(["em", "lint"])
                         .unwrap()
                         .command
                         .lint()
                         .unwrap()
-                        .extensions
+                        .modules
                         .args,
                     vec![]
                 );
@@ -1325,7 +1326,7 @@ mod test {
                             .command
                             .lint()
                             .unwrap()
-                            .extensions
+                            .modules
                             .args
                             .clone();
                     assert_eq!(valid_ext_args.len(), 3);
@@ -1368,14 +1369,14 @@ mod test {
             }
 
             #[test]
-            fn extension_args() {
+            fn module_args() {
                 assert_eq!(
                     Args::try_parse_from(["em", "list", "output-formats"])
                         .unwrap()
                         .command
                         .list()
                         .unwrap()
-                        .extensions
+                        .modules
                         .args,
                     vec![]
                 );
@@ -1393,7 +1394,7 @@ mod test {
                     .command
                     .list()
                     .unwrap()
-                    .extensions
+                    .modules
                     .args
                     .clone();
                     assert_eq!(valid_ext_args.len(), 3);

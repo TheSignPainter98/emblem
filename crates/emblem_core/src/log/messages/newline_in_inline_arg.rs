@@ -49,7 +49,7 @@ impl<'i> Message<'i> for NewlineInInlineArg<'i> {
             "\t...\n",
             "```\n",
             "\n",
-            "If you are an extension author, consider ordering arguments so your users are encouraged to place longer ones later.",
+            "If you are a module author, consider ordering arguments so your users are encouraged to place longer ones later.",
         )
     }
 }
