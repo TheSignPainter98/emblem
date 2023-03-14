@@ -5,7 +5,7 @@ use clap::{
     CommandFactory, Parser, Subcommand, ValueEnum,
     ValueHint::{AnyPath, DirPath, FilePath},
 };
-use emblem_core::context::{SandboxLevel as EmblemSandboxLevel, MemoryLimit as EmblemMemoryLimit};
+use emblem_core::context::{MemoryLimit as EmblemMemoryLimit, SandboxLevel as EmblemSandboxLevel};
 use std::{env, ffi::OsString, fmt::Display, path};
 
 /// Parsed command-line arguments
@@ -276,7 +276,11 @@ impl BuildCmd {
 impl From<&BuildCmd> for emblem_core::Builder {
     fn from(cmd: &BuildCmd) -> Self {
         let output_stem = cmd.output_stem().into();
-        emblem_core::Builder::new(cmd.input.file.clone().into(), output_stem, cmd.output.driver.clone())
+        emblem_core::Builder::new(
+            cmd.input.file.clone().into(),
+            output_stem,
+            cmd.output.driver.clone(),
+        )
     }
 }
 
@@ -756,7 +760,7 @@ impl TryFrom<String> for ExtArg {
                 let mut cmd = RawArgs::command();
                 Err(cmd.error(error::ErrorKind::InvalidValue, "need argument name"))
             }
-            Some(loc) => Ok(Self { raw, eq_idx: loc,  }),
+            Some(loc) => Ok(Self { raw, eq_idx: loc }),
             None => {
                 let mut cmd = RawArgs::command();
                 Err(cmd.error(error::ErrorKind::InvalidValue, "need a value"))

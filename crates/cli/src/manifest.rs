@@ -234,7 +234,7 @@ mod test {
             r#"
             name: foo
             emblem: UNKNOWN
-            "#
+            "#,
         );
         let unknown_err = load_str(&unknown).unwrap_err();
         let re = Regex::new("emblem: unknown variant `UNKNOWN`, expected").unwrap();

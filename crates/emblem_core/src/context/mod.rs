@@ -1,7 +1,7 @@
 mod dependency;
 
 use crate::Version;
-pub use dependency::{DependencyName, Dependency, DependencyVersion};
+pub use dependency::{Dependency, DependencyName, DependencyVersion};
 use typed_arena::Arena;
 
 #[derive(Default)]
@@ -51,10 +51,7 @@ impl<'m> Context<'m> {
     }
 
     pub fn dependencies_mut(&mut self) -> Option<&mut Vec<(DependencyName<'m>, Dependency<'m>)>> {
-        match self.dependencies {
-            Some(ref mut d) => Some(d),
-            None => None,
-        }
+        self.dependencies.as_mut()
     }
 }
 

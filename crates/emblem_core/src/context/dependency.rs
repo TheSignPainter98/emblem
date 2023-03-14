@@ -22,7 +22,7 @@ impl<'m> From<&'m str> for DependencyName<'m> {
     fn from(source: &'m str) -> Self {
         Self {
             name: match source.find('/') {
-                Some(idx) => &source[1+idx..],
+                Some(idx) => &source[1 + idx..],
                 None => source,
             },
             source,
@@ -106,9 +106,6 @@ mod test {
         assert_eq!(tag, Dependency::new(None, tag, HashMap::new()).version());
 
         let tag = DependencyVersion::Hash("bar");
-        assert_eq!(
-            tag,
-            Dependency::new(None, tag, HashMap::new()).version()
-        );
+        assert_eq!(tag, Dependency::new(None, tag, HashMap::new()).version());
     }
 }

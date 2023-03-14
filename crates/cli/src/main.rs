@@ -100,12 +100,14 @@ where
                 Some(0) => {
                     return Err(Box::new(Log::error(format!(
                         "argument module name cannot be empty: got '{}' in '{}={}'",
-                        name, name, arg.value(),
+                        name,
+                        name,
+                        arg.value(),
                     ))))
                 }
                 Some(idx) => {
                     let dep_name = &name[..idx];
-                    let arg_name = &name[1+idx..];
+                    let arg_name = &name[1 + idx..];
                     if let Some(args) = specific_args.get_mut(dep_name) {
                         args.push((arg_name, arg.value()));
                     } else {
