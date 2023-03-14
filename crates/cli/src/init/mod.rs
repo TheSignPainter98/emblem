@@ -12,6 +12,16 @@ use std::{
     io::{self, Write},
 };
 
+static MANIFEST_CONTENTS: &str = r#"
+name: My Cool Document
+authors: []
+keywords: []
+emblem: v1.0
+
+# Use `em add <package>` to make <package> available to this document
+requires: {}
+"#;
+
 static MAIN_CONTENTS: &str = r#"
 # Welcome! Welcome to Emblem.
 
@@ -28,9 +38,9 @@ pub struct Initialiser<T: AsRef<Path>> {
     dir: T,
 }
 
-impl From<InitCmd> for Initialiser<PathBuf> {
-    fn from(cmd: InitCmd) -> Self {
-        Self::new(PathBuf::from(cmd.dir))
+impl From<&InitCmd> for Initialiser<PathBuf> {
+    fn from(cmd: &InitCmd) -> Self {
+        Self::new(PathBuf::from(cmd.dir.clone()))
     }
 }
 
@@ -60,11 +70,13 @@ impl<T: AsRef<Path>> Initialiser<T> {
 
         let git_ignore = dir.join(".gitignore");
         let main_file = dir.join("main.em");
+        let manifest_file = dir.join("emblem.yml");
 
         self.init_repo()?;
 
         self.try_create_file(&git_ignore, GITIGNORE_CONTENTS)?;
         self.try_create_file(&main_file, MAIN_CONTENTS)?;
+        self.try_create_file(&manifest_file, MANIFEST_CONTENTS)?;
 
         Ok(())
     }
@@ -87,6 +99,7 @@ impl<T: AsRef<Path>> Initialiser<T> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::manifest;
     use emblem_core::{parser, EmblemResult};
     use std::error::Error;
     use std::{
@@ -99,7 +112,11 @@ mod test {
         Initialiser::new(tmpdir).run(ctx)
     }
 
-    fn test_files(dir: &TempDir, expected_content: &str) -> Result<(), Box<dyn Error>> {
+    fn test_files(
+        dir: &TempDir,
+        expected_main_content: &str,
+        expected_manifest_content: &str,
+    ) -> Result<(), Box<dyn Error>> {
         let dot_git = dir.path().join(".git");
         assert!(dot_git.exists(), "no .git");
         assert!(dot_git.is_dir(), ".git is not a directory");
@@ -123,14 +140,29 @@ mod test {
             );
         }
 
-        let main_file_name = "main.em";
-        let main_file = dir.path().join(main_file_name);
-        assert!(main_file.exists(), "no main.em");
-        assert!(main_file.is_file(), "main.em is not a file");
-        let found_content = &fs::read_to_string(&main_file)?;
+        {
+            let main_file_name = "main.em";
+            let main_file = dir.path().join(main_file_name);
+            assert!(main_file.exists(), "no main.em");
+            assert!(main_file.is_file(), "main.em is not a file");
+            let found_content = &fs::read_to_string(&main_file)?;
 
-        assert_eq!(expected_content, found_content);
-        assert!(parser::parse(main_file.as_path().to_str().unwrap(), expected_content).is_ok());
+            assert_eq!(expected_main_content, found_content);
+            assert!(
+                parser::parse(main_file.as_path().to_str().unwrap(), expected_main_content).is_ok()
+            );
+        }
+
+        {
+            let manifest_file_name = "emblem.yml";
+            let manifest_file = dir.path().join(manifest_file_name);
+            assert!(manifest_file.exists(), "no main.em");
+            assert!(manifest_file.is_file(), "main.em is not a file");
+            let found_content = &fs::read_to_string(&manifest_file)?;
+
+            assert_eq!(expected_manifest_content, found_content);
+            manifest::load_str(found_content).unwrap();
+        }
 
         Ok(())
     }
@@ -147,15 +179,20 @@ mod test {
             problems.logs
         );
 
-        test_files(&tmpdir, &MAIN_CONTENTS[1..])
+        test_files(&tmpdir, &MAIN_CONTENTS[1..], &MANIFEST_CONTENTS[1..])
     }
 
     #[test]
     fn non_empty_dir() -> Result<(), Box<dyn Error>> {
         let tmpdir = tempfile::tempdir()?;
+
         let main_file_path = tmpdir.path().join("main.em");
         let main_file_content = "hello, world!";
         fs::write(&main_file_path, main_file_content)?;
+
+        let manifest_file_path = tmpdir.path().join("emblem.yml");
+        let manifest_file_content = "name: asdf\nemblem: v1.0";
+        fs::write(&manifest_file_path, manifest_file_content)?;
 
         {
             let mut ctx = Context::new();
@@ -166,7 +203,7 @@ mod test {
                 "unexpected problems: {:?})",
                 problems.logs
             );
-            test_files(&tmpdir, main_file_content)?;
+            test_files(&tmpdir, main_file_content, manifest_file_content)?;
         }
 
         {
@@ -178,7 +215,7 @@ mod test {
                 problems
             );
 
-            test_files(&tmpdir, main_file_content)
+            test_files(&tmpdir, main_file_content, manifest_file_content)
         }
     }
 

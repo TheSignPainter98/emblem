@@ -15,6 +15,7 @@ pub mod parser;
 mod path;
 mod repo;
 mod util;
+mod version;
 
 pub use crate::args::ArgPath;
 pub use crate::build::Builder;
@@ -22,6 +23,7 @@ pub use crate::context::Context;
 pub use crate::explain::Explainer;
 pub use crate::lint::Linter;
 pub use crate::log::{Log, Verbosity};
+pub use crate::version::Version;
 
 use derive_new::new;
 

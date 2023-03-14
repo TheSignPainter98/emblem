@@ -5,6 +5,7 @@ use clap::{
     CommandFactory, Parser, Subcommand, ValueEnum,
     ValueHint::{AnyPath, DirPath, FilePath},
 };
+use emblem_core::context::{MemoryLimit as EmblemMemoryLimit, SandboxLevel as EmblemSandboxLevel};
 use std::{env, ffi::OsString, fmt::Display, path};
 
 /// Parsed command-line arguments
@@ -33,6 +34,12 @@ impl Args {
         I: IntoIterator<Item = T>,
     {
         Self::try_from(RawArgs::try_parse_from(iter)?)
+    }
+}
+
+impl Args {
+    pub fn module_args(&self) -> Option<&ModuleArgs> {
+        self.command.module_args()
     }
 }
 
@@ -83,7 +90,7 @@ impl TryFrom<RawLogArgs> for LogArgs {
     }
 }
 
-const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format. Extensions can be used to include arbitrary functionality; device drivers are also extensions.";
+const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format. Modules can be used to include arbitrary functionality; device drivers can be defined by modules.";
 
 /// Internal command-line argument parser
 #[derive(Parser, Debug)]
@@ -125,6 +132,9 @@ pub struct RawLogArgs {
 #[derive(Clone, Debug, PartialEq, Eq, Subcommand)]
 #[warn(missing_docs)]
 pub enum Command {
+    /// Add a module the current document's compilation
+    Add(AddCmd),
+
     /// Build a given document
     Build(BuildCmd),
 
@@ -145,8 +155,29 @@ pub enum Command {
     List(ListCmd),
 }
 
+impl Command {
+    pub fn module_args(&self) -> Option<&ModuleArgs> {
+        match self {
+            Self::Add(_) => None,
+            Self::Build(cmd) => Some(&cmd.modules),
+            Self::Explain(_) => None,
+            Self::Format(_) => None,
+            Self::Init(_) => None,
+            Self::Lint(cmd) => Some(&cmd.modules),
+            Self::List(cmd) => Some(&cmd.modules),
+        }
+    }
+}
+
 #[cfg(test)]
 impl Command {
+    fn add(&self) -> Option<&AddCmd> {
+        match self {
+            Self::Add(a) => Some(a),
+            _ => None,
+        }
+    }
+
     fn build(&self) -> Option<&BuildCmd> {
         match self {
             Self::Build(b) => Some(b),
@@ -196,6 +227,27 @@ impl Default for Command {
     }
 }
 
+/// Arguments to the add subcommand
+#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
+#[warn(missing_docs)]
+pub struct AddCmd {
+    /// The module to add
+    #[arg(value_name = "source")]
+    pub to_add: String,
+
+    /// Use a specific commit in the module's history
+    #[arg(long, value_name = "hash", group = "module-version")]
+    pub commit: Option<String>,
+
+    /// Override the module name
+    #[arg(long, value_name = "name")]
+    pub rename_as: Option<String>,
+
+    /// Use version of module at given tag
+    #[arg(long, value_name = "tag-name", group = "module-version")]
+    pub tag: Option<String>,
+}
+
 /// Arguments to the build subcommand
 #[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
@@ -210,11 +262,7 @@ pub struct BuildCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub extensions: ExtensionArgs,
-
-    #[command(flatten)]
-    #[allow(missing_docs)]
-    pub style: StyleArgs,
+    pub modules: ModuleArgs,
 }
 
 impl BuildCmd {
@@ -224,10 +272,14 @@ impl BuildCmd {
     }
 }
 
-impl From<BuildCmd> for emblem_core::Builder {
-    fn from(cmd: BuildCmd) -> Self {
+impl From<&BuildCmd> for emblem_core::Builder {
+    fn from(cmd: &BuildCmd) -> Self {
         let output_stem = cmd.output_stem().into();
-        emblem_core::Builder::new(cmd.input.file.into(), output_stem, cmd.output.driver)
+        emblem_core::Builder::new(
+            cmd.input.file.clone().into(),
+            output_stem,
+            cmd.output.driver.clone(),
+        )
     }
 }
 
@@ -240,9 +292,9 @@ pub struct ExplainCmd {
     pub id: String,
 }
 
-impl From<ExplainCmd> for emblem_core::Explainer {
-    fn from(cmd: ExplainCmd) -> Self {
-        Self::new(cmd.id)
+impl From<&ExplainCmd> for emblem_core::Explainer {
+    fn from(cmd: &ExplainCmd) -> Self {
+        Self::new(cmd.id.clone())
     }
 }
 
@@ -278,12 +330,12 @@ pub struct LintCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub extensions: ExtensionArgs,
+    pub modules: ModuleArgs,
 }
 
-impl From<LintCmd> for emblem_core::Linter {
-    fn from(cmd: LintCmd) -> Self {
-        Self::new(cmd.input.file.into(), cmd.fix)
+impl From<&LintCmd> for emblem_core::Linter {
+    fn from(cmd: &LintCmd) -> Self {
+        Self::new(cmd.input.file.clone().into(), cmd.fix)
     }
 }
 
@@ -297,7 +349,7 @@ pub struct ListCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub extensions: ExtensionArgs,
+    pub modules: ModuleArgs,
 }
 
 /// Holds the source of the user's document
@@ -322,17 +374,14 @@ pub struct OutputArgs {
     pub driver: Option<String>,
 }
 
-/// Holds the user's preferences for the extensions used when running the program
+/// Holds the user's preferences for the modules used when running the program
 #[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
-pub struct ExtensionArgs {
-    /// Pass variable into extension-space
-    #[arg(short = 'a', action = Append, value_parser = ExtArg::parser(),  value_name="arg=value")]
+pub struct ModuleArgs {
+    /// Pass a named argument into module-space. If module name is omitted, pass argument as
+    /// variable in document
+    #[arg(short = 'a', action = Append, value_parser = ExtArg::parser(), value_name="mod.arg=value")]
     pub args: Vec<ExtArg>,
-
-    /// Extension search-path, colon-separated
-    #[arg(id="extension-path", long, env = "EM_EXT_PATH", value_parser = SearchPath::parser(), default_value = "", value_name = "path")]
-    pub path: SearchPath,
 
     /// Limit lua memory usage
     #[arg(long, value_parser = MemoryLimit::parser(), default_value = "unlimited", value_name = "amount")]
@@ -341,23 +390,6 @@ pub struct ExtensionArgs {
     /// Restrict system access
     #[arg(long, value_enum, default_value_t, value_name = "level")]
     pub sandbox: SandboxLevel,
-
-    /// Load an extension
-    #[arg(short = 'x', action=Append, value_name = "ext")]
-    pub list: Vec<String>,
-}
-
-/// Holds the user's preferences for the style of their document
-#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
-#[warn(missing_docs)]
-pub struct StyleArgs {
-    /// Set root stylesheet
-    #[arg(short = 's', value_name = "style")]
-    pub name: Option<String>,
-
-    /// Style search-path, colon-separated
-    #[arg(id="style-path", long, env = "EM_STYLE_PATH", value_parser = SearchPath::parser(), default_value = "", value_name = "path")]
-    pub path: SearchPath,
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
@@ -513,7 +545,7 @@ impl TryFrom<&str> for ArgPath {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum MemoryLimit {
     Limited(usize),
     #[default]
@@ -593,51 +625,12 @@ impl TryFrom<&str> for MemoryLimit {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct SearchPath {
-    path: Vec<String>,
-}
-
-impl SearchPath {
-    fn parser() -> impl TypedValueParser {
-        StringValueParser::new().map(Self::from)
-    }
-}
-
-impl ToString for SearchPath {
-    fn to_string(&self) -> String {
-        self.path.join(":")
-    }
-}
-
-impl From<String> for SearchPath {
-    fn from(raw: String) -> Self {
-        Self::from(&raw[..])
-    }
-}
-
-impl From<&str> for SearchPath {
-    fn from(raw: &str) -> Self {
-        Self {
-            path: raw
-                .split(':')
-                .filter(|s| !s.is_empty())
-                .map(|s| s.into())
-                .collect(),
+impl From<MemoryLimit> for EmblemMemoryLimit {
+    fn from(limit: MemoryLimit) -> Self {
+        match limit {
+            MemoryLimit::Limited(n) => Self::Limited(n),
+            MemoryLimit::Unlimited => Self::Unlimited,
         }
-    }
-}
-
-impl<S> From<Vec<S>> for SearchPath
-where
-    S: Into<String>,
-{
-    fn from(raw: Vec<S>) -> Self {
-        let mut path = vec![];
-        for p in raw {
-            path.push(p.into());
-        }
-        Self { path }
     }
 }
 
@@ -685,9 +678,9 @@ impl From<Verbosity> for emblem_core::Verbosity {
     }
 }
 
-#[derive(ValueEnum, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(ValueEnum, Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum SandboxLevel {
-    /// Extensions have no restrictions placed upon them.
+    /// Modules have no restrictions placed upon them.
     Unrestricted,
 
     /// Prohibit creation of new subprocesses and file system access outside of the current
@@ -697,6 +690,16 @@ pub enum SandboxLevel {
 
     /// Same restrictions as Standard, but all file system access if prohibited.
     Strict,
+}
+
+impl From<SandboxLevel> for EmblemSandboxLevel {
+    fn from(level: SandboxLevel) -> Self {
+        match level {
+            SandboxLevel::Unrestricted => Self::Unrestricted,
+            SandboxLevel::Standard => Self::Standard,
+            SandboxLevel::Strict => Self::Strict,
+        }
+    }
 }
 
 #[derive(ValueEnum, Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -843,6 +846,90 @@ mod test {
             }
         }
 
+        mod add {
+            use super::*;
+
+            #[test]
+            fn to_add() {
+                assert_eq!(
+                    "pootis",
+                    Args::try_parse_from(["em", "add", "pootis"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .to_add,
+                );
+                assert!(Args::try_parse_from(["em", "add"]).is_err());
+            }
+
+            #[test]
+            fn version() {
+                assert_eq!(
+                    None,
+                    Args::try_parse_from(["em", "add", "pootis"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .commit
+                );
+                assert_eq!(
+                    None,
+                    Args::try_parse_from(["em", "add", "pootis"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .tag
+                );
+                assert_eq!(
+                    Some("deadbeef".into()),
+                    Args::try_parse_from(["em", "add", "pootis", "--commit", "deadbeef"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .commit
+                );
+                assert_eq!(
+                    Some("v4.5.0".into()),
+                    Args::try_parse_from(["em", "add", "pootis", "--tag", "v4.5.0"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .tag
+                );
+                assert!(Args::try_parse_from([
+                    "em", "add", "pootis", "--commit", "COMMIT", "--tag", "TAG"
+                ])
+                .is_err());
+            }
+
+            #[test]
+            fn rename_as() {
+                assert_eq!(
+                    None,
+                    Args::try_parse_from(["em", "add", "pootis"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .rename_as
+                );
+                assert_eq!(
+                    Some("nope".into()),
+                    Args::try_parse_from(["em", "add", "pootis", "--rename-as", "nope"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .rename_as
+                );
+            }
+        }
+
         mod build {
             use super::*;
 
@@ -970,7 +1057,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .max_mem,
                     MemoryLimit::Unlimited
                 );
@@ -980,7 +1067,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .max_mem,
                     MemoryLimit::Limited(25)
                 );
@@ -990,7 +1077,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .max_mem,
                     MemoryLimit::Limited(25 * 1024)
                 );
@@ -1000,7 +1087,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .max_mem,
                     MemoryLimit::Limited(25 * 1024 * 1024)
                 );
@@ -1010,36 +1097,12 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .max_mem,
                     MemoryLimit::Limited(25 * 1024 * 1024 * 1024)
                 );
 
                 assert!(Args::try_parse_from(["em", "build", "--max-mem", "100T"]).is_err());
-            }
-
-            #[test]
-            fn style() {
-                assert_eq!(
-                    Args::try_parse_from(["em"])
-                        .unwrap()
-                        .command
-                        .build()
-                        .unwrap()
-                        .style
-                        .name,
-                    None
-                );
-                assert_eq!(
-                    Args::try_parse_from(["em", "build", "-s", "funk"])
-                        .unwrap()
-                        .command
-                        .build()
-                        .unwrap()
-                        .style
-                        .name,
-                    Some("funk".to_owned())
-                );
             }
 
             #[test]
@@ -1050,7 +1113,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .sandbox,
                     SandboxLevel::Standard
                 );
@@ -1060,7 +1123,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .sandbox,
                     SandboxLevel::Unrestricted
                 );
@@ -1070,7 +1133,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .sandbox,
                     SandboxLevel::Standard
                 );
@@ -1080,7 +1143,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .extensions
+                        .modules
                         .sandbox,
                     SandboxLevel::Strict
                 );
@@ -1089,63 +1152,14 @@ mod test {
             }
 
             #[test]
-            fn style_path() {
+            fn module_args() {
                 assert_eq!(
                     Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
                         .unwrap()
-                        .style
-                        .path,
-                    SearchPath::default()
-                );
-                assert_eq!(
-                    Args::try_parse_from(["em", "build", "--style-path", "club:house"])
-                        .unwrap()
-                        .command
-                        .build()
-                        .unwrap()
-                        .style
-                        .path,
-                    SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
-                );
-            }
-
-            #[test]
-            fn extensions() {
-                let empty: [&str; 0] = [];
-                assert_eq!(
-                    Args::try_parse_from(["em"])
-                        .unwrap()
-                        .command
-                        .build()
-                        .unwrap()
-                        .extensions
-                        .list,
-                    empty
-                );
-                assert_eq!(
-                    Args::try_parse_from(["em", "build", "-x", "foo", "-x", "bar", "-x", "baz"])
-                        .unwrap()
-                        .command
-                        .build()
-                        .unwrap()
-                        .extensions
-                        .list,
-                    ["foo".to_owned(), "bar".to_owned(), "baz".to_owned()]
-                );
-            }
-
-            #[test]
-            fn extension_args() {
-                assert_eq!(
-                    Args::try_parse_from(["em"])
-                        .unwrap()
-                        .command
-                        .build()
-                        .unwrap()
-                        .extensions
+                        .modules
                         .args,
                     vec![]
                 );
@@ -1157,7 +1171,7 @@ mod test {
                             .command
                             .build()
                             .unwrap()
-                            .extensions
+                            .modules
                             .args
                             .clone();
                     assert_eq!(valid_ext_args.len(), 3);
@@ -1171,30 +1185,6 @@ mod test {
 
                 assert!(Args::try_parse_from(["em", "-a=v"]).is_err());
             }
-
-            // #[test]
-            // fn extension_path() {
-            //     assert_eq!(
-            //         Args::try_parse_from(["em"])
-            //             .unwrap()
-            //             .command
-            //             .build()
-            //             .unwrap()
-            //             .extensions
-            //             .path,
-            //         SearchPath::default()
-            //     );
-            //     assert_eq!(
-            //         Args::try_parse_from(["em", "build", "--extension-path", "club:house"])
-            //             .unwrap()
-            //             .command
-            //             .build()
-            //             .unwrap()
-            //             .extensions
-            //             .path,
-            //         SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
-            //     );
-            // }
         }
 
         mod explain {
@@ -1317,39 +1307,14 @@ mod test {
             }
 
             #[test]
-            fn extensions() {
-                let empty: [&str; 0] = [];
+            fn module_args() {
                 assert_eq!(
                     Args::try_parse_from(["em", "lint"])
                         .unwrap()
                         .command
                         .lint()
                         .unwrap()
-                        .extensions
-                        .list,
-                    empty
-                );
-                assert_eq!(
-                    Args::try_parse_from(["em", "lint", "-x", "foo", "-x", "bar", "-x", "baz"])
-                        .unwrap()
-                        .command
-                        .lint()
-                        .unwrap()
-                        .extensions
-                        .list,
-                    ["foo".to_owned(), "bar".to_owned(), "baz".to_owned()]
-                );
-            }
-
-            #[test]
-            fn extension_args() {
-                assert_eq!(
-                    Args::try_parse_from(["em", "lint"])
-                        .unwrap()
-                        .command
-                        .lint()
-                        .unwrap()
-                        .extensions
+                        .modules
                         .args,
                     vec![]
                 );
@@ -1361,7 +1326,7 @@ mod test {
                             .command
                             .lint()
                             .unwrap()
-                            .extensions
+                            .modules
                             .args
                             .clone();
                     assert_eq!(valid_ext_args.len(), 3);
@@ -1374,30 +1339,6 @@ mod test {
                 }
 
                 assert!(Args::try_parse_from(["em", "lint", "-a=v"]).is_err());
-            }
-
-            #[test]
-            fn extension_path() {
-                assert_eq!(
-                    Args::try_parse_from(["em", "lint"])
-                        .unwrap()
-                        .command
-                        .lint()
-                        .unwrap()
-                        .extensions
-                        .path,
-                    SearchPath::default()
-                );
-                assert_eq!(
-                    Args::try_parse_from(["em", "lint", "--extension-path", "club:house"])
-                        .unwrap()
-                        .command
-                        .lint()
-                        .unwrap()
-                        .extensions
-                        .path,
-                    SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
-                );
             }
         }
 
@@ -1428,49 +1369,14 @@ mod test {
             }
 
             #[test]
-            fn extensions() {
-                let empty: [&str; 0] = [];
+            fn module_args() {
                 assert_eq!(
                     Args::try_parse_from(["em", "list", "output-formats"])
                         .unwrap()
                         .command
                         .list()
                         .unwrap()
-                        .extensions
-                        .list,
-                    empty
-                );
-                assert_eq!(
-                    Args::try_parse_from([
-                        "em",
-                        "list",
-                        "output-formats",
-                        "-x",
-                        "foo",
-                        "-x",
-                        "bar",
-                        "-x",
-                        "baz"
-                    ])
-                    .unwrap()
-                    .command
-                    .list()
-                    .unwrap()
-                    .extensions
-                    .list,
-                    ["foo".to_owned(), "bar".to_owned(), "baz".to_owned()]
-                );
-            }
-
-            #[test]
-            fn extension_args() {
-                assert_eq!(
-                    Args::try_parse_from(["em", "list", "output-formats"])
-                        .unwrap()
-                        .command
-                        .list()
-                        .unwrap()
-                        .extensions
+                        .modules
                         .args,
                     vec![]
                 );
@@ -1488,7 +1394,7 @@ mod test {
                     .command
                     .list()
                     .unwrap()
-                    .extensions
+                    .modules
                     .args
                     .clone();
                     assert_eq!(valid_ext_args.len(), 3);
@@ -1501,36 +1407,6 @@ mod test {
                 }
 
                 assert!(Args::try_parse_from(["em", "list", "-a=v"]).is_err());
-            }
-
-            #[test]
-            fn extension_path() {
-                assert_eq!(
-                    Args::try_parse_from(["em", "list", "output-formats"])
-                        .unwrap()
-                        .command
-                        .list()
-                        .unwrap()
-                        .extensions
-                        .path,
-                    SearchPath::default()
-                );
-                assert_eq!(
-                    Args::try_parse_from([
-                        "em",
-                        "list",
-                        "output-formats",
-                        "--extension-path",
-                        "club:house"
-                    ])
-                    .unwrap()
-                    .command
-                    .list()
-                    .unwrap()
-                    .extensions
-                    .path,
-                    SearchPath::from(vec!["club".to_owned(), "house".to_owned()])
-                );
             }
         }
     }

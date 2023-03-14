@@ -7,7 +7,7 @@ mod doc;
 // TODO(kcza): typesettable file -> [fragment]
 
 pub struct Typesetter {
-    pub fn with(args: TypesetterArgs, style: StyleArgs, extensions: ExtensionArgs) -> Self {
+    pub fn with(args: TypesetterArgs, style: StyleArgs, modules: ModuleArgs) -> Self {
     }
 }
 
