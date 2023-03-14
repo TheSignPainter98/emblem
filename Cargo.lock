@@ -189,6 +189,7 @@ dependencies = [
  "derive-new",
  "emblem_core",
  "git2",
+ "itertools",
  "pretty_assertions",
  "regex",
  "serde",

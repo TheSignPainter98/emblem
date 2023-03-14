@@ -7,7 +7,12 @@ mod manifest;
 
 pub use crate::init::Initialiser;
 use arg_parser::{Args, Command};
-use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Linter, Log, context::{Dependency, DependencyName}};
+use emblem_core::{
+    context::{Dependency, DependencyName},
+    log::Logger,
+    Action, Builder, Context, Explainer, Linter, Log,
+};
+use itertools::Itertools;
 use std::{collections::HashMap, fs, process::ExitCode};
 
 fn main() -> ExitCode {
@@ -28,7 +33,7 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    if let Err(e) = load_manifest(&mut ctx, &raw_manifest) {
+    if let Err(e) = load_manifest(&mut ctx, &raw_manifest, &args) {
         e.print(&mut logger);
         return ExitCode::FAILURE;
     };
@@ -56,9 +61,14 @@ fn main() -> ExitCode {
     }
 }
 
-fn load_manifest<'ctx, 'm>(ctx: &'ctx mut Context<'m>, src: &'m str) -> Result<(), Box<Log<'m>>>
+fn load_manifest<'ctx, 'm, 'a>(
+    ctx: &'ctx mut Context<'m>,
+    src: &'m str,
+    args: &'a Args,
+) -> Result<(), Box<Log<'m>>>
 where
     'm: 'ctx,
+    'a: 'm,
 {
     let manifest = manifest::load_str(src)?;
 
@@ -74,14 +84,65 @@ where
         doc_info.set_keywords(keywords);
     }
 
-    if let Some(dependencies) = manifest.requires {
-        ctx.set_dependencies(
-            dependencies
-                .into_iter()
-                .map(|(k, v)| (k, v.into()))
-                .collect(),
-        );
+    let lua_info = ctx.lua_info_mut();
+
+    let mut specific_args: HashMap<_, Vec<_>> = HashMap::new();
+    if let Some(lua_args) = args.extension_args() {
+        lua_info.set_sandbox(lua_args.sandbox.into());
+        lua_info.set_max_mem(lua_args.max_mem.into());
+
+        let mut general_args = Vec::with_capacity(lua_args.args.len());
+        for arg in &lua_args.args {
+            let name = arg.name();
+
+            match name.find('.') {
+                None => general_args.push((name, arg.value())),
+                Some(0) => {
+                    return Err(Box::new(Log::error(format!(
+                        "argument module name cannot be empty: got '{}' in '{}={}'",
+                        name, name, arg.value(),
+                    ))))
+                }
+                Some(idx) => {
+                    let dep_name = &name[..idx];
+                    let arg_name = &name[1+idx..];
+                    if let Some(args) = specific_args.get_mut(dep_name) {
+                        args.push((arg_name, arg.value()));
+                    } else {
+                        specific_args.insert(dep_name, vec![(arg_name, arg.value())]);
+                    }
+                }
+            }
+        }
+
+        lua_info.set_general_args(general_args);
     }
+
+    let dependencies = manifest
+        .requires
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(k, v)| {
+            let k: DependencyName<'m> = k.into();
+            let mut v: Dependency<'m> = v.into();
+            if let Some(args) = specific_args.remove(v.rename_as().unwrap_or(k.name())) {
+                let dep_args = v.args_mut();
+                for (k2, v2) in args {
+                    dep_args.insert(k2, v2);
+                }
+            }
+            (k, v)
+        })
+        .collect();
+
+    if !specific_args.is_empty() {
+        return Err(Box::new(Log::error(format!(
+            "Unused arguments: {}",
+            specific_args.keys().join(", ")
+        ))));
+    }
+
+    ctx.set_dependencies(dependencies);
 
     Ok(())
 }
