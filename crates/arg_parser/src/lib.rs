@@ -132,7 +132,7 @@ pub struct RawLogArgs {
 #[derive(Clone, Debug, PartialEq, Eq, Subcommand)]
 #[warn(missing_docs)]
 pub enum Command {
-    /// Add a dependency to the current document
+    /// Add a module the current document's compilation
     Add(AddCmd),
 
     /// Build a given document
@@ -235,16 +235,16 @@ pub struct AddCmd {
     #[arg(value_name = "source")]
     pub to_add: String,
 
-    /// Use a specific commit in the dependency's history
-    #[arg(long, value_name = "hash", group = "dependency-version")]
+    /// Use a specific commit in the module's history
+    #[arg(long, value_name = "hash", group = "module-version")]
     pub commit: Option<String>,
 
-    /// Override the dependency name
+    /// Override the module name
     #[arg(long, value_name = "name")]
     pub rename_as: Option<String>,
 
-    /// Use version of dependency at given tag
-    #[arg(long, value_name = "tag-name", group = "dependency-version")]
+    /// Use version of module at given tag
+    #[arg(long, value_name = "tag-name", group = "module-version")]
     pub tag: Option<String>,
 }
 

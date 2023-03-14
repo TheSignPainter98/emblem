@@ -1,7 +1,7 @@
-mod dependency;
+mod module;
 
 use crate::Version;
-pub use dependency::{Dependency, DependencyName, DependencyVersion};
+pub use module::{Module, ModuleName, ModuleVersion};
 use typed_arena::Arena;
 
 #[derive(Default)]
@@ -9,7 +9,7 @@ pub struct Context<'m> {
     files: Arena<File>,
     doc_info: DocInfo<'m>,
     lua_info: LuaInfo<'m>,
-    dependencies: Option<Vec<(DependencyName<'m>, Dependency<'m>)>>,
+    modules: Option<Vec<(ModuleName<'m>, Module<'m>)>>,
 }
 
 impl<'m> Context<'m> {
@@ -18,7 +18,7 @@ impl<'m> Context<'m> {
             files: Arena::new(),
             doc_info: Default::default(),
             lua_info: Default::default(),
-            dependencies: None,
+            modules: None,
         }
     }
 
@@ -42,16 +42,16 @@ impl<'m> Context<'m> {
         &mut self.lua_info
     }
 
-    pub fn set_dependencies(&mut self, dependencies: Vec<(DependencyName<'m>, Dependency<'m>)>) {
-        self.dependencies = Some(dependencies);
+    pub fn set_modules(&mut self, modules: Vec<(ModuleName<'m>, Module<'m>)>) {
+        self.modules = Some(modules);
     }
 
-    pub fn dependencies(&self) -> &Option<Vec<(DependencyName<'m>, Dependency<'m>)>> {
-        &self.dependencies
+    pub fn modules(&self) -> &Option<Vec<(ModuleName<'m>, Module<'m>)>> {
+        &self.modules
     }
 
-    pub fn dependencies_mut(&mut self) -> Option<&mut Vec<(DependencyName<'m>, Dependency<'m>)>> {
-        self.dependencies.as_mut()
+    pub fn modules_mut(&mut self) -> Option<&mut Vec<(ModuleName<'m>, Module<'m>)>> {
+        self.modules.as_mut()
     }
 }
 
@@ -121,7 +121,7 @@ pub struct LuaInfo<'m> {
     sandbox: SandboxLevel,
     max_mem: MemoryLimit,
     general_args: Option<Vec<(&'m str, &'m str)>>,
-    dependencies: Option<Vec<(&'m str, Dependency<'m>)>>,
+    modules: Option<Vec<(&'m str, Module<'m>)>>,
 }
 
 impl<'m> LuaInfo<'m> {
@@ -141,12 +141,12 @@ impl<'m> LuaInfo<'m> {
         self.max_mem
     }
 
-    pub fn set_dependencies(&mut self, dependencies: Vec<(&'m str, Dependency<'m>)>) {
-        self.dependencies = Some(dependencies);
+    pub fn set_modules(&mut self, modules: Vec<(&'m str, Module<'m>)>) {
+        self.modules = Some(modules);
     }
 
-    pub fn dependencies(&self) -> &Option<Vec<(&'m str, Dependency<'m>)>> {
-        &self.dependencies
+    pub fn modules(&self) -> &Option<Vec<(&'m str, Module<'m>)>> {
+        &self.modules
     }
 
     pub fn set_general_args(&mut self, general_args: Vec<(&'m str, &'m str)>) {

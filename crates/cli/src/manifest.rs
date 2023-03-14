@@ -1,6 +1,6 @@
 use crate::Log;
 use emblem_core::{
-    context::{Dependency as EmblemDependency, DependencyVersion as EmblemDependencyVersion},
+    context::{Module as EmblemModule, ModuleVersion as EmblemModuleVersion},
     Version as EmblemVersion,
 };
 use serde::Deserialize as Deserialise;
@@ -104,7 +104,7 @@ impl<'m> Module<'m> {
     }
 }
 
-impl<'m> From<Module<'m>> for EmblemDependency<'m> {
+impl<'m> From<Module<'m>> for EmblemModule<'m> {
     fn from(module: Module<'m>) -> Self {
         Self::new(
             module.rename_as,
@@ -120,7 +120,7 @@ pub enum ModuleVersion<'m> {
     Hash(&'m str),
 }
 
-impl<'m> From<ModuleVersion<'m>> for EmblemDependencyVersion<'m> {
+impl<'m> From<ModuleVersion<'m>> for EmblemModuleVersion<'m> {
     fn from(version: ModuleVersion<'m>) -> Self {
         match version {
             ModuleVersion::Tag(t) => Self::Tag(t),
@@ -292,14 +292,14 @@ mod test {
 //     name: &'m str,
 //     authors: Vec<&'m str>,
 //     keywords: Option<Vec<&'m str>>,
-//     requires: Option<HashMap<&'m str, PackageDependency<'m>>>,
+//     requires: Option<HashMap<ModuleName<'m>, ModuleDependency<'m>>>,
 //     provides_outputs: Vec<&'m str>,
 //     args: PackageArgSpec<'m>,
 // }
 
 // #[derive(Debug, Deserialise)]
 // #[serde(rename_all = "kebab-case", deny_unknown_fields)]
-// struct PackageDependency<'m> {
+// struct ModuleDependency<'m> {
 //     branch: Option<&'m str>,
 //     tag: Option<&'m str>,
 //     commit: Option<&'m str>,
@@ -308,7 +308,7 @@ mod test {
 
 // #[derive(Debug, Deserialise)]
 // #[serde(deny_unknown_fields, bound(deserialize = "'de: 'm"))]
-// struct PackageArgSpec<'m> {
+// struct ModuleArgSpec<'m> {
 //     mandatory: Vec<&'m str>,
 //     optional: Vec<&'m str>,
 // }

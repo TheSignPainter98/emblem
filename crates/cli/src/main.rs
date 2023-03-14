@@ -8,7 +8,7 @@ mod manifest;
 pub use crate::init::Initialiser;
 use arg_parser::{Args, Command};
 use emblem_core::{
-    context::{Dependency, DependencyName},
+    context::{Module, ModuleName},
     log::Logger,
     Action, Builder, Context, Explainer, Linter, Log,
 };
@@ -120,13 +120,13 @@ where
         lua_info.set_general_args(general_args);
     }
 
-    let dependencies = manifest
+    let modules = manifest
         .requires
         .unwrap_or_default()
         .into_iter()
         .map(|(k, v)| {
-            let k: DependencyName<'m> = k.into();
-            let mut v: Dependency<'m> = v.into();
+            let k: ModuleName<'m> = k.into();
+            let mut v: Module<'m> = v.into();
             if let Some(args) = specific_args.remove(v.rename_as().unwrap_or(k.name())) {
                 let dep_args = v.args_mut();
                 for (k2, v2) in args {
@@ -144,13 +144,13 @@ where
         ))));
     }
 
-    ctx.set_dependencies(dependencies);
+    ctx.set_modules(modules);
 
     Ok(())
 }
 
-fn execute<'m, C, R>(
-    ctx: &'m mut Context<'m>,
+fn execute<'ctx, C, R>(
+    ctx: &'ctx mut Context<'ctx>,
     cmd: C,
     warnings_as_errors: bool,
 ) -> (Vec<Log<'_>>, bool)
