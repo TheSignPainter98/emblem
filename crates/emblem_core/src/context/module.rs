@@ -38,17 +38,14 @@ pub struct Module<'m> {
 }
 
 impl<'m> Module<'m> {
-    #[allow(dead_code)]
     pub fn rename_as(&self) -> &Option<&'m str> {
         &self.rename_as
     }
 
-    #[allow(dead_code)]
     pub fn version(&self) -> ModuleVersion<'m> {
         self.version
     }
 
-    #[allow(dead_code)]
     pub fn args(&self) -> &HashMap<&'m str, &'m str> {
         &self.args
     }
