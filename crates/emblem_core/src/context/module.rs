@@ -87,13 +87,9 @@ mod test {
         let expected = "new-name";
         assert_eq!(
             expected,
-            Module::new(
-                Some(expected),
-                ModuleVersion::Tag("foo"),
-                HashMap::new()
-            )
-            .rename_as()
-            .unwrap()
+            Module::new(Some(expected), ModuleVersion::Tag("foo"), HashMap::new())
+                .rename_as()
+                .unwrap()
         );
     }
 
