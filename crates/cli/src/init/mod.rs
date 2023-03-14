@@ -38,9 +38,9 @@ pub struct Initialiser<T: AsRef<Path>> {
     dir: T,
 }
 
-impl From<InitCmd> for Initialiser<PathBuf> {
-    fn from(cmd: InitCmd) -> Self {
-        Self::new(PathBuf::from(cmd.dir))
+impl From<&InitCmd> for Initialiser<PathBuf> {
+    fn from(cmd: &InitCmd) -> Self {
+        Self::new(PathBuf::from(cmd.dir.clone()))
     }
 }
 

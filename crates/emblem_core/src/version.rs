@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum Version {
     V1_0,
 }

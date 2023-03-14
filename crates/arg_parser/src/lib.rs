@@ -5,6 +5,7 @@ use clap::{
     CommandFactory, Parser, Subcommand, ValueEnum,
     ValueHint::{AnyPath, DirPath, FilePath},
 };
+use emblem_core::context::{SandboxLevel as EmblemSandboxLevel, MemoryLimit as EmblemMemoryLimit};
 use std::{env, ffi::OsString, fmt::Display, path};
 
 /// Parsed command-line arguments
@@ -272,10 +273,10 @@ impl BuildCmd {
     }
 }
 
-impl From<BuildCmd> for emblem_core::Builder {
-    fn from(cmd: BuildCmd) -> Self {
+impl From<&BuildCmd> for emblem_core::Builder {
+    fn from(cmd: &BuildCmd) -> Self {
         let output_stem = cmd.output_stem().into();
-        emblem_core::Builder::new(cmd.input.file.into(), output_stem, cmd.output.driver)
+        emblem_core::Builder::new(cmd.input.file.clone().into(), output_stem, cmd.output.driver.clone())
     }
 }
 
@@ -288,9 +289,9 @@ pub struct ExplainCmd {
     pub id: String,
 }
 
-impl From<ExplainCmd> for emblem_core::Explainer {
-    fn from(cmd: ExplainCmd) -> Self {
-        Self::new(cmd.id)
+impl From<&ExplainCmd> for emblem_core::Explainer {
+    fn from(cmd: &ExplainCmd) -> Self {
+        Self::new(cmd.id.clone())
     }
 }
 
@@ -329,9 +330,9 @@ pub struct LintCmd {
     pub extensions: ExtensionArgs,
 }
 
-impl From<LintCmd> for emblem_core::Linter {
-    fn from(cmd: LintCmd) -> Self {
-        Self::new(cmd.input.file.into(), cmd.fix)
+impl From<&LintCmd> for emblem_core::Linter {
+    fn from(cmd: &LintCmd) -> Self {
+        Self::new(cmd.input.file.clone().into(), cmd.fix)
     }
 }
 
@@ -540,7 +541,7 @@ impl TryFrom<&str> for ArgPath {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum MemoryLimit {
     Limited(usize),
     #[default]
@@ -620,6 +621,15 @@ impl TryFrom<&str> for MemoryLimit {
     }
 }
 
+impl From<MemoryLimit> for EmblemMemoryLimit {
+    fn from(limit: MemoryLimit) -> Self {
+        match limit {
+            MemoryLimit::Limited(n) => Self::Limited(n),
+            MemoryLimit::Unlimited => Self::Unlimited,
+        }
+    }
+}
+
 #[derive(ValueEnum, Clone, Debug, Eq, PartialEq)]
 pub enum RequestedInfo {
     // InputFormats,
@@ -664,7 +674,7 @@ impl From<Verbosity> for emblem_core::Verbosity {
     }
 }
 
-#[derive(ValueEnum, Clone, Debug, Default, PartialEq, Eq)]
+#[derive(ValueEnum, Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum SandboxLevel {
     /// Extensions have no restrictions placed upon them.
     Unrestricted,
@@ -676,6 +686,16 @@ pub enum SandboxLevel {
 
     /// Same restrictions as Standard, but all file system access if prohibited.
     Strict,
+}
+
+impl From<SandboxLevel> for EmblemSandboxLevel {
+    fn from(level: SandboxLevel) -> Self {
+        match level {
+            SandboxLevel::Unrestricted => Self::Unrestricted,
+            SandboxLevel::Standard => Self::Standard,
+            SandboxLevel::Strict => Self::Strict,
+        }
+    }
 }
 
 #[derive(ValueEnum, Copy, Clone, Debug, Default, PartialEq, Eq)]
@@ -736,7 +756,7 @@ impl TryFrom<String> for ExtArg {
                 let mut cmd = RawArgs::command();
                 Err(cmd.error(error::ErrorKind::InvalidValue, "need argument name"))
             }
-            Some(loc) => Ok(Self { raw, eq_idx: loc }),
+            Some(loc) => Ok(Self { raw, eq_idx: loc,  }),
             None => {
                 let mut cmd = RawArgs::command();
                 Err(cmd.error(error::ErrorKind::InvalidValue, "need a value"))

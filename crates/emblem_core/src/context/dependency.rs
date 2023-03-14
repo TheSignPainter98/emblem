@@ -2,6 +2,34 @@ use std::collections::HashMap;
 
 use derive_new::new;
 
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+pub struct DependencyName<'m> {
+    name: &'m str,
+    source: &'m str,
+}
+
+impl<'m> DependencyName<'m> {
+    pub fn name(&self) -> &'m str {
+        self.name
+    }
+
+    pub fn source(&self) -> &'m str {
+        self.source
+    }
+}
+
+impl<'m> From<&'m str> for DependencyName<'m> {
+    fn from(source: &'m str) -> Self {
+        Self {
+            name: match source.find('/') {
+                Some(idx) => &source[1+idx..],
+                None => source,
+            },
+            source,
+        }
+    }
+}
+
 #[derive(new, Debug, Eq, PartialEq)]
 pub struct Dependency<'m> {
     rename_as: Option<&'m str>,
@@ -11,18 +39,22 @@ pub struct Dependency<'m> {
 
 impl<'m> Dependency<'m> {
     #[allow(dead_code)]
-    fn rename_as(&self) -> &Option<&'m str> {
+    pub fn rename_as(&self) -> &Option<&'m str> {
         &self.rename_as
     }
 
     #[allow(dead_code)]
-    fn version(&self) -> DependencyVersion<'m> {
+    pub fn version(&self) -> DependencyVersion<'m> {
         self.version
     }
 
     #[allow(dead_code)]
-    fn args(&self) -> &HashMap<&'m str, &'m str> {
+    pub fn args(&self) -> &HashMap<&'m str, &'m str> {
         &self.args
+    }
+
+    pub fn args_mut(&mut self) -> &mut HashMap<&'m str, &'m str> {
+        &mut self.args
     }
 }
 
