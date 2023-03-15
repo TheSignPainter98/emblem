@@ -25,11 +25,8 @@ impl<'i> Message<'i> for UnexpectedToken<'i> {
         if matches!(self.token, Tok::Newline { at_eof: true }) {
             return UnexpectedEOF::new(self.loc.end(), vec![]).log();
         }
-        Log::error("unexpected token")
-            .with_src(
-                Src::new(&self.loc)
-                    .with_annotation(Note::error(&self.loc, format!("found {} here", self.token))),
-            )
+        Log::error(format!("unexpected {}", self.token))
+            .with_src(Src::new(&self.loc).with_annotation(Note::error(&self.loc, "found here")))
             .with_expected(self.expected)
     }
 }
