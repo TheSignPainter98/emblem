@@ -1,9 +1,11 @@
 mod debug;
 pub mod parsed;
+mod repr_loc;
 mod text;
 
 #[cfg(test)]
 pub use debug::AstDebug;
+pub use repr_loc::ReprLoc;
 pub use text::Text;
 
 #[derive(Debug)]
@@ -38,6 +40,24 @@ impl<T> From<T> for Par<T> {
 pub enum ParPart<T> {
     Line(Vec<T>),
     Command(T),
+}
+
+#[cfg(test)]
+impl<T> ParPart<T> {
+    fn line(&self) -> Option<&[T]> {
+        match self {
+            Self::Line(l) => Some(l),
+            Self::Command(_) => None,
+        }
+    }
+
+    #[allow(unused)]
+    fn command(&self) -> Option<&T> {
+        match self {
+            Self::Line(_) => None,
+            Self::Command(c) => Some(c),
+        }
+    }
 }
 
 #[cfg(test)]
