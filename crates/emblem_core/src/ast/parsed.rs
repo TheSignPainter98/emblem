@@ -237,6 +237,27 @@ pub enum Sugar<'i> {
     },
 }
 
+impl<'i> Sugar<'i> {
+    pub fn call_name(&self) -> &'static str {
+        match self {
+            Self::Italic { .. } => "it",
+            Self::Bold { .. } => "bf",
+            Self::Monospace { .. } => "tt",
+            Self::Smallcaps { .. } => "sc",
+            Self::AlternateFace { .. } => "af",
+            Self::Heading { level, .. } => match level {
+                1 => "h1",
+                2 => "h2",
+                3 => "h3",
+                4 => "h4",
+                5 => "h5",
+                6 => "h6",
+                _ => panic!("internal error: unknown heading level {level}"),
+            },
+        }
+    }
+}
+
 #[cfg(test)]
 impl<'i> AstDebug for Sugar<'i> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
@@ -313,7 +334,6 @@ mod test {
     use crate::parser::Point;
 
     mod attrs {
-
         use super::*;
 
         #[test]
@@ -361,6 +381,78 @@ mod test {
             assert_eq!(attr.name(), "foo");
             assert_eq!(attr.value(), Some("bar"));
             assert_eq!(attr.raw(), raw);
+        }
+    }
+
+    mod sugar {
+        use super::*;
+
+        #[test]
+        fn call_name() {
+            let text = "hello, world!";
+            let p1 = Point::new("main.em", text);
+            let p2 = p1.clone().shift(text);
+            let loc = Location::new(&p1, &p2);
+
+            assert_eq!(
+                "it",
+                Sugar::Italic {
+                    delimiter: "_",
+                    arg: vec![],
+                    loc: loc.clone()
+                }
+                .call_name()
+            );
+            assert_eq!(
+                "bf",
+                Sugar::Bold {
+                    delimiter: "**",
+                    arg: vec![],
+                    loc: loc.clone()
+                }
+                .call_name()
+            );
+            assert_eq!(
+                "tt",
+                Sugar::Monospace {
+                    arg: vec![],
+                    loc: loc.clone()
+                }
+                .call_name()
+            );
+            assert_eq!(
+                "sc",
+                Sugar::Smallcaps {
+                    arg: vec![],
+                    loc: loc.clone()
+                }
+                .call_name()
+            );
+            assert_eq!(
+                "af",
+                Sugar::AlternateFace {
+                    arg: vec![],
+                    loc: loc.clone()
+                }
+                .call_name()
+            );
+
+            for level in 1..=6 {
+                for pluses in 0..=2 {
+                    assert_eq!(
+                        format!("h{level}"),
+                        Sugar::Heading {
+                            level,
+                            pluses,
+                            standoff: " ",
+                            arg: vec![],
+                            loc: loc.clone(),
+                            invocation_loc: loc.clone(),
+                        }
+                        .call_name()
+                    );
+                }
+            }
         }
     }
 }
