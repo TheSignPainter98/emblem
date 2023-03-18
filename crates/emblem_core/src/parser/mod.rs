@@ -753,6 +753,7 @@ pub mod test {
 
         #[test]
         fn word() {
+            assert_structure("ignore empty", "!!", "File[Par[[Word(!!)]]]");
             assert_structure(
                 "ignore unmatched at start",
                 "spanish inquisition!",
@@ -771,13 +772,26 @@ pub mod test {
             assert_structure("comment", "!//!", "File[Par[[!//!]]]");
             assert_structure("multi line comment start", "!/*!", "File[Par[[!/*!]]]");
             assert_structure("multi line comment end", "!*/!", "File[Par[[!*/!]]]");
-            assert_structure("empty", "!!", "File[Par[[!!]]]");
             assert_structure(
                 "with spaces",
                 "!hello } world :: !",
                 "File[Par[[!hello } world :: !]]]",
             );
             assert_structure("ignored in comment", "//!asdf!", "File[Par[[//!asdf!]]]");
+        }
+
+        #[test]
+        fn multiple() {
+            assert_structure(
+                "multiple-single-line",
+                "!verb1! !verb2!",
+                "File[Par[[!verb1!|< >|!verb2!]]]",
+            );
+            assert_structure(
+                "multiple-single-line",
+                "!verb1!\n!verb2!",
+                "File[Par[[!verb1!]|[!verb2!]]]",
+            );
         }
     }
 
