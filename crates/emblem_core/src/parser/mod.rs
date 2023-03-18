@@ -779,6 +779,12 @@ pub mod test {
             );
             assert_structure("ignored in comment", "//!asdf!", "File[Par[[//!asdf!]]]");
         }
+
+        #[test]
+        fn multiple() {
+            assert_structure("multiple-single-line", "!verb1! !verb2!", "File[Par[[!verb1!|< >|!verb2!]]]");
+            assert_structure("multiple-single-line", "!verb1!\n!verb2!", "File[Par[[!verb1!]|[!verb2!]]]");
+        }
     }
 
     mod single_line_comments {
