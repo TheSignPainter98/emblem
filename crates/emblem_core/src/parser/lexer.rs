@@ -165,7 +165,7 @@ impl<'input> Iterator for Lexer<'input> {
             let DOUBLE_COLON   = r"::";
             let INITIAL_INDENT = r"[ \t]*";
             let COMMAND        = r"\.[^ \t{}\[\]\r\n:+]+\+*";
-            let VERBATIM       = r"![^!\r\n]*!";
+            let VERBATIM       = r"![^!\r\n]+!";
             let BRACE_LEFT     = r"\{";
             let BRACE_RIGHT    = r"\}";
             let COMMENT        = r"//[^\r\n]*";
