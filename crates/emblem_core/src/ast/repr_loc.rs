@@ -12,11 +12,16 @@ pub trait ReprLoc<'em> {
 
 impl<'em> ReprLoc<'em> for Par<ParPart<Content<'em>>> {
     fn repr_loc(&self) -> Location<'em> {
-        self.parts
+        let parts = self
+            .parts
+            .iter()
+            .filter(|part| !part.is_empty())
+            .collect::<Vec<_>>();
+        parts
             .first()
             .unwrap()
             .repr_loc()
-            .span_to(&self.parts.last().unwrap().repr_loc())
+            .span_to(&parts.last().unwrap().repr_loc())
     }
 }
 

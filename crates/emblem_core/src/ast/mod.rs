@@ -36,10 +36,25 @@ impl<T> From<T> for Par<T> {
     }
 }
 
+impl<T> Par<ParPart<T>> {
+    pub fn is_empty(&self) -> bool {
+        self.parts.is_empty() || self.parts.iter().all(|part| part.is_empty())
+    }
+}
+
 #[derive(Debug)]
 pub enum ParPart<T> {
     Line(Vec<T>),
     Command(T),
+}
+
+impl<T> ParPart<T> {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::Line(l) => l.is_empty(),
+            Self::Command(_) => false,
+        }
+    }
 }
 
 #[cfg(test)]
