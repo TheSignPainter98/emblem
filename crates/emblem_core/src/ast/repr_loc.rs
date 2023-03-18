@@ -29,7 +29,6 @@ impl<'em> ReprLoc<'em> for ParPart<Content<'em>> {
     fn repr_loc(&self) -> Location<'em> {
         match self {
             Self::Line(l) => match &l[..] {
-                [Content::Command { invocation_loc, .. }] => invocation_loc.clone(),
                 [sole] => sole.repr_loc(),
                 [f, .., l] => f.repr_loc().span_to(&l.repr_loc()),
                 [] => panic!("internal error: empty line"),
