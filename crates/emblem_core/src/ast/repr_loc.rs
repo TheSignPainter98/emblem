@@ -44,7 +44,10 @@ impl<'em> ReprLoc<'em> for ParPart<Content<'em>> {
 impl<'em> ReprLoc<'em> for Content<'em> {
     fn repr_loc(&self) -> Location<'em> {
         match self {
-            Self::Command { invocation_loc: loc, .. }
+            Self::Command {
+                invocation_loc: loc,
+                ..
+            }
             | Self::Word { loc, .. }
             | Self::Whitespace { loc, .. }
             | Self::Dash { loc, .. }
@@ -114,10 +117,7 @@ mod test {
                 .to_string()
         );
 
-        let trailer_file = parse(
-            "par-part-command",
-            ".wear{your heart}:\n\ton your cheek",
-        );
+        let trailer_file = parse("par-part-command", ".wear{your heart}:\n\ton your cheek");
         assert_eq!(
             "par-part-command:1:1-5",
             trailer_file.pars[0].parts[0].repr_loc().to_string()
