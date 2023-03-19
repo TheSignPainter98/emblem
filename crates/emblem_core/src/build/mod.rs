@@ -1,3 +1,5 @@
+mod typesetter;
+
 use crate::args::ArgPath;
 use crate::context::Context;
 use crate::log::messages::Message;
@@ -7,6 +9,8 @@ use crate::Action;
 use crate::EmblemResult;
 use crate::Log;
 use derive_new::new;
+
+use self::typesetter::typeset;
 
 #[derive(new)]
 pub struct Builder {
@@ -30,7 +34,7 @@ impl Action for Builder {
 
         let (logs, ret) = match parser::parse_file(ctx, fname) {
             Ok(d) => {
-                println!("{d:?}"); // TODO(kcza): typeset
+                typeset(d).unwrap();
                 (vec![], Some(vec![]))
             }
             Err(e) => (vec![e.log()], None),

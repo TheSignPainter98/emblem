@@ -1,17 +1,15 @@
-use crate::args::TypesetterArgs;
-use crate::ast::parsed::ParsedFile;
+use crate::{ast::parsed::ParsedFile, build::typesetter::doc::Doc};
 
 mod doc;
 
-// TODO(kcza): parsed file -> typesettable file
 // TODO(kcza): typesettable file -> [fragment]
 
+#[allow(unused)]
 pub struct Typesetter {
-    pub fn with(args: TypesetterArgs, style: StyleArgs, modules: ModuleArgs) -> Self {
-    }
 }
 
-pub fn typeset<'ctx>(args: TypesetterArgs, doc: ParsedFile<'ctx>) -> Result<(), ()> {
-    println!("{args:?}, {doc:?}");
+pub fn typeset<'ctx>(parsed_doc: ParsedFile<'ctx>) -> Result<(), ()> {
+    let doc = Doc::from(parsed_doc);
+    println!("{doc:#?}");
     Ok(())
 }
