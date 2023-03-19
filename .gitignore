@@ -169,3 +169,5 @@ completion/
 # Test files
 /main.em
 test*.em
+emblem.yml
+package.yml
