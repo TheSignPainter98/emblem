@@ -80,10 +80,7 @@ impl<'em> ReprLoc<'em> for Sugar<'em> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{
-        ast::{parsed::ParsedFile, Text},
-        parser::{self, Point},
-    };
+    use crate::{ast::parsed::ParsedFile, parser};
 
     fn parse<'i>(name: &'i str, src: &'i str) -> ParsedFile<'i> {
         parser::parse(name, src).unwrap()

@@ -141,37 +141,38 @@ impl<'em> IntoDoc<'em> for ParsedFile<'em> {
 
 impl<'em> IntoDoc<'em> for Vec<Par<ParPart<Content<'em>>>> {
     fn into_doc(self, state: DocStackState) -> Option<DocElem<'em>> {
-        let content: Vec<_> = self.into_iter()
+        let content: Vec<_> = self
+            .into_iter()
             .flat_map(|par| {
                 if par.is_empty() {
                     return None;
                 }
 
                 let loc = par.repr_loc();
-                let converted = par.into_doc(state.with_discern_pars(false)).map(|d| {
-                    match d {
-                        DocElem::Content(cs) => {
-                            DocElem::Content(
-                                if cs.iter().all(|c| matches!(c, DocElem::Content(_))) {
-                                    cs.into_iter().map(|c| c.into_content().expect("internal error: content was not content")).flatten().collect()
-                                } else {
-                                    cs
-                                }
-                            )
-                        },
+                let converted = par
+                    .into_doc(state.with_discern_pars(false))
+                    .map(|d| match d {
+                        DocElem::Content(cs) => DocElem::Content(
+                            if cs.iter().all(|c| matches!(c, DocElem::Content(_))) {
+                                cs.into_iter()
+                                    .flat_map(|c| {
+                                        c.into_content()
+                                            .expect("internal error: content was not content")
+                                    })
+                                    .collect()
+                            } else {
+                                cs
+                            },
+                        ),
                         d => d,
-                    }
-                });
+                    });
 
-                let apply_paragraph = state.discern_pars && match &converted {
-                    Some(DocElem::Content(c)) => match &c[..] {
-                        [] => false,
-                        [DocElem::Command { .. }] => false,
+                let apply_paragraph = state.discern_pars
+                    && match &converted {
+                        Some(DocElem::Content(c)) => !matches!(&c[..], [] | [DocElem::Command{..}]),
+                        Some(DocElem::Command { .. }) => false,
                         _ => true,
-                    }
-                    Some(DocElem::Command { .. }) => false,
-                    _ => true,
-                };
+                    };
                 if apply_paragraph {
                     return Some(DocElem::Command {
                         name: Text::from("p"),
@@ -180,10 +181,11 @@ impl<'em> IntoDoc<'em> for Vec<Par<ParPart<Content<'em>>>> {
                         result: None,
                         args: vec![converted.unwrap()],
                         loc,
-                    })
+                    });
                 }
                 converted
-            }).collect();
+            })
+            .collect();
 
         Some(if content.len() == 1 {
             content.into_iter().next().unwrap()
@@ -431,9 +433,21 @@ mod test {
     #[test]
     fn into_doc_comments() {
         assert_structure("line-comment", "// on this final night", "[]");
-        assert_structure("line-comment-in-arg", ".it: // on this final night", ".it{[]}");
-        assert_structure("line-comment-inline", "before you // disappear", ".p{[Word(before)|Word(you)]}");
+        assert_structure(
+            "line-comment-in-arg",
+            ".it: // on this final night",
+            ".it{[]}",
+        );
+        assert_structure(
+            "line-comment-inline",
+            "before you // disappear",
+            ".p{[Word(before)|Word(you)]}",
+        );
         assert_structure("nested-comment", "/* forget all your worries */", "[]");
-        assert_structure("nested-comment-inline", "and let go of /* all */ your fears", ".p{[Word(and)|Word(let)|Word(go)|Word(of)|Word(your)|Word(fears)]}");
+        assert_structure(
+            "nested-comment-inline",
+            "and let go of /* all */ your fears",
+            ".p{[Word(and)|Word(let)|Word(go)|Word(of)|Word(your)|Word(fears)]}",
+        );
     }
 }

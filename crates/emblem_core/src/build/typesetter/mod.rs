@@ -5,10 +5,9 @@ mod doc;
 // TODO(kcza): typesettable file -> [fragment]
 
 #[allow(unused)]
-pub struct Typesetter {
-}
+pub struct Typesetter {}
 
-pub fn typeset<'ctx>(parsed_doc: ParsedFile<'ctx>) -> Result<(), ()> {
+pub fn typeset(parsed_doc: ParsedFile<'_>) -> Result<(), ()> {
     let doc = Doc::from(parsed_doc);
     println!("{doc:#?}");
     Ok(())
