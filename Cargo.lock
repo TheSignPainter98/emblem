@@ -276,6 +276,7 @@ dependencies = [
  "pretty_assertions",
  "regex",
  "tempfile",
+ "textwrap",
  "typed-arena",
  "wasm-bindgen",
 ]
