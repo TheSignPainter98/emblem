@@ -169,7 +169,9 @@ impl<'em> IntoDoc<'em> for Vec<Par<ParPart<Content<'em>>>> {
 
                 let apply_paragraph = state.discern_pars
                     && match &converted {
-                        Some(DocElem::Content(c)) => !matches!(&c[..], [] | [DocElem::Command{..}]),
+                        Some(DocElem::Content(c)) => {
+                            !matches!(&c[..], [] | [DocElem::Command { .. }])
+                        }
                         Some(DocElem::Command { .. }) => false,
                         _ => true,
                     };
