@@ -101,7 +101,7 @@ impl<T: AstDebug> AstDebug for ParPart<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Dash {
     Hyphen,
     En,
@@ -139,7 +139,7 @@ impl AstDebug for Dash {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Glue {
     Tight,
     Nbsp,

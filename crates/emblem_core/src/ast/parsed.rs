@@ -102,7 +102,7 @@ impl AstDebug for Content<'_> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Attrs<'i> {
     attrs: Vec<Attr<'i>>,
     loc: Location<'i>,
