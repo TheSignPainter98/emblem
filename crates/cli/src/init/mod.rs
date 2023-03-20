@@ -12,16 +12,6 @@ use std::{
     io::{self, Write},
 };
 
-static MANIFEST_CONTENTS: &str = r#"
-name: My Cool Document
-authors: []
-keywords: []
-emblem: v1.0
-
-# Use `em add <package>` to make <package> available to this document
-requires: {}
-"#;
-
 static MAIN_CONTENTS: &str = r#"
 # Welcome! Welcome to Emblem.
 
@@ -76,9 +66,36 @@ impl<T: AsRef<Path>> Initialiser<T> {
 
         self.try_create_file(&git_ignore, GITIGNORE_CONTENTS)?;
         self.try_create_file(&main_file, MAIN_CONTENTS)?;
-        self.try_create_file(&manifest_file, MANIFEST_CONTENTS)?;
+        self.try_create_file(&manifest_file, &self.generate_manifest()?)?;
 
         Ok(())
+    }
+
+    /// Construct the contents of the manifest file
+    fn generate_manifest(&self) -> Result<String, Box<dyn Error>> {
+        let name = self
+            .dir
+            .as_ref()
+            .file_name()
+            .map(|s| {
+                s.to_str()
+                    .expect("directory name contains non-unicode characters")
+            })
+            .unwrap_or("emblem-document");
+
+        let manifest = format!(
+            r#"
+                name: {name}
+                authors: []
+                keywords: []
+                emblem: v1.0
+
+                # Use `em add <package>` to make <package> available to this document
+                requires: {{}}
+            "#
+        )
+        .replace("                ", "");
+        Ok(manifest)
     }
 
     /// Try to create a new file with given contents. Optionally skip if file is already present.
@@ -179,7 +196,24 @@ mod test {
             problems.logs
         );
 
-        test_files(&tmpdir, &MAIN_CONTENTS[1..], &MANIFEST_CONTENTS[1..])
+        let expected_manifest_contents = textwrap::dedent(&format!(
+            r#"
+                name: {}
+                authors: []
+                keywords: []
+                emblem: v1.0
+
+                # Use `em add <package>` to make <package> available to this document
+                requires: {{}}
+            "#,
+            tmpdir
+                .path()
+                .file_name()
+                .expect("tmpdir has no file name")
+                .to_str()
+                .expect("tmpdir contained non-ascii characters"),
+        )[1..]);
+        test_files(&tmpdir, &MAIN_CONTENTS[1..], &expected_manifest_contents)
     }
 
     #[test]
