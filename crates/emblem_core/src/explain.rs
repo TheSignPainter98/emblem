@@ -19,6 +19,13 @@ impl Action for Explainer {
             None => EmblemResult::new(vec![NoSuchErrorCode::new(self.id.clone()).log()], None),
         }
     }
+
+    fn output<'ctx>(&self, resp: Self::Response) -> EmblemResult<'ctx, ()> {
+        if let Some(explanation) = resp {
+            println!("{}", explanation);
+        }
+        EmblemResult::new(vec![], ())
+    }
 }
 
 impl Explainer {
