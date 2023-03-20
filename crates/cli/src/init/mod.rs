@@ -196,23 +196,25 @@ mod test {
             problems.logs
         );
 
-        let expected_manifest_contents = textwrap::dedent(&format!(
-            r#"
-                name: {}
-                authors: []
-                keywords: []
-                emblem: v1.0
+        let expected_manifest_contents = textwrap::dedent(
+            &format!(
+                r#"
+                    name: {}
+                    authors: []
+                    keywords: []
+                    emblem: v1.0
 
-                # Use `em add <package>` to make <package> available to this document
-                requires: {{}}
-            "#,
-            tmpdir
-                .path()
-                .file_name()
-                .expect("tmpdir has no file name")
-                .to_str()
-                .expect("tmpdir contained non-ascii characters"),
-        )[1..]);
+                    # Use `em add <package>` to make <package> available to this document
+                    requires: {{}}
+                "#,
+                tmpdir
+                    .path()
+                    .file_name()
+                    .expect("tmpdir has no file name")
+                    .to_str()
+                    .expect("tmpdir contained non-ascii characters"),
+            )[1..],
+        );
         test_files(&tmpdir, &MAIN_CONTENTS[1..], &expected_manifest_contents)
     }
 
