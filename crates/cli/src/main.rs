@@ -26,27 +26,35 @@ fn main() -> ExitCode {
         args.log.warnings_as_errors,
     );
 
-    let raw_manifest = match fs::read_to_string("emblem.yml") {
-        Ok(m) => m,
-        Err(e) => {
-            Log::error(e.to_string()).print(&mut logger);
-            return ExitCode::FAILURE;
-        }
-    };
-    if let Err(e) = load_manifest(&mut ctx, &raw_manifest, &args) {
-        e.print(&mut logger);
-        return ExitCode::FAILURE;
-    };
+    let raw_manifest: String;
+    macro_rules! integrate_manifest {
+        () => {
+            raw_manifest = match fs::read_to_string("emblem.yml") {
+                Ok(m) => m,
+                Err(e) => {
+                    Log::error(e.to_string()).print(&mut logger);
+                    return ExitCode::FAILURE;
+                }
+            };
+            if let Err(e) = load_manifest(&mut ctx, &raw_manifest, &args) {
+                e.print(&mut logger);
+                return ExitCode::FAILURE;
+            };
+        };
+    }
 
     let warnings_as_errors = args.log.warnings_as_errors;
     let (logs, successful) = match &args.command {
-        Command::Add(args) => todo!("{:?}", args),
-        Command::Build(args) => execute(&mut ctx, Builder::from(args), warnings_as_errors),
+        Command::Add(args) => todo!("{:?}", args), // integrate_manifest!() here
+        Command::Build(args) => {
+            integrate_manifest!();
+            execute(&mut ctx, Builder::from(args), warnings_as_errors)
+        }
         Command::Explain(args) => execute(&mut ctx, Explainer::from(args), warnings_as_errors),
         Command::Format(_) => todo!(),
         Command::Init(args) => execute(&mut ctx, Initialiser::from(args), warnings_as_errors),
         Command::Lint(args) => execute(&mut ctx, Linter::from(args), warnings_as_errors),
-        Command::List(_) => todo!(),
+        Command::List(_) => todo!(), // integrate_manifest!() here
     };
     for log in logs {
         log.print(&mut logger);
