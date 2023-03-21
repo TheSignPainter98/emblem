@@ -276,6 +276,7 @@ name = "emblem_core"
 version = "0.0.0"
 dependencies = [
  "annotate-snippets",
+ "cc",
  "derive-new",
  "git2",
  "lalrpop",

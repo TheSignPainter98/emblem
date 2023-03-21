@@ -1,3 +1,6 @@
 [submodule "docs/theme/mdBook-pagetoc"]
 	path = docs/theme/mdBook-pagetoc
 	url = https://github.com/JorelAli/mdBook-pagetoc.git
+[submodule "deps/yuescript"]
+	path = crates/emblem_core/deps/yuescript
+	url = https://github.com/pigpigyyy/Yuescript
