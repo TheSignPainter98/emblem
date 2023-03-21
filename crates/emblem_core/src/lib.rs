@@ -19,7 +19,10 @@ mod version;
 
 pub use crate::{
     args::ArgPath,
-    build::{Builder, typesetter::doc::{Doc, DocElem}},
+    build::{
+        typesetter::doc::{Doc, DocElem},
+        Builder,
+    },
     context::Context,
     explain::Explainer,
     lint::Linter,
