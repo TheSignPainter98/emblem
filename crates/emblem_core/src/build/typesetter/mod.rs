@@ -1,6 +1,6 @@
 use crate::{ast::parsed::ParsedFile, build::typesetter::doc::Doc};
 
-mod doc;
+pub(crate) mod doc;
 
 // TODO(kcza): typesettable file -> [fragment]
 
