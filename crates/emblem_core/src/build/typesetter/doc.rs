@@ -5,7 +5,7 @@ use crate::{
     },
     parser::Location,
 };
-use mlua::{Lua, ToLua, Value, UserData, Error as MluaError};
+use mlua::{ToLua, Value, UserData, Error as MluaError};
 
 #[cfg(test)]
 use crate::ast::AstDebug;
@@ -76,9 +76,30 @@ impl<'em> UserData for DocElem<'em> {
                 Self::Word { loc, .. }
                 | Self::Dash { loc, .. }
                 | Self::Glue { loc, .. }
-                | Self::Command { loc, .. } => loc.clone().to_lua(lua),
+                | Self::Command { loc, .. } => {
+                    //loc.clone().to_lua(lua), // TODO(kcza): lifetimes don't
+                    //match?
+                    let table = lua.create_table_with_capacity(0, 5)?;
+                    table.set("file", loc.file_name())?;
+                    let lines = loc.lines();
+                    let cols = loc.cols();
+
+                    table.set("file", loc.file_name())?;
+                    table.set("start_line", lines.0)?;
+                    table.set("end_line", lines.1)?;
+                    table.set("start_col", cols.0)?;
+                    table.set("end_col", cols.1)?;
+                    Ok(Value::Table(table))
+                },
                 Self::Content(_) => todo!(),
             }
+        });
+    }
+
+    fn add_methods<'lua, M: mlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_method_mut("eval", |_,this,()| {
+            this.eval()?;
+            Ok(Value::Nil)
         })
     }
 }
