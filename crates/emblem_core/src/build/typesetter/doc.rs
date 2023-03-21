@@ -5,7 +5,7 @@ use crate::{
     },
     parser::Location,
 };
-use mlua::{ToLua, Value, UserData, Error as MluaError};
+use mlua::{Error as MluaError, ToLua, UserData, Value};
 
 #[cfg(test)]
 use crate::ast::AstDebug;
@@ -90,14 +90,14 @@ impl<'em> UserData for DocElem<'em> {
                     table.set("start_col", cols.0)?;
                     table.set("end_col", cols.1)?;
                     Ok(Value::Table(table))
-                },
+                }
                 Self::Content(_) => todo!(),
             }
         });
     }
 
     fn add_methods<'lua, M: mlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method_mut("eval", |_,this,()| {
+        methods.add_method_mut("eval", |_, this, ()| {
             this.eval()?;
             Ok(Value::Nil)
         })

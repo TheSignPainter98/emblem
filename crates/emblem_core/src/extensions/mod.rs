@@ -1,11 +1,15 @@
-use mlua::{Lua};
+use mlua::Lua;
 
 pub fn test() {
     let lua = Lua::new();
 
-    lua.load(r#"
-        print("hello, world from Lua!")
-    "#).eval::<()>().unwrap();
+    lua.load(
+        r#"
+            print("hello, world from Lua!")
+        "#,
+    )
+    .eval::<()>()
+    .unwrap();
 
     for global in lua.globals().pairs::<String, mlua::Value>() {
         println!("{:?}", global);
