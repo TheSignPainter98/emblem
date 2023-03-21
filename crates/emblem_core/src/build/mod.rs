@@ -1,4 +1,4 @@
-mod typesetter;
+pub(crate) mod typesetter;
 
 use crate::args::ArgPath;
 use crate::context::Context;
