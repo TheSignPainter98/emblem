@@ -10,6 +10,7 @@ pub mod ast;
 pub mod build;
 pub mod context;
 pub mod explain;
+mod extensions;
 pub mod lint;
 pub mod parser;
 mod path;

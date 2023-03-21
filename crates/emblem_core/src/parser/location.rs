@@ -1,3 +1,5 @@
+use mlua::UserData;
+
 use crate::parser::{LocationContext, Point};
 use core::fmt::{self, Display};
 use std::cmp;
@@ -109,6 +111,19 @@ impl Display for Location<'_> {
                 self.file_name, self.lines.0, self.cols.0, self.cols.1
             )
         }
+    }
+}
+
+impl<'em> UserData for Location<'em> {
+    fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
+        // TODO(kcza): should these just be a __tostring for debugging only?
+        fields.add_field_method_get("file", |_, this| Ok(this.file_name));
+        fields.add_field_method_get("start", |lua, this| {
+            lua.create_sequence_from([this.lines.0, this.cols.0].into_iter())
+        });
+        fields.add_field_method_get("end", |lua, this| {
+            lua.create_sequence_from([this.lines.1, this.cols.1].into_iter())
+        });
     }
 }
 

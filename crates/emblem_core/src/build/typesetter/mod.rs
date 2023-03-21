@@ -1,10 +1,9 @@
-use crate::{ast::parsed::ParsedFile, build::typesetter::doc::Doc};
+use crate::{ast::parsed::ParsedFile, build::typesetter::doc::Doc, extensions};
 
 pub(crate) mod doc;
 
 // TODO(kcza): typesettable file -> [fragment]
 
-#[allow(unused)]
 pub struct Typesetter {
     curr_iter: u32,
     max_iters: Option<u32>,

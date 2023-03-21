@@ -5,6 +5,7 @@ use crate::{
     },
     parser::Location,
 };
+use mlua::{Lua, ToLua, Value, UserData, Error as MluaError};
 
 #[cfg(test)]
 use crate::ast::AstDebug;
@@ -65,6 +66,20 @@ impl<'em> DocElem<'em> {
             },
             c => c,
         }
+    }
+}
+
+impl<'em> UserData for DocElem<'em> {
+    fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
+        fields.add_field_method_get("loc", |lua, this| {
+            match this {
+                Self::Word { loc, .. }
+                | Self::Dash { loc, .. }
+                | Self::Glue { loc, .. }
+                | Self::Command { loc, .. } => loc.clone().to_lua(lua),
+                Self::Content(_) => todo!(),
+            }
+        })
     }
 }
 
