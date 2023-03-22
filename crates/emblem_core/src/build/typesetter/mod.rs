@@ -32,7 +32,11 @@ impl Typesetter {
             self.curr_iter += 1;
             self.reiter_requested = false;
 
-            println!("Doing iteration {} of {}", self.curr_iter, self.max_iters.unwrap_or(u32::MAX));
+            println!(
+                "Doing iteration {} of {}",
+                self.curr_iter,
+                self.max_iters.unwrap_or(u32::MAX)
+            );
 
             self.reiter_requested = true;
         }
