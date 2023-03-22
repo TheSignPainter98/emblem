@@ -263,6 +263,61 @@ pub struct BuildCmd {
     #[command(flatten)]
     #[allow(missing_docs)]
     pub modules: ModuleArgs,
+
+    /// Max iterations of the typesetting loop
+    #[arg(long, value_parser = MaxIters::parser(), default_value_t, value_name = "max")]
+    pub max_iters: MaxIters,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum MaxIters {
+    Unlimited,
+    Limited(u32),
+}
+
+impl MaxIters {
+    fn parser() -> impl TypedValueParser {
+        StringValueParser::new().try_map(Self::try_from)
+    }
+}
+
+impl From<MaxIters> for u32 {
+    fn from(max: MaxIters) -> Self {
+        match max {
+            MaxIters::Unlimited => u32::MAX,
+            MaxIters::Limited(l) => l,
+        }
+    }
+}
+
+impl TryFrom<String> for MaxIters {
+    type Error = error::Error;
+
+    fn try_from(raw: String) -> Result<Self, Self::Error> {
+        if raw == "unlimited" {
+            return Ok(Self::Unlimited);
+        }
+
+        match raw.parse() {
+            Ok(max) => Ok(Self::Limited(max)),
+            Err(e) => Err(RawArgs::command().error(error::ErrorKind::InvalidValue, e.to_string())),
+        }
+    }
+}
+
+impl Default for MaxIters {
+    fn default() -> Self {
+        Self::Limited(5)
+    }
+}
+
+impl Display for MaxIters {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unlimited => write!(f, "unlimited"),
+            Self::Limited(l) => write!(f, "{l}"),
+        }
+    }
 }
 
 impl BuildCmd {
@@ -279,6 +334,7 @@ impl From<&BuildCmd> for emblem_core::Builder {
             cmd.input.file.clone().into(),
             output_stem,
             cmd.output.driver.clone(),
+            cmd.max_iters.clone().into(),
         )
     }
 }
@@ -1184,6 +1240,37 @@ mod test {
                 }
 
                 assert!(Args::try_parse_from(["em", "-a=v"]).is_err());
+            }
+
+            #[test]
+            fn max_iters() {
+                assert_eq!(
+                    Args::try_parse_from(["em", "build"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .max_iters,
+                    MaxIters::Limited(5),
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-iters", "25"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .max_iters,
+                    MaxIters::Limited(25),
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-iters", "unlimited"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .max_iters,
+                    MaxIters::Unlimited,
+                );
             }
         }
 
