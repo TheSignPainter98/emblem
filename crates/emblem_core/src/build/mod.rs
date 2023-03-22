@@ -10,7 +10,7 @@ use crate::EmblemResult;
 use crate::Log;
 use derive_new::new;
 
-use self::typesetter::typeset;
+use self::typesetter::Typesetter;
 
 #[derive(new)]
 pub struct Builder {
@@ -21,6 +21,8 @@ pub struct Builder {
 
     #[allow(unused)]
     output_driver: Option<String>,
+
+    max_iters: u32,
 }
 
 impl Action for Builder {
@@ -32,14 +34,15 @@ impl Action for Builder {
             Err(e) => return EmblemResult::new(vec![Log::error(e.to_string())], None),
         };
 
-        let (logs, ret) = match parser::parse_file(ctx, fname) {
-            Ok(d) => {
-                typeset(d).unwrap();
-                (vec![], Some(vec![]))
-            }
-            Err(e) => (vec![e.log()], None),
+        let doc = match parser::parse_file(ctx, fname) {
+            Ok(d) => d,
+            Err(e) => return EmblemResult::new(vec![e.log()], None),
         };
 
-        EmblemResult::new(logs, ret)
+        let mut typesetter = Typesetter::new();
+        typesetter.set_max_iters(self.max_iters);
+        typesetter.typeset(doc).unwrap();
+
+        EmblemResult::new(vec![], Some(vec![]))
     }
 }
