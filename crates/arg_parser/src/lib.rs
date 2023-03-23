@@ -94,7 +94,7 @@ const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it 
 
 /// Internal command-line argument parser
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about=LONG_ABOUT, disable_help_flag=true, disable_version_flag=true)]
+#[command(name="em", author, version, about, long_about=LONG_ABOUT, disable_help_flag=true, disable_version_flag=true)]
 #[warn(missing_docs)]
 pub struct RawArgs {
     #[command(subcommand)]
