@@ -1,10 +1,15 @@
 use std::env;
 use std::error::Error;
 use std::path::Path;
+use mlua::{Value, Lua, lua_State, chunk};
+
+extern "C" {
+    fn luaopen_yue(state: *mut lua_State) -> std::os::raw::c_int;
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     parsergen()?;
-    // yuescriptgen()?;
+    luagen()?;
     Ok(())
 }
 
@@ -18,24 +23,24 @@ fn parsergen() -> Result<(), Box<dyn Error>> {
         .process()
 }
 
-// fn yuescriptgen() -> Result<(), Box<dyn Error>> {
-//     println!("cargo:rerun-if-changed=build.rs");
-//     cc::Build::new()
-//         .cpp(true)
-//         .include(".")
-//         .include("deps/yuescript/src/")
-//         .include(std::env::var("DEP_LUA_INCLUDE").unwrap())
-//         .file("deps/yuescript/src/yuescript/ast.cpp")
-//         .file("deps/yuescript/src/yuescript/parser.cpp")
-//         .file("deps/yuescript/src/yuescript/yue_compiler.cpp")
-//         .file("deps/yuescript/src/yuescript/yue_parser.cpp")
-//         .file("deps/yuescript/src/yuescript/yuescript.cpp")
-//         .flag_if_supported("-std=c++17")
-//         .shared_flag(false)
-//         .define("NDEBUG", None)
-//         .define("YUE_NO_WATCHER", None)
-//         .define("YUE_COMPILER_ONLY", None)
-//         .compile("yue");
+fn luagen() -> Result<(), Box<dyn Error>> {
+    let lua = Lua::new();
+    let yue = unsafe { lua.create_c_function(luaopen_yue)? };
+    lua.load_from_function::<_, Value>("yue", yue)?;
+    lua.load(
+        chunk! {
+            local yue = require("yue")
+                local codes, err, globals = yue.to_lua([[print "hello, world"]], {
+                    implicit_return_root = true,
+                    reserve_line_number = true,
+                    lint_global = true,
+                })
+            if err then
+                error(err)
+                    end
+                    load(codes)()
+        }
+        ).exec()?;
 
-//     Ok(())
-// }
+    Ok(())
+}

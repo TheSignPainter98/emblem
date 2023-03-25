@@ -276,7 +276,6 @@ name = "emblem_core"
 version = "0.0.0"
 dependencies = [
  "annotate-snippets",
- "cc",
  "derive-new",
  "git2",
  "lalrpop",
@@ -290,6 +289,7 @@ dependencies = [
  "textwrap",
  "typed-arena",
  "wasm-bindgen",
+ "yuescript_src",
 ]
 
 [[package]]
@@ -626,10 +626,26 @@ dependencies = [
  "cc",
  "lua-src",
  "luajit-src",
+ "mlua_derive",
  "num-traits",
  "once_cell",
  "pkg-config",
  "rustc-hash",
+]
+
+[[package]]
+name = "mlua_derive"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9214e60d3cf1643013b107330fcd374ccec1e4ba1eef76e7e5da5e8202e71c0"
+dependencies = [
+ "itertools",
+ "once_cell",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn",
 ]
 
 [[package]]
@@ -1340,4 +1356,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe5c30ade05e61656247b2e334a031dfd0cc466fadef865bdcdea8d537951bf1"
 dependencies = [
  "winapi",
+]
+
+[[package]]
+name = "yuescript_src"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "mlua",
 ]

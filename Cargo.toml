@@ -14,6 +14,7 @@ members = [
 	"crates/cli",
 	"crates/arg_parser",
 	"crates/emblem_core",
+	"crates/yuescript_src",
 ]
 
 [profile.release]
