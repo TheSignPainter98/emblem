@@ -26,10 +26,8 @@ regex = "1"
 typed-arena = "2.0.1"
 
 [build-dependencies]
-# dlopen2 = "0.4.1"
 lalrpop = "0.19.8"
-mlua = { version = "0.8.8", features = [ "luajit52", "vendored", "macros" ] }
-yuescript_src = { path = "../yuescript_src" }
+yuescript = { path = "../yuescript" }
 
 [dev-dependencies]
 tempfile = "3.3.0"

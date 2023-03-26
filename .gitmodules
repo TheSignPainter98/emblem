@@ -2,5 +2,5 @@
 	path = docs/theme/mdBook-pagetoc
 	url = https://github.com/JorelAli/mdBook-pagetoc.git
 [submodule "deps/yuescript"]
-	path = crates/yuescript_src/yuescript
+	path = crates/yuescript/yuescript
 	url = https://github.com/pigpigyyy/Yuescript

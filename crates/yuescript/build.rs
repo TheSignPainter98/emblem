@@ -7,13 +7,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 fn yuescriptgen() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rustc-link-lib=yue");
-    println!("cargo:rustc-link-search={}", env::var("OUT_DIR").unwrap());
     cc::Build::new()
         .cpp(true)
         .include(".")
         .include("yuescript/src/")
-        // .include(std::env::var("DEP_LUA_INCLUDE").unwrap())
+        .include(std::env::var("DEP_LUA_INCLUDE").unwrap())
         .file("yuescript/src/yuescript/ast.cpp")
         .file("yuescript/src/yuescript/parser.cpp")
         .file("yuescript/src/yuescript/yue_compiler.cpp")

@@ -1,11 +1,12 @@
 use std::env;
 use std::error::Error;
 use std::path::Path;
-use mlua::{Value, Lua, lua_State, chunk};
 
-extern "C" {
-    fn luaopen_yue(state: *mut lua_State) -> std::os::raw::c_int;
-}
+use yuescript::Compiler;
+
+// extern "C" {
+//     fn luaopen_yue(state: *mut lua_State) -> std::os::raw::c_int;
+// }
 
 fn main() -> Result<(), Box<dyn Error>> {
     parsergen()?;
@@ -24,23 +25,26 @@ fn parsergen() -> Result<(), Box<dyn Error>> {
 }
 
 fn luagen() -> Result<(), Box<dyn Error>> {
-    let lua = Lua::new();
-    let yue = unsafe { lua.create_c_function(luaopen_yue)? };
-    lua.load_from_function::<_, Value>("yue", yue)?;
-    lua.load(
-        chunk! {
-            local yue = require("yue")
-                local codes, err, globals = yue.to_lua([[print "hello, world"]], {
-                    implicit_return_root = true,
-                    reserve_line_number = true,
-                    lint_global = true,
-                })
-            if err then
-                error(err)
-                    end
-                    load(codes)()
-        }
-        ).exec()?;
+    let out_dir = Path::new(&env::var("OUT_DIR").unwrap()).join("yue");
+    let compiler = Compiler::new("asdf", &out_dir);
+    compiler.compile()?;
+    // let lua = Lua::new();
+    // let yue = unsafe { lua.create_c_function(luaopen_yue)? };
+    // lua.load_from_function::<_, Value>("yue", yue)?;
+    // lua.load(
+    //     chunk! {
+    //         local yue = require("yue")
+    //             local codes, err, globals = yue.to_lua([[print "hello, world"]], {
+    //                 implicit_return_root = true,
+    //                 reserve_line_number = true,
+    //                 lint_global = true,
+    //             })
+    //         if err then
+    //             error(err)
+    //                 end
+    //                 load(codes)()
+    //     }
+    //     ).exec()?;
 
     Ok(())
 }
