@@ -4,3 +4,6 @@
 [submodule "deps/yuescript"]
 	path = crates/yuescript/yuescript
 	url = https://github.com/pigpigyyy/Yuescript
+[submodule "crates/yuescript/luacheck"]
+	path = crates/yuescript/luacheck
+	url = git@github.com:mpeterv/luacheck.git

@@ -1,0 +1,6 @@
+export hello = ->
+	print 'world!'
+
+$tests do
+	require 'busted'
+	error 'Oh no, the test failed!'

@@ -26,25 +26,9 @@ fn parsergen() -> Result<(), Box<dyn Error>> {
 
 fn luagen() -> Result<(), Box<dyn Error>> {
     let out_dir = Path::new(&env::var("OUT_DIR").unwrap()).join("yue");
-    let compiler = Compiler::new("asdf", &out_dir);
+    let compiler = Compiler::new("src/extensions/yuescript/", &out_dir)
+        .with_test(true); // TODO(kcza): figure out how to get tests to work!
     compiler.compile()?;
-    // let lua = Lua::new();
-    // let yue = unsafe { lua.create_c_function(luaopen_yue)? };
-    // lua.load_from_function::<_, Value>("yue", yue)?;
-    // lua.load(
-    //     chunk! {
-    //         local yue = require("yue")
-    //             local codes, err, globals = yue.to_lua([[print "hello, world"]], {
-    //                 implicit_return_root = true,
-    //                 reserve_line_number = true,
-    //                 lint_global = true,
-    //             })
-    //         if err then
-    //             error(err)
-    //                 end
-    //                 load(codes)()
-    //     }
-    //     ).exec()?;
 
     Ok(())
 }

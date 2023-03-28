@@ -147,7 +147,6 @@ clang-tidy-info.json
 lua-lib-load.c
 constants.moon
 lua-constants.c
-*.lua
 *__mod.moon
 *.loc
 .em-store.yml
