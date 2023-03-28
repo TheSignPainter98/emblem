@@ -97,7 +97,7 @@ impl<'em> UserData for DocElem<'em> {
     }
 
     fn add_methods<'lua, M: mlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method_mut("eval", |_, this, ()| {
+        methods.add_method_mut("eval", |_, _this, ()| {
             // this.eval()?;
             Ok(Value::Nil)
         })
