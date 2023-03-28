@@ -46,7 +46,22 @@ function yuescript_to_lua(name, script)
 end
 
 function lint(module_name, lua)
-	local options = {}
+	local options = {
+		globals = {
+			em = {
+				fields = {
+					cmds = {
+						other_fields = true,
+					},
+					args = {},
+					attrs = {},
+					error = {},
+					warn = {},
+					observe = {},
+				}
+			}
+		}
+	}
 
 	local report = luacheck.get_report(lua)
 	local issues = luacheck.process_reports({report}, options)[1]
