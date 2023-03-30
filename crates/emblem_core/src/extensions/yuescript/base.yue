@@ -1,9 +1,14 @@
-export hello = ->
-	print 'world!'
+export hello = (name='current') ->
+	print "#{name} world!"
+
+hello!
+
+print em
+em.cmds.asdf = -> 'fdsa'
 
 $tests ->
-	import "busted" as :assert, :describe, :it
-	describe "emblem", ->
-		it "is amazing", ->
+	import 'busted' as :assert, :describe, :it
+	describe 'emblem', ->
+		it 'is amazing', ->
 			assert.is false
 	error 'Oh no, the test failed!'
