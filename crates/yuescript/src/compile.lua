@@ -34,13 +34,12 @@ function compile(module_name, raw, test)
 
 	lint(module_name, lua)
 
-	-- TODO(kcza): statically check with luacheck
 	-- TODO(kcza): typecheck with teal?
 
-	if test then
-		return encode(lua)
-	else
+	if not test then
 		return encode(string.dump(load(lua)))
+	else
+		return encode(lua)
 	end
 end
 
