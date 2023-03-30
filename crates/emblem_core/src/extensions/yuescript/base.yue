@@ -1,6 +1,9 @@
 export hello = ->
 	print 'world!'
 
-$tests do
-	require 'busted'
+$tests ->
+	import "busted" as :assert, :describe, :it
+	describe "emblem", ->
+		it "is amazing", ->
+			assert.is false
 	error 'Oh no, the test failed!'

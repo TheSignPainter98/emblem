@@ -5,15 +5,29 @@ package.path = package.path .. ';/home/kcza/Documents/projects/emblem/crates/yue
 local yue = require('yue')
 local luacheck = require('luacheck')
 
+function die(msg)
+	if msg then
+		print("===============================================================")
+		print(msg)
+		print("===============================================================")
+	end
+	os.exit(1)
+end
+
 -- input:
 --     find files
 --     figure out dependencies and hence load order
 function compile(module_name, raw, test)
 	local script
 	if test then
-		script = 'macro tests = (t) -> t\n' .. raw
+		script = dedent([[
+			macro tests = (t) -> table.concat {
+				"local tests = #{t}",
+				"tests!",
+			}, '\n'
+		]]) .. raw
 	else
-		script = 'macro tests = (t) -> ""\n' .. raw
+		script = 'macro busted = (t) -> ""\n' .. raw
 	end
 
 	local lua = yuescript_to_lua(module_name, script)
@@ -30,6 +44,18 @@ function compile(module_name, raw, test)
 	end
 end
 
+function dedent(string)
+	local lines = {}
+	local indent
+	for line in string.gmatch(string, "([^\r\n]*)[\n\r]?") do
+		if not indent then
+			indent = '^' .. string.match(line, "^%s+")
+		end
+		lines[#lines + 1] = string.gsub(line, indent, "")
+	end
+	return table.concat(lines, "\n")
+end
+
 function yuescript_to_lua(name, script)
 	local lua, err, globals = yue.to_lua(script, {
 		implicit_return_root = true,
@@ -40,7 +66,7 @@ function yuescript_to_lua(name, script)
 		target = '5.1',
 	})
 	if err then
-		error(err)
+		die(err)
 	end
 	return lua
 end
@@ -66,20 +92,16 @@ function lint(module_name, lua)
 	local report = luacheck.get_report(lua)
 	local issues = luacheck.process_reports({report}, options)[1]
 
-	if #issues > 0 then
-		print("===============================================================")
-	end
-
+	local messages = {}
 	for i = 1, #issues do
 		local issue = issues[i]
 		local msg = luacheck.get_message(issue)
 
-		print(string.format("error[%d]: %s:%d:%d-%d: %s", issue.code, module_name, issue.line, issue.column, issue.end_column, msg))
+		messages[#messages + 1] = string.format("luacheck: error[%d]: %s:%d:%d-%d: %s", issue.code, module_name, issue.line, issue.column, issue.end_column, msg)
 	end
 
-	if #issues > 0 then
-		print("===============================================================")
-		error("problems were found")
+	if #messages > 0 then
+		die(table.concat(messages, '\n'))
 	end
 end
 

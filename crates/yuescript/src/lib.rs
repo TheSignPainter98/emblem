@@ -3,7 +3,7 @@ use std::{
     error::Error,
     fs::{self, File},
     io::{BufWriter, Write},
-    path::{self, Path, PathBuf},
+    path::{self, Path, PathBuf}, process::{self, ExitCode}
 };
 // use thiserror::Error;
 use mlua::{lua_State, Lua, Value};
@@ -76,7 +76,8 @@ impl Compiler {
                 .call(()) {
                 Ok(b) => b,
                 Err(e) => {
-                    panic!("{e}");
+                    eprintln!("{e}");
+                    process::exit(1);
                 }
             };
 
