@@ -1,4 +1,8 @@
-package.path = package.path .. ';' .. luacheck_path
+package.path = table.concat({
+	package.path,
+	dep_dir .. '/luacheck/src/?.lua',
+	dep_dir .. '/luacheck/src/?/init.lua',
+}, ';')
 
 local yue = require('yue')
 local luacheck = require('luacheck')
@@ -282,17 +286,39 @@ local function encode(luas, test)
 
 	if test then
 		buf[#buf + 1] = 'package.preload["emtest"] = function()\n'
+		buf[#buf + 1] = '\treturn function()\n'
 		for i = 1, #modules do
-			buf[#buf + 1] = '\trequire("' .. modules[i] .. '")\n'
+			buf[#buf + 1] = '\t\trequire("' .. modules[i] .. '")\n'
 		end
-		buf[#buf + 1] = '\tfor i = 1, #__tests do\n'
-		buf[#buf + 1] = '\t\t__tests[i]()\n'
+		buf[#buf + 1] = '\t\tpackage.path = table.concat({'
+		buf[#buf + 1] = table.concat({
+			'package.path',
+			string.format('"%s/busted/?.lua"', dep_dir),
+			string.format('"%s/busted/?/init.lua"', dep_dir),
+			string.format('"%s/penlight/lua/?.lua"', dep_dir),
+			string.format('"%s/penlight/lua/?/init.lua"', dep_dir),
+			string.format('"%s/lua-term/?.lua"', dep_dir),
+			string.format('"%s/lua-term/?/init.lua"', dep_dir),
+			string.format('"%s/mediator_lua/src/?.lua"', dep_dir),
+			string.format('"%s/lua_cliargs/src/?.lua"', dep_dir),
+			string.format('"%s/lua_cliargs/src/?/init.lua"', dep_dir),
+			string.format('"%s/luassert/src/?.lua"', dep_dir),
+			string.format('"%s/luassert/src/?/init.lua"', dep_dir),
+			string.format('"%s/say/src/?.lua"', dep_dir),
+			string.format('"%s/say/src/?/init.lua"', dep_dir),
+		}, ', ')
+		buf[#buf + 1] = '}, ";")\n'
+		buf[#buf + 1] = '\t\trequire("busted.runner")()\n'
+		buf[#buf + 1] = '\t\tfor i = 1, #__tests do\n'
+		buf[#buf + 1] = '\t\t\t__tests[i]()\n'
+		buf[#buf + 1] = '\t\tend\n'
+		buf[#buf + 1] = '\tend\n'
 		buf[#buf + 1] = 'end\n'
 	end
 
 	local code = table.concat(buf)
 	if not test then
-		code = string.dump(load(code))
+		code = string.dump(load(code), true)
 	end
 
 	return { string.byte(code, 1, #code) }

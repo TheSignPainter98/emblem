@@ -4,10 +4,6 @@ use std::path::Path;
 
 use yuescript::Compiler;
 
-// extern "C" {
-//     fn luaopen_yue(state: *mut lua_State) -> std::os::raw::c_int;
-// }
-
 fn main() -> Result<(), Box<dyn Error>> {
     parsergen()?;
     luagen()?;

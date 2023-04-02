@@ -4,11 +4,10 @@ export hello = (name='current') ->
 hello!
 
 print em
-em.cmds.asdf = -> 'fdsa'
+-- em.cmds.asdf = -> 'fdsa'
 
 $tests ->
 	import 'busted' as :assert, :describe, :it
 	describe 'emblem', ->
 		it 'is amazing', ->
-			assert.is false
-	error 'Oh no, the test failed!'
+			assert.truthy false

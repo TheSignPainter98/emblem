@@ -1,10 +1,9 @@
 use std::{
-    collections::HashMap,
     env,
     error::Error,
     fs::{self, File},
     io::{BufWriter, Write},
-    path::{self, Path, PathBuf},
+    path::{self, PathBuf},
     process,
 };
 // use thiserror::Error;
@@ -12,6 +11,9 @@ use mlua::{lua_State, Lua, Value};
 
 extern "C" {
     fn luaopen_yue(state: *mut lua_State) -> std::os::raw::c_int;
+    fn luaopen_lfs(state: *mut lua_State) -> std::os::raw::c_int;
+    fn luaopen_term_core(state: *mut lua_State) -> std::os::raw::c_int;
+    fn luaopen_system_core(state: *mut lua_State) -> std::os::raw::c_int;
 }
 
 pub struct Compiler {
@@ -57,7 +59,7 @@ impl Compiler {
 
         let globals = lua.globals();
         globals.set("test", self.test)?;
-        globals.set("luacheck_path", self.luacheck_path()?)?;
+        globals.set("dep_dir", self.dep_dir()?)?;
         globals.set("inputs", {
             let tab = lua.create_table_with_capacity(0, input_paths.len() as i32)?;
             for input_path in &input_paths {
@@ -104,17 +106,39 @@ impl Compiler {
         Ok(to_compile)
     }
 
-    fn luacheck_path(&self) -> Result<String, Box<dyn Error>> {
+    fn dep_dir(&self) -> Result<String, Box<dyn Error>> {
         let current_file = PathBuf::from(env::current_dir()?)
             .ancestors()
             .nth(2)
             .unwrap()
             .join(file!());
-        let crate_dir = current_file.ancestors().nth(2).unwrap();
-        Ok(format!(
-            "{}/luacheck/src/?.lua;{}/luacheck/src/?/init.lua",
-            crate_dir.display(),
-            crate_dir.to_string_lossy().replace("luacheck", "?")
-        ))
+        Ok(current_file
+            .ancestors()
+            .nth(2)
+            .unwrap()
+            .to_string_lossy()
+            .into())
+    }
+}
+
+pub struct Tester {}
+
+impl Tester {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn test(&self, lua: mlua::Lua) {
+        lua.load_from_function::<_, Value>("lfs", unsafe { lua.create_c_function(luaopen_lfs).unwrap() }).unwrap();
+        lua.load_from_function::<_, Value>("system", unsafe { lua.create_c_function(luaopen_system_core).unwrap() }).unwrap();
+        lua.load_from_function::<_, Value>("term.core", unsafe { lua.create_c_function(luaopen_term_core).unwrap() }).unwrap();
+
+        lua.load("require('emtest')()")
+            .exec()
+            .map_err(|e| {
+                eprintln!("{e}");
+                "error running tests"
+            })
+            .unwrap()
     }
 }
