@@ -22,6 +22,7 @@ lalrpop-util = "0.19.8"
 lazy_static = "1.4.0"
 mlua = { version = "0.8.8", features = [ "luajit52", "vendored" ] }
 parking_lot = "0.12.1"
+phf = { version = "0.11.1", features = [ "macros" ] }
 regex = "1"
 typed-arena = "2.0.1"
 

@@ -2,6 +2,8 @@ pub(crate) mod typesetter;
 
 use crate::args::ArgPath;
 use crate::context::Context;
+use crate::context::SandboxLevel;
+use crate::extensions::ExtensionState;
 use crate::log::messages::Message;
 use crate::parser;
 use crate::path::SearchResult;
