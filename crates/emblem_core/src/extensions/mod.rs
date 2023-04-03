@@ -1,6 +1,7 @@
 mod sandbox;
 
-use crate::context::SandboxLevel;
+use crate::context::{MemoryLimit, SandboxLevel};
+use derive_new::new;
 use mlua::{Error as MLuaError, Function, Lua, Table};
 use std::fmt::Display;
 
@@ -13,13 +14,15 @@ macro_rules! emblem_registry_key {
 static STD: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/yue/std.luac"));
 const EVENT_LISTENERS_RKEY: &str = emblem_registry_key!("events");
 
-pub struct ExtensionState {
-    lua: Lua,
+#[derive(new)]
+pub struct ExtensionStateBuilder {
+    sandbox_level: SandboxLevel,
+    max_mem: MemoryLimit,
 }
 
-impl ExtensionState {
-    pub fn new(sandbox_level: SandboxLevel) -> Result<Self, MLuaError> {
-        let lua = match sandbox_level {
+impl ExtensionStateBuilder {
+    pub fn build(&self) -> Result<ExtensionState, MLuaError> {
+        let lua = match self.sandbox_level {
             SandboxLevel::Unrestricted => unsafe { Lua::unsafe_new() },
             _ => Lua::new(),
         };
@@ -33,14 +36,21 @@ impl ExtensionState {
         })?;
 
         lua.load(STD).exec()?;
-        sandbox::sandbox_global(&lua, sandbox_level)?; // TODO(kcza): plumb level
-                                                       // TODO(kcza): set max mem hook
-                                                       // TODO(kcza): set max steps hook
-                                                       // TODO(kcza): set args
+        sandbox::sandbox_global(&lua, self.sandbox_level)?;
 
-        Ok(Self { lua })
+        // TODO(kcza): set max mem hook
+        // TODO(kcza): set max steps hook
+        // TODO(kcza): set args
+
+        Ok(ExtensionState { lua })
     }
+}
 
+pub struct ExtensionState {
+    lua: Lua,
+}
+
+impl ExtensionState {
     pub fn handle(&self, event: Event) -> Result<(), MLuaError> {
         let event_listeners: Table = self.lua.named_registry_value(EVENT_LISTENERS_RKEY)?;
         let listeners = match event_listeners.get::<_, Option<Table>>(event.name())? {

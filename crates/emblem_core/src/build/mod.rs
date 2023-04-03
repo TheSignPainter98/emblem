@@ -41,7 +41,12 @@ impl Action for Builder {
             Err(e) => return EmblemResult::new(vec![e.log()], None),
         };
 
-        let mut typesetter = Typesetter::new();
+        let ext_state = ExtensionState::new(SandboxLevel::Strict).unwrap(); // TODO(kcza): remove this unwrap!
+                                                                            // TODO(kcza):
+                                                                            // plumb
+                                                                            // this
+                                                                            // properly
+        let mut typesetter = Typesetter::new(&ext_state);
         typesetter.set_max_iters(self.max_iters);
         typesetter.typeset(doc).unwrap();
 

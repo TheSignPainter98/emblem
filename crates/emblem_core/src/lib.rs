@@ -26,6 +26,7 @@ pub use crate::{
     },
     context::Context,
     explain::Explainer,
+    extensions::{ExtensionState, ExtensionStateBuilder},
     lint::Linter,
     log::{Log, Verbosity},
     version::Version,

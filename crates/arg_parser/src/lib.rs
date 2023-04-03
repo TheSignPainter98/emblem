@@ -448,6 +448,12 @@ pub struct ModuleArgs {
     pub sandbox: SandboxLevel,
 }
 
+impl From<&ModuleArgs> for emblem_core::ExtensionStateBuilder {
+    fn from(args: &ModuleArgs) -> Self {
+        Self::new(args.sandbox.into(), args.max_mem.into())
+    }
+}
+
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
 pub enum UninferredArgPath {
     #[default]
