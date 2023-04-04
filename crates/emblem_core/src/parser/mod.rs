@@ -1222,8 +1222,16 @@ pub mod test {
 
             #[test]
             fn too_deep() {
-                assert_parse_error("plain", "#######", r"heading too deep at plain[^:]*:1:1-7 \(7 levels\)");
-                assert_parse_error("with-plus", "#######+", r"heading too deep at with-plus[^:]*:1:1-8 \(7 levels\)");
+                assert_parse_error(
+                    "plain",
+                    "#######",
+                    r"heading too deep at plain[^:]*:1:1-7 \(7 levels\)",
+                );
+                assert_parse_error(
+                    "with-plus",
+                    "#######+",
+                    r"heading too deep at with-plus[^:]*:1:1-8 \(7 levels\)",
+                );
             }
         }
     }

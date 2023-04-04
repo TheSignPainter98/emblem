@@ -1,6 +1,6 @@
 use crate::log::messages::{
-    DelimiterMismatch, ExtraCommentClose, NewlineInAttrs, NewlineInEmphDelimiter,
-    NewlineInInlineArg, UnclosedComments, UnexpectedChar, UnexpectedEOF, UnexpectedHeading, HeadingTooDeep,
+    DelimiterMismatch, ExtraCommentClose, HeadingTooDeep, NewlineInAttrs, NewlineInEmphDelimiter,
+    NewlineInInlineArg, UnclosedComments, UnexpectedChar, UnexpectedEOF, UnexpectedHeading,
 };
 use crate::log::Log;
 use crate::parser::Location;
@@ -655,7 +655,7 @@ impl Display for LexicalError<'_> {
             }
             Self::HeadingTooDeep { loc, level } => {
                 write!(f, "heading too deep at {loc} ({level} levels)")
-            },
+            }
         }
     }
 }
