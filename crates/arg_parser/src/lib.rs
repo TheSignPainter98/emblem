@@ -5,7 +5,7 @@ use clap::{
     CommandFactory, Parser, Subcommand, ValueEnum,
     ValueHint::{AnyPath, DirPath, FilePath},
 };
-use emblem_core::context::{MemoryLimit as EmblemMemoryLimit, SandboxLevel as EmblemSandboxLevel};
+use emblem_core::context::{ResourceLimit as EmblemResourceLimit, SandboxLevel as EmblemSandboxLevel};
 use std::{env, ffi::OsString, fmt::Display, path};
 
 /// Parsed command-line arguments
@@ -440,8 +440,12 @@ pub struct ModuleArgs {
     pub args: Vec<ExtArg>,
 
     /// Limit lua memory usage
-    #[arg(long, value_parser = MemoryLimit::parser(), default_value = "unlimited", value_name = "amount")]
-    pub max_mem: MemoryLimit,
+    #[arg(long, value_parser = ResourceLimit::parser(), default_value = "unlimited", value_name = "amount")]
+    pub max_mem: ResourceLimit,
+
+    /// Limit lua execution steps
+    #[arg(long, value_parser = ResourceLimit::parser(), default_value = "unlimited", value_name = "steps")]
+    pub max_steps: ResourceLimit,
 
     /// Restrict system access
     #[arg(long, value_enum, default_value_t, value_name = "level")]
@@ -608,19 +612,19 @@ impl TryFrom<&str> for ArgPath {
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-pub enum MemoryLimit {
+pub enum ResourceLimit {
     Limited(usize),
     #[default]
     Unlimited,
 }
 
-impl MemoryLimit {
+impl ResourceLimit {
     fn parser() -> impl TypedValueParser {
         StringValueParser::new().try_map(Self::try_from)
     }
 }
 
-impl TryFrom<OsStr> for MemoryLimit {
+impl TryFrom<OsStr> for ResourceLimit {
     type Error = error::Error;
 
     fn try_from(raw: OsStr) -> Result<Self, Self::Error> {
@@ -636,7 +640,7 @@ impl TryFrom<OsStr> for MemoryLimit {
     }
 }
 
-impl TryFrom<String> for MemoryLimit {
+impl TryFrom<String> for ResourceLimit {
     type Error = error::Error;
 
     fn try_from(raw: String) -> Result<Self, Self::Error> {
@@ -644,7 +648,7 @@ impl TryFrom<String> for MemoryLimit {
     }
 }
 
-impl TryFrom<&str> for MemoryLimit {
+impl TryFrom<&str> for ResourceLimit {
     type Error = error::Error;
 
     fn try_from(raw: &str) -> Result<Self, Self::Error> {
@@ -687,11 +691,11 @@ impl TryFrom<&str> for MemoryLimit {
     }
 }
 
-impl From<MemoryLimit> for EmblemMemoryLimit {
-    fn from(limit: MemoryLimit) -> Self {
+impl From<ResourceLimit> for EmblemResourceLimit {
+    fn from(limit: ResourceLimit) -> Self {
         match limit {
-            MemoryLimit::Limited(n) => Self::Limited(n),
-            MemoryLimit::Unlimited => Self::Unlimited,
+            ResourceLimit::Limited(n) => Self::Limited(n),
+            ResourceLimit::Unlimited => Self::Unlimited,
         }
     }
 }
@@ -1121,7 +1125,7 @@ mod test {
                         .unwrap()
                         .modules
                         .max_mem,
-                    MemoryLimit::Unlimited
+                    ResourceLimit::Unlimited
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-mem", "25"])
@@ -1131,7 +1135,7 @@ mod test {
                         .unwrap()
                         .modules
                         .max_mem,
-                    MemoryLimit::Limited(25)
+                    ResourceLimit::Limited(25)
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-mem", "25K"])
@@ -1141,7 +1145,7 @@ mod test {
                         .unwrap()
                         .modules
                         .max_mem,
-                    MemoryLimit::Limited(25 * 1024)
+                    ResourceLimit::Limited(25 * 1024)
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-mem", "25M"])
@@ -1151,7 +1155,7 @@ mod test {
                         .unwrap()
                         .modules
                         .max_mem,
-                    MemoryLimit::Limited(25 * 1024 * 1024)
+                    ResourceLimit::Limited(25 * 1024 * 1024)
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-mem", "25G"])
@@ -1161,7 +1165,7 @@ mod test {
                         .unwrap()
                         .modules
                         .max_mem,
-                    MemoryLimit::Limited(25 * 1024 * 1024 * 1024)
+                    ResourceLimit::Limited(25 * 1024 * 1024 * 1024)
                 );
 
                 assert!(Args::try_parse_from(["em", "build", "--max-mem", "100T"]).is_err());

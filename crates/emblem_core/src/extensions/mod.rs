@@ -1,6 +1,6 @@
 mod sandbox;
 
-use crate::context::{MemoryLimit, SandboxLevel};
+use crate::context::{ResourceLimit, SandboxLevel};
 use derive_new::new;
 use mlua::{Error as MLuaError, Function, Lua, Table};
 use std::fmt::Display;
@@ -17,7 +17,7 @@ const EVENT_LISTENERS_RKEY: &str = emblem_registry_key!("events");
 #[derive(new)]
 pub struct ExtensionStateBuilder {
     sandbox_level: SandboxLevel,
-    max_mem: MemoryLimit,
+    sandbox_level: SandboxLevel,
 }
 
 impl ExtensionStateBuilder {

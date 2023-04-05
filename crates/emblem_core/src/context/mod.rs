@@ -119,7 +119,7 @@ impl<'m> DocInfo<'m> {
 #[derive(Debug, Default)]
 pub struct LuaInfo<'m> {
     sandbox: SandboxLevel,
-    max_mem: MemoryLimit,
+    max_mem: ResourceLimit,
     general_args: Option<Vec<(&'m str, &'m str)>>,
     modules: Option<Vec<(&'m str, Module<'m>)>>,
 }
@@ -133,11 +133,11 @@ impl<'m> LuaInfo<'m> {
         self.sandbox
     }
 
-    pub fn set_max_mem(&mut self, max_mem: MemoryLimit) {
+    pub fn set_max_mem(&mut self, max_mem: ResourceLimit) {
         self.max_mem = max_mem;
     }
 
-    pub fn max_mem(&self) -> MemoryLimit {
+    pub fn max_mem(&self) -> ResourceLimit {
         self.max_mem
     }
 
@@ -160,17 +160,31 @@ impl<'m> LuaInfo<'m> {
 
 #[derive(Copy, Clone, Debug, Default)]
 pub enum SandboxLevel {
+    /// Side-effects allowed anywhere on underlying system
     Unrestricted,
+
+    /// Side-effects allowed within this document's folder only
     #[default]
     Standard,
+
+    /// No side-effects on underlying system
     Strict,
 }
 
 #[derive(Copy, Clone, Debug, Default)]
-pub enum MemoryLimit {
+pub enum ResourceLimit {
     Limited(usize),
     #[default]
     Unlimited,
+}
+
+impl ResourceLimit {
+    pub fn as_usize(&self) -> usize {
+        match self {
+            Self::Limited(l) => *l,
+            Self::Unlimited => usize::MAX,
+        }
+    }
 }
 
 #[cfg(test)]
