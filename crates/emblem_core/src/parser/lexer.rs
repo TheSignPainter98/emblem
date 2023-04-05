@@ -1,5 +1,5 @@
 use crate::log::messages::{
-    DelimiterMismatch, ExtraCommentClose, NewlineInAttrs, NewlineInEmphDelimiter,
+    DelimiterMismatch, ExtraCommentClose, HeadingTooDeep, NewlineInAttrs, NewlineInEmphDelimiter,
     NewlineInInlineArg, UnclosedComments, UnexpectedChar, UnexpectedEOF, UnexpectedHeading,
 };
 use crate::log::Log;
@@ -342,9 +342,16 @@ impl<'input> Iterator for Lexer<'input> {
         if self.start_of_line {
             if let Some(heading) = &self.try_consume(&HEADING) {
                 self.start_of_line = false;
-
                 let heading = heading.trim_end();
+
                 let level = heading.find('+').unwrap_or(heading.len());
+                if level > 6 {
+                    return Some(Err(Box::new(LexicalError::HeadingTooDeep {
+                        loc: self.location(),
+                        level,
+                    })));
+                }
+
                 let pluses = heading.len() - level;
                 return Some(Ok(self.span(Tok::Heading { level, pluses })));
             }
@@ -561,6 +568,10 @@ pub enum LexicalError<'input> {
     UnexpectedHeading {
         loc: Location<'input>,
     },
+    HeadingTooDeep {
+        loc: Location<'input>,
+        level: usize,
+    },
 }
 
 impl<'input> Message<'input> for LexicalError<'input> {
@@ -589,6 +600,7 @@ impl<'input> Message<'input> for LexicalError<'input> {
                 expected,
             } => DelimiterMismatch::new(loc, to_close_loc, expected).log(),
             Self::UnexpectedHeading { loc } => UnexpectedHeading::new(loc).log(),
+            Self::HeadingTooDeep { loc, level } => HeadingTooDeep::new(loc, level).log(),
         }
     }
 }
@@ -640,6 +652,9 @@ impl Display for LexicalError<'_> {
             }
             Self::UnexpectedHeading { loc } => {
                 write!(f, "unexpected heading at {loc}")
+            }
+            Self::HeadingTooDeep { loc, level } => {
+                write!(f, "heading too deep at {loc} ({level} levels)")
             }
         }
     }
