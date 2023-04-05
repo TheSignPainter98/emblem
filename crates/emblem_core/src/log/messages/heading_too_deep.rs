@@ -14,8 +14,8 @@ impl<'i> Message<'i> for HeadingTooDeep<'i> {
         Log::error("heading too deep")
             .with_src(Src::new(&self.loc).with_annotation(Note::error(
                 &self.loc,
-                format!("found heading {} levels deep", self.level),
+                format!("found a level-{} heading here", self.level),
             )))
-            .with_help("headings should be at most 6 levels deep")
+            .with_help("headings should be at most level 6")
     }
 }
