@@ -335,6 +335,7 @@ impl From<&BuildCmd> for emblem_core::Builder {
             output_stem,
             cmd.output.driver.clone(),
             cmd.max_iters.clone().into(),
+            cmd.modules.clone().into(),
         )
     }
 }
@@ -452,9 +453,13 @@ pub struct ModuleArgs {
     pub sandbox: SandboxLevel,
 }
 
-impl From<&ModuleArgs> for emblem_core::ExtensionStateBuilder {
-    fn from(args: &ModuleArgs) -> Self {
-        Self::new(args.sandbox.into(), args.max_mem.into())
+impl From<ModuleArgs> for emblem_core::ExtensionStateBuilder {
+    fn from(args: ModuleArgs) -> Self {
+        Self{
+            sandbox_level: args.sandbox.into(),
+            max_steps: args.max_steps.into(),
+            max_mem: args.max_mem.into()
+        }
     }
 }
 

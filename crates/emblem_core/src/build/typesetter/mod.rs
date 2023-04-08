@@ -12,46 +12,52 @@ pub(crate) mod doc;
 // TODO(kcza): typesettable file -> [fragment]
 
 pub struct Typesetter<'ext> {
-    curr_iter: u32,
     max_iters: Option<u32>,
-    reiter_requested: bool,
-    ext_state: &'ext ExtensionState,
+    ext_state: &'ext mut ExtensionState,
 }
 
 impl<'ext> Typesetter<'ext> {
-    pub fn new(ext_state: &'ext ExtensionState) -> Self {
+    pub fn new(ext_state: &'ext mut ExtensionState) -> Self {
         Self {
-            curr_iter: 0,
             max_iters: None,
-            reiter_requested: true,
             ext_state,
         }
     }
 
-    pub fn set_max_iters(&mut self, max_iters: u32) {
+    pub fn set_max_iters(mut self, max_iters: u32) -> Self {
         self.max_iters = Some(max_iters);
+        self
     }
 
     pub fn typeset(mut self, parsed_doc: ParsedFile<'_>) -> Result<(), Box<dyn Error>> {
         let doc = Doc::from(parsed_doc);
         println!("{doc:#?}");
 
-        while self.curr_iter < self.max_iters.unwrap_or(u32::MAX) && self.reiter_requested {
-            self.ext_state.handle(Event::IterStart)?;
-
-            self.curr_iter += 1;
-            self.reiter_requested = false;
-
-            println!(
-                "Doing iteration {} of {}",
-                self.curr_iter,
-                self.max_iters.unwrap_or(u32::MAX)
-            );
-
-            self.ext_state.handle(Event::IterEnd)?;
+        while self.reiter_required() {
+            self.iter()?;
         }
 
         self.ext_state.handle(Event::Done)?;
+
+
+        Ok(())
+    }
+
+    fn reiter_required(&self) -> bool {
+        self.ext_state.reiter_requested() && self.ext_state.curr_iter() < self.max_iters.unwrap_or(u32::MAX)
+    }
+
+    fn iter(&mut self) -> Result<(), Box<dyn Error>> {
+        self.ext_state.increment_iter_count();
+        self.ext_state.handle(Event::IterStart)?;
+
+        println!(
+            "Doing iteration {} of {}",
+            self.ext_state.curr_iter(),
+            self.max_iters.unwrap_or(u32::MAX)
+        );
+
+        self.ext_state.handle(Event::IterEnd)?;
 
         Ok(())
     }

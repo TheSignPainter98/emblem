@@ -1,9 +1,8 @@
 mod sandbox;
 
 use crate::context::{ResourceLimit, SandboxLevel};
-use derive_new::new;
-use mlua::{Error as MLuaError, Function, Lua, Table};
-use std::fmt::Display;
+use mlua::{Error as MLuaError, Function, HookTriggers, Lua, Table, Result as MLuaResult};
+use std::{cell::RefMut, fmt::Display, sync::Arc};
 
 macro_rules! emblem_registry_key {
     ($name:literal) => {
@@ -14,35 +13,72 @@ macro_rules! emblem_registry_key {
 static STD: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/yue/std.luac"));
 const EVENT_LISTENERS_RKEY: &str = emblem_registry_key!("events");
 
-#[derive(new)]
+#[derive(Copy, Clone, Default)]
 pub struct ExtensionStateBuilder {
-    sandbox_level: SandboxLevel,
-    sandbox_level: SandboxLevel,
+    pub sandbox_level: SandboxLevel,
+    pub max_mem: ResourceLimit,
+    pub max_steps: ResourceLimit,
 }
 
 impl ExtensionStateBuilder {
-    pub fn build(&self) -> Result<ExtensionState, MLuaError> {
+    pub fn build(self) -> MLuaResult<ExtensionState> {
         let lua = match self.sandbox_level {
             SandboxLevel::Unrestricted => unsafe { Lua::unsafe_new() },
             _ => Lua::new(),
         };
 
+        lua.set_app_data(ExtensionData::new());
+
+        self.insert_safety_hook(&lua)?;
+        sandbox::sandbox_global(&lua, self.sandbox_level)?;
+        self.setup_event_listeners(&lua)?;
+
+        self.load_std(&lua)?;
+        // TODO(kcza): set args
+
+        Ok(ExtensionState { lua })
+    }
+
+    fn insert_safety_hook(&self, lua: &Lua) -> MLuaResult<()> {
+        const INSTRUCTION_INTERVAL: u32 = 64;
+
+        let max_mem = self.max_steps.into();
+        let max_steps: u32 = match self.max_mem.try_into() {
+            Ok(m) => m,
+            Err(e) => return Err(MLuaError::ExternalError(Arc::new(e))),
+        };
+
+        lua.set_hook(
+            HookTriggers::every_nth_instruction(INSTRUCTION_INTERVAL),
+            move |lua, _debug| {
+                if lua.used_memory() >= max_mem {
+                    return Err(MLuaError::SafetyError("too much memory used".into()));
+                }
+
+                let mut data: RefMut<'_, ExtensionData> = lua.app_data_mut().unwrap();
+                data.curr_steps += INSTRUCTION_INTERVAL;
+                if data.curr_steps > max_steps {
+                    return Err(MLuaError::SafetyError("too many steps".into()));
+                }
+
+                Ok(())
+            },
+        )
+    }
+
+    fn setup_event_listeners(&self, lua: &Lua) -> MLuaResult<()> {
         lua.set_named_registry_value(EVENT_LISTENERS_RKEY, {
             let listeners = lua.create_table_with_capacity(0, 3)?;
             for event in [Event::IterStart, Event::IterEnd, Event::Done] {
                 listeners.set(event.name(), lua.create_table()?)?;
             }
             listeners
-        })?;
+        })
+    }
 
+    fn load_std(&self, lua: &Lua) -> MLuaResult<()> {
         lua.load(STD).exec()?;
-        sandbox::sandbox_global(&lua, self.sandbox_level)?;
-
-        // TODO(kcza): set max mem hook
-        // TODO(kcza): set max steps hook
-        // TODO(kcza): set args
-
-        Ok(ExtensionState { lua })
+        sandbox::sandbox_global(&lua, self.sandbox_level)
     }
 }
 
@@ -62,6 +98,40 @@ impl ExtensionState {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn curr_iter(&self) -> u32 {
+        self.lua
+            .app_data_ref::<ExtensionData>()
+            .expect("lua app data not set")
+            .curr_iter
+    }
+
+    pub(crate) fn reiter_requested(&self) -> bool {
+        self.lua
+            .app_data_ref::<ExtensionData>()
+            .expect("lua app data not set")
+            .reiter_requested
+    }
+
+    pub(crate) fn increment_iter_count(&mut self) {
+        self.lua
+            .app_data_mut::<ExtensionData>()
+            .expect("lua app data not set")
+            .curr_iter += 1;
+    }
+}
+
+#[derive(Default)]
+struct ExtensionData {
+    curr_steps: u32,
+    curr_iter: u32,
+    reiter_requested: bool,
+}
+
+impl ExtensionData {
+    fn new() -> Self {
+        Self::default()
     }
 }
 
@@ -87,30 +157,6 @@ impl Display for Event {
     }
 }
 
-pub fn test() {
-    let lua = Lua::new();
-
-    lua.load(
-        r#"
-            print("hello, world from Lua!")
-        "#,
-    )
-    .eval::<()>()
-    .unwrap();
-
-    for global in lua.globals().pairs::<String, mlua::Value>() {
-        println!("{:?}", global);
-    }
-
-    panic!(
-        "{}",
-        STD.iter()
-            .map(|b| format!("{b:02x}"))
-            .collect::<Vec<_>>()
-            .concat()
-    );
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -122,7 +168,13 @@ mod test {
             SandboxLevel::Standard,
             SandboxLevel::Strict,
         ] {
-            yuescript::Tester::new().test(ExtensionState::new(level).unwrap().lua);
+            // let builder = ExtensionStateBuilder::new(level, ResourceLimit::Unlimited, ResourceLimit::Unlimited);
+            let builder = ExtensionStateBuilder {
+                sandbox_level: level,
+                max_mem: ResourceLimit::Unlimited,
+                max_steps: ResourceLimit::Unlimited,
+            };
+            yuescript::Tester::new().test(builder.build().unwrap().lua);
         }
     }
 }

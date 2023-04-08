@@ -1,5 +1,7 @@
 mod module;
 
+use std::num::TryFromIntError;
+
 use crate::Version;
 pub use module::{Module, ModuleName, ModuleVersion};
 use typed_arena::Arena;
@@ -158,7 +160,7 @@ impl<'m> LuaInfo<'m> {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SandboxLevel {
     /// Side-effects allowed anywhere on underlying system
     Unrestricted,
@@ -178,11 +180,22 @@ pub enum ResourceLimit {
     Unlimited,
 }
 
-impl ResourceLimit {
-    pub fn as_usize(&self) -> usize {
-        match self {
-            Self::Limited(l) => *l,
-            Self::Unlimited => usize::MAX,
+impl From<ResourceLimit> for usize {
+    fn from(limit: ResourceLimit) -> Self {
+        match limit {
+            ResourceLimit::Limited(l) => l,
+            ResourceLimit::Unlimited => usize::MAX,
+        }
+    }
+}
+
+impl TryFrom<ResourceLimit> for u32 {
+    type Error = TryFromIntError;
+
+    fn try_from(limit: ResourceLimit) -> Result<Self, Self::Error> {
+        match limit {
+            ResourceLimit::Limited(l) => u32::try_from(l),
+            ResourceLimit::Unlimited => Ok(u32::MAX),
         }
     }
 }

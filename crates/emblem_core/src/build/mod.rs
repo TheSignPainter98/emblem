@@ -2,13 +2,12 @@ pub(crate) mod typesetter;
 
 use crate::args::ArgPath;
 use crate::context::Context;
-use crate::context::SandboxLevel;
-use crate::extensions::ExtensionState;
 use crate::log::messages::Message;
 use crate::parser;
 use crate::path::SearchResult;
 use crate::Action;
 use crate::EmblemResult;
+use crate::ExtensionStateBuilder;
 use crate::Log;
 use derive_new::new;
 
@@ -25,6 +24,8 @@ pub struct Builder {
     output_driver: Option<String>,
 
     max_iters: u32,
+
+    ext_state_builder: ExtensionStateBuilder,
 }
 
 impl Action for Builder {
@@ -41,13 +42,10 @@ impl Action for Builder {
             Err(e) => return EmblemResult::new(vec![e.log()], None),
         };
 
-        let ext_state = ExtensionState::new(SandboxLevel::Strict).unwrap(); // TODO(kcza): remove this unwrap!
-                                                                            // TODO(kcza):
-                                                                            // plumb
-                                                                            // this
-                                                                            // properly
-        let mut typesetter = Typesetter::new(&ext_state);
-        typesetter.set_max_iters(self.max_iters);
+        let mut ext_state = self.ext_state_builder.build().unwrap(); // TODO(kcza): remove this unwrap!
+
+        // TODO(kcza): plumb this properly
+        let mut typesetter = Typesetter::new(&mut ext_state).set_max_iters(self.max_iters);
         typesetter.typeset(doc).unwrap();
 
         EmblemResult::new(vec![], Some(vec![]))

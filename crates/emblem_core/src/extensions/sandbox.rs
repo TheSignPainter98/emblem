@@ -1,8 +1,42 @@
 use crate::context::SandboxLevel;
-use mlua::{Error as MLuaError, Lua, Table, Value};
+use mlua::{Error as MLuaError, Lua, Result as MLuaResult, Table, Value};
 use phf::{phf_map, Map};
 
-pub(crate) fn sandbox_global(lua: &Lua, sandbox: SandboxLevel) -> Result<(), MLuaError> {
+pub(crate) fn sandbox_global(lua: &Lua, level: SandboxLevel) -> Result<(), MLuaError> {
+    sandbox_table(level, lua.globals(), &CONSTRAINTS)
+}
+
+fn sandbox_table(
+    level: SandboxLevel,
+    table: Table,
+    constraints: &Map<&'static str, Constraint>,
+) -> MLuaResult<()> {
+    let mut to_remove = Vec::new();
+    for entry in table.pairs() {
+        let (k, v): (String, Value) = entry?;
+        match &constraints[&k] {
+            Constraint::AtLeast(l) => {
+                if level < *l {
+                    to_remove.push(k)
+                }
+            }
+            Constraint::Table {
+                at_least: l,
+                child_levels,
+            } => {
+                if level < *l {
+                    to_remove.push(k)
+                } else {
+                    if let Value::Table(t) = v {
+                        sandbox_table(level, t, child_levels)?;
+                    } else {
+                        panic!("internal error: expected table in {k}");
+                    }
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -302,7 +336,7 @@ mod test {
                     }
                 }
                 (Err(e), _) => panic!("{e}"),
-                _ => {},
+                _ => {}
             }
         }
         unused.sort();
