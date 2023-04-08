@@ -5,7 +5,7 @@ use crate::{
     },
     parser::Location,
 };
-use mlua::{Error as MluaError, Lua, ToLua, UserData, Value};
+use mlua::{UserData, Value};
 
 #[cfg(test)]
 use crate::ast::AstDebug;

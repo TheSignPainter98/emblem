@@ -1,7 +1,7 @@
 mod sandbox;
 
 use crate::context::{ResourceLimit, SandboxLevel};
-use mlua::{Error as MLuaError, Function, HookTriggers, Lua, Table, Result as MLuaResult};
+use mlua::{Error as MLuaError, Function, HookTriggers, Lua, Result as MLuaResult, Table};
 use std::{cell::RefMut, fmt::Display, sync::Arc};
 
 macro_rules! emblem_registry_key {
@@ -33,8 +33,9 @@ impl ExtensionStateBuilder {
         sandbox::sandbox_global(&lua, self.sandbox_level)?;
         self.setup_event_listeners(&lua)?;
 
-        self.load_std(&lua)?;
         // TODO(kcza): set args
+
+        lua.load(STD).exec()?;
 
         Ok(ExtensionState { lua })
     }
@@ -75,15 +76,12 @@ impl ExtensionStateBuilder {
             listeners
         })
     }
-
-    fn load_std(&self, lua: &Lua) -> MLuaResult<()> {
-        lua.load(STD).exec()?;
-        sandbox::sandbox_global(&lua, self.sandbox_level)
-    }
 }
 
 pub struct ExtensionState {
     lua: Lua,
+    // phantom: PhantomData<&'em bool>, // TODO(kcza): use phantomdata to plumb the arena through
+    // and fix the lifetimes
 }
 
 impl ExtensionState {

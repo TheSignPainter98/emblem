@@ -44,8 +44,7 @@ impl Action for Builder {
 
         let mut ext_state = self.ext_state_builder.build().unwrap(); // TODO(kcza): remove this unwrap!
 
-        // TODO(kcza): plumb this properly
-        let mut typesetter = Typesetter::new(&mut ext_state).set_max_iters(self.max_iters);
+        let typesetter = Typesetter::new(&mut ext_state).set_max_iters(self.max_iters);
         typesetter.typeset(doc).unwrap();
 
         EmblemResult::new(vec![], Some(vec![]))

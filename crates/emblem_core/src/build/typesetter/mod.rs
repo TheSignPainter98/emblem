@@ -4,7 +4,6 @@ use crate::{
     ast::parsed::ParsedFile,
     build::typesetter::doc::Doc,
     extensions::{Event, ExtensionState},
-    Context,
 };
 
 pub(crate) mod doc;
@@ -39,12 +38,12 @@ impl<'ext> Typesetter<'ext> {
 
         self.ext_state.handle(Event::Done)?;
 
-
         Ok(())
     }
 
     fn reiter_required(&self) -> bool {
-        self.ext_state.reiter_requested() && self.ext_state.curr_iter() < self.max_iters.unwrap_or(u32::MAX)
+        self.ext_state.reiter_requested()
+            && self.ext_state.curr_iter() < self.max_iters.unwrap_or(u32::MAX)
     }
 
     fn iter(&mut self) -> Result<(), Box<dyn Error>> {

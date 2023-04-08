@@ -26,12 +26,10 @@ fn sandbox_table(
             } => {
                 if level < *l {
                     to_remove.push(k)
+                } else if let Value::Table(t) = v {
+                    sandbox_table(level, t, child_levels)?;
                 } else {
-                    if let Value::Table(t) = v {
-                        sandbox_table(level, t, child_levels)?;
-                    } else {
-                        panic!("internal error: expected table in {k}");
-                    }
+                    panic!("internal error: expected table in {k}");
                 }
             }
         }

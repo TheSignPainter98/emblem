@@ -5,7 +5,9 @@ use clap::{
     CommandFactory, Parser, Subcommand, ValueEnum,
     ValueHint::{AnyPath, DirPath, FilePath},
 };
-use emblem_core::context::{ResourceLimit as EmblemResourceLimit, SandboxLevel as EmblemSandboxLevel};
+use emblem_core::context::{
+    ResourceLimit as EmblemResourceLimit, SandboxLevel as EmblemSandboxLevel,
+};
 use std::{env, ffi::OsString, fmt::Display, path};
 
 /// Parsed command-line arguments
@@ -438,7 +440,7 @@ pub struct ModuleArgs {
     /// Pass a named argument into module-space. If module name is omitted, pass argument as
     /// variable in document
     #[arg(short = 'a', action = Append, value_parser = ExtArg::parser(), value_name="mod.arg=value")]
-    pub args: Vec<ExtArg>,
+    pub args: Vec<ExtArg>, // TODO(kcza): plumb me!
 
     /// Limit lua memory usage
     #[arg(long, value_parser = ResourceLimit::parser(), default_value = "unlimited", value_name = "amount")]
@@ -455,10 +457,10 @@ pub struct ModuleArgs {
 
 impl From<ModuleArgs> for emblem_core::ExtensionStateBuilder {
     fn from(args: ModuleArgs) -> Self {
-        Self{
+        Self {
             sandbox_level: args.sandbox.into(),
             max_steps: args.max_steps.into(),
-            max_mem: args.max_mem.into()
+            max_mem: args.max_mem.into(),
         }
     }
 }

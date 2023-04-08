@@ -24,7 +24,7 @@ fn luagen() -> Result<(), Box<dyn Error>> {
     let out_dir = Path::new(&env::var("OUT_DIR").unwrap())
         .join("yue")
         .join("std.luac");
-    let compiler = Compiler::new("src/extensions/yuescript/", &out_dir).with_test(true); // TODO(kcza): figure out how to get tests to work!
+    let compiler = Compiler::new("src/extensions/yuescript/", out_dir).with_test(true); // TODO(kcza): figure out how to get tests to work!
     compiler.compile()?;
 
     Ok(())

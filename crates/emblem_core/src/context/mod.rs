@@ -9,6 +9,9 @@ use typed_arena::Arena;
 #[derive(Default)]
 pub struct Context<'m> {
     files: Arena<File>,
+    // }
+
+    // pub struct Options<'m> {
     doc_info: DocInfo<'m>,
     lua_info: LuaInfo<'m>,
     modules: Option<Vec<(ModuleName<'m>, Module<'m>)>>,
@@ -27,6 +30,16 @@ impl<'m> Context<'m> {
     pub fn alloc_file(&mut self, name: String, content: String) -> &File {
         self.files.alloc(File { name, content })
     }
+    // }
+
+    // impl<'m> Options<'m> {
+    // pub fn default() -> Self { // TODO(kcza): derive default, make new just return default
+    //     Self {
+    //         doc_info: Default::default(),
+    //         lua_info: Default::default(),
+    //         modules: Default::default,
+    //     }
+    // }
 
     pub fn doc_info(&self) -> &DocInfo<'m> {
         &self.doc_info

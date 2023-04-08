@@ -107,7 +107,7 @@ impl Compiler {
     }
 
     fn dep_dir(&self) -> Result<String, Box<dyn Error>> {
-        let current_file = PathBuf::from(env::current_dir()?)
+        let current_file = env::current_dir()?
             .ancestors()
             .nth(2)
             .unwrap()
@@ -129,9 +129,18 @@ impl Tester {
     }
 
     pub fn test(&self, lua: mlua::Lua) {
-        lua.load_from_function::<_, Value>("lfs", unsafe { lua.create_c_function(luaopen_lfs).unwrap() }).unwrap();
-        lua.load_from_function::<_, Value>("system", unsafe { lua.create_c_function(luaopen_system_core).unwrap() }).unwrap();
-        lua.load_from_function::<_, Value>("term.core", unsafe { lua.create_c_function(luaopen_term_core).unwrap() }).unwrap();
+        lua.load_from_function::<_, Value>("lfs", unsafe {
+            lua.create_c_function(luaopen_lfs).unwrap()
+        })
+        .unwrap();
+        lua.load_from_function::<_, Value>("system", unsafe {
+            lua.create_c_function(luaopen_system_core).unwrap()
+        })
+        .unwrap();
+        lua.load_from_function::<_, Value>("term.core", unsafe {
+            lua.create_c_function(luaopen_term_core).unwrap()
+        })
+        .unwrap();
 
         lua.load("require('emtest')()")
             .exec()
@@ -140,5 +149,11 @@ impl Tester {
                 "error running tests"
             })
             .unwrap()
+    }
+}
+
+impl Default for Tester {
+    fn default() -> Self {
+        Self::new()
     }
 }
