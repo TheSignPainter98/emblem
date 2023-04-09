@@ -229,6 +229,11 @@ local function lint(module, lua, test)
 		},
 	}
 
+	local ignore = {
+		['121'] = true,
+		['122'] = true,
+	}
+
 	if test then
 		options.globals.__tests = {}
 	end
@@ -241,15 +246,17 @@ local function lint(module, lua, test)
 		local issue = issues[i]
 		local msg = luacheck.get_message(issue)
 
-		messages[#messages + 1] = string.format(
-			'luacheck: error[%d]: %s:%d:%d-%d: %s',
-			issue.code,
-			module,
-			issue.line,
-			issue.column,
-			issue.end_column,
-			msg
-		)
+		if not ignore[issue.code] then
+			messages[#messages + 1] = string.format(
+				'luacheck: error[%d]: %s:%d:%d-%d: %s',
+				issue.code,
+				module,
+				issue.line,
+				issue.column,
+				issue.end_column,
+				msg
+			)
+		end
 	end
 	if #messages > 0 then
 		die(table.concat(messages, '\n'))
@@ -269,11 +276,27 @@ local function encode(luas, test)
 		buf[#buf + 1] = 'local __tests = {}\n'
 	end
 
+	local is_global = {
+		utf8 = true,
+	}
+
 	local modules = {}
 	for name, _ in pairs(luas) do
 		modules[#modules + 1] = name
 	end
-	table.sort(modules)
+	table.sort(modules, function(a, b)
+		local global_a = is_global[a]
+		local global_b = is_global[b]
+		if global_a ~= global_b then
+			return global_a
+		else
+			return a < b
+		end
+	end)
+
+	for i = 1, #modules do
+		local module = modules[i]
+	end
 
 	for i = 1, #modules do
 		local module = modules[i]
@@ -282,6 +305,12 @@ local function encode(luas, test)
 		buf[#buf + 1] = '"] = function()\n'
 		buf[#buf + 1] = luas[module]
 		buf[#buf + 1] = 'end\n'
+
+		if is_global[module] then
+			buf[#buf + 1] = 'require("'
+			buf[#buf + 1] = module
+			buf[#buf + 1] = '")\n'
+		end
 	end
 
 	if test then

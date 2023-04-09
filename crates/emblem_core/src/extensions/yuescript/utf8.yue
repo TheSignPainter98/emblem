@@ -1,0 +1,9 @@
+global utf8 =
+	charpattern: '[\0-\x7F\xC2-\xF4][\x80-\xBF]+'
+
+$tests ->
+	import 'busted' as :assert, :describe, :it
+	describe 'utf8', ->
+		describe 'charpattern', ->
+			it 'has the right value', ->
+				assert.is utf8.charpattern, '[\0-\x7F\xC2-\xF4][\x80-\xBF]*'
