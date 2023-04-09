@@ -175,14 +175,14 @@ impl<'m> LuaInfo<'m> {
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SandboxLevel {
-    /// Side-effects allowed anywhere on underlying system
+    /// Side-effects allowed anywhere on host system
     Unrestricted,
 
     /// Side-effects allowed within this document's folder only
     #[default]
     Standard,
 
-    /// No side-effects on underlying system
+    /// No side-effects on host system
     Strict,
 }
 
