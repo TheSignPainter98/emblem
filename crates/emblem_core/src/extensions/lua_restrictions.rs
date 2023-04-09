@@ -2,11 +2,11 @@ use crate::context::SandboxLevel;
 use mlua::{Error as MLuaError, Lua, Result as MLuaResult, Table, Value};
 use phf::{phf_map, Map};
 
-pub(crate) fn sandbox_global(lua: &Lua, level: SandboxLevel) -> Result<(), MLuaError> {
-    sandbox_table(level, lua.globals(), &CONSTRAINTS)
+pub(crate) fn restrict(lua: &Lua, level: SandboxLevel) -> Result<(), MLuaError> {
+    restrict_table(level, lua.globals(), &CONSTRAINTS)
 }
 
-fn sandbox_table(
+fn restrict_table(
     level: SandboxLevel,
     table: Table,
     constraints: &Map<&'static str, Constraint>,
@@ -27,7 +27,7 @@ fn sandbox_table(
                 if level < *l {
                     to_remove.push(k)
                 } else if let Value::Table(t) = v {
-                    sandbox_table(level, t, child_levels)?;
+                    restrict_table(level, t, child_levels)?;
                 } else {
                     panic!("internal error: expected table in {k}");
                 }
