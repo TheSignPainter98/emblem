@@ -1,7 +1,7 @@
 mod lua_restrictions;
 
 use crate::context::{ResourceLimit, SandboxLevel};
-use mlua::{Error as MLuaError, Function, HookTriggers, Lua, Result as MLuaResult, Table};
+use mlua::{Error as MLuaError, HookTriggers, Lua, Result as MLuaResult, Table, Value, TableExt};
 use std::{cell::RefMut, fmt::Display, sync::Arc};
 
 macro_rules! emblem_registry_key {
@@ -11,7 +11,7 @@ macro_rules! emblem_registry_key {
 }
 
 static STD: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/yue/std.luac"));
-const EVENT_LISTENERS_RKEY: &str = emblem_registry_key!("events");
+const EVENT_LISTENERS_RKEY: &str = emblem_registry_key!("events"); // TODO(kcza): error if non-function, non-callable used as listener
 
 #[derive(Copy, Clone, Default)]
 pub struct ExtensionStateBuilder {
@@ -89,13 +89,31 @@ impl ExtensionState {
         let event_listeners: Table = self.lua.named_registry_value(EVENT_LISTENERS_RKEY)?;
         let listeners = match event_listeners.get::<_, Option<Table>>(event.name())? {
             Some(listeners) => listeners,
-            None => panic!("internal error: event '{event}' has no listeners table"),
+            None => panic!("internal error: {event} event has no listeners table"),
         };
-        for listener in listeners.sequence_values::<Function>() {
-            listener.unwrap().call::<_, ()>(())?;
+        for listener in listeners.sequence_values::<Value>() {
+            let event_data = self.event_data(event);
+            match listener? {
+                Value::Function(f) => f.call(event_data)?,
+                Value::Table(t) => t.call(event_data)?,
+                v => return Err(MLuaError::RuntimeError(format!("non-callable listener (got a {}) found when handling {event} event", v.type_name()))),
+            }
         }
 
         Ok(())
+    }
+
+    fn event_data(&self, event: Event) -> MLuaResult<Value> {
+        // TODO(kcza): get event data
+        let data = match event {
+            Event::IterStart | Event::IterEnd => {
+                let event = self.lua.create_table_with_capacity(0, 1)?;
+                event.set("iter", self.curr_iter())?;
+                event
+            }
+            Event::Done => self.lua.create_table()?,
+        };
+        Ok(Value::Table(data))
     }
 
     pub(crate) fn curr_iter(&self) -> u32 {
@@ -133,6 +151,7 @@ impl ExtensionData {
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum Event {
     IterStart,
     IterEnd,
