@@ -1179,6 +1179,62 @@ mod test {
             }
 
             #[test]
+            fn max_steps() {
+                assert_eq!(
+                    Args::try_parse_from(["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .modules
+                        .max_steps,
+                    ResourceLimit::Unlimited
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-steps", "25"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .modules
+                        .max_steps,
+                    ResourceLimit::Limited(25)
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-steps", "25K"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .modules
+                        .max_steps,
+                    ResourceLimit::Limited(25 * 1024)
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-steps", "25M"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .modules
+                        .max_steps,
+                    ResourceLimit::Limited(25 * 1024 * 1024)
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-steps", "25G"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .modules
+                        .max_steps,
+                    ResourceLimit::Limited(25 * 1024 * 1024 * 1024)
+                );
+
+                assert!(Args::try_parse_from(["em", "build", "--max-steps", "100T"]).is_err());
+            }
+
+            #[test]
             fn sandbox() {
                 assert_eq!(
                     Args::try_parse_from(["em"])
