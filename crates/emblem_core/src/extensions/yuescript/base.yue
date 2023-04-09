@@ -6,7 +6,7 @@ hello!
 print em
 -- em.cmds.asdf = -> 'fdsa'
 
-$tests ->
+$spec ->
 	import 'busted' as :assert, :describe, :it
 
 	describe 'emblem', ->

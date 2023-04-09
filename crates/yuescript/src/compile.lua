@@ -87,11 +87,11 @@ local function prepare(inputs)
 		if test then
 			prepared[module] =
 				table.concat({
-					'macro tests = (t) -> "table.insert __tests, #{t}"\n',
+					'macro spec = (t) -> "table.insert __tests, #{t}"\n',
 					raw,
 				}), '\n'
 		else
-			prepared[module] = 'macro tests = (t) -> ""\n' .. raw
+			prepared[module] = 'macro spec = (t) -> ""\n' .. raw
 		end
 	end
 	return prepared
