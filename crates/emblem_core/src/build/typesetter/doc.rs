@@ -5,7 +5,7 @@ use crate::{
     },
     parser::Location,
 };
-use mlua::{UserData, Value};
+// use mlua::{UserData, Value};
 
 #[cfg(test)]
 use crate::ast::AstDebug;
@@ -69,39 +69,45 @@ impl<'em> DocElem<'em> {
     }
 }
 
-impl<'em> UserData for DocElem<'em> {
-    fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
-        fields.add_field_method_get("loc", |lua, this| {
-            match this {
-                Self::Word { loc, .. }
-                | Self::Dash { loc, .. }
-                | Self::Glue { loc, .. }
-                | Self::Command { loc, .. } => {
-                    //loc.clone().to_lua(lua), // TODO(kcza): lifetimes don't
-                    //match?
-                    let table = lua.create_table_with_capacity(0, 5)?;
-                    table.set("file", loc.file_name())?;
-                    let lines = loc.lines();
-                    let cols = loc.cols();
+// impl<'em> UserData for DocElem<'em> {
+//     fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
+//         fields.add_field_method_get("loc", |lua, this| {
+//             match this {
+//                 Self::Word { loc, .. }
+//                 | Self::Dash { loc, .. }
+//                 | Self::Glue { loc, .. }
+//                 | Self::Command { loc, .. } => {
+//                     let table = lua.create_table_with_capacity(0, 5)?;
+//                     table.set("file", loc.file_name())?;
+//                     let lines = loc.lines();
+//                     let cols = loc.cols();
 
-                    table.set("file", loc.file_name())?;
-                    table.set("start_line", lines.0)?;
-                    table.set("end_line", lines.1)?;
-                    table.set("start_col", cols.0)?;
-                    table.set("end_col", cols.1)?;
-                    Ok(Value::Table(table))
-                }
-                Self::Content(_) => todo!(),
-            }
-        });
-    }
+//                     table.set("file", loc.file_name())?;
+//                     table.set("start", {
+//                         let start = lua.create_table_with_capacity(0, 2)?;
+//                         start.set("line", lines.0)?;
+//                         start.set("col", cols.0)?;
+//                         start
+//                     })?;
+//                     table.set("end", {
+//                         let end = lua.create_table_with_capacity(0, 2)?;
+//                         end.set("line", lines.1)?;
+//                         end.set("col", cols.1)?;
+//                         end
+//                     })?;
+//                     Ok(Value::Table(table))
+//                 }
+//                 Self::Content(_) => todo!(),
+//             }
+//         });
+//     }
 
-    fn add_methods<'lua, M: mlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_method_mut("eval", |_, _this, ()| {
-            // this.eval()?;
-            Ok(Value::Nil)
-        })
-    }
+//    fn add_methods<'lua, M: mlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
+//        methods.add_method_mut("eval", |_, _this, ()| {
+//            // this.eval()?;
+//            Ok(Value::Nil)
+//        })
+//    }
 }
 
 impl Default for DocElem<'_> {
