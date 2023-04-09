@@ -7,8 +7,6 @@ print em
 -- em.cmds.asdf = -> 'fdsa'
 
 $spec ->
-	import 'busted' as :assert, :describe, :it
-
 	describe 'emblem', ->
 		it 'is amazing', ->
 			assert.is.true true

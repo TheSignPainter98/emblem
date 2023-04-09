@@ -229,6 +229,12 @@ local function lint(module, lua, test)
 		},
 	}
 
+	if test then
+		options.globals.assert = { other_fields = true }
+		options.globals.describe = {}
+		options.globals.it = {}
+	end
+
 	local ignore = {
 		['121'] = true,
 		['122'] = true,
@@ -274,6 +280,7 @@ local function encode(luas, test)
 
 	if test then
 		buf[#buf + 1] = 'local __tests = {}\n'
+		buf[#buf + 1] = 'local assert, describe, it\n'
 	end
 
 	local is_global = {
@@ -336,6 +343,10 @@ local function encode(luas, test)
 			string.format('%s/say/src/?/init.lua', dep_dir),
 		}, ';')
 		buf[#buf + 1] = '"\n'
+		buf[#buf + 1] = '\t\tlocal busted = require("busted")\n'
+		buf[#buf + 1] = '\t\tassert = busted.assert\n'
+		buf[#buf + 1] = '\t\tdescribe = busted.describe\n'
+		buf[#buf + 1] = '\t\tit = busted.it\n'
 		buf[#buf + 1] = '\t\trequire("busted.runner")()\n'
 		buf[#buf + 1] = '\t\tfor i = 1, #__tests do\n'
 		buf[#buf + 1] = '\t\t\t__tests[i]()\n'
