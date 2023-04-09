@@ -48,7 +48,7 @@ enum Constraint {
 }
 
 static CONSTRAINTS: Map<&'static str, Constraint> = phf_map! {
-    // Simple values
+    // Values
     "_G"       => Constraint::AtLeast(SandboxLevel::Strict),
     "_VERSION" => Constraint::AtLeast(SandboxLevel::Strict),
 

@@ -166,7 +166,6 @@ mod test {
             SandboxLevel::Standard,
             SandboxLevel::Strict,
         ] {
-            // let builder = ExtensionStateBuilder::new(level, ResourceLimit::Unlimited, ResourceLimit::Unlimited);
             let builder = ExtensionStateBuilder {
                 sandbox_level: level,
                 max_mem: ResourceLimit::Unlimited,

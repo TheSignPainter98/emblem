@@ -108,7 +108,7 @@ impl<'em> DocElem<'em> {
 //            Ok(Value::Nil)
 //        })
 //    }
-}
+// }
 
 impl Default for DocElem<'_> {
     fn default() -> Self {
