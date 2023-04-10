@@ -97,7 +97,7 @@ impl ExtensionState {
     pub fn add_listener(&self, event: Event, listener: Value) -> MLuaResult<()> {
         if !callable(&listener) {
             return Err(MLuaError::RuntimeError(format!(
-                "non-callable listener (got a {}) found when handling {event} event",
+                "non-callable listener {} found when handling {event} event",
                 listener.type_name()
             )));
         }
@@ -296,4 +296,8 @@ mod test {
             yuescript::Tester::new().test(builder.build().unwrap().lua);
         }
     }
+
+    // TODO(kcza): test sandboxing application
+    // TODO(kcza): test step limits
+    // TODO(kcza): test memory limits
 }
