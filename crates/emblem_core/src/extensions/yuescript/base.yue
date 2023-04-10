@@ -1,9 +1,6 @@
 export hello = (name='current') ->
 	print "#{name} world!"
 
-hello!
-
-print em
 -- em.cmds.asdf = -> 'fdsa'
 
 $spec ->
