@@ -10,16 +10,19 @@ pub(crate) mod doc;
 
 // TODO(kcza): typesettable file -> [fragment]
 
-pub struct Typesetter<'ext> {
+pub struct Typesetter<'em> {
     max_iters: Option<u32>,
-    ext_state: &'ext mut ExtensionState,
+    ext_state: &'em mut ExtensionState,
+    #[allow(unused)]
+    root: Doc<'em>,
 }
 
-impl<'ext> Typesetter<'ext> {
-    pub fn new(ext_state: &'ext mut ExtensionState) -> Self {
+impl<'em> Typesetter<'em> {
+    pub fn new(ext_state: &'em mut ExtensionState, root: ParsedFile<'em>) -> Self {
         Self {
             max_iters: None,
             ext_state,
+            root: Doc::from(root),
         }
     }
 
@@ -28,12 +31,15 @@ impl<'ext> Typesetter<'ext> {
         self
     }
 
-    pub fn typeset(mut self, parsed_doc: ParsedFile<'_>) -> Result<(), Box<dyn Error>> {
-        let doc = Doc::from(parsed_doc);
-        println!("{doc:#?}");
-
-        while self.reiter_required() {
+    pub fn typeset(mut self) -> Result<(), Box<dyn Error>> {
+        loop {
             self.iter()?;
+
+            if !self.will_reiter() {
+                break;
+            }
+
+            self.reset_reiter_request();
         }
 
         self.ext_state.handle(Event::Done)?;
@@ -41,9 +47,13 @@ impl<'ext> Typesetter<'ext> {
         Ok(())
     }
 
-    fn reiter_required(&self) -> bool {
+    fn will_reiter(&self) -> bool {
         self.ext_state.reiter_requested()
             && self.ext_state.curr_iter() < self.max_iters.unwrap_or(u32::MAX)
+    }
+
+    fn reset_reiter_request(&self) {
+        self.ext_state.reset_reiter_request();
     }
 
     fn iter(&mut self) -> Result<(), Box<dyn Error>> {

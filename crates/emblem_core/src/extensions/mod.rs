@@ -1,8 +1,13 @@
 mod lua_restrictions;
 
 use crate::context::{ResourceLimit, SandboxLevel};
-use mlua::{Error as MLuaError, HookTriggers, Lua, Result as MLuaResult, Table, Value, TableExt};
+use mlua::{
+    Error as MLuaError, HookTriggers, Lua, MetaMethod, Result as MLuaResult, Table, TableExt, Value,
+};
 use std::{cell::RefMut, fmt::Display, sync::Arc};
+
+#[cfg(test)]
+use mlua::AsChunk;
 
 macro_rules! emblem_registry_key {
     ($name:literal) => {
@@ -85,26 +90,78 @@ pub struct ExtensionState {
 }
 
 impl ExtensionState {
-    pub fn handle(&self, event: Event) -> Result<(), MLuaError> {
-        let event_listeners: Table = self.lua.named_registry_value(EVENT_LISTENERS_RKEY)?;
-        let listeners = match event_listeners.get::<_, Option<Table>>(event.name())? {
-            Some(listeners) => listeners,
+    pub fn lua(&self) -> &Lua {
+        &self.lua
+    }
+
+    pub fn add_listener(&self, event: Event, listener: Value) -> MLuaResult<()> {
+        if !callable(&listener) {
+            return Err(MLuaError::RuntimeError(format!(
+                "non-callable listener (got a {}) found when handling {event} event",
+                listener.type_name()
+            )));
+        }
+
+        let listeners: Table = self.lua.named_registry_value(EVENT_LISTENERS_RKEY)?;
+        let event_listeners = match listeners.get::<_, Option<Table>>(event.name())? {
+            Some(ls) => ls,
             None => panic!("internal error: {event} event has no listeners table"),
         };
-        for listener in listeners.sequence_values::<Value>() {
-            let event_data = self.event_data(event);
-            match listener? {
-                Value::Function(f) => f.call(event_data)?,
-                Value::Table(t) => t.call(event_data)?,
-                v => return Err(MLuaError::RuntimeError(format!("non-callable listener (got a {}) found when handling {event} event", v.type_name()))),
-            }
+
+        event_listeners.push(listener)
+    }
+
+    pub fn handle(&self, event: Event) -> MLuaResult<()> {
+        let listeners: Table = self.lua.named_registry_value(EVENT_LISTENERS_RKEY)?;
+        let event_listeners = match listeners.get::<_, Option<Table>>(event.name())? {
+            Some(ls) => ls,
+            None => panic!("internal error: {event} event has no listeners table"),
+        };
+
+        for listener in event_listeners.sequence_values::<Value>() {
+            self.call_listener(listener?, event)?;
         }
 
         Ok(())
     }
 
+    fn call_listener(&self, listener: Value, event: Event) -> MLuaResult<()> {
+        if let Value::Function(f) = listener {
+            f.call(self.event_data(event))
+        } else {
+            self.call_listener_method(listener, event)
+        }
+    }
+
+    fn call_listener_method(&self, listener: Value, event: Event) -> MLuaResult<()> {
+        let type_name = listener.type_name();
+
+        match listener.clone() {
+            Value::Function(f) => return f.call(self.event_data(event)?),
+            Value::Table(t) => return t.call(self.event_data(event)?),
+            Value::UserData(u) => {
+                if let Ok(mt) = u.get_metatable() {
+                    if let Ok(m) = mt.get::<_, Value>(MetaMethod::Call.name()) {
+                        match m {
+                            Value::Function(f) => {
+                                return f.call((listener, self.event_data(event)?))
+                            }
+                            Value::Table(t) => return t.call((listener, self.event_data(event)?)),
+                            Value::UserData(_) => return self.call_listener_method(m, event),
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        return Err(MLuaError::RuntimeError(format!(
+            "non-callable listener (got a {type_name}) found when handling {event} event",
+        )));
+    }
+
     fn event_data(&self, event: Event) -> MLuaResult<Value> {
-        // TODO(kcza): get event data
         let data = match event {
             Event::IterStart | Event::IterEnd => {
                 let event = self.lua.create_table_with_capacity(0, 1)?;
@@ -130,6 +187,13 @@ impl ExtensionState {
             .reiter_requested
     }
 
+    pub(crate) fn reset_reiter_request(&self) {
+        self.lua
+            .app_data_mut::<ExtensionData>()
+            .unwrap()
+            .reset_reiter_request();
+    }
+
     pub(crate) fn increment_iter_count(&mut self) {
         self.lua
             .app_data_mut::<ExtensionData>()
@@ -138,8 +202,38 @@ impl ExtensionState {
     }
 }
 
+#[cfg(test)]
+impl ExtensionState {
+    pub fn run<'lua, C: AsChunk<'lua> + ?Sized>(&'lua self, chunk: &'lua C) -> MLuaResult<()> {
+        self.lua.load(chunk).exec()
+    }
+}
+
+fn callable(value: &Value) -> bool {
+    match value {
+        Value::Function(_) => true,
+        Value::Table(t) => {
+            if let Some(mt) = t.get_metatable() {
+                if let Ok(c) = mt.raw_get(MetaMethod::Call.name()) {
+                    return callable(&c);
+                }
+            }
+            false
+        }
+        Value::UserData(u) => {
+            if let Ok(mt) = u.get_metatable() {
+                if let Ok(c) = mt.get(MetaMethod::Call.name()) {
+                    return callable(&c);
+                }
+            }
+            false
+        }
+        _ => false,
+    }
+}
+
 #[derive(Default)]
-struct ExtensionData {
+pub(crate) struct ExtensionData {
     curr_steps: u32,
     curr_iter: u32,
     reiter_requested: bool,
@@ -148,6 +242,15 @@ struct ExtensionData {
 impl ExtensionData {
     fn new() -> Self {
         Self::default()
+    }
+
+    #[allow(unused)]
+    pub(crate) fn request_reiter(&mut self) {
+        self.reiter_requested = true;
+    }
+
+    pub(crate) fn reset_reiter_request(&mut self) {
+        self.reiter_requested = false;
     }
 }
 

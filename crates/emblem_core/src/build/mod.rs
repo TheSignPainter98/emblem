@@ -37,15 +37,15 @@ impl Action for Builder {
             Err(e) => return EmblemResult::new(vec![Log::error(e.to_string())], None),
         };
 
-        let doc = match parser::parse_file(ctx, fname) {
+        let root = match parser::parse_file(ctx, fname) {
             Ok(d) => d,
             Err(e) => return EmblemResult::new(vec![e.log()], None),
         };
 
         let mut ext_state = self.ext_state_builder.build().unwrap(); // TODO(kcza): remove this unwrap!
 
-        let typesetter = Typesetter::new(&mut ext_state).set_max_iters(self.max_iters);
-        typesetter.typeset(doc).unwrap();
+        let typesetter = Typesetter::new(&mut ext_state, root).set_max_iters(self.max_iters);
+        typesetter.typeset().unwrap();
 
         EmblemResult::new(vec![], Some(vec![]))
     }
