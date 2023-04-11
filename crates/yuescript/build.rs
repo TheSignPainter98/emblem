@@ -62,7 +62,7 @@ fn luasystemgen() -> Result<(), Box<dyn Error>> {
     cc::Build::new()
         .include("luasystem/src/")
         .include(env::var("DEP_LUA_INCLUDE").unwrap())
-        .file("luasystem/src/compat.c")
+        // .file("luasystem/src/compat.c")
         .file("luasystem/src/core.c")
         .file("luasystem/src/time.c")
         .compile("luasystem");
