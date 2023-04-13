@@ -48,7 +48,7 @@ impl Compiler {
             .unwrap()
             .join(file!())
             .with_file_name("compile.lua");
-        println!("cargo:rerun-if-changed=src/compile.lua");
+        println!("cargo:rerun-if-changed={}", compile_script_path.display());
         let compile_script = fs::read_to_string(compile_script_path)?;
 
         let input_paths = self.get_inputs()?;
