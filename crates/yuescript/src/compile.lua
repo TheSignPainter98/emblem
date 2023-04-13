@@ -326,6 +326,22 @@ local function encode(luas, test)
 		for i = 1, #modules do
 			buf[#buf + 1] = '\t\trequire("' .. modules[i] .. '")\n'
 		end
+		buf[#buf + 1] = string.format([[
+				package.loaders[#package.loaders + 1] = function(module)
+					local pkg, mod = module:match("^([^.]+)%%.(.+)$")
+					if pkg then
+						local mod_file_name = mod:gsub('%%.', '/')
+						local init = loadfile(string.format("%s", mod_file_name))
+						if init then
+							return init
+						end
+						return loadfile(string.format("%s", mod_file_name))
+					end
+				end
+			]],
+			string.format('%s/luassert/src/%%s/init.lua', dep_dir),
+			string.format('%s/luassert/src/%%s.lua', dep_dir)
+		)
 		buf[#buf + 1] = '\t\tpackage.path = package.path .. ";'
 		buf[#buf + 1] = table.concat({
 			string.format('%s/busted/?.lua', dep_dir),
@@ -337,8 +353,8 @@ local function encode(luas, test)
 			string.format('%s/mediator_lua/src/?.lua', dep_dir),
 			string.format('%s/lua_cliargs/src/?.lua', dep_dir),
 			string.format('%s/lua_cliargs/src/?/init.lua', dep_dir),
-			string.format('%s/luassert/src/?.lua', dep_dir),
-			string.format('%s/luassert/src/?/init.lua', dep_dir),
+			-- string.format('%s/luassert/src/?.lua', dep_dir), -- Handled above
+			string.format('%s/?/src/init.lua', dep_dir),
 			string.format('%s/say/src/?.lua', dep_dir),
 			string.format('%s/say/src/?/init.lua', dep_dir),
 		}, ';')
