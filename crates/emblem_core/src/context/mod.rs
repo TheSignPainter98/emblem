@@ -186,6 +186,13 @@ pub enum SandboxLevel {
     Strict,
 }
 
+#[cfg(test)]
+impl SandboxLevel {
+    pub fn levels() -> [SandboxLevel; 3] {
+        [SandboxLevel::Unrestricted, SandboxLevel::Standard, SandboxLevel::Strict]
+    }
+}
+
 #[derive(Copy, Clone, Debug, Default)]
 pub enum ResourceLimit {
     Limited(usize),
