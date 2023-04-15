@@ -357,7 +357,15 @@ mod test {
         for event in [Event::IterStart, Event::IterEnd, Event::Done] {
             assert_eq!(format!("runtime error: non-callable listener integer found when handling {event} event"), ext_state.add_listener(event, Value::Integer(100)).unwrap_err().to_string());
 
-            assert_eq!(format!("runtime error: non-callable listener table found when handling {event} event"), ext_state.add_listener(event, Value::Table(ext_state.lua().create_table()?)).unwrap_err().to_string());
+            assert_eq!(
+                format!(
+                    "runtime error: non-callable listener table found when handling {event} event"
+                ),
+                ext_state
+                    .add_listener(event, Value::Table(ext_state.lua().create_table()?))
+                    .unwrap_err()
+                    .to_string()
+            );
 
             assert_eq!(format!("runtime error: non-callable listener userdata found when handling {event} event"), ext_state.add_listener(event, NonCallable {}.to_lua(ext_state.lua())?).unwrap_err().to_string());
         }

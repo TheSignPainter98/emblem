@@ -1,4 +1,4 @@
-use crate::{extensions::preload_decls, context::SandboxLevel};
+use crate::{context::SandboxLevel, extensions::preload_decls};
 use mlua::{Lua, Result as MLuaResult, Table, Value};
 
 pub(crate) fn restrict_preload(lua: &Lua, sandbox_level: SandboxLevel) -> MLuaResult<()> {

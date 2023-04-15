@@ -1,5 +1,5 @@
-use mlua::{Lua, Result as MLuaResult, Function};
 use crate::extensions::preload_decls;
+use mlua::{Function, Lua, Result as MLuaResult};
 
 pub(crate) fn import_extras(lua: &Lua) -> MLuaResult<()> {
     let require: Function = lua.globals().get("require")?;
@@ -16,8 +16,8 @@ pub(crate) fn import_extras(lua: &Lua) -> MLuaResult<()> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::{collections::HashSet, error::Error};
     use mlua::chunk;
+    use std::{collections::HashSet, error::Error};
 
     #[test]
     fn extra_imports() -> Result<(), Box<dyn Error>> {
@@ -36,7 +36,7 @@ mod test {
             let test_set = tests.iter().map(|(m, _, _)| m).collect::<HashSet<&&str>>();
             for (module_name, _, preload) in preload_decls::PRELOADS {
                 if !preload {
-                    continue
+                    continue;
                 }
                 assert!(test_set.contains(&module_name), "{module_name} not tested!");
             }

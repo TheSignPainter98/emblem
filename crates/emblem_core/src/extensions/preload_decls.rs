@@ -31,10 +31,7 @@ mod test {
         let mut unconstrained = Vec::new();
         for entry in package_preload.pairs() {
             let (mod_name, _): (String, Value) = entry?;
-            if PRELOADS
-                .iter()
-                .all(|(k, _, _)| *k != mod_name)
-            {
+            if PRELOADS.iter().all(|(k, _, _)| *k != mod_name) {
                 unconstrained.push(mod_name);
             }
         }

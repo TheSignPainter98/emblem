@@ -1,12 +1,11 @@
-mod global_sandboxing;
-mod preload_sandboxing;
 mod env_extras;
+mod global_sandboxing;
 mod preload_decls;
+mod preload_sandboxing;
 
 use crate::context::{ResourceLimit, SandboxLevel};
 use mlua::{
-    Error as MLuaError, HookTriggers, Lua, MetaMethod, Result as MLuaResult, Table,
-    TableExt, Value,
+    Error as MLuaError, HookTriggers, Lua, MetaMethod, Result as MLuaResult, Table, TableExt, Value,
 };
 use std::{cell::RefMut, fmt::Display, sync::Arc};
 

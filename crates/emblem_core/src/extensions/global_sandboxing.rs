@@ -16,7 +16,9 @@ fn restrict_table(
     for entry in table.clone().pairs() {
         let (k, v): (String, Value) = entry?;
 
-        match &constraints[&k] {
+        match constraints.get(&k).unwrap_or_else(|| {
+            panic!("internal error: unknown key {k:?} encountered while table fields")
+        }) {
             Constraint::AtMost(l, rep) => {
                 if *l < level {
                     let replacement = match rep {
@@ -44,10 +46,7 @@ fn restrict_table(
 }
 
 enum Constraint {
-    AtMost(
-        SandboxLevel,
-        Option<Replacement>,
-    ),
+    AtMost(SandboxLevel, Option<Replacement>),
     Table(Map<&'static str, Constraint>),
 }
 
@@ -70,8 +69,7 @@ impl Replacement {
                         "function {name} unavailable to the sandbox"
                     )))
                 })?)
-            }
-            // Self::Custom(f) => f(lua, level)?,
+            } // Self::Custom(f) => f(lua, level)?,
         })
     }
 }
@@ -390,7 +388,11 @@ mod test {
                     Constraint::AtMost(_, Some(r)) => {
                         for level in SandboxLevel::input_levels() {
                             match r.make(lua, level)?.type_name() {
-                                "nil" => assert_ne!(v.type_name(), "function", "for a function for {k:?}"),
+                                "nil" => assert_ne!(
+                                    v.type_name(),
+                                    "function",
+                                    "for a function for {k:?}"
+                                ),
                                 name => assert_eq!(v.type_name(), name, "types for {k:?} differ"),
                             }
                         }
