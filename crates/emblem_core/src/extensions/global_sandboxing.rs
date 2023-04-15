@@ -2,7 +2,7 @@ use crate::context::SandboxLevel;
 use mlua::{Error as MLuaError, Lua, Result as MLuaResult, Table, Value};
 use phf::{phf_map, Map};
 
-pub(crate) fn restrict(lua: &Lua, level: SandboxLevel) -> Result<(), MLuaError> {
+pub(crate) fn restrict_globals(lua: &Lua, level: SandboxLevel) -> MLuaResult<()> {
     restrict_table(lua, level, lua.globals(), &CONSTRAINTS)
 }
 
