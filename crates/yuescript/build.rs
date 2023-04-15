@@ -24,7 +24,6 @@ fn yuescriptgen() -> Result<(), Box<dyn Error>> {
         .flag_if_supported("-Wextra")
         .flag_if_supported("-Wno-deprecated-declarations")
         .flag_if_supported("-Wno-implicit-fallthrough")
-        .flag_if_supported("-O3")
         .static_flag(true)
         .define("NDEBUG", None)
         .define("YUE_NO_WATCHER", None)
