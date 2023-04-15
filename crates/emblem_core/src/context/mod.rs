@@ -191,8 +191,13 @@ pub enum SandboxLevel {
 
 #[cfg(test)]
 impl SandboxLevel {
-    pub fn input_levels() -> impl Iterator<Item=SandboxLevel> {
-        [SandboxLevel::Unrestricted, SandboxLevel::Standard, SandboxLevel::Strict].into_iter()
+    pub fn input_levels() -> impl Iterator<Item = SandboxLevel> {
+        [
+            SandboxLevel::Unrestricted,
+            SandboxLevel::Standard,
+            SandboxLevel::Strict,
+        ]
+        .into_iter()
     }
 }
 

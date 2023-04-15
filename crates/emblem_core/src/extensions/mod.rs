@@ -159,9 +159,9 @@ impl ExtensionState {
             _ => {}
         }
 
-        return Err(MLuaError::RuntimeError(format!(
+        Err(MLuaError::RuntimeError(format!(
             "non-callable listener (got a {type_name}) found when handling {event} event",
-        )));
+        )))
     }
 
     fn event_data(&self, event: Event) -> MLuaResult<Value> {

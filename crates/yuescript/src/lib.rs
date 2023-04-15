@@ -87,7 +87,7 @@ impl Compiler {
             fs::create_dir_all(parent)?;
         }
         let mut out_file = BufWriter::new(File::create(&self.out_path)?);
-        out_file.write(self.output_header().as_bytes())?;
+        out_file.write_all(self.output_header().as_bytes())?;
         out_file.write_all(&bytecode)?;
 
         Ok(())
