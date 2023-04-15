@@ -284,7 +284,7 @@ mod test {
 
     #[test]
     fn std_tests() {
-        for level in SandboxLevel::levels() {
+        for level in SandboxLevel::input_levels() {
             let builder = ExtensionStateBuilder {
                 sandbox_level: level,
                 max_mem: ResourceLimit::Unlimited,

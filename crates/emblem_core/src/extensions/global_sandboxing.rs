@@ -388,7 +388,7 @@ mod test {
                 match &constraints[&k] {
                     Constraint::AtMost(_, None) => {}
                     Constraint::AtMost(_, Some(r)) => {
-                        for level in SandboxLevel::levels() {
+                        for level in SandboxLevel::input_levels() {
                             match r.make(lua, level)?.type_name() {
                                 "nil" => assert_ne!(v.type_name(), "function", "for a function for {k:?}"),
                                 name => assert_eq!(v.type_name(), name, "types for {k:?} differ"),

@@ -184,12 +184,15 @@ pub enum SandboxLevel {
 
     /// No side-effects on host system
     Strict,
+
+    /// Never permitted
+    Forbidden,
 }
 
 #[cfg(test)]
 impl SandboxLevel {
-    pub fn levels() -> [SandboxLevel; 3] {
-        [SandboxLevel::Unrestricted, SandboxLevel::Standard, SandboxLevel::Strict]
+    pub fn input_levels() -> impl Iterator<Item=SandboxLevel> {
+        [SandboxLevel::Unrestricted, SandboxLevel::Standard, SandboxLevel::Strict].into_iter()
     }
 }
 
