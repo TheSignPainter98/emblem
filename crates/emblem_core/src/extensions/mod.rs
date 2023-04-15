@@ -1,4 +1,5 @@
 mod global_sandboxing;
+mod preload_sandboxing;
 
 use crate::context::{ResourceLimit, SandboxLevel};
 use mlua::{
@@ -34,6 +35,7 @@ impl ExtensionStateBuilder {
 
         lua.set_app_data(ExtensionData::new());
 
+        preload_sandboxing::restrict_preload(&lua, self.sandbox_level)?;
         global_sandboxing::restrict_globals(&lua, self.sandbox_level)?;
 
         self.insert_safety_hook(&lua)?;

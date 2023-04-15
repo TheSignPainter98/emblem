@@ -175,6 +175,9 @@ impl<'m> LuaInfo<'m> {
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SandboxLevel {
+    /// Can break Emblem's abstractions
+    Unsound,
+
     /// Side-effects allowed anywhere on host system
     Unrestricted,
 
@@ -184,9 +187,6 @@ pub enum SandboxLevel {
 
     /// No side-effects on host system
     Strict,
-
-    /// Never permitted
-    Forbidden,
 }
 
 #[cfg(test)]

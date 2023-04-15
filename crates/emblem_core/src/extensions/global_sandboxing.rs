@@ -18,7 +18,7 @@ fn restrict_table(
 
         match &constraints[&k] {
             Constraint::AtMost(l, rep) => {
-                if level > *l {
+                if *l < level {
                     let replacement = match rep {
                         None => Value::Nil,
                         Some(r) => r.make(lua, level)?,
@@ -429,8 +429,6 @@ mod test {
         check_replacements(&CONSTRAINTS)
     }
 }
-
-// TODO(kcza): prevent loading of `jit.util'
 
 // TODO(kcza): test application of restrictions by sample
 // TODO(kcza): check the currect values are computed for specific cases!
