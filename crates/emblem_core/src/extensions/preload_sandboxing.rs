@@ -1,4 +1,4 @@
-use crate::context::SandboxLevel;
+use crate::{extensions::preload_decls, context::SandboxLevel};
 use mlua::{Lua, Result as MLuaResult, Table, Value};
 
 pub(crate) fn restrict_preload(lua: &Lua, sandbox_level: SandboxLevel) -> MLuaResult<()> {
@@ -7,7 +7,7 @@ pub(crate) fn restrict_preload(lua: &Lua, sandbox_level: SandboxLevel) -> MLuaRe
         .get::<_, Table>("package")?
         .get::<_, Table>("preload")?;
 
-    for (k, l) in RESTRICTIONS {
+    for (k, l, _) in preload_decls::PRELOADS {
         if l < sandbox_level {
             package_preload.set(k, Value::Nil)?;
         }
@@ -16,74 +16,11 @@ pub(crate) fn restrict_preload(lua: &Lua, sandbox_level: SandboxLevel) -> MLuaRe
     Ok(())
 }
 
-const RESTRICTIONS: [(&str, SandboxLevel); 11] = [
-    ("jit.profile", SandboxLevel::Unrestricted),
-    ("jit.util", SandboxLevel::Unrestricted),
-    ("string.buffer", SandboxLevel::Strict),
-    ("table.clear", SandboxLevel::Strict),
-    ("table.clone", SandboxLevel::Strict),
-    ("table.isarray", SandboxLevel::Strict),
-    ("table.isempty", SandboxLevel::Strict),
-    ("table.new", SandboxLevel::Strict),
-    ("table.nkeys", SandboxLevel::Strict),
-    ("thread.exdata", SandboxLevel::Unsound),
-    ("thread.exdata2", SandboxLevel::Unsound),
-];
-
 #[cfg(test)]
 mod test {
     use super::*;
-    use mlua::{chunk, Table, Value};
+    use mlua::chunk;
     use std::error::Error;
-
-    #[test]
-    fn all_preloads_constrained() -> Result<(), Box<dyn Error>> {
-        let lua = unsafe { Lua::unsafe_new() };
-        let package_preload = lua
-            .globals()
-            .get::<_, Table>("package")?
-            .get::<_, Table>("preload")?;
-
-        let mut unconstrained = Vec::new();
-        for entry in package_preload.pairs() {
-            let (mod_name, _): (String, Value) = entry?;
-            if RESTRICTIONS.iter().all(|(k, _)| *k != mod_name) {
-                unconstrained.push(mod_name);
-            }
-        }
-
-        assert!(
-            unconstrained.is_empty(),
-            "some preloads not constrained: {}",
-            unconstrained.join(", ")
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    fn all_restricted_valid() -> Result<(), Box<dyn Error>> {
-        let lua = unsafe { Lua::unsafe_new() };
-        let package_preload = lua
-            .globals()
-            .get::<_, Table>("package")?
-            .get::<_, Table>("preload")?;
-
-        let mut unused = Vec::new();
-        for (k, _) in RESTRICTIONS {
-            if package_preload.get::<_, Value>(k)? == Value::Nil {
-                unused.push(k);
-            }
-        }
-
-        assert!(
-            unused.is_empty(),
-            "some preload restrictions are never used: {}",
-            unused.join(", ")
-        );
-
-        Ok(())
-    }
 
     #[test]
     fn preloads_unloaded() -> Result<(), Box<dyn Error>> {
@@ -91,7 +28,7 @@ mod test {
             let lua = unsafe { Lua::unsafe_new() };
             restrict_preload(&lua, sandbox_level)?;
 
-            for (k, l) in RESTRICTIONS {
+            for (k, l, _) in preload_decls::PRELOADS {
                 let expect_removed = l < sandbox_level;
                 lua.load(chunk! {
                     local ok, err = pcall(require, $k);

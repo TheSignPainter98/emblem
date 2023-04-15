@@ -1,9 +1,12 @@
 mod global_sandboxing;
 mod preload_sandboxing;
+mod env_extras;
+mod preload_decls;
 
 use crate::context::{ResourceLimit, SandboxLevel};
 use mlua::{
-    Error as MLuaError, HookTriggers, Lua, MetaMethod, Result as MLuaResult, Table, TableExt, Value,
+    Error as MLuaError, HookTriggers, Lua, MetaMethod, Result as MLuaResult, Table,
+    TableExt, Value,
 };
 use std::{cell::RefMut, fmt::Display, sync::Arc};
 
@@ -36,6 +39,7 @@ impl ExtensionStateBuilder {
         lua.set_app_data(ExtensionData::new());
 
         preload_sandboxing::restrict_preload(&lua, self.sandbox_level)?;
+        env_extras::import_extras(&lua)?;
         global_sandboxing::restrict_globals(&lua, self.sandbox_level)?;
 
         self.insert_safety_hook(&lua)?;
