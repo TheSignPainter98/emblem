@@ -24,7 +24,7 @@ pub use crate::{
         typesetter::doc::{Doc, DocElem},
         Builder,
     },
-    context::Context,
+    context::{Context, ResourceLimit, SandboxLevel},
     explain::Explainer,
     extensions::{ExtensionState, ExtensionStateBuilder},
     lint::Linter,

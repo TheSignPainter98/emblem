@@ -30,9 +30,10 @@ pub struct ExtensionStateBuilder {
 
 impl ExtensionStateBuilder {
     pub fn build(self) -> MLuaResult<ExtensionState> {
-        let lua = match self.sandbox_level {
-            SandboxLevel::Unrestricted => unsafe { Lua::unsafe_new() },
-            _ => Lua::new(),
+        let lua = if self.sandbox_level <= SandboxLevel::Unrestricted {
+            unsafe { Lua::unsafe_new() }
+        } else {
+            Lua::new()
         };
 
         lua.set_app_data(ExtensionData::new());

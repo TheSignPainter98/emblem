@@ -1,4 +1,4 @@
-use crate::context::SandboxLevel;
+use crate::SandboxLevel;
 use mlua::{Error as MLuaError, Lua, Result as MLuaResult, Table, Value};
 use phf::{phf_map, Map};
 
@@ -281,28 +281,48 @@ const CONSTRAINTS: Map<&'static str, Constraint> = phf_map! {
         "upper"   => Constraint::AtMost(SandboxLevel::Strict, None),
     }),
     "table" => Constraint::Table(phf_map!{
+        "clear"    => Constraint::AtMost(SandboxLevel::Strict, None),
+        "clone"    => Constraint::AtMost(SandboxLevel::Strict, None),
         "concat"   => Constraint::AtMost(SandboxLevel::Strict, None),
         "foreach"  => Constraint::AtMost(SandboxLevel::Strict, None),
         "foreachi" => Constraint::AtMost(SandboxLevel::Strict, None),
         "getn"     => Constraint::AtMost(SandboxLevel::Strict, None),
         "insert"   => Constraint::AtMost(SandboxLevel::Strict, None),
+        "isarray"  => Constraint::AtMost(SandboxLevel::Strict, None),
+        "isempty"  => Constraint::AtMost(SandboxLevel::Strict, None),
         "maxn"     => Constraint::AtMost(SandboxLevel::Strict, None),
         "move"     => Constraint::AtMost(SandboxLevel::Strict, None),
+        "new"      => Constraint::AtMost(SandboxLevel::Strict, None),
+        "nkeys"    => Constraint::AtMost(SandboxLevel::Strict, None),
         "pack"     => Constraint::AtMost(SandboxLevel::Strict, None),
         "remove"   => Constraint::AtMost(SandboxLevel::Strict, None),
         "sort"     => Constraint::AtMost(SandboxLevel::Strict, None),
         "unpack"   => Constraint::AtMost(SandboxLevel::Strict, None),
+    }),
+    "utf8" => Constraint::Table(phf_map!{
+        "char"        => Constraint::AtMost(SandboxLevel::Strict, None),
+        "charpattern" => Constraint::AtMost(SandboxLevel::Strict, None),
+        "codes"       => Constraint::AtMost(SandboxLevel::Strict, None),
+        "codepoint"   => Constraint::AtMost(SandboxLevel::Strict, None),
+        "len"         => Constraint::AtMost(SandboxLevel::Strict, None),
+        "offset"      => Constraint::AtMost(SandboxLevel::Strict, None),
     }),
 };
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::ExtensionStateBuilder;
     use std::error::Error;
 
     #[test]
-    fn all_globals_constained() {
-        let lua = unsafe { Lua::unsafe_new() };
+    fn all_globals_constained() -> Result<(), Box<dyn Error>> {
+        let state = ExtensionStateBuilder {
+            sandbox_level: SandboxLevel::Unsound,
+            ..Default::default()
+        }
+        .build()?;
+        let lua = state.lua();
 
         let mut uncovered = Vec::new();
         for global in lua.globals().pairs::<String, Value>() {
@@ -319,7 +339,7 @@ mod test {
             match (constraint, &v) {
                 (Constraint::Table(child_levels), Value::Table(t)) => {
                     for entry in t.clone().pairs::<String, Value>() {
-                        let (k2, _) = entry.unwrap();
+                        let (k2, _) = entry?;
                         let constraint = {
                             let found = child_levels.get(&k2);
                             if found.is_none() {
@@ -341,11 +361,18 @@ mod test {
             "uncovered globals: {}",
             uncovered.join(", ")
         );
+
+        Ok(())
     }
 
     #[test]
     fn all_constraints_used() -> Result<(), Box<dyn Error>> {
-        let lua = unsafe { Lua::unsafe_new() };
+        let state = ExtensionStateBuilder {
+            sandbox_level: SandboxLevel::Unsound,
+            ..Default::default()
+        }
+        .build()?;
+        let lua = state.lua();
         let globals = lua.globals();
 
         let mut unused = Vec::new();
