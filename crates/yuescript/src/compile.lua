@@ -130,14 +130,15 @@ local function luas_of(inputs)
 	return luas
 end
 
-function dfs(name, arcs, on_node, on_cycle, stack)
+function dfs(name, arcs, handlers, stack)
 	if stack == nil then
 		stack = {}
 	end
 
 	for i = 1, #stack do
 		if name == stack[i] then
-			if on_cycle then
+			local on_cycle = handlers.on_cycle
+			if on_cycle ~= nil then
 				on_cycle(stack)
 			end
 			return
@@ -146,8 +147,9 @@ function dfs(name, arcs, on_node, on_cycle, stack)
 
 	stack[#stack + 1] = name
 
-	if on_node then
-		if on_node(name) == false then
+	local explore_node = handlers.explore_node
+	if explore_node ~= nil then
+		if explore_node(name) == false then
 			return
 		end
 	end
@@ -155,7 +157,7 @@ function dfs(name, arcs, on_node, on_cycle, stack)
 	local nexts = arcs[name]
 	if nexts then
 		for i = 1, #nexts do
-			dfs(nexts[i], arcs, on_node, on_cycle, stack)
+			dfs(nexts[i], arcs, handlers, stack)
 		end
 	end
 	stack[#stack] = nil
@@ -176,38 +178,41 @@ local function assert_cyclefree(luas)
 
 	local seen = {}
 	for name in pairs(luas) do
-		dfs(name, in_arcs, function(name)
-			if seen[name] then
-				return false
-			end
-			seen[name] = true
-			return true
-		end, function(stack)
-			local min_idx = 1
-			local min = stack[1]
-			for i = 2, #stack do
-				local curr = stack[i]
-				if curr < min then
-					min = curr
-					min_idx = i
+		dfs(name, in_arcs, {
+			explore_node = function(name)
+				if seen[name] then
+					return false
 				end
-			end
-
-			local pretty_cycle = { min }
-			local curr_idx = min_idx + 1
-			while curr_idx ~= min_idx do
-				pretty_cycle[#pretty_cycle + 1] = stack[curr_idx]
-
-				if curr_idx > #stack then
-					curr_idx = 1
-				else
-					curr_idx = curr_idx + 1
+				seen[name] = true
+				return true
+			end,
+			on_cycle = function(stack)
+				local min_idx = 1
+				local min = stack[1]
+				for i = 2, #stack do
+					local curr = stack[i]
+					if curr < min then
+						min = curr
+						min_idx = i
+					end
 				end
-			end
-			pretty_cycle[#pretty_cycle + 1] = pretty_cycle[1]
 
-			die('cycle detected:\n\t' .. table.concat(pretty_cycle, '\n\t -> '))
-		end)
+				local pretty_cycle = { min }
+				local curr_idx = min_idx + 1
+				while curr_idx ~= min_idx do
+					pretty_cycle[#pretty_cycle + 1] = stack[curr_idx]
+
+					if curr_idx > #stack then
+						curr_idx = 1
+					else
+						curr_idx = curr_idx + 1
+					end
+				end
+				pretty_cycle[#pretty_cycle + 1] = pretty_cycle[1]
+
+				die('cycle detected:\n\t' .. table.concat(pretty_cycle, '\n\t -> '))
+			end,
+		})
 	end
 end
 
