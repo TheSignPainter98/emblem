@@ -40,8 +40,8 @@ impl Args {
 }
 
 impl Args {
-    pub fn module_args(&self) -> Option<&ModuleArgs> {
-        self.command.module_args()
+    pub fn lua_args(&self) -> Option<&LuaArgs> {
+        self.command.lua_args()
     }
 }
 
@@ -92,7 +92,7 @@ impl TryFrom<RawLogArgs> for LogArgs {
     }
 }
 
-const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format. Modules can be used to include arbitrary functionality; device drivers can be defined by modules.";
+const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format. Extensions can be used to include arbitrary functionality; device drivers can be defined by extensions.";
 
 /// Internal command-line argument parser
 #[derive(Parser, Debug)]
@@ -134,7 +134,7 @@ pub struct RawLogArgs {
 #[derive(Clone, Debug, PartialEq, Eq, Subcommand)]
 #[warn(missing_docs)]
 pub enum Command {
-    /// Add a module the current document's compilation
+    /// Add an extension the current document's compilation
     Add(AddCmd),
 
     /// Build a given document
@@ -158,15 +158,15 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn module_args(&self) -> Option<&ModuleArgs> {
+    pub fn lua_args(&self) -> Option<&LuaArgs> {
         match self {
             Self::Add(_) => None,
-            Self::Build(cmd) => Some(&cmd.modules),
+            Self::Build(cmd) => Some(&cmd.lua),
             Self::Explain(_) => None,
             Self::Format(_) => None,
             Self::Init(_) => None,
-            Self::Lint(cmd) => Some(&cmd.modules),
-            Self::List(cmd) => Some(&cmd.modules),
+            Self::Lint(cmd) => Some(&cmd.lua),
+            Self::List(cmd) => Some(&cmd.lua),
         }
     }
 }
@@ -233,20 +233,20 @@ impl Default for Command {
 #[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
 pub struct AddCmd {
-    /// The module to add
+    /// The extension to add
     #[arg(value_name = "source")]
     pub to_add: String,
 
-    /// Use a specific commit in the module's history
-    #[arg(long, value_name = "hash", group = "module-version")]
+    /// Use a specific commit in the extension's history
+    #[arg(long, value_name = "hash", group = "extension-version")]
     pub commit: Option<String>,
 
-    /// Override the module name
+    /// Override the extension name
     #[arg(long, value_name = "name")]
     pub rename_as: Option<String>,
 
-    /// Use version of module at given tag
-    #[arg(long, value_name = "tag-name", group = "module-version")]
+    /// Use version of extension at given tag
+    #[arg(long, value_name = "tag-name", group = "extension-version")]
     pub tag: Option<String>,
 }
 
@@ -264,7 +264,7 @@ pub struct BuildCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub modules: ModuleArgs,
+    pub lua: LuaArgs,
 
     /// Max iterations of the typesetting loop
     #[arg(long, value_parser = MaxIters::parser(), default_value_t, value_name = "max")]
@@ -337,7 +337,7 @@ impl From<&BuildCmd> for emblem_core::Builder {
             output_stem,
             cmd.output.driver.clone(),
             cmd.max_iters.clone().into(),
-            cmd.modules.clone().into(),
+            cmd.lua.clone().into(),
         )
     }
 }
@@ -389,7 +389,7 @@ pub struct LintCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub modules: ModuleArgs,
+    pub lua: LuaArgs,
 }
 
 impl From<&LintCmd> for emblem_core::Linter {
@@ -408,7 +408,7 @@ pub struct ListCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub modules: ModuleArgs,
+    pub lua: LuaArgs,
 }
 
 /// Holds the source of the user's document
@@ -433,10 +433,10 @@ pub struct OutputArgs {
     pub driver: Option<String>,
 }
 
-/// Holds the user's preferences for the modules used when running the program
+/// Holds the user's preferences for the lua environment used when running the program
 #[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
-pub struct ModuleArgs {
+pub struct LuaArgs {
     /// Pass a named argument into module-space. If module name is omitted, pass argument as
     /// variable in document
     #[arg(short = 'a', action = Append, value_parser = ExtArg::parser(), value_name="mod.arg=value")]
@@ -455,8 +455,8 @@ pub struct ModuleArgs {
     pub sandbox: SandboxLevel,
 }
 
-impl From<ModuleArgs> for emblem_core::ExtensionStateBuilder {
-    fn from(args: ModuleArgs) -> Self {
+impl From<LuaArgs> for emblem_core::ExtensionStateBuilder {
+    fn from(args: LuaArgs) -> Self {
         Self {
             sandbox_level: args.sandbox.into(),
             max_steps: args.max_steps.into(),
@@ -1130,7 +1130,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_mem,
                     ResourceLimit::Unlimited
                 );
@@ -1140,7 +1140,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_mem,
                     ResourceLimit::Limited(25)
                 );
@@ -1150,7 +1150,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_mem,
                     ResourceLimit::Limited(25 * 1024)
                 );
@@ -1160,7 +1160,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_mem,
                     ResourceLimit::Limited(25 * 1024 * 1024)
                 );
@@ -1170,7 +1170,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_mem,
                     ResourceLimit::Limited(25 * 1024 * 1024 * 1024)
                 );
@@ -1186,7 +1186,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_steps,
                     ResourceLimit::Unlimited
                 );
@@ -1196,7 +1196,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_steps,
                     ResourceLimit::Limited(25)
                 );
@@ -1206,7 +1206,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_steps,
                     ResourceLimit::Limited(25 * 1024)
                 );
@@ -1216,7 +1216,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_steps,
                     ResourceLimit::Limited(25 * 1024 * 1024)
                 );
@@ -1226,7 +1226,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_steps,
                     ResourceLimit::Limited(25 * 1024 * 1024 * 1024)
                 );
@@ -1242,7 +1242,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .sandbox,
                     SandboxLevel::Standard
                 );
@@ -1252,7 +1252,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .sandbox,
                     SandboxLevel::Unrestricted
                 );
@@ -1262,7 +1262,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .sandbox,
                     SandboxLevel::Standard
                 );
@@ -1272,7 +1272,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .sandbox,
                     SandboxLevel::Strict
                 );
@@ -1288,7 +1288,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .args,
                     vec![]
                 );
@@ -1300,7 +1300,7 @@ mod test {
                             .command
                             .build()
                             .unwrap()
-                            .modules
+                            .lua
                             .args
                             .clone();
                     assert_eq!(valid_ext_args.len(), 3);
@@ -1474,7 +1474,7 @@ mod test {
                         .command
                         .lint()
                         .unwrap()
-                        .modules
+                        .lua
                         .args,
                     vec![]
                 );
@@ -1486,7 +1486,7 @@ mod test {
                             .command
                             .lint()
                             .unwrap()
-                            .modules
+                            .lua
                             .args
                             .clone();
                     assert_eq!(valid_ext_args.len(), 3);
@@ -1536,7 +1536,7 @@ mod test {
                         .command
                         .list()
                         .unwrap()
-                        .modules
+                        .lua
                         .args,
                     vec![]
                 );
@@ -1554,7 +1554,7 @@ mod test {
                     .command
                     .list()
                     .unwrap()
-                    .modules
+                    .lua
                     .args
                     .clone();
                     assert_eq!(valid_ext_args.len(), 3);
