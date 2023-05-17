@@ -753,15 +753,15 @@ impl From<Verbosity> for emblem_core::Verbosity {
 
 #[derive(ValueEnum, Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum SandboxLevel {
-    /// Modules have no restrictions placed upon them.
+    /// Place no restrictions on the Lua environment.
     Unrestricted,
 
-    /// Prohibit creation of new subprocesses and file system access outside of the current
-    /// working directory.
+    /// Prohibit subprocesses creation and file system access outside of the current
+    /// document's directory.
     #[default]
     Standard,
 
-    /// Same restrictions as Standard, but all file system access if prohibited.
+    /// Same restrictions as Standard, but all file system access is prohibited.
     Strict,
 }
 
