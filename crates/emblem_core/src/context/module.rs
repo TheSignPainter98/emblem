@@ -58,6 +58,7 @@ impl<'m> Module<'m> {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ModuleVersion<'m> {
     Tag(&'m str),
+    Branch(&'m str),
     Hash(&'m str),
 }
 
@@ -98,7 +99,10 @@ mod test {
         let tag = ModuleVersion::Tag("foo");
         assert_eq!(tag, Module::new(None, tag, HashMap::new()).version());
 
-        let tag = ModuleVersion::Hash("bar");
-        assert_eq!(tag, Module::new(None, tag, HashMap::new()).version());
+        let branch = ModuleVersion::Branch("bar");
+        assert_eq!(branch, Module::new(None, branch, HashMap::new()).version());
+
+        let hash = ModuleVersion::Hash("baz");
+        assert_eq!(hash, Module::new(None, hash, HashMap::new()).version());
     }
 }

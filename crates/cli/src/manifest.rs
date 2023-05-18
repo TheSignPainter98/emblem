@@ -67,6 +67,7 @@ pub(crate) struct Module<'m> {
     rename_as: Option<&'m str>,
     tag: Option<&'m str>,
     hash: Option<&'m str>,
+    branch: Option<&'m str>,
     args: Option<HashMap<&'m str, &'m str>>,
 }
 
@@ -80,6 +81,9 @@ impl<'m> Module<'m> {
     pub fn version(&self) -> ModuleVersion<'m> {
         if let Some(tag) = self.tag {
             return ModuleVersion::Tag(tag);
+        }
+        if let Some(branch) = self.branch {
+            return ModuleVersion::Branch(branch);
         }
         if let Some(hash) = self.hash {
             return ModuleVersion::Hash(hash);
@@ -95,11 +99,11 @@ impl<'m> Module<'m> {
         }
     }
 
-    pub fn validate(&self) -> Result<(), String> {
-        match (&self.tag, &self.hash) {
-            (Some(_), None) | (None, Some(_)) => Ok(()),
-            (None, None) => Err("expected `tag` or `hash` field".into()),
-            _ => Err("multiple version specifiers found".into()),
+    pub fn validate(&self, name: &str) -> Result<(), String> {
+        match (&self.tag, &self.branch, &self.hash) {
+            (Some(_), None, None) | (None, Some(_), None) | (None, None, Some(_)) => Ok(()),
+            (None, None, None) => Err("expected `tag` or `hash` field".into()),
+            _ => Err(format!("multiple version specifiers found for {name}")),
         }
     }
 }
@@ -117,6 +121,7 @@ impl<'m> From<Module<'m>> for EmblemModule<'m> {
 #[derive(Debug, Eq, PartialEq)]
 pub enum ModuleVersion<'m> {
     Tag(&'m str),
+    Branch(&'m str),
     Hash(&'m str),
 }
 
@@ -124,6 +129,7 @@ impl<'m> From<ModuleVersion<'m>> for EmblemModuleVersion<'m> {
     fn from(version: ModuleVersion<'m>) -> Self {
         match version {
             ModuleVersion::Tag(t) => Self::Tag(t),
+            ModuleVersion::Branch(t) => Self::Branch(t),
             ModuleVersion::Hash(h) => Self::Hash(h),
         }
     }
@@ -174,7 +180,9 @@ mod test {
                 args:
                   key1: value1
                   key2: value2
-              bar-hashed:
+              bar-branched:
+                branch: dev
+              baz-hashed:
                 hash: 0123456789abcdef
             "#
             .into(),
@@ -203,13 +211,18 @@ mod test {
             }
 
             {
-                let baz_hashed = requires.get("bar-hashed").unwrap();
-                assert_eq!(None, baz_hashed.rename_as());
+                let bar_branched = requires.get("bar-branched").unwrap();
+                assert_eq!(None, bar_branched.rename_as());
+                assert_eq!(ModuleVersion::Branch("dev"), bar_branched.version());
+                assert_eq!(None, bar_branched.args());
+            }
+
+            {
+                let baz_hashed = requires.get("baz-hashed").unwrap();
                 assert_eq!(
                     ModuleVersion::Hash("0123456789abcdef"),
                     baz_hashed.version()
                 );
-                assert_eq!(None, baz_hashed.args());
             }
         }
     }
