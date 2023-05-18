@@ -30,8 +30,8 @@ pub(crate) struct DocManifest<'m> {
 impl<'m> DocManifest<'m> {
     fn validate(&self) -> Result<(), String> {
         if let Some(requires) = &self.requires {
-            for spec in requires.values() {
-                spec.validate()?;
+            for (name, ext) in requires {
+                ext.validate(name)?;
             }
         }
         Ok(())
@@ -138,6 +138,7 @@ impl<'m> From<ModuleVersion<'m>> for EmblemModuleVersion<'m> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use itertools::Itertools;
     use regex::Regex;
 
     #[test]
@@ -262,14 +263,13 @@ mod test {
     fn missing_dependency_version() {
         let raw = textwrap::dedent(
             r#"
-            name: foo
-            emblem: v1.0
-            requires:
-              bar:
-                args:
-                  asdf: fdas
-            "#
-            .into(),
+                name: foo
+                emblem: v1.0
+                requires:
+                  bar:
+                    args:
+                      asdf: fdas
+            "#,
         );
         let err = load_str(&raw).unwrap_err();
         let re = Regex::new("expected `tag` or `hash` field").unwrap();
@@ -284,10 +284,9 @@ mod test {
     fn extra_fields() {
         let raw = textwrap::dedent(
             r#"
-            INTERLOPER: true
-            name: foo
-            "#
-            .into(),
+                INTERLOPER: true
+                name: foo
+            "#,
         );
         let err = load_str(&raw).unwrap_err();
         let re = Regex::new("unknown field `INTERLOPER`").unwrap();
@@ -296,6 +295,33 @@ mod test {
             re.is_match(msg),
             "Unknown message doesn't match regex '{re:?}': got {msg}"
         );
+    }
+
+    #[test]
+    fn multiple_version_specifiers() {
+        let specifiers = ["tag: asdf", "branch: asdf", "hash: asdf"];
+        for (specifier_1, specifier_2) in specifiers
+            .iter()
+            .cartesian_product(specifiers.iter())
+            .filter(|(s, t)| s != t)
+        {
+            let raw = textwrap::dedent(&format!(
+                r#"
+                name: foo
+                emblem: v1.0
+                requires:
+                  bar:
+                    {specifier_1}
+                    {specifier_2}
+            "#));
+            let err = load_str(&raw).unwrap_err();
+            let re = Regex::new("multiple version specifiers found for bar").unwrap();
+            let msg = err.msg();
+            assert!(
+                re.is_match(msg),
+                "Unknown message doesn't match regex '{re:?}': got {msg}"
+            );
+        }
     }
 }
 
