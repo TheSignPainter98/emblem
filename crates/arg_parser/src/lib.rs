@@ -249,6 +249,10 @@ pub struct AddCmd {
     /// Use version of extension at given tag
     #[arg(long, value_name = "tag-name", group = "extension-version")]
     pub tag: Option<String>,
+
+    /// Use a specific branch in the extension's history
+    #[arg(long, value_name = "name", group = "extension-version")]
+    pub branch: Option<String>,
 }
 
 /// Arguments to the build subcommand
@@ -991,6 +995,15 @@ mod test {
                         .tag
                 );
                 assert_eq!(
+                    None,
+                    Args::try_parse_from(["em", "add", "pootis"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .branch
+                );
+                assert_eq!(
                     Some("deadbeef".into()),
                     Args::try_parse_from(["em", "add", "pootis", "--commit", "deadbeef"])
                         .unwrap()
@@ -1007,6 +1020,15 @@ mod test {
                         .add()
                         .unwrap()
                         .tag
+                );
+                assert_eq!(
+                    Some("spah-creepn-aroun-here".into()),
+                    Args::try_parse_from(["em", "add", "pootis", "--branch", "spah-creepn-aroun-here"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .branch
                 );
                 assert!(Args::try_parse_from([
                     "em", "add", "pootis", "--commit", "COMMIT", "--tag", "TAG"
