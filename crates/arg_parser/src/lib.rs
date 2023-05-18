@@ -1023,12 +1023,18 @@ mod test {
                 );
                 assert_eq!(
                     Some("spah-creepn-aroun-here".into()),
-                    Args::try_parse_from(["em", "add", "pootis", "--branch", "spah-creepn-aroun-here"])
-                        .unwrap()
-                        .command
-                        .add()
-                        .unwrap()
-                        .branch
+                    Args::try_parse_from([
+                        "em",
+                        "add",
+                        "pootis",
+                        "--branch",
+                        "spah-creepn-aroun-here"
+                    ])
+                    .unwrap()
+                    .command
+                    .add()
+                    .unwrap()
+                    .branch
                 );
                 assert!(Args::try_parse_from([
                     "em", "add", "pootis", "--commit", "COMMIT", "--tag", "TAG"

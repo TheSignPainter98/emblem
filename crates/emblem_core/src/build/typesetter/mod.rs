@@ -333,15 +333,15 @@ mod test {
 
         Typesetter::new(&mut ext_state, parser::parse("event-listeners.em", "")?).typeset()?;
 
-        assert!(iter_start_func_called.borrow().clone());
-        assert!(iter_start_table_called.borrow().clone());
-        assert!(iter_start_userdata_called.borrow().clone());
-        assert!(iter_end_func_called.borrow().clone());
-        assert!(iter_end_table_called.borrow().clone());
-        assert!(iter_end_userdata_called.borrow().clone());
-        assert!(done_func_called.borrow().clone());
-        assert!(done_table_called.borrow().clone());
-        assert!(done_userdata_called.borrow().clone());
+        assert!(*iter_start_func_called.borrow());
+        assert!(*iter_start_table_called.borrow());
+        assert!(*iter_start_userdata_called.borrow());
+        assert!(*iter_end_func_called.borrow());
+        assert!(*iter_end_table_called.borrow());
+        assert!(*iter_end_userdata_called.borrow());
+        assert!(*done_func_called.borrow());
+        assert!(*done_table_called.borrow());
+        assert!(*done_userdata_called.borrow());
 
         Ok(())
     }

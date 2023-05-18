@@ -147,8 +147,7 @@ mod test {
             r#"
             name: foo
             emblem: v1.0
-            "#
-            .into(),
+            "#,
         );
         let manifest = load_str(&raw).unwrap();
 
@@ -185,8 +184,7 @@ mod test {
                 branch: dev
               baz-hashed:
                 hash: 0123456789abcdef
-            "#
-            .into(),
+            "#,
         );
         let manifest = load_str(&raw).unwrap();
 
@@ -313,7 +311,8 @@ mod test {
                   bar:
                     {specifier_1}
                     {specifier_2}
-            "#));
+            "#
+            ));
             let err = load_str(&raw).unwrap_err();
             let re = Regex::new("multiple version specifiers found for bar").unwrap();
             let msg = err.msg();
