@@ -95,7 +95,7 @@ where
     let lua_info = ctx.lua_info_mut();
 
     let mut specific_args: HashMap<_, Vec<_>> = HashMap::new();
-    if let Some(lua_args) = args.module_args() {
+    if let Some(lua_args) = args.lua_args() {
         lua_info.set_sandbox(lua_args.sandbox.into());
         lua_info.set_max_mem(lua_args.max_mem.into());
 

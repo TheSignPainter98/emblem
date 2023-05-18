@@ -24,8 +24,8 @@ const EVENT_LISTENERS_RKEY: &str = emblem_registry_key!("events"); // TODO(kcza)
 #[derive(Copy, Clone, Default)]
 pub struct ExtensionStateBuilder {
     pub sandbox_level: SandboxLevel,
-    pub max_mem: ResourceLimit,
-    pub max_steps: ResourceLimit,
+    pub max_mem: ResourceLimit<usize>,
+    pub max_steps: ResourceLimit<u32>,
 }
 
 impl ExtensionStateBuilder {
@@ -55,11 +55,14 @@ impl ExtensionStateBuilder {
     fn insert_safety_hook(&self, lua: &Lua) -> MLuaResult<()> {
         const INSTRUCTION_INTERVAL: u32 = 64;
 
-        let max_mem = self.max_steps.into();
-        let max_steps: u32 = match self.max_mem.try_into() {
-            Ok(m) => m,
-            Err(e) => return Err(MLuaError::ExternalError(Arc::new(e))),
-        };
+        let max_mem = self
+            .max_mem
+            .try_into()
+            .map_err(|e| MLuaError::ExternalError(Arc::new(e)))?;
+        let max_steps = self
+            .max_steps
+            .try_into()
+            .map_err(|e| MLuaError::ExternalError(Arc::new(e)))?;
 
         lua.set_hook(
             HookTriggers::every_nth_instruction(INSTRUCTION_INTERVAL),

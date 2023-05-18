@@ -1,9 +1,10 @@
 mod module;
 
-use std::num::TryFromIntError;
-
 use crate::Version;
 pub use module::{Module, ModuleName, ModuleVersion};
+use num::{Bounded, Integer};
+use std::fmt::Debug;
+use std::num::TryFromIntError;
 use typed_arena::Arena;
 
 #[derive(Default)]
@@ -134,7 +135,7 @@ impl<'m> DocInfo<'m> {
 #[derive(Debug, Default)]
 pub struct LuaInfo<'m> {
     sandbox: SandboxLevel,
-    max_mem: ResourceLimit,
+    max_mem: ResourceLimit<usize>,
     general_args: Option<Vec<(&'m str, &'m str)>>,
     modules: Option<Vec<(&'m str, Module<'m>)>>,
 }
@@ -148,11 +149,11 @@ impl<'m> LuaInfo<'m> {
         self.sandbox
     }
 
-    pub fn set_max_mem(&mut self, max_mem: ResourceLimit) {
+    pub fn set_max_mem(&mut self, max_mem: ResourceLimit<usize>) {
         self.max_mem = max_mem;
     }
 
-    pub fn max_mem(&self) -> ResourceLimit {
+    pub fn max_mem(&self) -> ResourceLimit<usize> {
         self.max_mem
     }
 
@@ -202,28 +203,30 @@ impl SandboxLevel {
 }
 
 #[derive(Copy, Clone, Debug, Default)]
-pub enum ResourceLimit {
-    Limited(usize),
+pub enum ResourceLimit<T: Bounded + Clone + Integer> {
     #[default]
     Unlimited,
+    Limited(T),
 }
 
-impl From<ResourceLimit> for usize {
-    fn from(limit: ResourceLimit) -> Self {
+impl TryFrom<ResourceLimit<usize>> for usize {
+    type Error = TryFromIntError;
+
+    fn try_from(limit: ResourceLimit<usize>) -> Result<Self, Self::Error> {
         match limit {
-            ResourceLimit::Limited(l) => l,
-            ResourceLimit::Unlimited => usize::MAX,
+            ResourceLimit::Unlimited => Ok(usize::MAX),
+            ResourceLimit::Limited(l) => Ok(l),
         }
     }
 }
 
-impl TryFrom<ResourceLimit> for u32 {
+impl TryFrom<ResourceLimit<u32>> for u32 {
     type Error = TryFromIntError;
 
-    fn try_from(limit: ResourceLimit) -> Result<Self, Self::Error> {
+    fn try_from(limit: ResourceLimit<u32>) -> Result<Self, Self::Error> {
         match limit {
-            ResourceLimit::Limited(l) => u32::try_from(l),
             ResourceLimit::Unlimited => Ok(u32::MAX),
+            ResourceLimit::Limited(l) => Ok(l),
         }
     }
 }

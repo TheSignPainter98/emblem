@@ -8,7 +8,8 @@ use clap::{
 use emblem_core::context::{
     ResourceLimit as EmblemResourceLimit, SandboxLevel as EmblemSandboxLevel,
 };
-use std::{env, ffi::OsString, fmt::Display, path};
+use num::{Bounded, FromPrimitive, Integer, ToPrimitive};
+use std::{env, ffi::OsString, fmt::Display, path, str::FromStr};
 
 /// Parsed command-line arguments
 #[derive(Debug)]
@@ -251,7 +252,7 @@ pub struct AddCmd {
 }
 
 /// Arguments to the build subcommand
-#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
+#[derive(Clone, Debug, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
 pub struct BuildCmd {
     #[command(flatten)]
@@ -267,53 +268,163 @@ pub struct BuildCmd {
     pub lua: LuaArgs,
 
     /// Max iterations of the typesetting loop
-    #[arg(long, value_parser = MaxIters::parser(), default_value_t, value_name = "max")]
-    pub max_iters: MaxIters,
+    #[arg(long, value_parser = ResourceLimit::<u32>::parser(), default_value_t = ResourceLimit::Limited(5), value_name = "max")]
+    pub max_iters: ResourceLimit<u32>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum MaxIters {
+impl Default for BuildCmd {
+    fn default() -> Self {
+        Self {
+            input: Default::default(),
+            output: Default::default(),
+            lua: Default::default(),
+            max_iters: ResourceLimit::Limited(5),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
+pub enum ResourceLimit<T: Bounded + Clone + Copy + Integer> {
+    #[default]
     Unlimited,
-    Limited(u32),
+    Limited(T),
 }
 
-impl MaxIters {
+impl<T> ResourceLimit<T>
+where
+    T: Bounded
+        + Clone
+        + Copy
+        + Display
+        + FromPrimitive
+        + FromStr
+        + Integer
+        + ToPrimitive
+        + Send
+        + Sync
+        + 'static,
+    <T as FromStr>::Err: Display,
+{
     fn parser() -> impl TypedValueParser {
         StringValueParser::new().try_map(Self::try_from)
     }
 }
 
-impl From<MaxIters> for u32 {
-    fn from(max: MaxIters) -> Self {
+impl From<ResourceLimit<u32>> for u32 {
+    fn from(max: ResourceLimit<u32>) -> Self {
         match max {
-            MaxIters::Unlimited => u32::MAX,
-            MaxIters::Limited(l) => l,
+            ResourceLimit::Unlimited => u32::max_value(),
+            ResourceLimit::Limited(l) => l,
         }
     }
 }
 
-impl TryFrom<String> for MaxIters {
+impl From<ResourceLimit<usize>> for usize {
+    fn from(max: ResourceLimit<usize>) -> Self {
+        match max {
+            ResourceLimit::Unlimited => usize::max_value(),
+            ResourceLimit::Limited(l) => l,
+        }
+    }
+}
+
+impl<T> TryFrom<String> for ResourceLimit<T>
+where
+    T: Bounded
+        + Clone
+        + Copy
+        + Display
+        + FromPrimitive
+        + FromStr
+        + Integer
+        + ToPrimitive
+        + Send
+        + Sync
+        + 'static,
+    <T as FromStr>::Err: Display,
+{
     type Error = error::Error;
 
     fn try_from(raw: String) -> Result<Self, Self::Error> {
+        Self::try_from(&raw[..])
+    }
+}
+
+impl<T> TryFrom<&str> for ResourceLimit<T>
+where
+    T: Bounded
+        + Clone
+        + Copy
+        + Display
+        + FromPrimitive
+        + FromStr
+        + Integer
+        + ToPrimitive
+        + Send
+        + Sync
+        + 'static,
+    <T as FromStr>::Err: Display,
+{
+    type Error = error::Error;
+
+    fn try_from(raw: &str) -> Result<Self, Self::Error> {
+        if raw.is_empty() {
+            let mut cmd = RawArgs::command();
+            return Err(cmd.error(error::ErrorKind::InvalidValue, "need amount"));
+        }
+
         if raw == "unlimited" {
             return Ok(Self::Unlimited);
         }
 
-        match raw.parse() {
-            Ok(max) => Ok(Self::Limited(max)),
-            Err(e) => Err(RawArgs::command().error(error::ErrorKind::InvalidValue, e.to_string())),
+        let (raw_amt, unit): (String, String) = raw.chars().partition(|c| c.is_numeric());
+
+        let amt: T = match raw_amt.parse() {
+            Ok(a) => a,
+            Err(e) => {
+                let mut cmd = RawArgs::command();
+                return Err(cmd.error(error::ErrorKind::InvalidValue, e));
+            }
+        };
+
+        let multiplier: T = {
+            let max = T::max_value()
+                .to_usize()
+                .expect("internal error: max value too large");
+            match &unit[..] {
+                "K" if max >= 1 << 10 => T::from_u32(1 << 10).unwrap(),
+                "M" if max >= 1 << 20 => T::from_u32(1 << 20).unwrap(),
+                "G" if max >= 1 << 30 => T::from_u32(1 << 30).unwrap(),
+                "" => T::from_u32(1).unwrap(),
+                _ => {
+                    let mut cmd = RawArgs::command();
+                    return Err(cmd.error(
+                        error::ErrorKind::InvalidValue,
+                        format!("unrecognised unit: {}", unit),
+                    ));
+                }
+            }
+        };
+
+        if T::max_value().to_f64().unwrap() < multiplier.to_f64().unwrap() * amt.to_f64().unwrap() {
+            let mut cmd = RawArgs::command();
+            return Err(cmd.error(
+                error::ErrorKind::InvalidValue,
+                format!(
+                    "resource limit too large, expected at most {}",
+                    T::max_value()
+                ),
+            ));
         }
+
+        Ok(Self::Limited(amt * multiplier))
     }
 }
 
-impl Default for MaxIters {
-    fn default() -> Self {
-        Self::Limited(5)
-    }
-}
-
-impl Display for MaxIters {
+impl<T> Display for ResourceLimit<T>
+where
+    T: Bounded + Clone + Copy + Display + Integer,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Unlimited => write!(f, "unlimited"),
@@ -336,7 +447,7 @@ impl From<&BuildCmd> for emblem_core::Builder {
             cmd.input.file.clone().into(),
             output_stem,
             cmd.output.driver.clone(),
-            cmd.max_iters.clone().into(),
+            cmd.max_iters.into(),
             cmd.lua.clone().into(),
         )
     }
@@ -443,12 +554,12 @@ pub struct LuaArgs {
     pub args: Vec<ExtArg>, // TODO(kcza): plumb me!
 
     /// Limit lua memory usage
-    #[arg(long, value_parser = ResourceLimit::parser(), default_value = "unlimited", value_name = "amount")]
-    pub max_mem: ResourceLimit,
+    #[arg(long, value_parser = ResourceLimit::<usize>::parser(), default_value = "unlimited", value_name = "amount")]
+    pub max_mem: ResourceLimit<usize>,
 
     /// Limit lua execution steps
-    #[arg(long, value_parser = ResourceLimit::parser(), default_value = "unlimited", value_name = "steps")]
-    pub max_steps: ResourceLimit,
+    #[arg(long, value_parser = ResourceLimit::<u32>::parser(), default_value = "unlimited", value_name = "steps")]
+    pub max_steps: ResourceLimit<u32>,
 
     /// Restrict system access
     #[arg(long, value_enum, default_value_t, value_name = "level")]
@@ -618,88 +729,11 @@ impl TryFrom<&str> for ArgPath {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-pub enum ResourceLimit {
-    Limited(usize),
-    #[default]
-    Unlimited,
-}
-
-impl ResourceLimit {
-    fn parser() -> impl TypedValueParser {
-        StringValueParser::new().try_map(Self::try_from)
-    }
-}
-
-impl TryFrom<OsStr> for ResourceLimit {
-    type Error = error::Error;
-
-    fn try_from(raw: OsStr) -> Result<Self, Self::Error> {
-        if let Some(s) = raw.to_str() {
-            return Self::try_from(s);
-        }
-
-        let mut cmd = RawArgs::command();
-        Err(cmd.error(
-            error::ErrorKind::InvalidValue,
-            format!("could not convert '{:?}' to an OS string", raw),
-        ))
-    }
-}
-
-impl TryFrom<String> for ResourceLimit {
-    type Error = error::Error;
-
-    fn try_from(raw: String) -> Result<Self, Self::Error> {
-        Self::try_from(&raw[..])
-    }
-}
-
-impl TryFrom<&str> for ResourceLimit {
-    type Error = error::Error;
-
-    fn try_from(raw: &str) -> Result<Self, Self::Error> {
-        if raw.is_empty() {
-            let mut cmd = RawArgs::command();
-            return Err(cmd.error(error::ErrorKind::InvalidValue, "need amount"));
-        }
-
-        if raw == "unlimited" {
-            return Ok(Self::Unlimited);
-        }
-
-        let (raw_amt, unit): (String, String) = raw.chars().partition(|c| c.is_numeric());
-
-        let amt: usize = match raw_amt.parse() {
-            Ok(a) => a,
-            Err(e) => {
-                let mut cmd = RawArgs::command();
-                return Err(cmd.error(error::ErrorKind::InvalidValue, e));
-            }
-        };
-
-        let multiplier: usize = {
-            match &unit[..] {
-                "K" => 1 << 10,
-                "M" => 1 << 20,
-                "G" => 1 << 30,
-                "" => 1,
-                _ => {
-                    let mut cmd = RawArgs::command();
-                    return Err(cmd.error(
-                        error::ErrorKind::InvalidValue,
-                        format!("unrecognised unit: {}", unit),
-                    ));
-                }
-            }
-        };
-
-        Ok(Self::Limited(amt * multiplier))
-    }
-}
-
-impl From<ResourceLimit> for EmblemResourceLimit {
-    fn from(limit: ResourceLimit) -> Self {
+impl<T> From<ResourceLimit<T>> for EmblemResourceLimit<T>
+where
+    T: Bounded + Integer + Clone + Copy,
+{
+    fn from(limit: ResourceLimit<T>) -> Self {
         match limit {
             ResourceLimit::Limited(n) => Self::Limited(n),
             ResourceLimit::Unlimited => Self::Unlimited,
@@ -1220,16 +1254,6 @@ mod test {
                         .max_steps,
                     ResourceLimit::Limited(25 * 1024 * 1024)
                 );
-                assert_eq!(
-                    Args::try_parse_from(["em", "build", "--max-steps", "25G"])
-                        .unwrap()
-                        .command
-                        .build()
-                        .unwrap()
-                        .lua
-                        .max_steps,
-                    ResourceLimit::Limited(25 * 1024 * 1024 * 1024)
-                );
 
                 assert!(Args::try_parse_from(["em", "build", "--max-steps", "100T"]).is_err());
             }
@@ -1324,7 +1348,7 @@ mod test {
                         .build()
                         .unwrap()
                         .max_iters,
-                    MaxIters::Limited(5),
+                    ResourceLimit::Limited(5),
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-iters", "25"])
@@ -1333,7 +1357,7 @@ mod test {
                         .build()
                         .unwrap()
                         .max_iters,
-                    MaxIters::Limited(25),
+                    ResourceLimit::Limited(25),
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-iters", "unlimited"])
@@ -1342,7 +1366,7 @@ mod test {
                         .build()
                         .unwrap()
                         .max_iters,
-                    MaxIters::Unlimited,
+                    ResourceLimit::Unlimited,
                 );
             }
         }
