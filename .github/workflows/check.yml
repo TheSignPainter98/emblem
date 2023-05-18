@@ -71,6 +71,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --workspace --all-features -- -D warnings
 
+      - name: Run cargo clippy on tests
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --tests --workspace --all-features -- -D warnings
+
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
