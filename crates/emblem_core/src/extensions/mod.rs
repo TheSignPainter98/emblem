@@ -82,7 +82,7 @@ impl ExtensionStateBuilder {
     fn setup_event_listeners(&self, lua: &Lua) -> MLuaResult<()> {
         lua.set_named_registry_value(EVENT_LISTENERS_RKEY, {
             let listeners = lua.create_table_with_capacity(0, 3)?;
-            for event in [Event::IterStart, Event::IterEnd, Event::Done] {
+            for event in Event::events() {
                 listeners.set(event.name(), lua.create_table()?)?;
             }
             listeners
@@ -275,6 +275,10 @@ impl Event {
             Self::IterEnd => "iter-end",
             Self::Done => "done",
         }
+    }
+
+    fn events() -> &'static [Event] {
+        &[Self::IterStart, Self::IterEnd, Self::Done]
     }
 }
 
