@@ -33,6 +33,8 @@ impl<'em> Typesetter<'em> {
 
     pub fn typeset(mut self) -> Result<(), Box<dyn Error>> {
         loop {
+            self.ext_state.increment_iter_count();
+
             self.iter()?;
 
             if !self.will_reiter() {
@@ -56,15 +58,14 @@ impl<'em> Typesetter<'em> {
     }
 
     fn iter(&mut self) -> Result<(), Box<dyn Error>> {
-        self.ext_state.increment_iter_count();
-        self.ext_state.handle(Event::IterStart)?;
-
         println!(
             "Doing iteration {} of {}",
             self.ext_state.curr_iter(),
             self.max_iters.unwrap_or(u32::MAX)
         );
 
+        self.ext_state.handle(Event::IterStart)?;
+        // TODO(kzca): Evaluate the root.
         self.ext_state.handle(Event::IterEnd)?;
 
         Ok(())
