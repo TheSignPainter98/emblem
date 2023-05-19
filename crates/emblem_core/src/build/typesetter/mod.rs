@@ -372,9 +372,48 @@ mod test {
             assert_eq!(format!("runtime error: non-callable listener userdata found when handling {event} event"), ext_state.add_listener(event, NonCallable {}.to_lua(ext_state.lua())?).unwrap_err().to_string());
         }
 
-        // TODO(kcza): valid then revoke!
+        Ok(())
+    }
+
+    #[test]
+    fn invalidated_event_listeners() -> Result<(), Box<dyn Error>> {
+        for event in [Event::IterStart, Event::IterEnd, Event::Done] {
+            let mut ext_state = ExtensionStateBuilder::default().build().unwrap();
+            let handler_called = Rc::new(RefCell::new(false));
+
+            {
+                let table = {
+                    let table = ext_state.lua().create_table()?;
+                    table.set_metatable(Some({
+                        let mt = ext_state.lua().create_table()?;
+                        let handler_called = handler_called.clone();
+                        mt.set(
+                            MetaMethod::Call.name(),
+                            Value::Function(
+                                ext_state
+                                    .lua()
+                                    .create_function(move |_, _: Table| {
+                                        *handler_called.try_borrow_mut().unwrap() = true;
+                                        Ok(Value::Nil)})?,
+                            ),
+                        )?;
+                        mt
+                    }));
+                    table
+                };
+                assert!(ext_state
+                    .add_listener(event, Value::Table(table.clone()))
+                    .is_ok());
+
+                table.set_metatable(None);
+            }
+
+            let err = Typesetter::new(&mut ext_state, parser::parse("event-listeners.em", "")?).typeset().unwrap_err();
+            assert!(err.to_string().contains("runtime error: attempt to call a table value"), "unexpected error: {err}");
+
+            assert!(!*handler_called.borrow(), "handler unexpectedly called");
+        }
 
         Ok(())
     }
 }
-// TODO(kcza): test events and listeners (functions, callable tables and non-callables)
