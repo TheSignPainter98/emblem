@@ -173,12 +173,11 @@ impl ExtensionState {
 
     fn event_data(&self, event: Event) -> MLuaResult<Value> {
         let data = match event {
-            Event::IterStart | Event::IterEnd => {
+            Event::IterStart | Event::IterEnd | Event::Done => {
                 let event = self.lua.create_table_with_capacity(0, 1)?;
                 event.set("iter", self.curr_iter())?;
                 event
             }
-            Event::Done => self.lua.create_table()?,
         };
         Ok(Value::Table(data))
     }

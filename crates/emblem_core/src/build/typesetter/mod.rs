@@ -85,7 +85,7 @@ mod test {
         let iter_start_indices_clone = iter_start_indices.clone();
         let iter_end_indices = Rc::new(RefCell::new(Vec::new()));
         let iter_end_indices_clone = iter_end_indices.clone();
-        let done_triggered = Rc::new(RefCell::new(false));
+        let done_triggered = Rc::new(RefCell::new(Vec::new()));
         let done_triggered_clone = done_triggered.clone();
 
         let mut ext_state = ExtensionStateBuilder::default().build().unwrap();
@@ -112,8 +112,9 @@ mod test {
         )?;
         ext_state.add_listener(
             Event::Done,
-            Value::Function(ext_state.lua().create_function(move |_, _event: Table| {
-                *done_triggered_clone.try_borrow_mut().unwrap() = true;
+            Value::Function(ext_state.lua().create_function(move |_, event: Table| {
+                let n: Integer = event.get("iter")?;
+                done_triggered_clone.try_borrow_mut().unwrap().push(n);
                 Ok(Value::Nil)
             })?),
         )?;
@@ -124,7 +125,7 @@ mod test {
 
         assert_eq!(iter_start_indices.borrow().clone(), [1, 2, 3, 4, 5, 6, 7]);
         assert_eq!(iter_end_indices.borrow().clone(), [1, 2, 3, 4, 5, 6, 7]);
-        assert!(*done_triggered.borrow(), "done event was not triggered");
+        assert_eq!(done_triggered.borrow().clone(), [7]);
 
         Ok(())
     }
@@ -135,7 +136,7 @@ mod test {
         let iter_start_indices_clone = iter_start_indices.clone();
         let iter_end_indices = Rc::new(RefCell::new(Vec::new()));
         let iter_end_indices_clone = iter_end_indices.clone();
-        let done_triggered = Rc::new(RefCell::new(false));
+        let done_triggered = Rc::new(RefCell::new(Vec::new()));
         let done_triggered_clone = done_triggered.clone();
 
         let mut ext_state = ExtensionStateBuilder::default().build().unwrap();
@@ -164,8 +165,9 @@ mod test {
         )?;
         ext_state.add_listener(
             Event::Done,
-            Value::Function(ext_state.lua().create_function(move |_, _event: Table| {
-                *done_triggered_clone.try_borrow_mut().unwrap() = true;
+            Value::Function(ext_state.lua().create_function(move |_, event: Table| {
+                let n: Integer = event.get("iter")?;
+                done_triggered_clone.try_borrow_mut().unwrap().push(n);
                 Ok(Value::Nil)
             })?),
         )?;
@@ -180,7 +182,7 @@ mod test {
             iter_end_indices.borrow().clone(),
             [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         );
-        assert!(*done_triggered.borrow(), "done event was not triggered");
+        assert_eq!(done_triggered.borrow().clone(), [10]);
 
         Ok(())
     }
