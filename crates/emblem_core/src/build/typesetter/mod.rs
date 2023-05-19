@@ -38,7 +38,6 @@ impl<'em> Typesetter<'em> {
             if !self.will_reiter() {
                 break;
             }
-
             self.reset_reiter_request();
         }
 
