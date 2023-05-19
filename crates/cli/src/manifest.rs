@@ -145,8 +145,8 @@ mod test {
     fn ok_minimal() {
         let raw = textwrap::dedent(
             r#"
-            name: foo
-            emblem: v1.0
+                name: foo
+                emblem: v1.0
             "#,
         );
         let manifest = load_str(&raw).unwrap();
@@ -161,29 +161,29 @@ mod test {
     fn ok_maximal() {
         let raw = textwrap::dedent(
             r#"
-            name: foo
-            emblem: v1.0
-            authors:
-            - Gordon
-            - Eli
-            - Isaac
-            - Walter
-            keywords:
-            - DARGH!
-            - NO!
-            - STAHP!
-            - HUEAG!
-            requires:
-              foo-tagged:
-                tag: edge
-                rename-as: qux
-                args:
-                  key1: value1
-                  key2: value2
-              bar-branched:
-                branch: dev
-              baz-hashed:
-                hash: 0123456789abcdef
+                name: foo
+                emblem: v1.0
+                authors:
+                - Gordon
+                - Eli
+                - Isaac
+                - Walter
+                keywords:
+                - DARGH!
+                - NO!
+                - STAHP!
+                - HUEAG!
+                requires:
+                  foo-tagged:
+                    tag: edge
+                    rename-as: qux
+                    args:
+                      key1: value1
+                      key2: value2
+                  bar-branched:
+                    branch: dev
+                  baz-hashed:
+                    hash: 0123456789abcdef
             "#,
         );
         let manifest = load_str(&raw).unwrap();
@@ -230,8 +230,8 @@ mod test {
     fn incorrect_emblem_version() {
         let missing = textwrap::dedent(
             r#"
-            name: foo
-            emblem: null
+                name: foo
+                emblem: null
             "#,
         );
         let missing_err = load_str(&missing).unwrap_err();
@@ -244,8 +244,8 @@ mod test {
 
         let unknown = textwrap::dedent(
             r#"
-            name: foo
-            emblem: UNKNOWN
+                name: foo
+                emblem: UNKNOWN
             "#,
         );
         let unknown_err = load_str(&unknown).unwrap_err();
@@ -305,13 +305,13 @@ mod test {
         {
             let raw = textwrap::dedent(&format!(
                 r#"
-                name: foo
-                emblem: v1.0
-                requires:
-                  bar:
-                    {specifier_1}
-                    {specifier_2}
-            "#
+                    name: foo
+                    emblem: v1.0
+                    requires:
+                      bar:
+                        {specifier_1}
+                        {specifier_2}
+                "#
             ));
             let err = load_str(&raw).unwrap_err();
             let re = Regex::new("multiple version specifiers found for bar").unwrap();
