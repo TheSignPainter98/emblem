@@ -382,24 +382,24 @@ where
         }
 
         let (raw_amt, unit): (String, String) = raw.chars().partition(|c| c.is_numeric());
+        let amt: T = raw_amt.parse().map_err(|_| {
+            RawArgs::command().error(
+                error::ErrorKind::InvalidValue,
+                format!(
+                    "resource limit too large, expected at most {}",
+                    T::max_value()
+                ),
+            )
+        })?;
 
-        let amt: T = match raw_amt.parse() {
-            Ok(a) => a,
-            Err(e) => {
-                let mut cmd = RawArgs::command();
-                return Err(cmd.error(error::ErrorKind::InvalidValue, e));
-            }
-        };
-
+        let max = T::max_value();
         let multiplier: T = {
-            let max = T::max_value()
-                .to_usize()
-                .expect("internal error: max value too large");
+            let max = max.to_u64().expect("internal error: max value too large");
             match &unit[..] {
-                "K" if max >= 1 << 10 => T::from_u32(1 << 10).unwrap(),
-                "M" if max >= 1 << 20 => T::from_u32(1 << 20).unwrap(),
-                "G" if max >= 1 << 30 => T::from_u32(1 << 30).unwrap(),
-                "" => T::from_u32(1).unwrap(),
+                "K" if max >= 1 << 10 => T::from_u64(1 << 10).unwrap(),
+                "M" if max >= 1 << 20 => T::from_u64(1 << 20).unwrap(),
+                "G" if max >= 1 << 30 => T::from_u64(1 << 30).unwrap(),
+                "" => T::from_u64(1).unwrap(),
                 _ => {
                     let mut cmd = RawArgs::command();
                     return Err(cmd.error(
@@ -410,7 +410,7 @@ where
             }
         };
 
-        if T::max_value().to_f64().unwrap() < multiplier.to_f64().unwrap() * amt.to_f64().unwrap() {
+        if max / multiplier < amt {
             let mut cmd = RawArgs::command();
             return Err(cmd.error(
                 error::ErrorKind::InvalidValue,
@@ -1252,7 +1252,10 @@ mod test {
                     ResourceLimit::Limited(25 * 1024 * 1024 * 1024)
                 );
 
-                assert!(Args::try_parse_from(["em", "build", "--max-mem", "100T"]).is_err());
+                assert!(Args::try_parse_from(["em", "build", "--max-mem", "100n"])
+                    .unwrap_err()
+                    .to_string()
+                    .contains("unrecognised unit: n"));
             }
 
             #[test]
@@ -1298,7 +1301,42 @@ mod test {
                     ResourceLimit::Limited(25 * 1024 * 1024)
                 );
 
-                assert!(Args::try_parse_from(["em", "build", "--max-steps", "100T"]).is_err());
+                {
+                    let err = Args::try_parse_from([
+                        "em",
+                        "build",
+                        "--max-steps",
+                        &(u32::MAX as u64 + 1).to_string(),
+                    ])
+                    .unwrap_err()
+                    .to_string();
+                    assert!(
+                        err.contains("resource limit too large, expected at most 4294967295"),
+                        "unexpected error: {err:#?}"
+                    );
+                }
+
+                {
+                    let err = Args::try_parse_from([
+                        "em",
+                        "build",
+                        "--max-steps",
+                        "10000G",
+                    ])
+                        .unwrap_err()
+                        .to_string();
+                    assert!(
+                        err.contains("resource limit too large, expected at most 4294967295"),
+                        "unexpected error: {err:#?}",
+                    );
+                }
+
+                assert!(
+                    &Args::try_parse_from(["em", "build", "--max-steps", "100n"])
+                        .unwrap_err()
+                        .to_string()
+                        .contains("unrecognised unit: n")
+                );
             }
 
             #[test]
