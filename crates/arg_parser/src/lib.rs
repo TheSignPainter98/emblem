@@ -883,6 +883,7 @@ impl TryFrom<String> for ExtArg {
 #[cfg(test)]
 mod test {
     use super::*;
+    use itertools::Itertools;
 
     mod args {
         use super::*;
@@ -1036,10 +1037,24 @@ mod test {
                     .unwrap()
                     .branch
                 );
-                assert!(Args::try_parse_from([
-                    "em", "add", "pootis", "--commit", "COMMIT", "--tag", "TAG"
-                ])
-                .is_err());
+                let filters = [
+                    ["--commit", "COMMIT"],
+                    ["--tag", "TAG"],
+                    ["--branch", "BRANCH"],
+                ];
+                for (f1, f2) in filters
+                    .iter()
+                    .cartesian_product(filters.iter())
+                    .filter(|(f1, f2)| f1 != f2)
+                {
+                    assert!(Args::try_parse_from({
+                        let mut args = vec!["em", "add", "pootis"];
+                        args.extend_from_slice(f1);
+                        args.extend_from_slice(f2);
+                        args
+                    })
+                    .is_err());
+                }
             }
 
             #[test]

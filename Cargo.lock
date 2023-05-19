@@ -97,6 +97,7 @@ dependencies = [
  "clap",
  "clap-verbosity-flag",
  "emblem_core",
+ "itertools",
  "num",
  "pretty_assertions",
  "supports-color",
