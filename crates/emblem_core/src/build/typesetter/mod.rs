@@ -355,7 +355,6 @@ mod test {
         impl UserData for NonCallable {}
 
         let ext_state = ExtensionStateBuilder::default().build().unwrap();
-
         for event in [Event::IterStart, Event::IterEnd, Event::Done] {
             assert_eq!(format!("runtime error: non-callable listener integer found when handling {event} event"), ext_state.add_listener(event, Value::Integer(100)).unwrap_err().to_string());
 
