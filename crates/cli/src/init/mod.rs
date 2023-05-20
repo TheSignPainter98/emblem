@@ -116,7 +116,7 @@ impl<T: AsRef<Path>> Initialiser<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::manifest;
+    use crate::manifest::DocManifest;
     use emblem_core::{parser, EmblemResult};
     use std::error::Error;
     use std::{
@@ -178,7 +178,7 @@ mod test {
             let found_content = &fs::read_to_string(&manifest_file)?;
 
             assert_eq!(expected_manifest_content, found_content);
-            manifest::load_str(found_content).unwrap();
+            DocManifest::try_from(&found_content[..]).unwrap();
         }
 
         Ok(())

@@ -1,7 +1,7 @@
 mod module;
 
 use crate::Version;
-pub use module::{Module, ModuleName, ModuleVersion};
+pub use module::{Module, ModuleVersion};
 use num::{Bounded, Integer};
 use std::fmt::Debug;
 use std::num::TryFromIntError;
@@ -15,7 +15,6 @@ pub struct Context<'m> {
     // pub struct Options<'m> {
     doc_info: DocInfo<'m>,
     lua_info: LuaInfo<'m>,
-    modules: Option<Vec<(ModuleName<'m>, Module<'m>)>>,
 }
 
 impl<'m> Context<'m> {
@@ -56,18 +55,6 @@ impl<'m> Context<'m> {
 
     pub fn lua_info_mut(&mut self) -> &mut LuaInfo<'m> {
         &mut self.lua_info
-    }
-
-    pub fn set_modules(&mut self, modules: Vec<(ModuleName<'m>, Module<'m>)>) {
-        self.modules = Some(modules);
-    }
-
-    pub fn modules(&self) -> &Option<Vec<(ModuleName<'m>, Module<'m>)>> {
-        &self.modules
-    }
-
-    pub fn modules_mut(&mut self) -> Option<&mut Vec<(ModuleName<'m>, Module<'m>)>> {
-        self.modules.as_mut()
     }
 }
 
@@ -137,7 +124,7 @@ pub struct LuaInfo<'m> {
     sandbox: SandboxLevel,
     max_mem: ResourceLimit<usize>,
     general_args: Option<Vec<(&'m str, &'m str)>>,
-    modules: Option<Vec<(&'m str, Module<'m>)>>,
+    modules: Vec<Module<'m>>,
 }
 
 impl<'m> LuaInfo<'m> {
@@ -157,11 +144,11 @@ impl<'m> LuaInfo<'m> {
         self.max_mem
     }
 
-    pub fn set_modules(&mut self, modules: Vec<(&'m str, Module<'m>)>) {
-        self.modules = Some(modules);
+    pub fn set_modules(&mut self, modules: Vec<Module<'m>>) {
+        self.modules = modules;
     }
 
-    pub fn modules(&self) -> &Option<Vec<(&'m str, Module<'m>)>> {
+    pub fn modules(&self) -> &[Module<'m>] {
         &self.modules
     }
 

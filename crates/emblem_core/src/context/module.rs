@@ -2,42 +2,31 @@ use std::collections::HashMap;
 
 use derive_new::new;
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
-pub struct ModuleName<'m> {
-    name: &'m str,
-    source: &'m str,
-}
-
-impl<'m> ModuleName<'m> {
-    pub fn name(&self) -> &'m str {
-        self.name
-    }
-
-    pub fn source(&self) -> &'m str {
-        self.source
-    }
-}
-
-impl<'m> From<&'m str> for ModuleName<'m> {
-    fn from(source: &'m str) -> Self {
-        Self {
-            name: match source.find('/') {
-                Some(idx) => &source[1 + idx..],
-                None => source,
-            },
-            source,
-        }
-    }
-}
-
 #[derive(new, Debug, Eq, PartialEq)]
 pub struct Module<'m> {
+    name: &'m str,
+    source: &'m str,
     rename_as: Option<&'m str>,
     version: ModuleVersion<'m>,
     args: HashMap<&'m str, &'m str>,
 }
 
 impl<'m> Module<'m> {
+    pub fn name_from_source(source: &'m str) -> &'m str {
+        source
+            .rfind('/')
+            .map(|i| &source[1 + i..])
+            .unwrap_or(source)
+    }
+
+    pub fn name(&self) -> &'m str {
+        &self.name
+    }
+
+    pub fn source(&self) -> &'m str {
+        &self.source
+    }
+
     pub fn rename_as(&self) -> &Option<&'m str> {
         &self.rename_as
     }
@@ -68,11 +57,15 @@ mod test {
 
     #[test]
     fn getters() {
+        let name = "some-name";
+        let source = "github.com/TheSignPainter98/some-repo";
         let rename = "some-new-name";
         let version = ModuleVersion::Tag("some-tag");
         let args: HashMap<_, _> = [("foo", "bar"), ("baz", "qux")].into_iter().collect();
 
-        let dep = Module::new(Some(rename), version, args.clone());
+        let dep = Module::new(name, source, Some(rename), version, args.clone());
+        assert_eq!(name, dep.name());
+        assert_eq!(source, dep.source());
         assert_eq!(rename, dep.rename_as().unwrap());
         assert_eq!(version, dep.version());
         assert_eq!(&args, dep.args());
@@ -82,27 +75,39 @@ mod test {
     fn rename_as() {
         assert_eq!(
             &None,
-            Module::new(None, ModuleVersion::Tag("foo"), HashMap::new()).rename_as()
+            Module::new("foo", ".", None, ModuleVersion::Tag("bar"), HashMap::new()).rename_as()
         );
 
         let expected = "new-name";
         assert_eq!(
             expected,
-            Module::new(Some(expected), ModuleVersion::Tag("foo"), HashMap::new())
-                .rename_as()
-                .unwrap()
+            Module::new(
+                "foo",
+                ".",
+                Some(expected),
+                ModuleVersion::Tag("bar"),
+                HashMap::new()
+            )
+            .rename_as()
+            .unwrap()
         );
     }
 
     #[test]
     fn version() {
-        let tag = ModuleVersion::Tag("foo");
-        assert_eq!(tag, Module::new(None, tag, HashMap::new()).version());
+        let tag = ModuleVersion::Tag("bar");
+        assert_eq!(tag, Module::new("foo", ".", None, tag, HashMap::new()).version());
 
         let branch = ModuleVersion::Branch("bar");
-        assert_eq!(branch, Module::new(None, branch, HashMap::new()).version());
+        assert_eq!(
+            branch,
+            Module::new("foo", ".", None, branch, HashMap::new()).version()
+        );
 
-        let hash = ModuleVersion::Hash("baz");
-        assert_eq!(hash, Module::new(None, hash, HashMap::new()).version());
+        let hash = ModuleVersion::Hash("bar");
+        assert_eq!(
+            hash,
+            Module::new("foo", ".", None, hash, HashMap::new()).version()
+        );
     }
 }

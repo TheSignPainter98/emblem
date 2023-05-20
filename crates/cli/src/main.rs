@@ -8,11 +8,11 @@ mod manifest;
 pub use crate::init::Initialiser;
 use arg_parser::{Args, Command};
 use emblem_core::{
-    context::{Module, ModuleName},
     log::Logger,
     Action, Builder, Context, Explainer, Linter, Log,
 };
 use itertools::Itertools;
+use manifest::DocManifest;
 use std::{collections::HashMap, fs, process::ExitCode};
 
 fn main() -> ExitCode {
@@ -78,7 +78,7 @@ where
     'm: 'ctx,
     'a: 'm,
 {
-    let manifest = manifest::load_str(src)?;
+    let manifest = DocManifest::try_from(src)?;
 
     let doc_info = ctx.doc_info_mut();
     doc_info.set_name(manifest.name);
@@ -132,16 +132,16 @@ where
         .requires
         .unwrap_or_default()
         .into_iter()
-        .map(|(k, v)| {
-            let k: ModuleName<'m> = k.into();
-            let mut v: Module<'m> = v.into();
-            if let Some(args) = specific_args.remove(v.rename_as().unwrap_or(k.name())) {
-                let dep_args = v.args_mut();
+        .map(|(name, module)| {
+            let name: &'m str = name.into();
+            let mut module = module.to_module(name);
+            if let Some(args) = specific_args.remove(module.rename_as().unwrap_or(name)) {
+                let dep_args = module.args_mut();
                 for (k2, v2) in args {
                     dep_args.insert(k2, v2);
                 }
             }
-            (k, v)
+            module
         })
         .collect();
 
@@ -152,7 +152,7 @@ where
         ))));
     }
 
-    ctx.set_modules(modules);
+    ctx.lua_info_mut().set_modules(modules);
 
     Ok(())
 }

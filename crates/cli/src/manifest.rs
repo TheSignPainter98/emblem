@@ -6,16 +6,6 @@ use emblem_core::{
 use serde::Deserialize as Deserialise;
 use std::collections::HashMap;
 
-pub(crate) fn load_str(src: &str) -> Result<DocManifest<'_>, Box<Log<'_>>> {
-    // TODO(kcza): parse the errors into something pretty
-    let parsed: DocManifest<'_> =
-        serde_yaml::from_str(src).map_err(|e| Log::error(e.to_string()))?;
-
-    parsed.validate().map_err(|e| Log::error(&*e))?;
-
-    Ok(parsed)
-}
-
 #[derive(Debug, Deserialise)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct DocManifest<'m> {
@@ -25,6 +15,19 @@ pub(crate) struct DocManifest<'m> {
     pub authors: Option<Vec<&'m str>>,
     pub keywords: Option<Vec<&'m str>>,
     pub requires: Option<HashMap<&'m str, Module<'m>>>,
+}
+
+impl<'m> TryFrom<&'m str> for DocManifest<'m> {
+    type Error = Box<Log<'m>>;
+
+    fn try_from(src: &'m str) -> Result<Self, Self::Error> {
+        let parsed: DocManifest<'_> =
+            serde_yaml::from_str(src).map_err(|e| Log::error(e.to_string()))?;
+
+        parsed.validate().map_err(|e| Log::error(&*e))?;
+
+        Ok(parsed)
+    }
 }
 
 impl<'m> DocManifest<'m> {
@@ -106,14 +109,14 @@ impl<'m> Module<'m> {
             _ => Err(format!("multiple version specifiers found for {name}")),
         }
     }
-}
 
-impl<'m> From<Module<'m>> for EmblemModule<'m> {
-    fn from(module: Module<'m>) -> Self {
-        Self::new(
-            module.rename_as,
-            module.version().into(),
-            module.args.unwrap_or_default(),
+    pub fn to_module(self, source: &'m str) -> EmblemModule<'m> {
+        EmblemModule::new(
+            EmblemModule::name_from_source(source),
+            source,
+            self.rename_as,
+            self.version().into(),
+            self.args.unwrap_or_default(),
         )
     }
 }
@@ -149,7 +152,7 @@ mod test {
                 emblem: v1.0
             "#,
         );
-        let manifest = load_str(&raw).unwrap();
+        let manifest = DocManifest::try_from(&raw[..]).unwrap();
 
         assert_eq!("foo", manifest.name);
         assert_eq!(Version::V1_0, manifest.emblem_version);
@@ -186,7 +189,7 @@ mod test {
                     hash: 0123456789abcdef
             "#,
         );
-        let manifest = load_str(&raw).unwrap();
+        let manifest = DocManifest::try_from(&raw[..]).unwrap();
 
         assert_eq!("foo", manifest.name);
         assert_eq!(
@@ -234,7 +237,7 @@ mod test {
                 emblem: null
             "#,
         );
-        let missing_err = load_str(&missing).unwrap_err();
+        let missing_err = DocManifest::try_from(&missing[..]).unwrap_err();
         let re = Regex::new("emblem: unknown variant `null`, expected").unwrap();
         let msg = missing_err.msg();
         assert!(
@@ -248,7 +251,7 @@ mod test {
                 emblem: UNKNOWN
             "#,
         );
-        let unknown_err = load_str(&unknown).unwrap_err();
+        let unknown_err = DocManifest::try_from(&unknown[..]).unwrap_err();
         let re = Regex::new("emblem: unknown variant `UNKNOWN`, expected").unwrap();
         let msg = unknown_err.msg();
         assert!(
@@ -269,7 +272,7 @@ mod test {
                       asdf: fdas
             "#,
         );
-        let err = load_str(&raw).unwrap_err();
+        let err = DocManifest::try_from(&raw[..]).unwrap_err();
         let re = Regex::new("expected `tag` or `hash` field").unwrap();
         let msg = err.msg();
         assert!(
@@ -286,7 +289,7 @@ mod test {
                 name: foo
             "#,
         );
-        let err = load_str(&raw).unwrap_err();
+        let err = DocManifest::try_from(&raw[..]).unwrap_err();
         let re = Regex::new("unknown field `INTERLOPER`").unwrap();
         let msg = err.msg();
         assert!(
@@ -313,7 +316,7 @@ mod test {
                         {specifier_2}
                 "#
             ));
-            let err = load_str(&raw).unwrap_err();
+            let err = DocManifest::try_from(&raw[..]).unwrap_err();
             let re = Regex::new("multiple version specifiers found for bar").unwrap();
             let msg = err.msg();
             assert!(
