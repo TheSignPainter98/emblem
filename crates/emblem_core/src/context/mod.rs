@@ -1,12 +1,12 @@
 mod module;
 
-use crate::{Version, ExtensionState, Typesetter};
+use crate::{ExtensionState, Typesetter, Version};
 use derive_new::new;
+use mlua::Result as MLuaResult;
 pub use module::{Module, ModuleVersion};
 use num::{Bounded, Integer};
 use std::fmt::Debug;
 use typed_arena::Arena;
-use mlua::Result as MLuaResult;
 
 pub const DEFAULT_MAX_STEPS: u32 = 100_000;
 pub const DEFAULT_MAX_MEM: usize = 100_000;

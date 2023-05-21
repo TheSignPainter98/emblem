@@ -110,7 +110,7 @@ impl<'m> Module<'m> {
         }
     }
 
-    pub fn to_module(self, source: &'m str) -> EmblemModule<'m> {
+    pub fn into_module(self, source: &'m str) -> EmblemModule<'m> {
         EmblemModule::new(
             EmblemModule::name_from_source(source),
             source,

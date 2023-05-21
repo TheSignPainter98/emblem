@@ -20,15 +20,15 @@ impl<'m> Module<'m> {
     }
 
     pub fn name(&self) -> &'m str {
-        &self.name
+        self.name
     }
 
     pub fn source(&self) -> &'m str {
-        &self.source
+        self.source
     }
 
-    pub fn rename_as(&self) -> &Option<&'m str> {
-        &self.rename_as
+    pub fn rename_as(&self) -> Option<&'m str> {
+        self.rename_as
     }
 
     pub fn version(&self) -> ModuleVersion<'m> {
@@ -74,7 +74,7 @@ mod test {
     #[test]
     fn rename_as() {
         assert_eq!(
-            &None,
+            None,
             Module::new("foo", ".", None, ModuleVersion::Tag("bar"), HashMap::new()).rename_as()
         );
 

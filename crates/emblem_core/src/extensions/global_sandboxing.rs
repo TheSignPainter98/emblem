@@ -320,7 +320,8 @@ mod test {
     fn all_globals_constained() -> Result<(), Box<dyn Error>> {
         let ctx = {
             let mut ctx = Context::test_new();
-            ctx.lua_params_mut().set_sandbox_level(SandboxLevel::Unsound);
+            ctx.lua_params_mut()
+                .set_sandbox_level(SandboxLevel::Unsound);
             ctx
         };
         let ext_state = ctx.extension_state()?;
@@ -371,7 +372,8 @@ mod test {
     fn all_constraints_used() -> Result<(), Box<dyn Error>> {
         let ctx = {
             let mut ctx = Context::test_new();
-            ctx.lua_params_mut().set_sandbox_level(SandboxLevel::Unsound);
+            ctx.lua_params_mut()
+                .set_sandbox_level(SandboxLevel::Unsound);
             ctx
         };
         let ext_state = ctx.extension_state()?;

@@ -37,7 +37,9 @@ impl Action for Builder {
             Err(e) => return EmblemResult::new(vec![e.log()], None),
         };
 
-        let mut ext_state = ctx.extension_state().expect("internal error: failed to create Lua state");
+        let mut ext_state = ctx
+            .extension_state()
+            .expect("internal error: failed to create Lua state");
 
         let typesetter = Typesetter::new(ctx, &mut ext_state);
         typesetter.typeset(root).unwrap();

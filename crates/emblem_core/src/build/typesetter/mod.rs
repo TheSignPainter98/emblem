@@ -22,7 +22,7 @@ impl<'em> Typesetter<'em> {
         Self {
             ext_state,
             curr_iter: 0,
-            max_iters: ctx.typesetter_params().max_iters().clone(),
+            max_iters: ctx.typesetter_params().max_iters(),
         }
     }
 
@@ -37,7 +37,9 @@ impl<'em> Typesetter<'em> {
             self.reset_reiter_request();
         }
 
-        self.ext_state.handle(Event::Done { final_iter: self.curr_iter } )?;
+        self.ext_state.handle(Event::Done {
+            final_iter: self.curr_iter,
+        })?;
 
         Ok(())
     }
@@ -54,15 +56,15 @@ impl<'em> Typesetter<'em> {
     fn iter(&mut self, _root: &mut Doc<'em>) -> Result<(), Box<dyn Error>> {
         self.curr_iter += 1;
 
-        println!(
-            "Doing iteration {} of {:?}",
-            self.curr_iter,
-            self.max_iters,
-        );
+        println!("Doing iteration {} of {:?}", self.curr_iter, self.max_iters);
 
-        self.ext_state.handle(Event::IterStart { iter: self.curr_iter } )?;
+        self.ext_state.handle(Event::IterStart {
+            iter: self.curr_iter,
+        })?;
         // TODO(kzca): Evaluate the root.
-        self.ext_state.handle(Event::IterEnd { iter: self.curr_iter })?;
+        self.ext_state.handle(Event::IterEnd {
+            iter: self.curr_iter,
+        })?;
 
         Ok(())
     }
@@ -233,10 +235,10 @@ mod test {
                         mt.set(
                             MetaMethod::Call.name(),
                             Value::Function(ext_state.lua().create_function(
-                                    move |_, _: Table| {
-                                        *iter_start_table_called_clone.try_borrow_mut().unwrap() = true;
-                                        Ok(Value::Nil)
-                                    },
+                                move |_, _: Table| {
+                                    *iter_start_table_called_clone.try_borrow_mut().unwrap() = true;
+                                    Ok(Value::Nil)
+                                },
                             )?),
                         )?;
                         mt
@@ -276,10 +278,10 @@ mod test {
                         mt.set(
                             MetaMethod::Call.name(),
                             Value::Function(ext_state.lua().create_function(
-                                    move |_, _: Table| {
-                                        *iter_end_table_called_clone.try_borrow_mut().unwrap() = true;
-                                        Ok(Value::Nil)
-                                    },
+                                move |_, _: Table| {
+                                    *iter_end_table_called_clone.try_borrow_mut().unwrap() = true;
+                                    Ok(Value::Nil)
+                                },
                             )?),
                         )?;
                         mt
@@ -319,10 +321,10 @@ mod test {
                         mt.set(
                             MetaMethod::Call.name(),
                             Value::Function(ext_state.lua().create_function(
-                                    move |_, _: Table| {
-                                        *done_table_called_clone.try_borrow_mut().unwrap() = true;
-                                        Ok(Value::Nil)
-                                    },
+                                move |_, _: Table| {
+                                    *done_table_called_clone.try_borrow_mut().unwrap() = true;
+                                    Ok(Value::Nil)
+                                },
                             )?),
                         )?;
                         mt
@@ -397,10 +399,10 @@ mod test {
                         mt.set(
                             MetaMethod::Call.name(),
                             Value::Function(ext_state.lua().create_function(
-                                    move |_, _: Table| {
-                                        *handler_called.try_borrow_mut().unwrap() = true;
-                                        Ok(Value::Nil)
-                                    },
+                                move |_, _: Table| {
+                                    *handler_called.try_borrow_mut().unwrap() = true;
+                                    Ok(Value::Nil)
+                                },
                             )?),
                         )?;
                         mt

@@ -46,7 +46,7 @@ impl<'em> ExtensionState<'em> {
         env_extras::import_extras(&lua)?;
         global_sandboxing::restrict_globals(&lua, sandbox_level)?;
 
-        Self::insert_safety_hook(&lua, &params)?;
+        Self::insert_safety_hook(&lua, params)?;
         Self::setup_event_listeners(&lua)?;
 
         // TODO(kcza): set args
@@ -232,18 +232,10 @@ fn callable(value: &Value) -> bool {
     }
 }
 
+#[derive(Default)]
 pub(crate) struct ExtensionData {
     curr_step: u32,
     reiter_requested: bool,
-}
-
-impl Default for ExtensionData {
-    fn default() -> Self {
-        Self {
-            curr_step: 0,
-            reiter_requested: false,
-        }
-    }
 }
 
 impl ExtensionData {

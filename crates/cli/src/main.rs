@@ -132,7 +132,7 @@ where
         .into_iter()
         .map(|(name, module)| {
             let name: &'m str = name.into();
-            let mut module = module.to_module(name);
+            let mut module = module.into_module(name);
             if let Some(args) = specific_args.remove(module.rename_as().unwrap_or(name)) {
                 let dep_args = module.args_mut();
                 for (k2, v2) in args {
