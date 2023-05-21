@@ -137,7 +137,7 @@ impl Tester {
         Self {}
     }
 
-    pub fn test(&self, lua: mlua::Lua) {
+    pub fn test(&self, lua: &mlua::Lua) {
         lua.load_from_function::<_, Value>("lfs", unsafe {
             lua.create_c_function(luaopen_lfs).unwrap()
         })

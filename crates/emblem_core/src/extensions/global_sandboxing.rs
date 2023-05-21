@@ -311,18 +311,20 @@ const CONSTRAINTS: Map<&'static str, Constraint> = phf_map! {
 
 #[cfg(test)]
 mod test {
+    use crate::Context;
+
     use super::*;
-    use crate::ExtensionStateBuilder;
     use std::error::Error;
 
     #[test]
     fn all_globals_constained() -> Result<(), Box<dyn Error>> {
-        let state = ExtensionStateBuilder {
-            sandbox_level: SandboxLevel::Unsound,
-            ..Default::default()
-        }
-        .build()?;
-        let lua = state.lua();
+        let ctx = {
+            let mut ctx = Context::test_new();
+            ctx.lua_params_mut().set_sandbox_level(SandboxLevel::Unsound);
+            ctx
+        };
+        let ext_state = ctx.extension_state()?;
+        let lua = ext_state.lua();
 
         let mut uncovered = Vec::new();
         for global in lua.globals().pairs::<String, Value>() {
@@ -367,12 +369,13 @@ mod test {
 
     #[test]
     fn all_constraints_used() -> Result<(), Box<dyn Error>> {
-        let state = ExtensionStateBuilder {
-            sandbox_level: SandboxLevel::Unsound,
-            ..Default::default()
-        }
-        .build()?;
-        let lua = state.lua();
+        let ctx = {
+            let mut ctx = Context::test_new();
+            ctx.lua_params_mut().set_sandbox_level(SandboxLevel::Unsound);
+            ctx
+        };
+        let ext_state = ctx.extension_state()?;
+        let lua = ext_state.lua();
         let globals = lua.globals();
 
         let mut unused = Vec::new();

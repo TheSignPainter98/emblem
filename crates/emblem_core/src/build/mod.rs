@@ -7,7 +7,6 @@ use crate::parser;
 use crate::path::SearchResult;
 use crate::Action;
 use crate::EmblemResult;
-use crate::ExtensionStateBuilder;
 use crate::Log;
 use derive_new::new;
 
@@ -22,16 +21,12 @@ pub struct Builder {
 
     #[allow(unused)]
     output_driver: Option<String>,
-
-    max_iters: u32,
-
-    ext_state_builder: ExtensionStateBuilder,
 }
 
 impl Action for Builder {
     type Response = Option<Vec<(ArgPath, String)>>;
 
-    fn run<'ctx>(&self, ctx: &'ctx mut Context) -> EmblemResult<'ctx, Self::Response> {
+    fn run<'ctx>(&self, ctx: &'ctx mut Context<'ctx>) -> EmblemResult<'ctx, Self::Response> {
         let fname: SearchResult = match self.input.as_ref().try_into() {
             Ok(f) => f,
             Err(e) => return EmblemResult::new(vec![Log::error(e.to_string())], None),
@@ -42,10 +37,10 @@ impl Action for Builder {
             Err(e) => return EmblemResult::new(vec![e.log()], None),
         };
 
-        let mut ext_state = self.ext_state_builder.build().unwrap(); // TODO(kcza): remove this unwrap!
+        let mut ext_state = ctx.extension_state().expect("internal error: failed to create Lua state");
 
-        let typesetter = Typesetter::new(&mut ext_state, root).set_max_iters(self.max_iters);
-        typesetter.typeset().unwrap();
+        let typesetter = Typesetter::new(ctx, &mut ext_state);
+        typesetter.typeset(root).unwrap();
 
         EmblemResult::new(vec![], Some(vec![]))
     }

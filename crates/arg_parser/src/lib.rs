@@ -6,7 +6,8 @@ use clap::{
     ValueHint::{AnyPath, DirPath, FilePath},
 };
 use emblem_core::context::{
-    ResourceLimit as EmblemResourceLimit, SandboxLevel as EmblemSandboxLevel,
+    ResourceLimit as EmblemResourceLimit, SandboxLevel as EmblemSandboxLevel, DEFAULT_MAX_ITERS,
+    DEFAULT_MAX_MEM, DEFAULT_MAX_STEPS,
 };
 use num::{Bounded, FromPrimitive, Integer, ToPrimitive};
 use std::{env, ffi::OsString, fmt::Display, path, str::FromStr};
@@ -272,7 +273,7 @@ pub struct BuildCmd {
     pub lua: LuaArgs,
 
     /// Max iterations of the typesetting loop
-    #[arg(long, value_parser = ResourceLimit::<u32>::parser(), default_value_t = ResourceLimit::Limited(5), value_name = "max")]
+    #[arg(long, value_parser = ResourceLimit::<u32>::parser(), default_value_t = ResourceLimit::Limited(DEFAULT_MAX_ITERS), value_name = "max")]
     pub max_iters: ResourceLimit<u32>,
 }
 
@@ -282,14 +283,13 @@ impl Default for BuildCmd {
             input: Default::default(),
             output: Default::default(),
             lua: Default::default(),
-            max_iters: ResourceLimit::Limited(5),
+            max_iters: ResourceLimit::Limited(DEFAULT_MAX_ITERS),
         }
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ResourceLimit<T: Bounded + Clone + Copy + Integer> {
-    #[default]
     Unlimited,
     Limited(T),
 }
@@ -311,24 +311,6 @@ where
 {
     fn parser() -> impl TypedValueParser {
         StringValueParser::new().try_map(Self::try_from)
-    }
-}
-
-impl From<ResourceLimit<u32>> for u32 {
-    fn from(max: ResourceLimit<u32>) -> Self {
-        match max {
-            ResourceLimit::Unlimited => u32::max_value(),
-            ResourceLimit::Limited(l) => l,
-        }
-    }
-}
-
-impl From<ResourceLimit<usize>> for usize {
-    fn from(max: ResourceLimit<usize>) -> Self {
-        match max {
-            ResourceLimit::Unlimited => usize::max_value(),
-            ResourceLimit::Limited(l) => l,
-        }
     }
 }
 
@@ -451,8 +433,6 @@ impl From<&BuildCmd> for emblem_core::Builder {
             cmd.input.file.clone().into(),
             output_stem,
             cmd.output.driver.clone(),
-            cmd.max_iters.into(),
-            cmd.lua.clone().into(),
         )
     }
 }
@@ -549,7 +529,7 @@ pub struct OutputArgs {
 }
 
 /// Holds the user's preferences for the lua environment used when running the program
-#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
+#[derive(Clone, Debug, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
 pub struct LuaArgs {
     /// Pass a named argument into module-space. If module name is omitted, pass argument as
@@ -558,24 +538,25 @@ pub struct LuaArgs {
     pub args: Vec<ExtArg>, // TODO(kcza): plumb me!
 
     /// Limit lua memory usage
-    #[arg(long, value_parser = ResourceLimit::<usize>::parser(), default_value = "unlimited", value_name = "amount")]
+    #[arg(long, value_parser = ResourceLimit::<usize>::parser(), default_value_t = ResourceLimit::Limited(DEFAULT_MAX_MEM), value_name = "amount")]
     pub max_mem: ResourceLimit<usize>,
 
     /// Limit lua execution steps
-    #[arg(long, value_parser = ResourceLimit::<u32>::parser(), default_value = "unlimited", value_name = "steps")]
+    #[arg(long, value_parser = ResourceLimit::<u32>::parser(), default_value_t = ResourceLimit::Limited(DEFAULT_MAX_STEPS), value_name = "steps")]
     pub max_steps: ResourceLimit<u32>,
 
     /// Restrict system access
-    #[arg(long, value_enum, default_value_t, value_name = "level")]
-    pub sandbox: SandboxLevel,
+    #[arg(long = "sandbox", value_enum, default_value_t, value_name = "level")]
+    pub sandbox_level: SandboxLevel,
 }
 
-impl From<LuaArgs> for emblem_core::ExtensionStateBuilder {
-    fn from(args: LuaArgs) -> Self {
+impl Default for LuaArgs {
+    fn default() -> Self {
         Self {
-            sandbox_level: args.sandbox.into(),
-            max_steps: args.max_steps.into(),
-            max_mem: args.max_mem.into(),
+            args: Default::default(),
+            max_mem: ResourceLimit::Limited(DEFAULT_MAX_MEM),
+            max_steps: ResourceLimit::Limited(DEFAULT_MAX_STEPS),
+            sandbox_level: SandboxLevel::default(),
         }
     }
 }
@@ -1209,7 +1190,7 @@ mod test {
                         .unwrap()
                         .lua
                         .max_mem,
-                    ResourceLimit::Unlimited
+                    ResourceLimit::Limited(DEFAULT_MAX_MEM),
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-mem", "25"])
@@ -1251,6 +1232,16 @@ mod test {
                         .max_mem,
                     ResourceLimit::Limited(25 * 1024 * 1024 * 1024)
                 );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-mem", "unlimited"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .lua
+                        .max_mem,
+                    ResourceLimit::Unlimited,
+                );
 
                 assert!(Args::try_parse_from(["em", "build", "--max-mem", "100n"])
                     .unwrap_err()
@@ -1268,7 +1259,7 @@ mod test {
                         .unwrap()
                         .lua
                         .max_steps,
-                    ResourceLimit::Unlimited
+                    ResourceLimit::Limited(DEFAULT_MAX_STEPS),
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-steps", "25"])
@@ -1300,6 +1291,16 @@ mod test {
                         .max_steps,
                     ResourceLimit::Limited(25 * 1024 * 1024)
                 );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-steps", "unlimited"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .lua
+                        .max_steps,
+                    ResourceLimit::Unlimited,
+                );
 
                 {
                     let err = Args::try_parse_from([
@@ -1317,12 +1318,7 @@ mod test {
                 }
 
                 {
-                    let err = Args::try_parse_from([
-                        "em",
-                        "build",
-                        "--max-steps",
-                        "10000G",
-                    ])
+                    let err = Args::try_parse_from(["em", "build", "--max-steps", "10000G"])
                         .unwrap_err()
                         .to_string();
                     assert!(
@@ -1340,7 +1336,7 @@ mod test {
             }
 
             #[test]
-            fn sandbox() {
+            fn sandbox_level() {
                 assert_eq!(
                     Args::try_parse_from(["em"])
                         .unwrap()
@@ -1348,7 +1344,7 @@ mod test {
                         .build()
                         .unwrap()
                         .lua
-                        .sandbox,
+                        .sandbox_level,
                     SandboxLevel::Standard
                 );
                 assert_eq!(
@@ -1358,7 +1354,7 @@ mod test {
                         .build()
                         .unwrap()
                         .lua
-                        .sandbox,
+                        .sandbox_level,
                     SandboxLevel::Unrestricted
                 );
                 assert_eq!(
@@ -1368,7 +1364,7 @@ mod test {
                         .build()
                         .unwrap()
                         .lua
-                        .sandbox,
+                        .sandbox_level,
                     SandboxLevel::Standard
                 );
                 assert_eq!(
@@ -1378,7 +1374,7 @@ mod test {
                         .build()
                         .unwrap()
                         .lua
-                        .sandbox,
+                        .sandbox_level,
                     SandboxLevel::Strict
                 );
 
@@ -1429,7 +1425,7 @@ mod test {
                         .build()
                         .unwrap()
                         .max_iters,
-                    ResourceLimit::Limited(5),
+                    ResourceLimit::Limited(DEFAULT_MAX_ITERS),
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-iters", "25"])

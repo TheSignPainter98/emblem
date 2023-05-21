@@ -96,7 +96,10 @@ mod test {
     #[test]
     fn version() {
         let tag = ModuleVersion::Tag("bar");
-        assert_eq!(tag, Module::new("foo", ".", None, tag, HashMap::new()).version());
+        assert_eq!(
+            tag,
+            Module::new("foo", ".", None, tag, HashMap::new()).version()
+        );
 
         let branch = ModuleVersion::Branch("bar");
         assert_eq!(

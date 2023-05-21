@@ -7,10 +7,7 @@ mod manifest;
 
 pub use crate::init::Initialiser;
 use arg_parser::{Args, Command};
-use emblem_core::{
-    log::Logger,
-    Action, Builder, Context, Explainer, Linter, Log,
-};
+use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Linter, Log};
 use itertools::Itertools;
 use manifest::DocManifest;
 use std::{collections::HashMap, fs, process::ExitCode};
@@ -80,7 +77,7 @@ where
 {
     let manifest = DocManifest::try_from(src)?;
 
-    let doc_info = ctx.doc_info_mut();
+    let doc_info = ctx.doc_params_mut();
     doc_info.set_name(manifest.name);
     doc_info.set_emblem_version(manifest.emblem_version.into());
 
@@ -92,12 +89,13 @@ where
         doc_info.set_keywords(keywords);
     }
 
-    let lua_info = ctx.lua_info_mut();
+    let lua_info = ctx.lua_params_mut();
 
     let mut specific_args: HashMap<_, Vec<_>> = HashMap::new();
     if let Some(lua_args) = args.lua_args() {
-        lua_info.set_sandbox(lua_args.sandbox.into());
+        lua_info.set_sandbox_level(lua_args.sandbox_level.into());
         lua_info.set_max_mem(lua_args.max_mem.into());
+        lua_info.set_max_steps(lua_args.max_steps.into());
 
         let mut general_args = Vec::with_capacity(lua_args.args.len());
         for arg in &lua_args.args {
@@ -152,7 +150,7 @@ where
         ))));
     }
 
-    ctx.lua_info_mut().set_modules(modules);
+    lua_info.set_modules(modules);
 
     Ok(())
 }

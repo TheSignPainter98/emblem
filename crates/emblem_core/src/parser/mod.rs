@@ -27,7 +27,7 @@ lalrpop_mod!(
 
 /// Parse an emblem source file at the given location.
 pub fn parse_file<'ctx, 'input>(
-    ctx: &'ctx mut Context,
+    ctx: &'ctx Context<'ctx>,
     mut to_parse: SearchResult,
 ) -> Result<ParsedFile<'input>, Box<Error<'input>>>
 where
