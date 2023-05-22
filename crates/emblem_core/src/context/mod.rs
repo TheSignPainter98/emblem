@@ -282,7 +282,7 @@ impl TypesetterParameters {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum ResourceLimit<T: Bounded + Clone + Integer> {
     Unlimited,
     Limited(T),

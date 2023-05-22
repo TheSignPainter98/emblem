@@ -60,7 +60,7 @@ impl<'em> ExtensionState<'em> {
     }
 
     fn insert_safety_hook(lua: &Lua, params: &LuaParameters) -> MLuaResult<()> {
-        const INSTRUCTION_INTERVAL: u32 = 64;
+        const INSTRUCTION_INTERVAL: u32 = 1;
 
         let max_mem = params.max_mem();
         let max_steps = params.max_steps();
@@ -74,7 +74,9 @@ impl<'em> ExtensionState<'em> {
                     }
                 }
 
-                let mut data: RefMut<'_, ExtensionData> = lua.app_data_mut().unwrap();
+                let mut data: RefMut<'_, ExtensionData> = lua
+                    .app_data_mut()
+                    .expect("internal error: expected lua app data to be set");
                 data.curr_step += INSTRUCTION_INTERVAL;
                 if let ResourceLimit::Limited(max_steps) = max_steps {
                     if data.curr_step > max_steps {
@@ -232,7 +234,7 @@ fn callable(value: &Value) -> bool {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub(crate) struct ExtensionData {
     curr_step: u32,
     reiter_requested: bool,
@@ -306,7 +308,10 @@ impl Display for EventType {
 
 #[cfg(test)]
 mod test {
+    use mlua::chunk;
+
     use super::*;
+    use std::error::Error;
 
     #[test]
     fn std_tests() {
@@ -321,7 +326,97 @@ mod test {
         }
     }
 
-    // TODO(kcza): test sandboxing application
-    // TODO(kcza): test step limits
-    // TODO(kcza): test memory limits
+    #[test]
+    fn sandboxing() {
+        let canary = "io.stdout";
+        let included = SandboxLevel::input_levels()
+            .map(|level| {
+                let ctx = {
+                    let mut ctx = Context::test_new();
+                    ctx.lua_params_mut().set_sandbox_level(level);
+                    ctx
+                };
+                let ext_state = ctx.extension_state().unwrap();
+                let lua = ext_state.lua();
+                lua.load(&format!("return {canary} == nil"))
+                    .call::<_, bool>(())
+                    .unwrap()
+            })
+            .collect::<Vec<_>>();
+        assert!(
+            included.contains(&true) && included.contains(&false),
+            "sandboxing not applied to {canary}: included = {:?}",
+            SandboxLevel::input_levels()
+                .zip(included.iter())
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn steps_limited() -> Result<(), Box<dyn Error>> {
+        let threshold = 10000;
+        for limit in [ResourceLimit::Unlimited, ResourceLimit::Limited(threshold)] {
+            let ctx = {
+                let mut ctx = Context::test_new();
+                ctx.lua_params_mut().set_max_steps(limit);
+                ctx
+            };
+            let ext_state = ctx.extension_state()?;
+            let lua = ext_state.lua();
+            let result = lua
+                .load(chunk! {
+                    jit.off();
+                    tab = {};
+                    for i = 1, $threshold do
+                        tab[i] = i
+                    end
+                    return tab;
+                })
+                .exec();
+            assert!(
+                result.is_ok() == (limit == ResourceLimit::Unlimited),
+                "unexpected result with limit {limit:?}: {result:?}"
+            );
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn memory_limited() -> Result<(), Box<dyn Error>> {
+        let threshold = 100000;
+        for limit in [ResourceLimit::Unlimited, ResourceLimit::Limited(threshold)] {
+            let ctx = {
+                let mut ctx = Context::test_new();
+                ctx.lua_params_mut().set_max_mem(limit);
+                ctx
+            };
+            let ext_state = ctx.extension_state()?;
+            let lua = ext_state.lua();
+            let iters = {
+                let used_memory = lua.used_memory();
+                assert!(
+                    threshold > used_memory,
+                    "test invalidated: need threshold > used_memory ({threshold} > {used_memory})"
+                );
+                threshold - used_memory
+            };
+            let result = lua
+                .load(chunk! {
+                    jit.off();
+                    tab = {};
+                    for i = 1, $iters do
+                        tab[i] = i
+                    end
+                    return tab;
+                })
+                .exec();
+            assert!(
+                result.is_ok() == (limit == ResourceLimit::Unlimited),
+                "unexpected result with limit {limit:?}: {result:?}",
+            );
+        }
+
+        Ok(())
+    }
 }
