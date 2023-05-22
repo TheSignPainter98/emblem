@@ -131,7 +131,6 @@ where
         .unwrap_or_default()
         .into_iter()
         .map(|(name, module)| {
-            let name: &'m str = name.into();
             let mut module = module.into_module(name);
             if let Some(args) = specific_args.remove(module.rename_as().unwrap_or(name)) {
                 let dep_args = module.args_mut();
