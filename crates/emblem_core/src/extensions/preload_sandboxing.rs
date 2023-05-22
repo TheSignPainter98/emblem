@@ -1,16 +1,13 @@
 use crate::{context::SandboxLevel, extensions::preload_decls};
-use mlua::{Lua, Result as MLuaResult, Table, Value};
+use mlua::{Lua, Result as MLuaResult, Table};
 
 pub(crate) fn restrict_preload(lua: &Lua, sandbox_level: SandboxLevel) -> MLuaResult<()> {
     let package_preload = lua
         .globals()
         .get::<_, Table>("package")?
         .get::<_, Table>("preload")?;
-
-    for (k, l, _) in preload_decls::PRELOADS {
-        if l < sandbox_level {
-            package_preload.set(k, Value::Nil)?;
-        }
+    for preload in &preload_decls::PRELOADS {
+        preload.expunge_preloads(&package_preload, sandbox_level)?;
     }
 
     Ok(())
@@ -23,25 +20,31 @@ mod test {
     use std::error::Error;
 
     #[test]
-    fn preloads_unloaded() -> Result<(), Box<dyn Error>> {
+    fn preloads_expunged() -> Result<(), Box<dyn Error>> {
         for sandbox_level in SandboxLevel::input_levels() {
             let lua = unsafe { Lua::unsafe_new() };
             restrict_preload(&lua, sandbox_level)?;
 
-            for (k, l, _) in preload_decls::PRELOADS {
-                let expect_removed = l < sandbox_level;
-                lua.load(chunk! {
-                    local ok, err = pcall(require, $k);
-                    if $expect_removed then
-                        assert(not ok, "loading " .. $k .. " succeeded");
-                        assert(err:match("^module '" .. $k .. "' not found:"), "unexpected error: " .. err);
-                    else
+            for preload in &preload_decls::PRELOADS {
+                let name = preload.name();
+                if preload.marked_for_expunge(sandbox_level) {
+                    lua.load(chunk! {
+                        local ok, err = pcall(require, $name);
+                        assert(not ok, "loading " .. $name .. " succeeded");
+                        assert(err:match("^module '" .. $name .. "' not found:"), "unexpected error: " .. err);
+                    })
+                    .exec()
+                    .map_err(|e| panic!("{e}"))
+                    .unwrap();
+                } else {
+                    lua.load(chunk! {
+                        local ok, err = pcall(require, $name);
                         assert(ok, "unexpected error loading module $k: " .. tostring(err));
-                    end;
-                })
-                .exec()
-                .map_err(|e| panic!("{e}"))
-                .unwrap();
+                    })
+                    .exec()
+                    .map_err(|e| panic!("{e}"))
+                    .unwrap();
+                }
             }
         }
 

@@ -3,13 +3,10 @@ use mlua::{Function, Lua, Result as MLuaResult};
 
 pub(crate) fn import_extras(lua: &Lua) -> MLuaResult<()> {
     let require: Function = lua.globals().get("require")?;
-
-    for module in preload_decls::PRELOADS
-        .iter()
-        .filter_map(|(m, _, p)| if *p { Some(m) } else { None })
-    {
-        require.call(*module)?;
+    for preload in &preload_decls::PRELOADS {
+        preload.handle_preload(&require)?;
     }
+
     Ok(())
 }
 
@@ -34,11 +31,12 @@ mod test {
 
         {
             let test_set = tests.iter().map(|(m, _, _)| m).collect::<HashSet<&&str>>();
-            for (module_name, _, preload) in preload_decls::PRELOADS {
-                if !preload {
+            for preload in &preload_decls::PRELOADS {
+                if !preload.marked_for_preload() {
                     continue;
                 }
-                assert!(test_set.contains(&module_name), "{module_name} not tested!");
+                let name = preload.name();
+                assert!(test_set.contains(&name), "{name} not tested!");
             }
         }
 

@@ -321,7 +321,7 @@ mod test {
         let ctx = {
             let mut ctx = Context::test_new();
             ctx.lua_params_mut()
-                .set_sandbox_level(SandboxLevel::Unsound);
+                .set_sandbox_level(SandboxLevel::Unrestricted);
             ctx
         };
         let ext_state = ctx.extension_state()?;
@@ -373,7 +373,7 @@ mod test {
         let ctx = {
             let mut ctx = Context::test_new();
             ctx.lua_params_mut()
-                .set_sandbox_level(SandboxLevel::Unsound);
+                .set_sandbox_level(SandboxLevel::Unrestricted);
             ctx
         };
         let ext_state = ctx.extension_state()?;
@@ -464,5 +464,4 @@ mod test {
     }
 }
 
-// TODO(kcza): test application of restrictions by sample
 // TODO(kcza): check the currect values are computed for specific cases!

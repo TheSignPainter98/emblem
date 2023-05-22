@@ -225,9 +225,6 @@ impl<'m> LuaParameters<'m> {
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SandboxLevel {
-    /// Can break Emblem's abstractions
-    Unsound,
-
     /// Side-effects allowed anywhere on host system
     Unrestricted,
 
