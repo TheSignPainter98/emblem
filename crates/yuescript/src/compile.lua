@@ -81,7 +81,7 @@ local function dedent(string)
 	return table.concat(lines, '\n')
 end
 
-local function prepare(inputs)
+local function prepare(inputs, test)
 	local prepared = {}
 	for module, raw in pairs(inputs) do
 		if test then
@@ -91,7 +91,8 @@ local function prepare(inputs)
 					raw,
 				}), '\n'
 		else
-			prepared[module] = 'macro spec = (t) -> ""\n' .. raw
+			-- TODO(kcza): simplify once yuescript supports empty macro output
+			prepared[module] = 'macro spec = (t) -> "(->)!"\n' .. raw
 		end
 	end
 	return prepared
@@ -101,6 +102,7 @@ local function asts_of(inputs)
 	local asts = {}
 
 	for module, raw in pairs(inputs) do
+		print("generating AST of " .. module)
 		local ast, err = yue.to_ast(raw)
 		if err then
 			die(err)
@@ -114,6 +116,7 @@ end
 local function luas_of(inputs)
 	local luas = {}
 	for module, raw in pairs(inputs) do
+		print("generating lua code of " .. module)
 		local lua, err, globals = yue.to_lua(raw, {
 			implicit_return_root = true,
 			reserve_line_number = true,
@@ -125,9 +128,13 @@ local function luas_of(inputs)
 		if err then
 			die(err)
 		end
-		luas[module] = lua
+		luas[module] = sanitise(lua)
 	end
 	return luas
+end
+
+function sanitise(lua)
+	return lua:gsub('%(function%(%)[ \t]*end%)%(%) %-%- [0-9]+[\r\n]+', '\n')
 end
 
 function dfs(name, arcs, handlers, stack)
@@ -243,6 +250,7 @@ local function lint(module, lua, test)
 	local ignore = {
 		['121'] = true,
 		['122'] = true,
+		['612'] = true,
 	}
 
 	if test then
@@ -326,7 +334,7 @@ local function encode(luas, test)
 	end
 
 	if test then
-		buf[#buf + 1] = 'package.preload["emtest"] = function()\n'
+		buf[#buf + 1] = 'package.preload["__luatest"] = function()\n'
 		buf[#buf + 1] = '\treturn function()\n'
 		for i = 1, #modules do
 			buf[#buf + 1] = '\t\trequire("' .. modules[i] .. '")\n'
@@ -378,6 +386,7 @@ local function encode(luas, test)
 
 	local code = table.concat(buf)
 	if not test then
+		print("preprocessing code to bytecode")
 		code = string.dump(load(code), true)
 	end
 
@@ -396,4 +405,6 @@ local function compile(inputs, test)
 	return encode(luas, test)
 end
 
-return compile(inputs, test)
+local bytecode = compile(inputs, test)
+print("lua generation done")
+return bytecode

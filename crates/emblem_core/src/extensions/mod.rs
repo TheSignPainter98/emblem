@@ -11,6 +11,7 @@ use mlua::{
     Error as MLuaError, HookTriggers, Lua, MetaMethod, Result as MLuaResult, Table, TableExt, Value,
 };
 use std::{cell::RefMut, fmt::Display, marker::PhantomData};
+use yuescript::include_yuescript;
 
 #[cfg(test)]
 use mlua::AsChunk;
@@ -21,7 +22,7 @@ macro_rules! emblem_registry_key {
     };
 }
 
-static STD: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/yue/std.luac"));
+static STD: &[u8] = include_yuescript!(cfg!(test), concat!(env!("OUT_DIR"), "/yue"), "std");
 const EVENT_LISTENERS_RKEY: &str = emblem_registry_key!("events");
 
 pub struct ExtensionState<'em> {
