@@ -12,10 +12,10 @@
 	url = https://github.com/lunarmodules/busted
 [submodule "crates/yuescript/penlight"]
 	path = crates/yuescript/penlight
-	url = https://github.com/lunarmodules
+	url = https://github.com/lunarmodules/penlight
 [submodule "crates/yuescript/luafilesystem"]
 	path = crates/yuescript/luafilesystem
-	url = https://github.com/lunarmodules
+	url = https://github.com/lunarmodules/luafilesystem
 [submodule "crates/yuescript/lua-term"]
 	path = crates/yuescript/lua-term
 	url = https://github.com/hoelzro/lua-term
@@ -25,7 +25,7 @@
 [submodule "crates/yuescript/mediator_lua"]
 	path = crates/yuescript/mediator_lua
 	url = https://github.com/Olivine-Labs/mediator_lua
-[submodule "crates/yuescript/lua_cliargs.git"]
+[submodule "crates/yuescript/lua_cliargs"]
 	path = crates/yuescript/lua_cliargs
 	url = https://github.com/amireh/lua_cliargs
 [submodule "crates/yuescript/luassert"]
