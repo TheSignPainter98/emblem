@@ -6,31 +6,31 @@
 	url = https://github.com/pigpigyyy/Yuescript
 [submodule "crates/yuescript/luacheck"]
 	path = crates/yuescript/luacheck
-	url = git@github.com:mpeterv/luacheck.git
+	url = https://github.com/mpeterv/luacheck
 [submodule "crates/yuescript/busted"]
 	path = crates/yuescript/busted
-	url = git@github.com:lunarmodules/busted.git
+	url = https://github.com/lunarmodules/busted
 [submodule "crates/yuescript/penlight"]
 	path = crates/yuescript/penlight
-	url = git@github.com:lunarmodules/Penlight
+	url = https://github.com/lunarmodules
 [submodule "crates/yuescript/luafilesystem"]
 	path = crates/yuescript/luafilesystem
-	url = git@github.com:lunarmodules/luafilesystem
+	url = https://github.com/lunarmodules
 [submodule "crates/yuescript/lua-term"]
 	path = crates/yuescript/lua-term
-	url = git@github.com:hoelzro/lua-term.git
+	url = https://github.com/hoelzro/lua-term
 [submodule "crates/yuescript/luasystem"]
 	path = crates/yuescript/luasystem
-	url = git@github.com:o-lim/luasystem.git
+	url = https://github.com/o-lim/luasystem
 [submodule "crates/yuescript/mediator_lua"]
 	path = crates/yuescript/mediator_lua
-	url = git@github.com:Olivine-Labs/mediator_lua.git
+	url = https://github.com/Olivine-Labs/mediator_lua
 [submodule "crates/yuescript/lua_cliargs.git"]
 	path = crates/yuescript/lua_cliargs
-	url = git@github.com:amireh/lua_cliargs.git
+	url = https://github.com/amireh/lua_cliargs
 [submodule "crates/yuescript/luassert"]
 	path = crates/yuescript/luassert
-	url = git@github.com:lunarmodules/luassert.git
+	url = https://github.com/lunarmodules/luassert
 [submodule "crates/yuescript/say"]
 	path = crates/yuescript/say
-	url = git@github.com:lunarmodules/say.git
+	url = https://github.com/lunarmodules/say
