@@ -20,6 +20,7 @@ fn yuescriptgen() -> Result<(), Box<dyn Error>> {
         .file("yuescript/src/yuescript/yue_parser.cpp")
         .file("yuescript/src/yuescript/yuescript.cpp")
         .flag_if_supported("-std=c++17")
+        .flag_if_supported("/std:c++17")
         .flag_if_supported("-Wall")
         .flag_if_supported("-Wextra")
         .flag_if_supported("-Wno-deprecated-declarations")
