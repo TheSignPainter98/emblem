@@ -135,12 +135,16 @@ impl Compiler {
             .nth(2)
             .unwrap()
             .join(file!());
-        Ok(current_file
+        let mut dep_dir: String = current_file
             .ancestors()
             .nth(2)
             .unwrap()
             .to_string_lossy()
-            .into())
+            .into();
+        if path::MAIN_SEPARATOR == '\\' {
+            dep_dir = dep_dir.replace(path::MAIN_SEPARATOR, "/"); // >:C
+        }
+        Ok(dep_dir)
     }
 }
 
