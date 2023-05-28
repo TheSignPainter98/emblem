@@ -6,16 +6,6 @@ use emblem_core::{
 use serde::Deserialize as Deserialise;
 use std::collections::HashMap;
 
-pub(crate) fn load_str(src: &str) -> Result<DocManifest<'_>, Box<Log<'_>>> {
-    // TODO(kcza): parse the errors into something pretty
-    let parsed: DocManifest<'_> =
-        serde_yaml::from_str(src).map_err(|e| Log::error(e.to_string()))?;
-
-    parsed.validate().map_err(|e| Log::error(&*e))?;
-
-    Ok(parsed)
-}
-
 #[derive(Debug, Deserialise)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct DocManifest<'m> {
@@ -27,11 +17,24 @@ pub(crate) struct DocManifest<'m> {
     pub requires: Option<HashMap<&'m str, Module<'m>>>,
 }
 
+impl<'m> TryFrom<&'m str> for DocManifest<'m> {
+    type Error = Box<Log<'m>>;
+
+    fn try_from(src: &'m str) -> Result<Self, Self::Error> {
+        let parsed: DocManifest<'_> =
+            serde_yaml::from_str(src).map_err(|e| Log::error(e.to_string()))?;
+
+        parsed.validate().map_err(|e| Log::error(&*e))?;
+
+        Ok(parsed)
+    }
+}
+
 impl<'m> DocManifest<'m> {
     fn validate(&self) -> Result<(), String> {
         if let Some(requires) = &self.requires {
-            for spec in requires.values() {
-                spec.validate()?;
+            for (name, ext) in requires {
+                ext.validate(name)?;
             }
         }
         Ok(())
@@ -67,6 +70,7 @@ pub(crate) struct Module<'m> {
     rename_as: Option<&'m str>,
     tag: Option<&'m str>,
     hash: Option<&'m str>,
+    branch: Option<&'m str>,
     args: Option<HashMap<&'m str, &'m str>>,
 }
 
@@ -80,6 +84,9 @@ impl<'m> Module<'m> {
     pub fn version(&self) -> ModuleVersion<'m> {
         if let Some(tag) = self.tag {
             return ModuleVersion::Tag(tag);
+        }
+        if let Some(branch) = self.branch {
+            return ModuleVersion::Branch(branch);
         }
         if let Some(hash) = self.hash {
             return ModuleVersion::Hash(hash);
@@ -95,21 +102,21 @@ impl<'m> Module<'m> {
         }
     }
 
-    pub fn validate(&self) -> Result<(), String> {
-        match (&self.tag, &self.hash) {
-            (Some(_), None) | (None, Some(_)) => Ok(()),
-            (None, None) => Err("expected `tag` or `hash` field".into()),
-            _ => Err("multiple version specifiers found".into()),
+    pub fn validate(&self, name: &str) -> Result<(), String> {
+        match (&self.tag, &self.branch, &self.hash) {
+            (Some(_), None, None) | (None, Some(_), None) | (None, None, Some(_)) => Ok(()),
+            (None, None, None) => Err("expected `tag` or `hash` field".into()),
+            _ => Err(format!("multiple version specifiers found for {name}")),
         }
     }
-}
 
-impl<'m> From<Module<'m>> for EmblemModule<'m> {
-    fn from(module: Module<'m>) -> Self {
-        Self::new(
-            module.rename_as,
-            module.version().into(),
-            module.args.unwrap_or_default(),
+    pub fn into_module(self, source: &'m str) -> EmblemModule<'m> {
+        EmblemModule::new(
+            EmblemModule::name_from_source(source),
+            source,
+            self.rename_as,
+            self.version().into(),
+            self.args.unwrap_or_default(),
         )
     }
 }
@@ -117,6 +124,7 @@ impl<'m> From<Module<'m>> for EmblemModule<'m> {
 #[derive(Debug, Eq, PartialEq)]
 pub enum ModuleVersion<'m> {
     Tag(&'m str),
+    Branch(&'m str),
     Hash(&'m str),
 }
 
@@ -124,6 +132,7 @@ impl<'m> From<ModuleVersion<'m>> for EmblemModuleVersion<'m> {
     fn from(version: ModuleVersion<'m>) -> Self {
         match version {
             ModuleVersion::Tag(t) => Self::Tag(t),
+            ModuleVersion::Branch(t) => Self::Branch(t),
             ModuleVersion::Hash(h) => Self::Hash(h),
         }
     }
@@ -132,18 +141,18 @@ impl<'m> From<ModuleVersion<'m>> for EmblemModuleVersion<'m> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use itertools::Itertools;
     use regex::Regex;
 
     #[test]
     fn ok_minimal() {
         let raw = textwrap::dedent(
             r#"
-            name: foo
-            emblem: v1.0
-            "#
-            .into(),
+                name: foo
+                emblem: v1.0
+            "#,
         );
-        let manifest = load_str(&raw).unwrap();
+        let manifest = DocManifest::try_from(&raw[..]).unwrap();
 
         assert_eq!("foo", manifest.name);
         assert_eq!(Version::V1_0, manifest.emblem_version);
@@ -155,31 +164,32 @@ mod test {
     fn ok_maximal() {
         let raw = textwrap::dedent(
             r#"
-            name: foo
-            emblem: v1.0
-            authors:
-            - Gordon
-            - Eli
-            - Isaac
-            - Walter
-            keywords:
-            - DARGH!
-            - NO!
-            - STAHP!
-            - HUEAG!
-            requires:
-              foo-tagged:
-                tag: edge
-                rename-as: qux
-                args:
-                  key1: value1
-                  key2: value2
-              bar-hashed:
-                hash: 0123456789abcdef
-            "#
-            .into(),
+                name: foo
+                emblem: v1.0
+                authors:
+                - Gordon
+                - Eli
+                - Isaac
+                - Walter
+                keywords:
+                - DARGH!
+                - NO!
+                - STAHP!
+                - HUEAG!
+                requires:
+                  foo-tagged:
+                    tag: edge
+                    rename-as: qux
+                    args:
+                      key1: value1
+                      key2: value2
+                  bar-branched:
+                    branch: dev
+                  baz-hashed:
+                    hash: 0123456789abcdef
+            "#,
         );
-        let manifest = load_str(&raw).unwrap();
+        let manifest = DocManifest::try_from(&raw[..]).unwrap();
 
         assert_eq!("foo", manifest.name);
         assert_eq!(
@@ -203,13 +213,18 @@ mod test {
             }
 
             {
-                let baz_hashed = requires.get("bar-hashed").unwrap();
-                assert_eq!(None, baz_hashed.rename_as());
+                let bar_branched = requires.get("bar-branched").unwrap();
+                assert_eq!(None, bar_branched.rename_as());
+                assert_eq!(ModuleVersion::Branch("dev"), bar_branched.version());
+                assert_eq!(None, bar_branched.args());
+            }
+
+            {
+                let baz_hashed = requires.get("baz-hashed").unwrap();
                 assert_eq!(
                     ModuleVersion::Hash("0123456789abcdef"),
                     baz_hashed.version()
                 );
-                assert_eq!(None, baz_hashed.args());
             }
         }
     }
@@ -218,11 +233,11 @@ mod test {
     fn incorrect_emblem_version() {
         let missing = textwrap::dedent(
             r#"
-            name: foo
-            emblem: null
+                name: foo
+                emblem: null
             "#,
         );
-        let missing_err = load_str(&missing).unwrap_err();
+        let missing_err = DocManifest::try_from(&missing[..]).unwrap_err();
         let re = Regex::new("emblem: unknown variant `null`, expected").unwrap();
         let msg = missing_err.msg();
         assert!(
@@ -232,11 +247,11 @@ mod test {
 
         let unknown = textwrap::dedent(
             r#"
-            name: foo
-            emblem: UNKNOWN
+                name: foo
+                emblem: UNKNOWN
             "#,
         );
-        let unknown_err = load_str(&unknown).unwrap_err();
+        let unknown_err = DocManifest::try_from(&unknown[..]).unwrap_err();
         let re = Regex::new("emblem: unknown variant `UNKNOWN`, expected").unwrap();
         let msg = unknown_err.msg();
         assert!(
@@ -249,16 +264,15 @@ mod test {
     fn missing_dependency_version() {
         let raw = textwrap::dedent(
             r#"
-            name: foo
-            emblem: v1.0
-            requires:
-              bar:
-                args:
-                  asdf: fdas
-            "#
-            .into(),
+                name: foo
+                emblem: v1.0
+                requires:
+                  bar:
+                    args:
+                      asdf: fdas
+            "#,
         );
-        let err = load_str(&raw).unwrap_err();
+        let err = DocManifest::try_from(&raw[..]).unwrap_err();
         let re = Regex::new("expected `tag` or `hash` field").unwrap();
         let msg = err.msg();
         assert!(
@@ -271,18 +285,45 @@ mod test {
     fn extra_fields() {
         let raw = textwrap::dedent(
             r#"
-            INTERLOPER: true
-            name: foo
-            "#
-            .into(),
+                INTERLOPER: true
+                name: foo
+            "#,
         );
-        let err = load_str(&raw).unwrap_err();
+        let err = DocManifest::try_from(&raw[..]).unwrap_err();
         let re = Regex::new("unknown field `INTERLOPER`").unwrap();
         let msg = err.msg();
         assert!(
             re.is_match(msg),
             "Unknown message doesn't match regex '{re:?}': got {msg}"
         );
+    }
+
+    #[test]
+    fn multiple_version_specifiers() {
+        let specifiers = ["tag: asdf", "branch: asdf", "hash: asdf"];
+        for (specifier_1, specifier_2) in specifiers
+            .iter()
+            .cartesian_product(specifiers.iter())
+            .filter(|(s, t)| s != t)
+        {
+            let raw = textwrap::dedent(&format!(
+                r#"
+                    name: foo
+                    emblem: v1.0
+                    requires:
+                      bar:
+                        {specifier_1}
+                        {specifier_2}
+                "#
+            ));
+            let err = DocManifest::try_from(&raw[..]).unwrap_err();
+            let re = Regex::new("multiple version specifiers found for bar").unwrap();
+            let msg = err.msg();
+            assert!(
+                re.is_match(msg),
+                "Unknown message doesn't match regex '{re:?}': got {msg}"
+            );
+        }
     }
 }
 

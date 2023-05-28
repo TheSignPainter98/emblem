@@ -5,8 +5,12 @@ use clap::{
     CommandFactory, Parser, Subcommand, ValueEnum,
     ValueHint::{AnyPath, DirPath, FilePath},
 };
-use emblem_core::context::{MemoryLimit as EmblemMemoryLimit, SandboxLevel as EmblemSandboxLevel};
-use std::{env, ffi::OsString, fmt::Display, path};
+use emblem_core::context::{
+    ResourceLimit as EmblemResourceLimit, SandboxLevel as EmblemSandboxLevel, DEFAULT_MAX_ITERS,
+    DEFAULT_MAX_MEM, DEFAULT_MAX_STEPS,
+};
+use num::{Bounded, FromPrimitive, Integer, ToPrimitive};
+use std::{env, ffi::OsString, fmt::Display, path, str::FromStr};
 
 /// Parsed command-line arguments
 #[derive(Debug)]
@@ -38,8 +42,8 @@ impl Args {
 }
 
 impl Args {
-    pub fn module_args(&self) -> Option<&ModuleArgs> {
-        self.command.module_args()
+    pub fn lua_args(&self) -> Option<&LuaArgs> {
+        self.command.lua_args()
     }
 }
 
@@ -90,7 +94,7 @@ impl TryFrom<RawLogArgs> for LogArgs {
     }
 }
 
-const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format. Modules can be used to include arbitrary functionality; device drivers can be defined by modules.";
+const LONG_ABOUT: &str = "Takes input of a markdown-like document, processes it and typesets it before passing the result to a driver for outputting in some format. Extensions can be used to include arbitrary functionality; device drivers can be defined by extensions.";
 
 /// Internal command-line argument parser
 #[derive(Parser, Debug)]
@@ -132,7 +136,7 @@ pub struct RawLogArgs {
 #[derive(Clone, Debug, PartialEq, Eq, Subcommand)]
 #[warn(missing_docs)]
 pub enum Command {
-    /// Add a module the current document's compilation
+    /// Add an extension the current document's compilation
     Add(AddCmd),
 
     /// Build a given document
@@ -156,15 +160,15 @@ pub enum Command {
 }
 
 impl Command {
-    pub fn module_args(&self) -> Option<&ModuleArgs> {
+    pub fn lua_args(&self) -> Option<&LuaArgs> {
         match self {
             Self::Add(_) => None,
-            Self::Build(cmd) => Some(&cmd.modules),
+            Self::Build(cmd) => Some(&cmd.lua),
             Self::Explain(_) => None,
             Self::Format(_) => None,
             Self::Init(_) => None,
-            Self::Lint(cmd) => Some(&cmd.modules),
-            Self::List(cmd) => Some(&cmd.modules),
+            Self::Lint(cmd) => Some(&cmd.lua),
+            Self::List(cmd) => Some(&cmd.lua),
         }
     }
 }
@@ -231,25 +235,29 @@ impl Default for Command {
 #[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
 pub struct AddCmd {
-    /// The module to add
+    /// The extension to add
     #[arg(value_name = "source")]
     pub to_add: String,
 
-    /// Use a specific commit in the module's history
-    #[arg(long, value_name = "hash", group = "module-version")]
+    /// Use a specific commit in the extension's history
+    #[arg(long, value_name = "hash", group = "extension-version")]
     pub commit: Option<String>,
 
-    /// Override the module name
+    /// Override the extension name
     #[arg(long, value_name = "name")]
     pub rename_as: Option<String>,
 
-    /// Use version of module at given tag
-    #[arg(long, value_name = "tag-name", group = "module-version")]
+    /// Use version of extension at given tag
+    #[arg(long, value_name = "tag-name", group = "extension-version")]
     pub tag: Option<String>,
+
+    /// Use a specific branch in the extension's history
+    #[arg(long, value_name = "name", group = "extension-version")]
+    pub branch: Option<String>,
 }
 
 /// Arguments to the build subcommand
-#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
+#[derive(Clone, Debug, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
 pub struct BuildCmd {
     #[command(flatten)]
@@ -262,56 +270,147 @@ pub struct BuildCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub modules: ModuleArgs,
+    pub lua: LuaArgs,
 
     /// Max iterations of the typesetting loop
-    #[arg(long, value_parser = MaxIters::parser(), default_value_t, value_name = "max")]
-    pub max_iters: MaxIters,
+    #[arg(long, value_parser = ResourceLimit::<u32>::parser(), default_value_t = ResourceLimit::Limited(DEFAULT_MAX_ITERS), value_name = "max")]
+    pub max_iters: ResourceLimit<u32>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum MaxIters {
+impl Default for BuildCmd {
+    fn default() -> Self {
+        Self {
+            input: Default::default(),
+            output: Default::default(),
+            lua: Default::default(),
+            max_iters: ResourceLimit::Limited(DEFAULT_MAX_ITERS),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ResourceLimit<T: Bounded + Clone + Copy + Integer> {
     Unlimited,
-    Limited(u32),
+    Limited(T),
 }
 
-impl MaxIters {
+impl<T> ResourceLimit<T>
+where
+    T: Bounded
+        + Clone
+        + Copy
+        + Display
+        + FromPrimitive
+        + FromStr
+        + Integer
+        + ToPrimitive
+        + Send
+        + Sync
+        + 'static,
+    <T as FromStr>::Err: Display,
+{
     fn parser() -> impl TypedValueParser {
         StringValueParser::new().try_map(Self::try_from)
     }
 }
 
-impl From<MaxIters> for u32 {
-    fn from(max: MaxIters) -> Self {
-        match max {
-            MaxIters::Unlimited => u32::MAX,
-            MaxIters::Limited(l) => l,
-        }
-    }
-}
-
-impl TryFrom<String> for MaxIters {
+impl<T> TryFrom<String> for ResourceLimit<T>
+where
+    T: Bounded
+        + Clone
+        + Copy
+        + Display
+        + FromPrimitive
+        + FromStr
+        + Integer
+        + ToPrimitive
+        + Send
+        + Sync
+        + 'static,
+    <T as FromStr>::Err: Display,
+{
     type Error = error::Error;
 
     fn try_from(raw: String) -> Result<Self, Self::Error> {
+        Self::try_from(&raw[..])
+    }
+}
+
+impl<T> TryFrom<&str> for ResourceLimit<T>
+where
+    T: Bounded
+        + Clone
+        + Copy
+        + Display
+        + FromPrimitive
+        + FromStr
+        + Integer
+        + ToPrimitive
+        + Send
+        + Sync
+        + 'static,
+    <T as FromStr>::Err: Display,
+{
+    type Error = error::Error;
+
+    fn try_from(raw: &str) -> Result<Self, Self::Error> {
+        if raw.is_empty() {
+            let mut cmd = RawArgs::command();
+            return Err(cmd.error(error::ErrorKind::InvalidValue, "need amount"));
+        }
+
         if raw == "unlimited" {
             return Ok(Self::Unlimited);
         }
 
-        match raw.parse() {
-            Ok(max) => Ok(Self::Limited(max)),
-            Err(e) => Err(RawArgs::command().error(error::ErrorKind::InvalidValue, e.to_string())),
+        let (raw_amt, unit): (String, String) = raw.chars().partition(|c| c.is_numeric());
+        let amt: T = raw_amt.parse().map_err(|_| {
+            RawArgs::command().error(
+                error::ErrorKind::InvalidValue,
+                format!(
+                    "resource limit too large, expected at most {}",
+                    T::max_value()
+                ),
+            )
+        })?;
+
+        let max = T::max_value();
+        let multiplier: T = {
+            let max = max.to_u64().expect("internal error: max value too large");
+            match &unit[..] {
+                "K" if max >= 1 << 10 => T::from_u64(1 << 10).unwrap(),
+                "M" if max >= 1 << 20 => T::from_u64(1 << 20).unwrap(),
+                "G" if max >= 1 << 30 => T::from_u64(1 << 30).unwrap(),
+                "" => T::from_u64(1).unwrap(),
+                _ => {
+                    let mut cmd = RawArgs::command();
+                    return Err(cmd.error(
+                        error::ErrorKind::InvalidValue,
+                        format!("unrecognised unit: {}", unit),
+                    ));
+                }
+            }
+        };
+
+        if max / multiplier < amt {
+            let mut cmd = RawArgs::command();
+            return Err(cmd.error(
+                error::ErrorKind::InvalidValue,
+                format!(
+                    "resource limit too large, expected at most {}",
+                    T::max_value()
+                ),
+            ));
         }
+
+        Ok(Self::Limited(amt * multiplier))
     }
 }
 
-impl Default for MaxIters {
-    fn default() -> Self {
-        Self::Limited(5)
-    }
-}
-
-impl Display for MaxIters {
+impl<T> Display for ResourceLimit<T>
+where
+    T: Bounded + Clone + Copy + Display + Integer,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Unlimited => write!(f, "unlimited"),
@@ -334,7 +433,6 @@ impl From<&BuildCmd> for emblem_core::Builder {
             cmd.input.file.clone().into(),
             output_stem,
             cmd.output.driver.clone(),
-            cmd.max_iters.clone().into(),
         )
     }
 }
@@ -386,7 +484,7 @@ pub struct LintCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub modules: ModuleArgs,
+    pub lua: LuaArgs,
 }
 
 impl From<&LintCmd> for emblem_core::Linter {
@@ -405,7 +503,7 @@ pub struct ListCmd {
 
     #[command(flatten)]
     #[allow(missing_docs)]
-    pub modules: ModuleArgs,
+    pub lua: LuaArgs,
 }
 
 /// Holds the source of the user's document
@@ -430,22 +528,37 @@ pub struct OutputArgs {
     pub driver: Option<String>,
 }
 
-/// Holds the user's preferences for the modules used when running the program
-#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
+/// Holds the user's preferences for the lua environment used when running the program
+#[derive(Clone, Debug, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
-pub struct ModuleArgs {
+pub struct LuaArgs {
     /// Pass a named argument into module-space. If module name is omitted, pass argument as
     /// variable in document
     #[arg(short = 'a', action = Append, value_parser = ExtArg::parser(), value_name="mod.arg=value")]
-    pub args: Vec<ExtArg>,
+    pub args: Vec<ExtArg>, // TODO(kcza): plumb me!
 
     /// Limit lua memory usage
-    #[arg(long, value_parser = MemoryLimit::parser(), default_value = "unlimited", value_name = "amount")]
-    pub max_mem: MemoryLimit,
+    #[arg(long, value_parser = ResourceLimit::<usize>::parser(), default_value_t = ResourceLimit::Limited(DEFAULT_MAX_MEM), value_name = "amount")]
+    pub max_mem: ResourceLimit<usize>,
+
+    /// Limit lua execution steps
+    #[arg(long, value_parser = ResourceLimit::<u32>::parser(), default_value_t = ResourceLimit::Limited(DEFAULT_MAX_STEPS), value_name = "steps")]
+    pub max_steps: ResourceLimit<u32>,
 
     /// Restrict system access
-    #[arg(long, value_enum, default_value_t, value_name = "level")]
-    pub sandbox: SandboxLevel,
+    #[arg(long = "sandbox", value_enum, default_value_t, value_name = "level")]
+    pub sandbox_level: SandboxLevel,
+}
+
+impl Default for LuaArgs {
+    fn default() -> Self {
+        Self {
+            args: Default::default(),
+            max_mem: ResourceLimit::Limited(DEFAULT_MAX_MEM),
+            max_steps: ResourceLimit::Limited(DEFAULT_MAX_STEPS),
+            sandbox_level: SandboxLevel::default(),
+        }
+    }
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq)]
@@ -601,91 +714,14 @@ impl TryFrom<&str> for ArgPath {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-pub enum MemoryLimit {
-    Limited(usize),
-    #[default]
-    Unlimited,
-}
-
-impl MemoryLimit {
-    fn parser() -> impl TypedValueParser {
-        StringValueParser::new().try_map(Self::try_from)
-    }
-}
-
-impl TryFrom<OsStr> for MemoryLimit {
-    type Error = error::Error;
-
-    fn try_from(raw: OsStr) -> Result<Self, Self::Error> {
-        if let Some(s) = raw.to_str() {
-            return Self::try_from(s);
-        }
-
-        let mut cmd = RawArgs::command();
-        Err(cmd.error(
-            error::ErrorKind::InvalidValue,
-            format!("could not convert '{:?}' to an OS string", raw),
-        ))
-    }
-}
-
-impl TryFrom<String> for MemoryLimit {
-    type Error = error::Error;
-
-    fn try_from(raw: String) -> Result<Self, Self::Error> {
-        Self::try_from(&raw[..])
-    }
-}
-
-impl TryFrom<&str> for MemoryLimit {
-    type Error = error::Error;
-
-    fn try_from(raw: &str) -> Result<Self, Self::Error> {
-        if raw.is_empty() {
-            let mut cmd = RawArgs::command();
-            return Err(cmd.error(error::ErrorKind::InvalidValue, "need amount"));
-        }
-
-        if raw == "unlimited" {
-            return Ok(Self::Unlimited);
-        }
-
-        let (raw_amt, unit): (String, String) = raw.chars().partition(|c| c.is_numeric());
-
-        let amt: usize = match raw_amt.parse() {
-            Ok(a) => a,
-            Err(e) => {
-                let mut cmd = RawArgs::command();
-                return Err(cmd.error(error::ErrorKind::InvalidValue, e));
-            }
-        };
-
-        let multiplier: usize = {
-            match &unit[..] {
-                "K" => 1 << 10,
-                "M" => 1 << 20,
-                "G" => 1 << 30,
-                "" => 1,
-                _ => {
-                    let mut cmd = RawArgs::command();
-                    return Err(cmd.error(
-                        error::ErrorKind::InvalidValue,
-                        format!("unrecognised unit: {}", unit),
-                    ));
-                }
-            }
-        };
-
-        Ok(Self::Limited(amt * multiplier))
-    }
-}
-
-impl From<MemoryLimit> for EmblemMemoryLimit {
-    fn from(limit: MemoryLimit) -> Self {
+impl<T> From<ResourceLimit<T>> for EmblemResourceLimit<T>
+where
+    T: Bounded + Integer + Clone + Copy,
+{
+    fn from(limit: ResourceLimit<T>) -> Self {
         match limit {
-            MemoryLimit::Limited(n) => Self::Limited(n),
-            MemoryLimit::Unlimited => Self::Unlimited,
+            ResourceLimit::Limited(n) => Self::Limited(n),
+            ResourceLimit::Unlimited => Self::Unlimited,
         }
     }
 }
@@ -736,15 +772,15 @@ impl From<Verbosity> for emblem_core::Verbosity {
 
 #[derive(ValueEnum, Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum SandboxLevel {
-    /// Modules have no restrictions placed upon them.
+    /// Place no restrictions on the Lua environment.
     Unrestricted,
 
-    /// Prohibit creation of new subprocesses and file system access outside of the current
-    /// working directory.
+    /// Prohibit subprocesses creation and file system access outside of the current
+    /// document's directory.
     #[default]
     Standard,
 
-    /// Same restrictions as Standard, but all file system access if prohibited.
+    /// Same restrictions as Standard, but all file system access is prohibited.
     Strict,
 }
 
@@ -828,6 +864,7 @@ impl TryFrom<String> for ExtArg {
 #[cfg(test)]
 mod test {
     use super::*;
+    use itertools::Itertools;
 
     mod args {
         use super::*;
@@ -940,6 +977,15 @@ mod test {
                         .tag
                 );
                 assert_eq!(
+                    None,
+                    Args::try_parse_from(["em", "add", "pootis"])
+                        .unwrap()
+                        .command
+                        .add()
+                        .unwrap()
+                        .branch
+                );
+                assert_eq!(
                     Some("deadbeef".into()),
                     Args::try_parse_from(["em", "add", "pootis", "--commit", "deadbeef"])
                         .unwrap()
@@ -957,10 +1003,39 @@ mod test {
                         .unwrap()
                         .tag
                 );
-                assert!(Args::try_parse_from([
-                    "em", "add", "pootis", "--commit", "COMMIT", "--tag", "TAG"
-                ])
-                .is_err());
+                assert_eq!(
+                    Some("spah-creepn-aroun-here".into()),
+                    Args::try_parse_from([
+                        "em",
+                        "add",
+                        "pootis",
+                        "--branch",
+                        "spah-creepn-aroun-here"
+                    ])
+                    .unwrap()
+                    .command
+                    .add()
+                    .unwrap()
+                    .branch
+                );
+                let filters = [
+                    ["--commit", "COMMIT"],
+                    ["--tag", "TAG"],
+                    ["--branch", "BRANCH"],
+                ];
+                for (f1, f2) in filters
+                    .iter()
+                    .cartesian_product(filters.iter())
+                    .filter(|(f1, f2)| f1 != f2)
+                {
+                    assert!(Args::try_parse_from({
+                        let mut args = vec!["em", "add", "pootis"];
+                        args.extend_from_slice(f1);
+                        args.extend_from_slice(f2);
+                        args
+                    })
+                    .is_err());
+                }
             }
 
             #[test]
@@ -1113,9 +1188,9 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_mem,
-                    MemoryLimit::Unlimited
+                    ResourceLimit::Limited(DEFAULT_MAX_MEM),
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-mem", "25"])
@@ -1123,9 +1198,9 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_mem,
-                    MemoryLimit::Limited(25)
+                    ResourceLimit::Limited(25)
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-mem", "25K"])
@@ -1133,9 +1208,9 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_mem,
-                    MemoryLimit::Limited(25 * 1024)
+                    ResourceLimit::Limited(25 * 1024)
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-mem", "25M"])
@@ -1143,9 +1218,9 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_mem,
-                    MemoryLimit::Limited(25 * 1024 * 1024)
+                    ResourceLimit::Limited(25 * 1024 * 1024)
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-mem", "25G"])
@@ -1153,24 +1228,123 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .max_mem,
-                    MemoryLimit::Limited(25 * 1024 * 1024 * 1024)
+                    ResourceLimit::Limited(25 * 1024 * 1024 * 1024)
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-mem", "unlimited"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .lua
+                        .max_mem,
+                    ResourceLimit::Unlimited,
                 );
 
-                assert!(Args::try_parse_from(["em", "build", "--max-mem", "100T"]).is_err());
+                assert!(Args::try_parse_from(["em", "build", "--max-mem", "100n"])
+                    .unwrap_err()
+                    .to_string()
+                    .contains("unrecognised unit: n"));
             }
 
             #[test]
-            fn sandbox() {
+            fn max_steps() {
                 assert_eq!(
                     Args::try_parse_from(["em"])
                         .unwrap()
                         .command
                         .build()
                         .unwrap()
-                        .modules
-                        .sandbox,
+                        .lua
+                        .max_steps,
+                    ResourceLimit::Limited(DEFAULT_MAX_STEPS),
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-steps", "25"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .lua
+                        .max_steps,
+                    ResourceLimit::Limited(25)
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-steps", "25K"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .lua
+                        .max_steps,
+                    ResourceLimit::Limited(25 * 1024)
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-steps", "25M"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .lua
+                        .max_steps,
+                    ResourceLimit::Limited(25 * 1024 * 1024)
+                );
+                assert_eq!(
+                    Args::try_parse_from(["em", "build", "--max-steps", "unlimited"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .lua
+                        .max_steps,
+                    ResourceLimit::Unlimited,
+                );
+
+                {
+                    let err = Args::try_parse_from([
+                        "em",
+                        "build",
+                        "--max-steps",
+                        &(u32::MAX as u64 + 1).to_string(),
+                    ])
+                    .unwrap_err()
+                    .to_string();
+                    assert!(
+                        err.contains("resource limit too large, expected at most 4294967295"),
+                        "unexpected error: {err:#?}"
+                    );
+                }
+
+                {
+                    let err = Args::try_parse_from(["em", "build", "--max-steps", "10000G"])
+                        .unwrap_err()
+                        .to_string();
+                    assert!(
+                        err.contains("resource limit too large, expected at most 4294967295"),
+                        "unexpected error: {err:#?}",
+                    );
+                }
+
+                assert!(
+                    &Args::try_parse_from(["em", "build", "--max-steps", "100n"])
+                        .unwrap_err()
+                        .to_string()
+                        .contains("unrecognised unit: n")
+                );
+            }
+
+            #[test]
+            fn sandbox_level() {
+                assert_eq!(
+                    Args::try_parse_from(["em"])
+                        .unwrap()
+                        .command
+                        .build()
+                        .unwrap()
+                        .lua
+                        .sandbox_level,
                     SandboxLevel::Standard
                 );
                 assert_eq!(
@@ -1179,8 +1353,8 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
-                        .sandbox,
+                        .lua
+                        .sandbox_level,
                     SandboxLevel::Unrestricted
                 );
                 assert_eq!(
@@ -1189,8 +1363,8 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
-                        .sandbox,
+                        .lua
+                        .sandbox_level,
                     SandboxLevel::Standard
                 );
                 assert_eq!(
@@ -1199,8 +1373,8 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
-                        .sandbox,
+                        .lua
+                        .sandbox_level,
                     SandboxLevel::Strict
                 );
 
@@ -1215,7 +1389,7 @@ mod test {
                         .command
                         .build()
                         .unwrap()
-                        .modules
+                        .lua
                         .args,
                     vec![]
                 );
@@ -1227,7 +1401,7 @@ mod test {
                             .command
                             .build()
                             .unwrap()
-                            .modules
+                            .lua
                             .args
                             .clone();
                     assert_eq!(valid_ext_args.len(), 3);
@@ -1251,7 +1425,7 @@ mod test {
                         .build()
                         .unwrap()
                         .max_iters,
-                    MaxIters::Limited(5),
+                    ResourceLimit::Limited(DEFAULT_MAX_ITERS),
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-iters", "25"])
@@ -1260,7 +1434,7 @@ mod test {
                         .build()
                         .unwrap()
                         .max_iters,
-                    MaxIters::Limited(25),
+                    ResourceLimit::Limited(25),
                 );
                 assert_eq!(
                     Args::try_parse_from(["em", "build", "--max-iters", "unlimited"])
@@ -1269,7 +1443,7 @@ mod test {
                         .build()
                         .unwrap()
                         .max_iters,
-                    MaxIters::Unlimited,
+                    ResourceLimit::Unlimited,
                 );
             }
         }
@@ -1401,7 +1575,7 @@ mod test {
                         .command
                         .lint()
                         .unwrap()
-                        .modules
+                        .lua
                         .args,
                     vec![]
                 );
@@ -1413,7 +1587,7 @@ mod test {
                             .command
                             .lint()
                             .unwrap()
-                            .modules
+                            .lua
                             .args
                             .clone();
                     assert_eq!(valid_ext_args.len(), 3);
@@ -1463,7 +1637,7 @@ mod test {
                         .command
                         .list()
                         .unwrap()
-                        .modules
+                        .lua
                         .args,
                     vec![]
                 );
@@ -1481,7 +1655,7 @@ mod test {
                     .command
                     .list()
                     .unwrap()
-                    .modules
+                    .lua
                     .args
                     .clone();
                     assert_eq!(valid_ext_args.len(), 3);

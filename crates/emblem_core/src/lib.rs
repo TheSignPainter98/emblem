@@ -10,6 +10,7 @@ pub mod ast;
 pub mod build;
 pub mod context;
 pub mod explain;
+mod extensions;
 pub mod lint;
 pub mod parser;
 mod path;
@@ -20,11 +21,15 @@ mod version;
 pub use crate::{
     args::ArgPath,
     build::{
-        typesetter::doc::{Doc, DocElem},
+        typesetter::{
+            doc::{Doc, DocElem},
+            Typesetter,
+        },
         Builder,
     },
-    context::Context,
+    context::{Context, ResourceLimit, SandboxLevel},
     explain::Explainer,
+    extensions::ExtensionState,
     lint::Linter,
     log::{Log, Verbosity},
     version::Version,
@@ -35,7 +40,10 @@ use derive_new::new;
 pub trait Action {
     type Response;
 
-    fn run<'ctx>(&self, ctx: &'ctx mut context::Context) -> EmblemResult<'ctx, Self::Response>;
+    fn run<'ctx>(
+        &self,
+        ctx: &'ctx mut context::Context<'ctx>,
+    ) -> EmblemResult<'ctx, Self::Response>;
 
     fn output<'ctx>(&self, _: Self::Response) -> EmblemResult<'ctx, ()> {
         EmblemResult::new(vec![], ())

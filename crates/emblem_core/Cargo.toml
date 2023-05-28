@@ -9,7 +9,7 @@ version = "0.0.0"
 edition = "2021"
 
 [features]
-default = [ "git2" ]
+default = ["git2"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -20,12 +20,17 @@ git2 = { version = "0.16.1", optional = true }
 lalrpop = "0.19.8"
 lalrpop-util = "0.19.8"
 lazy_static = "1.4.0"
+mlua = { version = "0.8.8", features = [ "luajit52", "vendored" ] }
+num = "0.4.0"
 parking_lot = "0.12.1"
+phf = { version = "0.11.1", features = [ "macros" ] }
 regex = "1"
 typed-arena = "2.0.1"
+yuescript = { path = "../yuescript" }
 
 [build-dependencies]
 lalrpop = "0.19.8"
+yuescript = { path = "../yuescript" }
 
 [dev-dependencies]
 tempfile = "3.3.0"

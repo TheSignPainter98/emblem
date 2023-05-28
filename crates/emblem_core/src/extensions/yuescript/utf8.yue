@@ -1,0 +1,53 @@
+import concat from table
+
+charpattern = '[\\0-\\x7F\\xC2-\\xF4][\\x80-\\xBF]*'
+
+__to_char = (c) -> tostring c
+
+global utf8 =
+	char: (...) -> concat { __to_char select, i, ... for i = 1, select '#', ... }
+	:charpattern
+	codes: ->
+	codepoint: ->
+	len: =>
+		count = 0
+		count += 1 for _ in @gmatch charpattern
+		count
+	offset: ->
+
+$spec ->
+	-- describe 'utf8', ->
+		-- describe 'char', ->
+		-- 	import char from utf8
+
+		-- 	it 'accepts empty input', ->
+		-- 		assert.same '', char!
+		-- 	it 'accepts one input', ->
+		-- 		assert.same 'A', char 65
+		-- 	it 'accepts many inputs', ->
+		-- 		assert.same 'A💮a', char 65, 0, 97
+
+		-- describe 'charpattern', ->
+		-- 	import charpattern from utf8
+
+		-- 	it 'has the right value', ->
+		-- 		assert.is charpattern, '[\0-\x7F\xC2-\xF4][\x80-\xBF]*'
+
+		-- describe 'codes', ->
+		-- 	error 'unimplemented'
+
+		-- describe 'codepoint', ->
+		-- 	error 'unimplemented'
+
+		-- describe 'len', ->
+		-- 	import len from utf8
+
+		-- 	it 'handles the empty string', ->
+		-- 		assert.same 0, len ''
+		-- 	it 'counts single-width chars', ->
+		-- 		assert.same 5, len 'hello'
+		-- 	it 'counts multi-width chars', ->
+		-- 		assert.same, 6, len 'привіт'
+
+-- 		describe 'offset', ->
+-- 			error 'unimplemented'

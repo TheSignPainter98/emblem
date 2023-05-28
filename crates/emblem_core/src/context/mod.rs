@@ -1,57 +1,76 @@
 mod module;
 
-use crate::Version;
-pub use module::{Module, ModuleName, ModuleVersion};
+use crate::{ExtensionState, Typesetter, Version};
+use derive_new::new;
+use mlua::Result as MLuaResult;
+pub use module::{Module, ModuleVersion};
+use num::{Bounded, Integer};
+use std::fmt::Debug;
 use typed_arena::Arena;
+
+pub const DEFAULT_MAX_STEPS: u32 = 100_000;
+pub const DEFAULT_MAX_MEM: usize = 100_000;
+pub const DEFAULT_MAX_ITERS: u32 = 5;
 
 #[derive(Default)]
 pub struct Context<'m> {
     files: Arena<File>,
-    doc_info: DocInfo<'m>,
-    lua_info: LuaInfo<'m>,
-    modules: Option<Vec<(ModuleName<'m>, Module<'m>)>>,
+    doc_params: DocumentParameters<'m>,
+    lua_params: LuaParameters<'m>,
+    typesetter_params: TypesetterParameters,
 }
 
 impl<'m> Context<'m> {
     pub fn new() -> Self {
-        Self {
-            files: Arena::new(),
-            doc_info: Default::default(),
-            lua_info: Default::default(),
-            modules: None,
-        }
+        Self::default()
     }
 
-    pub fn alloc_file(&mut self, name: String, content: String) -> &File {
+    pub fn alloc_file(&self, name: String, content: String) -> &File {
         self.files.alloc(File { name, content })
     }
 
-    pub fn doc_info(&self) -> &DocInfo<'m> {
-        &self.doc_info
+    pub fn doc_params(&self) -> &DocumentParameters<'m> {
+        &self.doc_params
     }
 
-    pub fn doc_info_mut(&mut self) -> &mut DocInfo<'m> {
-        &mut self.doc_info
+    pub fn doc_params_mut(&mut self) -> &mut DocumentParameters<'m> {
+        &mut self.doc_params
     }
 
-    pub fn lua_info(&self) -> &LuaInfo<'m> {
-        &self.lua_info
+    pub fn lua_params(&self) -> &LuaParameters<'m> {
+        &self.lua_params
     }
 
-    pub fn lua_info_mut(&mut self) -> &mut LuaInfo<'m> {
-        &mut self.lua_info
+    pub fn lua_params_mut(&mut self) -> &mut LuaParameters<'m> {
+        &mut self.lua_params
     }
 
-    pub fn set_modules(&mut self, modules: Vec<(ModuleName<'m>, Module<'m>)>) {
-        self.modules = Some(modules);
+    pub fn typesetter_params(&self) -> &TypesetterParameters {
+        &self.typesetter_params
     }
 
-    pub fn modules(&self) -> &Option<Vec<(ModuleName<'m>, Module<'m>)>> {
-        &self.modules
+    pub fn typesetter_params_mut(&mut self) -> &mut TypesetterParameters {
+        &mut self.typesetter_params
     }
 
-    pub fn modules_mut(&mut self) -> Option<&mut Vec<(ModuleName<'m>, Module<'m>)>> {
-        self.modules.as_mut()
+    pub fn extension_state(&'m self) -> MLuaResult<ExtensionState<'m>> {
+        ExtensionState::new(self)
+    }
+
+    pub fn typesetter(&'m self, ext_state: &'m mut ExtensionState<'m>) -> Typesetter<'m> {
+        Typesetter::new(self, ext_state)
+    }
+}
+
+#[cfg(test)]
+impl<'m> Context<'m> {
+    pub fn test_new() -> Self {
+        Self {
+            files: Arena::new(),
+            doc_params: DocumentParameters::test_new(),
+            lua_params: LuaParameters::test_new(),
+            typesetter_params: TypesetterParameters::test_new(),
+        }
     }
 }
 
@@ -72,14 +91,14 @@ impl File {
 }
 
 #[derive(Debug, Default)]
-pub struct DocInfo<'m> {
+pub struct DocumentParameters<'m> {
     name: Option<&'m str>,
     emblem_version: Option<Version>,
     authors: Option<Vec<&'m str>>,
     keywords: Option<Vec<&'m str>>,
 }
 
-impl<'m> DocInfo<'m> {
+impl<'m> DocumentParameters<'m> {
     pub fn set_name(&mut self, name: &'m str) {
         self.name = Some(name);
     }
@@ -116,37 +135,62 @@ impl<'m> DocInfo<'m> {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct LuaInfo<'m> {
-    sandbox: SandboxLevel,
-    max_mem: MemoryLimit,
-    general_args: Option<Vec<(&'m str, &'m str)>>,
-    modules: Option<Vec<(&'m str, Module<'m>)>>,
+#[cfg(test)]
+impl<'m> DocumentParameters<'m> {
+    pub fn test_new() -> Self {
+        Self {
+            name: Some("On the Origin of Burnt Toast"),
+            emblem_version: Some(Version::V1_0),
+            authors: Some(vec!["kcza"]),
+            keywords: Some(vec!["toast", "burnt", "backstory"]),
+        }
+    }
 }
 
-impl<'m> LuaInfo<'m> {
-    pub fn set_sandbox(&mut self, sandbox: SandboxLevel) {
-        self.sandbox = sandbox;
+#[derive(new, Debug)]
+pub struct LuaParameters<'m> {
+    sandbox_level: SandboxLevel,
+    max_mem: ResourceLimit<usize>,
+    max_steps: ResourceLimit<u32>,
+    general_args: Option<Vec<(&'m str, &'m str)>>,
+    modules: Vec<Module<'m>>,
+}
+
+impl<'m> Default for LuaParameters<'m> {
+    fn default() -> Self {
+        Self {
+            sandbox_level: Default::default(),
+            max_mem: ResourceLimit::Limited(DEFAULT_MAX_MEM),
+            max_steps: ResourceLimit::Limited(DEFAULT_MAX_STEPS),
+            general_args: Default::default(),
+            modules: Default::default(),
+        }
+    }
+}
+
+impl<'m> LuaParameters<'m> {
+    pub fn set_sandbox_level(&mut self, sandbox_level: SandboxLevel) {
+        self.sandbox_level = sandbox_level;
     }
 
-    pub fn sandbox(&self) -> SandboxLevel {
-        self.sandbox
+    pub fn sandbox_level(&self) -> SandboxLevel {
+        self.sandbox_level
     }
 
-    pub fn set_max_mem(&mut self, max_mem: MemoryLimit) {
+    pub fn set_max_mem(&mut self, max_mem: ResourceLimit<usize>) {
         self.max_mem = max_mem;
     }
 
-    pub fn max_mem(&self) -> MemoryLimit {
+    pub fn max_mem(&self) -> ResourceLimit<usize> {
         self.max_mem
     }
 
-    pub fn set_modules(&mut self, modules: Vec<(&'m str, Module<'m>)>) {
-        self.modules = Some(modules);
+    pub fn set_max_steps(&mut self, max_steps: ResourceLimit<u32>) {
+        self.max_steps = max_steps;
     }
 
-    pub fn modules(&self) -> &Option<Vec<(&'m str, Module<'m>)>> {
-        &self.modules
+    pub fn max_steps(&self) -> ResourceLimit<u32> {
+        self.max_steps
     }
 
     pub fn set_general_args(&mut self, general_args: Vec<(&'m str, &'m str)>) {
@@ -156,21 +200,98 @@ impl<'m> LuaInfo<'m> {
     pub fn general_args(&self) -> &Option<Vec<(&'m str, &'m str)>> {
         &self.general_args
     }
+
+    pub fn set_modules(&mut self, modules: Vec<Module<'m>>) {
+        self.modules = modules;
+    }
+
+    pub fn modules(&self) -> &[Module<'m>] {
+        &self.modules
+    }
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[cfg(test)]
+impl<'m> LuaParameters<'m> {
+    pub fn test_new() -> Self {
+        Self {
+            sandbox_level: SandboxLevel::Strict,
+            max_mem: ResourceLimit::Unlimited,
+            max_steps: ResourceLimit::Unlimited,
+            general_args: None,
+            modules: vec![],
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SandboxLevel {
+    /// Side-effects allowed anywhere on host system
     Unrestricted,
+
+    /// Side-effects allowed within this document's folder only
     #[default]
     Standard,
+
+    /// No side-effects on host system
     Strict,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
-pub enum MemoryLimit {
-    Limited(usize),
-    #[default]
+#[cfg(test)]
+impl SandboxLevel {
+    pub fn input_levels() -> impl Iterator<Item = SandboxLevel> {
+        [
+            SandboxLevel::Unrestricted,
+            SandboxLevel::Standard,
+            SandboxLevel::Strict,
+        ]
+        .into_iter()
+    }
+}
+
+pub struct TypesetterParameters {
+    max_iters: ResourceLimit<u32>,
+}
+
+impl Default for TypesetterParameters {
+    fn default() -> Self {
+        Self {
+            max_iters: ResourceLimit::Limited(DEFAULT_MAX_ITERS),
+        }
+    }
+}
+
+impl TypesetterParameters {
+    pub fn max_iters(&self) -> ResourceLimit<u32> {
+        self.max_iters
+    }
+
+    pub fn set_max_iters(&mut self, max_iters: ResourceLimit<u32>) {
+        self.max_iters = max_iters
+    }
+}
+
+#[cfg(test)]
+impl TypesetterParameters {
+    pub fn test_new() -> Self {
+        Self {
+            max_iters: ResourceLimit::Unlimited,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ResourceLimit<T: Bounded + Clone + Integer> {
     Unlimited,
+    Limited(T),
+}
+
+impl<T: Bounded + Clone + Integer> ResourceLimit<T> {
+    pub(crate) fn limit(&self) -> Option<T> {
+        match self {
+            Self::Unlimited => None,
+            Self::Limited(l) => Some(l.clone()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -179,7 +300,7 @@ mod test {
 
     #[test]
     fn alloc_file() {
-        let mut ctx = Context::new();
+        let ctx = Context::test_new();
         let name = "/usr/share/man/man1/gcc.1.gz".to_owned();
         let content = "hello, world".to_owned();
 

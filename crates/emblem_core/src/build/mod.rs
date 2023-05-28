@@ -21,27 +21,28 @@ pub struct Builder {
 
     #[allow(unused)]
     output_driver: Option<String>,
-
-    max_iters: u32,
 }
 
 impl Action for Builder {
     type Response = Option<Vec<(ArgPath, String)>>;
 
-    fn run<'ctx>(&self, ctx: &'ctx mut Context) -> EmblemResult<'ctx, Self::Response> {
+    fn run<'ctx>(&self, ctx: &'ctx mut Context<'ctx>) -> EmblemResult<'ctx, Self::Response> {
         let fname: SearchResult = match self.input.as_ref().try_into() {
             Ok(f) => f,
             Err(e) => return EmblemResult::new(vec![Log::error(e.to_string())], None),
         };
 
-        let doc = match parser::parse_file(ctx, fname) {
+        let root = match parser::parse_file(ctx, fname) {
             Ok(d) => d,
             Err(e) => return EmblemResult::new(vec![e.log()], None),
         };
 
-        let mut typesetter = Typesetter::new();
-        typesetter.set_max_iters(self.max_iters);
-        typesetter.typeset(doc).unwrap();
+        let mut ext_state = ctx
+            .extension_state()
+            .expect("internal error: failed to create Lua state");
+
+        let typesetter = Typesetter::new(ctx, &mut ext_state);
+        typesetter.typeset(root).unwrap();
 
         EmblemResult::new(vec![], Some(vec![]))
     }

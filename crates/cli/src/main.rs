@@ -7,12 +7,9 @@ mod manifest;
 
 pub use crate::init::Initialiser;
 use arg_parser::{Args, Command};
-use emblem_core::{
-    context::{Module, ModuleName},
-    log::Logger,
-    Action, Builder, Context, Explainer, Linter, Log,
-};
+use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Linter, Log};
 use itertools::Itertools;
+use manifest::DocManifest;
 use std::{collections::HashMap, fs, process::ExitCode};
 
 fn main() -> ExitCode {
@@ -78,9 +75,9 @@ where
     'm: 'ctx,
     'a: 'm,
 {
-    let manifest = manifest::load_str(src)?;
+    let manifest = DocManifest::try_from(src)?;
 
-    let doc_info = ctx.doc_info_mut();
+    let doc_info = ctx.doc_params_mut();
     doc_info.set_name(manifest.name);
     doc_info.set_emblem_version(manifest.emblem_version.into());
 
@@ -92,12 +89,13 @@ where
         doc_info.set_keywords(keywords);
     }
 
-    let lua_info = ctx.lua_info_mut();
+    let lua_info = ctx.lua_params_mut();
 
     let mut specific_args: HashMap<_, Vec<_>> = HashMap::new();
-    if let Some(lua_args) = args.module_args() {
-        lua_info.set_sandbox(lua_args.sandbox.into());
+    if let Some(lua_args) = args.lua_args() {
+        lua_info.set_sandbox_level(lua_args.sandbox_level.into());
         lua_info.set_max_mem(lua_args.max_mem.into());
+        lua_info.set_max_steps(lua_args.max_steps.into());
 
         let mut general_args = Vec::with_capacity(lua_args.args.len());
         for arg in &lua_args.args {
@@ -132,16 +130,15 @@ where
         .requires
         .unwrap_or_default()
         .into_iter()
-        .map(|(k, v)| {
-            let k: ModuleName<'m> = k.into();
-            let mut v: Module<'m> = v.into();
-            if let Some(args) = specific_args.remove(v.rename_as().unwrap_or(k.name())) {
-                let dep_args = v.args_mut();
+        .map(|(name, module)| {
+            let mut module = module.into_module(name);
+            if let Some(args) = specific_args.remove(module.rename_as().unwrap_or(name)) {
+                let dep_args = module.args_mut();
                 for (k2, v2) in args {
                     dep_args.insert(k2, v2);
                 }
             }
-            (k, v)
+            module
         })
         .collect();
 
@@ -152,7 +149,7 @@ where
         ))));
     }
 
-    ctx.set_modules(modules);
+    lua_info.set_modules(modules);
 
     Ok(())
 }

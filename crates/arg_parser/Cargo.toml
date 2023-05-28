@@ -13,7 +13,9 @@ edition = "2021"
 clap = { version = "4.0.12", features = ["derive", "env", "wrap_help"] }
 clap-verbosity-flag = "2.0.0"
 emblem_core = { path = "../emblem_core" }
+num = "0.4.0"
 supports-color = "1.3.1"
 
 [dev-dependencies]
+itertools = "0.10.5"
 pretty_assertions = "1.3.0"

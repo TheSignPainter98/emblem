@@ -1,3 +1,36 @@
 [submodule "docs/theme/mdBook-pagetoc"]
 	path = docs/theme/mdBook-pagetoc
 	url = https://github.com/JorelAli/mdBook-pagetoc.git
+[submodule "deps/yuescript"]
+	path = crates/yuescript/yuescript
+	url = https://github.com/pigpigyyy/Yuescript
+[submodule "crates/yuescript/luacheck"]
+	path = crates/yuescript/luacheck
+	url = https://github.com/mpeterv/luacheck
+[submodule "crates/yuescript/busted"]
+	path = crates/yuescript/busted
+	url = https://github.com/lunarmodules/busted
+[submodule "crates/yuescript/penlight"]
+	path = crates/yuescript/penlight
+	url = https://github.com/lunarmodules/penlight
+[submodule "crates/yuescript/luafilesystem"]
+	path = crates/yuescript/luafilesystem
+	url = https://github.com/lunarmodules/luafilesystem
+[submodule "crates/yuescript/lua-term"]
+	path = crates/yuescript/lua-term
+	url = https://github.com/hoelzro/lua-term
+[submodule "crates/yuescript/luasystem"]
+	path = crates/yuescript/luasystem
+	url = https://github.com/o-lim/luasystem
+[submodule "crates/yuescript/mediator_lua"]
+	path = crates/yuescript/mediator_lua
+	url = https://github.com/Olivine-Labs/mediator_lua
+[submodule "crates/yuescript/lua_cliargs"]
+	path = crates/yuescript/lua_cliargs
+	url = https://github.com/amireh/lua_cliargs
+[submodule "crates/yuescript/luassert"]
+	path = crates/yuescript/luassert
+	url = https://github.com/lunarmodules/luassert
+[submodule "crates/yuescript/say"]
+	path = crates/yuescript/say
+	url = https://github.com/lunarmodules/say

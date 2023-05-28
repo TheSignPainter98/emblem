@@ -2,8 +2,12 @@ use std::env;
 use std::error::Error;
 use std::path::Path;
 
+use yuescript::Compiler;
+
 fn main() -> Result<(), Box<dyn Error>> {
-    parsergen()
+    parsergen()?;
+    luagen()?;
+    Ok(())
 }
 
 fn parsergen() -> Result<(), Box<dyn Error>> {
@@ -14,4 +18,12 @@ fn parsergen() -> Result<(), Box<dyn Error>> {
         .set_in_dir("src/parser/")
         .set_out_dir(out_dir)
         .process()
+}
+
+fn luagen() -> Result<(), Box<dyn Error>> {
+    let out_dir = Path::new(&env::var("OUT_DIR").unwrap()).join("yue");
+    let compiler = Compiler::new("src/extensions/yuescript/", out_dir, "std")?;
+    compiler.compile()?;
+
+    Ok(())
 }
