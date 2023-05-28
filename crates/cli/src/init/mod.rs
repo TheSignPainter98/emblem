@@ -224,11 +224,11 @@ mod test {
 
         let main_file_path = tmpdir.path().join("main.em");
         let main_file_content = "hello, world!";
-        fs::write(&main_file_path, main_file_content)?;
+        fs::write(main_file_path, main_file_content)?;
 
         let manifest_file_path = tmpdir.path().join("emblem.yml");
         let manifest_file_content = "name: asdf\nemblem: v1.0";
-        fs::write(&manifest_file_path, manifest_file_content)?;
+        fs::write(manifest_file_path, manifest_file_content)?;
 
         {
             let mut ctx = Context::new();

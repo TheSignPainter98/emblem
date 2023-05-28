@@ -416,7 +416,7 @@ impl Log<'_> {
 
             let first_text_char = text
                 .chars()
-                .find(|c| !('0' <= *c && *c <= '9') && !['\'', '‘', '"', '“'].contains(c));
+                .find(|c| !('0' <= *c && *c <= '9' || ['\'', '‘', '"', '“'].contains(c)));
             assert!(
                 first_text_char.is_some(),
                 "Message contains no human-friendly text {:?}",
@@ -499,7 +499,7 @@ mod test {
         let note = "william taylor".to_owned();
         assert_eq!(
             &Some(note.clone()),
-            Log::error("foo").with_note(note.clone()).note()
+            Log::error("foo").with_note(note).note()
         );
     }
 
@@ -508,7 +508,7 @@ mod test {
         let help = "is not coming".to_owned();
         assert_eq!(
             &Some(help.clone()),
-            Log::error("foo").with_help(help.clone()).help()
+            Log::error("foo").with_help(help).help()
         );
     }
 
