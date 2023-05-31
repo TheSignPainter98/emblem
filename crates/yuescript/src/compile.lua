@@ -85,11 +85,25 @@ local function prepare(inputs, test)
 	local prepared = {}
 	for module, raw in pairs(inputs) do
 		if test then
-			prepared[module] =
-				table.concat({
-					'macro spec = (t) -> "table.insert __tests, #{t}"\n',
-					raw,
-				}), '\n'
+			prepared[module] = table.concat({
+				[[macro spec = (t) ->                                      ]],
+				[[	lines = {                                              ]],
+				[[		'table.insert __tests, ->\n',                      ]],
+				[[		'	import "busted" as :assert, :describe, :it\n', ]],
+				[[		'	test = ',                                      ]],
+				[[	}                                                      ]],
+				[[	first = true                                           ]],
+				[[	for line in t\gmatch '([^\r\n]*)[\r\n]?'               ]],
+				[[		if first                                           ]],
+				[[			first = false                                  ]],
+				[[		else                                               ]],
+				[[			lines[] = '\t\t'                               ]],
+				[[		lines[] = line                                     ]],
+				[[		lines[] = '\n'                                     ]],
+				[[	lines[] = '\ttest!'                                    ]],
+				[[	table.concat lines                                     ]],
+				raw
+			}, '\n')
 		else
 			-- TODO(kcza): simplify once yuescript supports empty macro output
 			prepared[module] = 'macro spec = (t) -> "(->)!"\n' .. raw
@@ -157,6 +171,7 @@ function dfs(name, arcs, handlers, stack)
 	local explore_node = handlers.explore_node
 	if explore_node ~= nil then
 		if explore_node(name) == false then
+			stack[#stack] = nil
 			return
 		end
 	end
@@ -293,7 +308,6 @@ local function encode(luas, test)
 
 	if test then
 		buf[#buf + 1] = 'local __tests = {}\n'
-		buf[#buf + 1] = 'local assert, describe, it\n'
 	end
 
 	local is_global = {
@@ -313,10 +327,6 @@ local function encode(luas, test)
 			return a < b
 		end
 	end)
-
-	for i = 1, #modules do
-		local module = modules[i]
-	end
 
 	for i = 1, #modules do
 		local module = modules[i]
@@ -355,27 +365,27 @@ local function encode(luas, test)
 			string.format('%s/luassert/src/%%s/init.lua', dep_dir),
 			string.format('%s/luassert/src/%%s.lua', dep_dir)
 		)
-		buf[#buf + 1] = '\t\tpackage.path = package.path .. ";'
-		buf[#buf + 1] = table.concat({
-			string.format('%s/busted/?.lua', dep_dir),
-			string.format('%s/busted/?/init.lua', dep_dir),
-			string.format('%s/penlight/lua/?.lua', dep_dir),
-			string.format('%s/penlight/lua/?/init.lua', dep_dir),
-			string.format('%s/lua-term/?.lua', dep_dir),
-			string.format('%s/lua-term/?/init.lua', dep_dir),
-			string.format('%s/mediator_lua/src/?.lua', dep_dir),
-			string.format('%s/lua_cliargs/src/?.lua', dep_dir),
-			string.format('%s/lua_cliargs/src/?/init.lua', dep_dir),
-			-- string.format('%s/luassert/src/?.lua', dep_dir), -- Handled above
-			string.format('%s/?/src/init.lua', dep_dir),
-			string.format('%s/say/src/?.lua', dep_dir),
-			string.format('%s/say/src/?/init.lua', dep_dir),
-		}, ';')
-		buf[#buf + 1] = '"\n'
-		buf[#buf + 1] = '\t\tlocal busted = require("busted")\n'
-		buf[#buf + 1] = '\t\tassert = busted.assert\n'
-		buf[#buf + 1] = '\t\tdescribe = busted.describe\n'
-		buf[#buf + 1] = '\t\tit = busted.it\n'
+		local path_parts = {
+			'busted/?.lua',
+			'busted/?/init.lua',
+			'penlight/lua/?.lua',
+			'penlight/lua/?/init.lua',
+			'lua-term/?.lua',
+			'lua-term/?/init.lua',
+			'mediator_lua/src/?.lua',
+			'lua_cliargs/src/?.lua',
+			'lua_cliargs/src/?/init.lua',
+			'?/src/init.lua',
+			-- 'luassert/src/?.lua', -- Handled above
+			'say/src/?.lua',
+			'say/src/?/init.lua',
+		}
+		assert(#path_parts >= 1)
+		buf[#buf + 1] = '\t\tpackage.path = table.concat({'
+		for _, path_part in ipairs(path_parts) do
+			buf[#buf + 1] = string.format('\n\t\t\t"%s/%s",', dep_dir, path_part)
+		end
+		buf[#buf + 1] = '\n\t\t}, ";")\n'
 		buf[#buf + 1] = '\t\trequire("busted.runner")()\n'
 		buf[#buf + 1] = '\t\tfor i = 1, #__tests do\n'
 		buf[#buf + 1] = '\t\t\t__tests[i]()\n'
@@ -394,7 +404,7 @@ local function encode(luas, test)
 end
 
 local function compile(inputs, test)
-	local inputs = prepare(inputs)
+	local inputs = prepare(inputs, test)
 
 	local luas = luas_of(inputs)
 	local asts = asts_of(inputs)
