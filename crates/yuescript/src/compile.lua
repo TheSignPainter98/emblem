@@ -393,7 +393,7 @@ local function encode(luas, test)
 end
 
 local function compile(inputs, test)
-	local inputs = prepare(inputs)
+	local inputs = prepare(inputs, test)
 
 	local luas = luas_of(inputs)
 	local asts = asts_of(inputs)
