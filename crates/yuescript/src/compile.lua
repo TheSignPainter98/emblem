@@ -160,6 +160,7 @@ function dfs(name, arcs, handlers, stack)
 	local explore_node = handlers.explore_node
 	if explore_node ~= nil then
 		if explore_node(name) == false then
+			stack[#stack] = nil
 			return
 		end
 	end
