@@ -1,5 +1,6 @@
 mod delimiter_mismatch;
 mod extra_comment_close;
+mod extra_dots_in_command_name;
 mod heading_too_deep;
 mod newline_in_attrs;
 mod newline_in_emph_delimiter;
@@ -13,6 +14,7 @@ mod unexpected_token;
 
 pub use delimiter_mismatch::DelimiterMismatch;
 pub use extra_comment_close::ExtraCommentClose;
+pub use extra_dots_in_command_name::ExtraDotsInCommandName;
 pub use heading_too_deep::HeadingTooDeep;
 pub use newline_in_attrs::NewlineInAttrs;
 pub use newline_in_emph_delimiter::NewlineInEmphDelimiter;
@@ -95,6 +97,8 @@ pub fn messages() -> Vec<MessageInfo> {
     messages![
         DelimiterMismatch,
         ExtraCommentClose,
+        ExtraDotsInCommandName,
+        HeadingTooDeep,
         NewlineInAttrs,
         NewlineInEmphDelimiter,
         NewlineInInlineArg,
@@ -104,7 +108,6 @@ pub fn messages() -> Vec<MessageInfo> {
         UnexpectedEOF,
         UnexpectedHeading,
         UnexpectedToken,
-        HeadingTooDeep,
     ]
 }
 

@@ -36,8 +36,9 @@ ParPart: ParPart<Content<'input>> = {
 
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> <r:@R> => {
 		ParPart::Command(Content::Command {
-			name: name.0,
-			pluses: name.1,
+			disambiguator: name.0,
+			name: name.1,
+			pluses: name.2,
 			attrs,
 			inline_args,
 			remainder_arg: None,
@@ -47,7 +48,7 @@ ParPart: ParPart<Content<'input>> = {
 				args
 			},
 			loc: Location::new(&l, &r),
-			invocation_loc: name.2,
+			invocation_loc: name.3,
 		})
 	},
 }
@@ -82,19 +83,20 @@ HeadingMarker: (usize, usize, Location<'input>) = {
 
 RemainderCommand: Content<'input> = {
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> <r:@R> => Content::Command {
-		name: name.0,
-		pluses: name.1,
+		disambiguator: name.0,
+		name: name.1,
+		pluses: name.2,
 		attrs,
 		inline_args,
 		remainder_arg: Some(remainder_arg),
 		trailer_args: Vec::with_capacity(0),
 		loc: Location::new(&l, &r),
-		invocation_loc: name.2,
+		invocation_loc: name.3,
 	}
 }
 
-CommandName: (Text<'input>, usize, Location<'input>) = {
-	<l:@L> <command:command> <r:@R> => (command.0.into(), command.1.into(), Location::new(&l, &r)),
+CommandName: (Option<Text<'input>>, Text<'input>, usize, Location<'input>) = {
+	<l:@L> <command:command> <r:@R> => (command.0.map(Into::into), command.1.into(), command.2.into(), Location::new(&l, &r)),
 }
 
 LineElement: Content<'input> = {
@@ -110,14 +112,15 @@ LineElement: Content<'input> = {
 	EmphSugar,
 
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
-		name: name.0,
-		pluses: name.1,
+		disambiguator: name.0,
+		name: name.1,
+		pluses: name.2,
 		attrs,
 		inline_args,
 		remainder_arg: None,
 		trailer_args: Vec::with_capacity(0),
 		loc: Location::new(&l, &r),
-		invocation_loc: name.2,
+		invocation_loc: name.3,
 	},
 }
 
@@ -217,7 +220,11 @@ extern {
 		"::"                 => Tok::DoubleColon,
 		"{"                  => Tok::LBrace,
 		"}"                  => Tok::RBrace,
-		command              => Tok::Command(<&'input str>, <usize>),
+		command              => Tok::Command {
+									disambiguator: <Option<&'input str>>,
+									name: <&'input str>,
+									pluses: <usize>
+								},
 		italic_open          => Tok::ItalicOpen(<&'input str>),
 		bold_open            => Tok::BoldOpen(<&'input str>),
 		monospace_open       => Tok::MonospaceOpen(<&'input str>),
@@ -228,7 +235,10 @@ extern {
 		monospace_close      => Tok::MonospaceClose,
 		smallcaps_close      => Tok::SmallcapsClose,
 		alternate_face_close => Tok::AlternateFaceClose,
-		heading              => Tok::Heading{level: <usize>, pluses: <usize>},
+		heading              => Tok::Heading {
+									level: <usize>,
+									pluses: <usize>
+								},
 		par_break            => Tok::ParBreak,
 		word                 => Tok::Word(<&'input str>),
 		dash                 => Tok::Dash(<&'input str>),
