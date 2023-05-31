@@ -15,7 +15,7 @@ global utf8 =
 		count
 	offset: ->
 
-$spec ->
+-- $spec ->
 	-- describe 'utf8', ->
 		-- describe 'char', ->
 		-- 	import char from utf8

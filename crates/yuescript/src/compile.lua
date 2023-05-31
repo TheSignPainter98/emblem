@@ -85,14 +85,25 @@ local function prepare(inputs, test)
 	local prepared = {}
 	for module, raw in pairs(inputs) do
 		if test then
-			prepared[module] =
-				table.concat({
-					'macro spec = (t) ->',
-					'\ttable.insert __tests, do',
-					'\t\timport "busted" as :assert, :describe, :it',
-					'\t\t#{t}',
-					raw,
-				}), '\n'
+			prepared[module] = table.concat({
+				[[macro spec = (t) ->                                      ]],
+				[[	lines = {                                              ]],
+				[[		'table.insert __tests, ->\n',                      ]],
+				[[		'	import "busted" as :assert, :describe, :it\n', ]],
+				[[		'	test = ',                                      ]],
+				[[	}                                                      ]],
+				[[	first = true                                           ]],
+				[[	for line in t\gmatch '([^\r\n]*)[\r\n]?'               ]],
+				[[		if first                                           ]],
+				[[			first = false                                  ]],
+				[[		else                                               ]],
+				[[			lines[] = '\t\t'                               ]],
+				[[		lines[] = line                                     ]],
+				[[		lines[] = '\n'                                     ]],
+				[[	lines[] = '\ttest!'                                    ]],
+				[[	table.concat lines                                     ]],
+				raw
+			}, '\n')
 		else
 			-- TODO(kcza): simplify once yuescript supports empty macro output
 			prepared[module] = 'macro spec = (t) -> "(->)!"\n' .. raw
