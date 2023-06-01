@@ -1,6 +1,6 @@
 use crate::log::messages::{
-    DelimiterMismatch, ExtraCommentClose, ExtraDotsInCommandName, HeadingTooDeep, NewlineInAttrs,
-    NewlineInEmphDelimiter, NewlineInInlineArg, UnclosedComments, UnexpectedChar, UnexpectedEOF,
+    DelimiterMismatch, ExtraCommentClose, HeadingTooDeep, NewlineInAttrs, NewlineInEmphDelimiter,
+    NewlineInInlineArg, TooManyDisambiguators, UnclosedComments, UnexpectedChar, UnexpectedEOF,
     UnexpectedHeading,
 };
 use crate::log::Log;
@@ -177,8 +177,8 @@ impl<'input> Iterator for Lexer<'input> {
             let BACKTICKS      = r"`";
             let HEADING        = r"#+\+*";
 
-            let QUALIFIED_COMMAND = r"\.[^ \t{}\[\]\r\n:+.]+\.[^ \t{}\[\]\r\n:+]+\+*";
-            let COMMAND           = r"\.[^ \t{}\[\]\r\n:+.]+\+*";
+            let DISAMBIGUATED_COMMAND = r"\.[^ \t{}\[\]\r\n:+.]+\.[^ \t{}\[\]\r\n:+]+\+*";
+            let COMMAND               = r"\.[^ \t{}\[\]\r\n:+.]+\+*";
 
             let OPEN_ATTRS   = r"\[";
             let CLOSE_ATTRS  = r"]";
@@ -394,7 +394,7 @@ impl<'input> Iterator for Lexer<'input> {
                 Err(Box::new(LexicalError::UnmatchedCommentClose { loc: self.location() }))
             },
 
-            QUALIFIED_COMMAND => |s:&'input str| {
+            DISAMBIGUATED_COMMAND => |s:&'input str| {
                 let pluses = s.chars().rev().take_while(|c| *c == '+').count();
                 let dot_idx = 1 + s[1..].find('.').unwrap();
 
@@ -409,7 +409,7 @@ impl<'input> Iterator for Lexer<'input> {
                             Location::new(&dot_pos, &dot_pos.clone().shift("."))
                         })
                         .collect();
-                    return Err(Box::new(LexicalError::ExtraDotsInCommandName { loc, dot_locs }));
+                    return Err(Box::new(LexicalError::TooManyDisambiguators { loc, dot_locs }));
                 }
 
                 Ok(Tok::Command{
@@ -612,7 +612,7 @@ pub enum LexicalError<'input> {
         loc: Location<'input>,
         level: usize,
     },
-    ExtraDotsInCommandName {
+    TooManyDisambiguators {
         loc: Location<'input>,
         dot_locs: Vec<Location<'input>>,
     },
@@ -645,10 +645,10 @@ impl<'input> Message<'input> for LexicalError<'input> {
             } => DelimiterMismatch::new(loc, to_close_loc, expected).log(),
             Self::UnexpectedHeading { loc } => UnexpectedHeading::new(loc).log(),
             Self::HeadingTooDeep { loc, level } => HeadingTooDeep::new(loc, level).log(),
-            Self::ExtraDotsInCommandName {
+            Self::TooManyDisambiguators {
                 loc,
                 dot_locs: dot_loc,
-            } => ExtraDotsInCommandName::new(loc, dot_loc).log(),
+            } => TooManyDisambiguators::new(loc, dot_loc).log(),
         }
     }
 }
@@ -704,7 +704,7 @@ impl Display for LexicalError<'_> {
             Self::HeadingTooDeep { loc, level } => {
                 write!(f, "heading too deep at {loc} ({level} levels)")
             }
-            Self::ExtraDotsInCommandName { loc, dot_locs } => {
+            Self::TooManyDisambiguators { loc, dot_locs } => {
                 write!(
                     f,
                     "extra dots found at {} in command name at {loc}",

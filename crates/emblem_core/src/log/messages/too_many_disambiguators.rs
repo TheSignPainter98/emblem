@@ -4,12 +4,12 @@ use crate::parser::Location;
 use derive_new::new;
 
 #[derive(Default, new)]
-pub struct ExtraDotsInCommandName<'i> {
+pub struct TooManyDisambiguators<'i> {
     loc: Location<'i>,
     dot_locs: Vec<Location<'i>>,
 }
 
-impl<'i> Message<'i> for ExtraDotsInCommandName<'i> {
+impl<'i> Message<'i> for TooManyDisambiguators<'i> {
     fn log(self) -> Log<'i> {
         let msg = if self.dot_locs.len() > 1 {
             "extra dot in command name"
