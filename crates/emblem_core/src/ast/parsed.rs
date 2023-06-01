@@ -6,6 +6,7 @@ use crate::ast::AstDebug;
 
 pub type ParsedFile<'i> = File<ParPart<Content<'i>>>;
 
+#[allow(clippy::large_enum_variant)] // TODO(kcza): re-evaluate this (requires benchmarks)
 #[derive(Debug)]
 pub enum Content<'i> {
     Command {
