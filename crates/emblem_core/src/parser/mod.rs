@@ -249,20 +249,32 @@ pub mod test {
         #[test]
         fn command_only() {
             for num_pluses in 0..=3 {
+                let pluses = "+".repeat(num_pluses);
+                let ast_pluses = ast_debug_pluses(num_pluses);
                 assert_structure(
                     "command",
-                    &format!(".order-66{}", "+".repeat(num_pluses)),
-                    &format!("File[Par[[.order-66{}]]]", ast_debug_pluses(num_pluses)),
+                    &format!(".order-66{pluses}"),
+                    &format!("File[Par[[.order-66{ast_pluses}]]]"),
                 );
                 assert_structure(
                     "with-disambiguator",
-                    &format!(".order.66{}", "+".repeat(num_pluses)),
-                    &format!("File[Par[[.(order).66{}]]]", ast_debug_pluses(num_pluses)),
+                    &format!(".order.66{pluses}"),
+                    &format!("File[Par[[.(order).66{ast_pluses}]]]"),
+                );
+                assert_structure(
+                    "trailing-dot",
+                    &format!(".order.66{pluses}."),
+                    &format!("File[Par[[.(order).66{ast_pluses}|Word(.)]]]"),
                 );
                 assert_parse_error(
                     "many-disambiguators",
-                    &format!(".it.belongs.in.a.museum.{}", "+".repeat(num_pluses)),
-                    &format!("extra dots found at many-disambiguators[^:]*:1:12-12, many-disambiguators[^:]*:1:15-15, many-disambiguators[^:]*:1:17-17, many-disambiguators[^:]*:1:24-24 in command name at many-disambiguators[^:]*:1:1-{}", 24 + num_pluses),
+                    &format!(".it.belongs.in.a.museum{pluses}"),
+                    &format!("extra dots found at many-disambiguators[^:]*:1:12-12, many-disambiguators[^:]*:1:15-15, many-disambiguators[^:]*:1:17-17 in command name at many-disambiguators[^:]*:1:1-{}", 23 + num_pluses),
+                );
+                assert_parse_error(
+                    "empty-disambiguator",
+                    &format!("..what{pluses}"),
+                    &format!("empty disambiguator found at empty-disambiguator[^:]*:1:1-2 in command name at empty-disambiguator[^:]*:1:1-{}", 6 + num_pluses),
                 );
             }
         }

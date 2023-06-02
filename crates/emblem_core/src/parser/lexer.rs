@@ -1,7 +1,7 @@
 use crate::log::messages::{
-    DelimiterMismatch, ExtraCommentClose, HeadingTooDeep, NewlineInAttrs, NewlineInEmphDelimiter,
-    NewlineInInlineArg, TooManyDisambiguators, UnclosedComments, UnexpectedChar, UnexpectedEOF,
-    UnexpectedHeading,
+    DelimiterMismatch, EmptyDisambiguator, ExtraCommentClose, HeadingTooDeep, NewlineInAttrs,
+    NewlineInEmphDelimiter, NewlineInInlineArg, TooManyDisambiguators, UnclosedComments,
+    UnexpectedChar, UnexpectedEOF, UnexpectedHeading,
 };
 use crate::log::Log;
 use crate::parser::Location;
@@ -177,7 +177,7 @@ impl<'input> Iterator for Lexer<'input> {
             let BACKTICKS      = r"`";
             let HEADING        = r"#+\+*";
 
-            let DISAMBIGUATED_COMMAND = r"\.[^ \t{}\[\]\r\n:+.]+\.[^ \t{}\[\]\r\n:+]+\+*";
+            let DISAMBIGUATED_COMMAND = r"(\.+[^ \t{}\[\]\r\n:+.]*){2,}[^ \t{}\[\]\r\n:+.]\+*";
             let COMMAND               = r"\.[^ \t{}\[\]\r\n:+.]+\+*";
 
             let OPEN_ATTRS   = r"\[";
@@ -401,19 +401,27 @@ impl<'input> Iterator for Lexer<'input> {
                 let name = &s[1+dot_idx..s.len()-pluses];
                 if name.contains('.') {
                     let loc = self.location();
-                    let start = loc.start().shift(&s[..1+dot_idx]);
+                    let extra_dots_start = loc.start().shift(&s[..1+dot_idx]);
                     let dot_locs = name.char_indices()
                         .filter_map(|(i, c)| if c == '.' { Some(i) } else { None })
                         .map(|i| {
-                            let dot_pos = start.clone().shift(&s[..i]);
+                            let dot_pos = extra_dots_start.clone().shift(&s[..i]);
                             Location::new(&dot_pos, &dot_pos.clone().shift("."))
                         })
                         .collect();
                     return Err(Box::new(LexicalError::TooManyDisambiguators { loc, dot_locs }));
                 }
 
+                let disambiguator = &s[1..dot_idx];
+                if disambiguator.is_empty() {
+                    let loc = self.location();
+                    let start = loc.start();
+                    let disambiguator_loc = Location::new(&start, &start.clone().shift(".."));
+                    return Err(Box::new(LexicalError::EmptyDisambiguator { loc, disambiguator_loc }));
+                }
+
                 Ok(Tok::Command{
-                    disambiguator: Some(&s[1..dot_idx]),
+                    disambiguator: Some(disambiguator),
                     name,
                     pluses
                 })
@@ -616,6 +624,10 @@ pub enum LexicalError<'input> {
         loc: Location<'input>,
         dot_locs: Vec<Location<'input>>,
     },
+    EmptyDisambiguator {
+        loc: Location<'input>,
+        disambiguator_loc: Location<'input>,
+    },
 }
 
 impl<'input> Message<'input> for LexicalError<'input> {
@@ -649,6 +661,10 @@ impl<'input> Message<'input> for LexicalError<'input> {
                 loc,
                 dot_locs: dot_loc,
             } => TooManyDisambiguators::new(loc, dot_loc).log(),
+            Self::EmptyDisambiguator {
+                loc,
+                disambiguator_loc,
+            } => EmptyDisambiguator::new(loc, disambiguator_loc).log(),
         }
     }
 }
@@ -713,6 +729,15 @@ impl Display for LexicalError<'_> {
                         .map(|l| l.to_string())
                         .collect::<Vec<_>>()
                         .join(", ")
+                )
+            }
+            Self::EmptyDisambiguator {
+                loc,
+                disambiguator_loc,
+            } => {
+                write!(
+                    f,
+                    "empty disambiguator found at {disambiguator_loc} in command name at {loc}",
                 )
             }
         }

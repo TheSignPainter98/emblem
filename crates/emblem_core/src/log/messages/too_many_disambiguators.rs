@@ -10,13 +10,17 @@ pub struct TooManyDisambiguators<'i> {
 }
 
 impl<'i> Message<'i> for TooManyDisambiguators<'i> {
+    fn id() -> &'static str {
+        "E005"
+    }
+
     fn log(self) -> Log<'i> {
         let msg = if self.dot_locs.len() > 1 {
             "extra dot in command name"
         } else {
             "extra dots in command name"
         };
-        Log::error(msg).with_src({
+        Log::error(msg).with_id(Self::id()).explainable().with_src({
             let mut src = Src::new(&self.loc);
             for (i, dot_loc) in self.dot_locs.iter().enumerate() {
                 src = src.with_annotation(Note::error(
@@ -26,5 +30,12 @@ impl<'i> Message<'i> for TooManyDisambiguators<'i> {
             }
             src
         })
+    }
+
+    fn explain(&self) -> &'static str {
+        concat!(
+            "This error means that a command has been specified with too many disambiguators, that is, .pkg.pkg2.cmd is an invalid way of accessing 'cmd'. ",
+            "To keep things concise, emblem only allows for a single disambiguator per command, for example, .pkg.cmd"
+        )
     }
 }
