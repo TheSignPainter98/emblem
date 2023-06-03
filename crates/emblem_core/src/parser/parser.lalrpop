@@ -36,7 +36,7 @@ ParPart: ParPart<Content<'input>> = {
 
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> <r:@R> => {
 		ParPart::Command(Content::Command {
-			disambiguator: name.0,
+			qualifier: name.0,
 			name: name.1,
 			pluses: name.2,
 			attrs,
@@ -83,7 +83,7 @@ HeadingMarker: (usize, usize, Location<'input>) = {
 
 RemainderCommand: Content<'input> = {
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> <r:@R> => Content::Command {
-		disambiguator: name.0,
+		qualifier: name.0,
 		name: name.1,
 		pluses: name.2,
 		attrs,
@@ -112,7 +112,7 @@ LineElement: Content<'input> = {
 	EmphSugar,
 
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
-		disambiguator: name.0,
+		qualifier: name.0,
 		name: name.1,
 		pluses: name.2,
 		attrs,
@@ -221,7 +221,7 @@ extern {
 		"{"                  => Tok::LBrace,
 		"}"                  => Tok::RBrace,
 		command              => Tok::Command {
-									disambiguator: <Option<&'input str>>,
+									qualifier: <Option<&'input str>>,
 									name: <&'input str>,
 									pluses: <usize>
 								},

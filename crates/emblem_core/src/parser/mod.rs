@@ -257,7 +257,7 @@ pub mod test {
                     &format!("File[Par[[.order-66{ast_pluses}]]]"),
                 );
                 assert_structure(
-                    "with-disambiguator",
+                    "with-qualifier",
                     &format!(".order.66{pluses}"),
                     &format!("File[Par[[.(order).66{ast_pluses}]]]"),
                 );
@@ -267,14 +267,14 @@ pub mod test {
                     &format!("File[Par[[.(order).66{ast_pluses}|Word(.)]]]"),
                 );
                 assert_parse_error(
-                    "many-disambiguators",
+                    "many-qualifiers",
                     &format!(".it.belongs.in.a.museum{pluses}"),
-                    &format!("extra dots found at many-disambiguators[^:]*:1:12-12, many-disambiguators[^:]*:1:15-15, many-disambiguators[^:]*:1:17-17 in command name at many-disambiguators[^:]*:1:1-{}", 23 + num_pluses),
+                    &format!("extra dots found at many-qualifiers[^:]*:1:12-12, many-qualifiers[^:]*:1:15-15, many-qualifiers[^:]*:1:17-17 in command name at many-qualifiers[^:]*:1:1-{}", 23 + num_pluses),
                 );
                 assert_parse_error(
-                    "empty-disambiguator",
+                    "empty-qualifier",
                     &format!("..what{pluses}"),
-                    &format!("empty disambiguator found at empty-disambiguator[^:]*:1:1-2 in command name at empty-disambiguator[^:]*:1:1-{}", 6 + num_pluses),
+                    &format!("empty qualifier found at empty-qualifier[^:]*:1:1-2 in command name at empty-qualifier[^:]*:1:1-{}", 6 + num_pluses),
                 );
             }
         }
@@ -290,7 +290,7 @@ pub mod test {
                     &format!("File[Par[[.exec{}{{[Word(order66)]}}]]]", ast_pluses),
                 );
                 assert_structure(
-                    "sole-with-disambiguator",
+                    "sole-with-qualifier",
                     &format!(".ex.ec{}{{order66}}", pluses),
                     &format!("File[Par[[.(ex).ec{}{{[Word(order66)]}}]]]", ast_pluses),
                 );
@@ -348,9 +348,9 @@ pub mod test {
                     ),
                 );
                 assert_parse_error(
-                    "many-disambiguators",
+                    "many-qualifiers",
                     &format!(".order.6.6{}{{general\n\nkenobi}}", pluses),
-                    &format!("extra dots found at many-disambiguators[^:]*:1:9-9 in command name at many-disambiguators[^:]*:1:1-{}", 10 + num_pluses),
+                    &format!("extra dots found at many-qualifiers[^:]*:1:9-9 in command name at many-qualifiers[^:]*:1:1-{}", 10 + num_pluses),
                 );
             }
         }
@@ -361,7 +361,7 @@ pub mod test {
                 let pluses = "+".repeat(num_pluses);
                 let ast_pluses = ast_debug_pluses(num_pluses);
                 assert_structure(
-                    "many-disambiguators",
+                    "many-qualifiers",
                     &format!(".qual.ifier{pluses}"),
                     &format!("File[Par[[.(qual).ifier{ast_pluses}]]]"),
                 );
@@ -402,9 +402,9 @@ pub mod test {
                     "Unrecognised token `newline` found at 1:1[56]",
                 );
                 assert_parse_error(
-                    "many-disambiguators",
+                    "many-qualifiers",
                     ".randy.dandy.o",
-                    "extra dots found at many-disambiguators[^:]*:1:13-13 in command name at many-disambiguators[^:]*:1:1-14",
+                    "extra dots found at many-qualifiers[^:]*:1:13-13 in command name at many-qualifiers[^:]*:1:1-14",
                 );
             }
         }
@@ -434,7 +434,7 @@ pub mod test {
                         expected_structure: &format!("File[Par[.come{}{{[Word(all)|< >|Word(you)]}}::[Par[[Word(young)|< >|Word(sailor)|< >|Word(men)]|[Word(listen)|< >|Word(to)|< >|Word(me)]]]::[Par[[Word(I'll)|< >|Word(sing)|< >|Word(you)|< >|Word(a)|< >|Word(song)]|[Word(of)|< >|Word(the)|< >|Word(fish)|< >|Word(in)|< >|Word(the)|< >|Word(sea)]]]]]", ast_pluses),
                     },
                     TrailerTest {
-                        name: "command-with-disambiguator",
+                        name: "command-with-qualifier",
                         data: &[
                             &format!(".come.all{}{{you}}:", pluses),
                             "\tyoung sailor men",
@@ -554,14 +554,14 @@ pub mod test {
                     "Unrecognised EOF found at (5:3|6:1)",
                 );
                 assert_parse_error(
-                    "many-disambiguators",
+                    "many-qualifiers",
                     &[
                         ".met.him.on.the{king's highway}:",
                         "\tas he went for to be married",
                         "::",
                         "\tpressed he was and sent away"
                     ].join("\n"),
-                    "extra dots found at many-disambiguators[^:]*:1:9-9, many-disambiguators[^:]*:1:12-12 in command name at many-disambiguators[^:]*:1:1-15",
+                    "extra dots found at many-qualifiers[^:]*:1:9-9, many-qualifiers[^:]*:1:12-12 in command name at many-qualifiers[^:]*:1:1-15",
                 );
             }
         }

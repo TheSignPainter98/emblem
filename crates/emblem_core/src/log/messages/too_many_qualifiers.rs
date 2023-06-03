@@ -4,12 +4,12 @@ use crate::parser::Location;
 use derive_new::new;
 
 #[derive(Default, new)]
-pub struct TooManyDisambiguators<'i> {
+pub struct TooManyQualifiers<'i> {
     loc: Location<'i>,
     dot_locs: Vec<Location<'i>>,
 }
 
-impl<'i> Message<'i> for TooManyDisambiguators<'i> {
+impl<'i> Message<'i> for TooManyQualifiers<'i> {
     fn id() -> &'static str {
         "E005"
     }
@@ -34,8 +34,8 @@ impl<'i> Message<'i> for TooManyDisambiguators<'i> {
 
     fn explain(&self) -> &'static str {
         concat!(
-            "This error means that a command has been specified with too many disambiguators, that is, .pkg.pkg2.cmd is an invalid way of accessing 'cmd'. ",
-            "To keep things concise, emblem only allows for a single disambiguator per command, for example, .pkg.cmd"
+            "This error means that a command has been specified with too many qualifiers. For example, .pkg.pkg2.cmd and .pkg.pkg2.pkg3.cmd are invalid ways of accessing 'cmd'. ",
+            "To keep things concise, emblem only allows for a single qualifier per command, for example, .pkg.cmd"
         )
     }
 }

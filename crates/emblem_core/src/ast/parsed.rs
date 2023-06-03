@@ -10,7 +10,7 @@ pub type ParsedFile<'i> = File<ParPart<Content<'i>>>;
 #[derive(Debug)]
 pub enum Content<'i> {
     Command {
-        disambiguator: Option<Text<'i>>,
+        qualifier: Option<Text<'i>>,
         name: Text<'i>,
         pluses: usize,
         attrs: Option<Attrs<'i>>,
@@ -60,7 +60,7 @@ impl AstDebug for Content<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
             Self::Command {
-                disambiguator,
+                qualifier,
                 name,
                 pluses,
                 attrs,
@@ -70,8 +70,8 @@ impl AstDebug for Content<'_> {
                 ..
             } => {
                 buf.push('.'.into());
-                if let Some(disambiguator) = disambiguator {
-                    disambiguator.surround(buf, "(", ")");
+                if let Some(qualifier) = qualifier {
+                    qualifier.surround(buf, "(", ")");
                     buf.push('.'.into());
                 }
                 name.test_fmt(buf);

@@ -1,12 +1,12 @@
 mod delimiter_mismatch;
-mod empty_disambiguator;
+mod empty_qualifier;
 mod extra_comment_close;
 mod heading_too_deep;
 mod newline_in_attrs;
 mod newline_in_emph_delimiter;
 mod newline_in_inline_arg;
 mod no_such_error_code;
-mod too_many_disambiguators;
+mod too_many_qualifiers;
 mod unclosed_comments;
 mod unexpected_char;
 mod unexpected_eof;
@@ -14,14 +14,14 @@ mod unexpected_heading;
 mod unexpected_token;
 
 pub use delimiter_mismatch::DelimiterMismatch;
-pub use empty_disambiguator::EmptyDisambiguator;
+pub use empty_qualifier::EmptyQualifier;
 pub use extra_comment_close::ExtraCommentClose;
 pub use heading_too_deep::HeadingTooDeep;
 pub use newline_in_attrs::NewlineInAttrs;
 pub use newline_in_emph_delimiter::NewlineInEmphDelimiter;
 pub use newline_in_inline_arg::NewlineInInlineArg;
 pub use no_such_error_code::NoSuchErrorCode;
-pub use too_many_disambiguators::TooManyDisambiguators;
+pub use too_many_qualifiers::TooManyQualifiers;
 pub use unclosed_comments::UnclosedComments;
 pub use unexpected_char::UnexpectedChar;
 pub use unexpected_eof::UnexpectedEOF;
@@ -98,14 +98,14 @@ pub fn messages() -> Vec<MessageInfo> {
 
     messages![
         DelimiterMismatch,
-        EmptyDisambiguator,
+        EmptyQualifier,
         ExtraCommentClose,
         HeadingTooDeep,
         NewlineInAttrs,
         NewlineInEmphDelimiter,
         NewlineInInlineArg,
         NoSuchErrorCode,
-        TooManyDisambiguators,
+        TooManyQualifiers,
         UnclosedComments,
         UnexpectedChar,
         UnexpectedEOF,
