@@ -235,7 +235,7 @@ impl<'i> Log<'i> {
             }
 
             let info_instruction = &format!(
-                "For more information about this error, try `em explain {}",
+                "For more information about this error, try `em explain {}`",
                 self.id.unwrap()
             );
             let mut display_list = DisplayList::from(snippet);
