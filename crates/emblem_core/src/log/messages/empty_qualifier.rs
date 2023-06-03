@@ -19,8 +19,7 @@ impl<'i> Message<'i> for EmptyQualifier<'i> {
             .with_id(Self::id())
             .explainable()
             .with_src(
-                Src::new(&self.loc)
-                    .with_annotation(Note::error(&self.qualifier_loc, "found here")),
+                Src::new(&self.loc).with_annotation(Note::error(&self.qualifier_loc, "found here")),
             )
     }
 

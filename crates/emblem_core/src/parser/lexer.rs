@@ -661,10 +661,9 @@ impl<'input> Message<'input> for LexicalError<'input> {
                 loc,
                 dot_locs: dot_loc,
             } => TooManyQualifiers::new(loc, dot_loc).log(),
-            Self::EmptyQualifier {
-                loc,
-                qualifier_loc,
-            } => EmptyQualifier::new(loc, qualifier_loc).log(),
+            Self::EmptyQualifier { loc, qualifier_loc } => {
+                EmptyQualifier::new(loc, qualifier_loc).log()
+            }
         }
     }
 }
@@ -731,10 +730,7 @@ impl Display for LexicalError<'_> {
                         .join(", ")
                 )
             }
-            Self::EmptyQualifier {
-                loc,
-                qualifier_loc,
-            } => {
+            Self::EmptyQualifier { loc, qualifier_loc } => {
                 write!(
                     f,
                     "empty qualifier found at {qualifier_loc} in command name at {loc}",
