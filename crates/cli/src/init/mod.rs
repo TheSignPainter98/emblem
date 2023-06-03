@@ -146,8 +146,7 @@ mod test {
 
         let lines: Vec<String> = BufReader::new(File::open(dot_gitignore)?)
             .lines()
-            .filter_map(|l| l.ok())
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, _>>()?;
 
         for ignore in IGNORES {
             assert!(
