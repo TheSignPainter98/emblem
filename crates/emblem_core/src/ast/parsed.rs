@@ -120,7 +120,7 @@ impl<'i> Attrs<'i> {
         Self { attrs, loc }
     }
 
-    pub fn args(&self) -> &Vec<Attr<'i>> {
+    pub fn args(&self) -> &[Attr<'i>] {
         &self.attrs
     }
 

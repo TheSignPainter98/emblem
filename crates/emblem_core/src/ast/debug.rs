@@ -46,6 +46,12 @@ impl AstDebug for String {
 
 impl<T: AstDebug> AstDebug for Vec<T> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
+        self.as_slice().test_fmt(buf)
+    }
+}
+
+impl<T: AstDebug> AstDebug for &[T] {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
         buf.push("[".into());
         for (i, v) in self.iter().enumerate() {
             if i > 0 {

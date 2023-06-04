@@ -73,11 +73,19 @@ impl<'i> Lint<'i> for SugarUsage {
                 loc,
                 invocation_loc,
                 pluses,
+                attrs,
                 ..
             } => {
                 if let Some(expected) = CALLS_TO_SUGARS.get(name.as_str()) {
-                    match (&inline_args[..], &remainder_arg, &trailer_args[..]) {
-                        ([_], None, []) => {
+                    let attrs = attrs.iter().map(|a| a.args()).next().unwrap_or_default();
+                    match (
+                        &attrs[..],
+                        &inline_args[..],
+                        &remainder_arg,
+                        &trailer_args[..],
+                    ) {
+                        // A single argument or attr is suspicious
+                        ([_], [], None, []) | ([], [_], None, []) | ([], [], Some(_), []) => {
                             return vec![expected.suggest(
                                 name.as_str(),
                                 *pluses,
@@ -85,15 +93,7 @@ impl<'i> Lint<'i> for SugarUsage {
                                 invocation_loc,
                             )];
                         }
-                        ([], Some(_), []) => {
-                            return vec![expected.suggest(
-                                name.as_str(),
-                                *pluses,
-                                loc,
-                                invocation_loc,
-                            )];
-                        }
-                        ([], None, [a]) => {
+                        ([], [], None, [a]) => {
                             let [p] = &a[..] else { return vec![]; };
                             if let [_] = &p.parts[..] {
                                 return vec![expected.suggest(
@@ -162,6 +162,20 @@ mod test {
                 lint: SugarUsage::new(),
                 num_problems: 0,
                 matches: vec![],
+                src: &format!(".{call}[]"),
+            }
+            .run();
+            LintTest {
+                lint: SugarUsage::new(),
+                num_problems: 0,
+                matches: vec![],
+                src: &format!(".{call}[foo,bar]"),
+            }
+            .run();
+            LintTest {
+                lint: SugarUsage::new(),
+                num_problems: 0,
+                matches: vec![],
                 src: &format!(".{call}{{foo}}{{bar}}"),
             }
             .run();
@@ -194,6 +208,20 @@ mod test {
                         }
                         .run();
                     }
+                    LintTest {
+                        lint: SugarUsage::new(),
+                        num_problems: 1,
+                        matches: vec![
+                            &format!(r"syntactic sugar exists for \.{call}+"),
+                            &format!(":1:1-{}: found here", 1 + call.len()),
+                            &format!(
+                                "try using ‘{}’ instead",
+                                pre.replace('*', r"\*").replace('+', r"\+")
+                            ),
+                        ],
+                        src: &format!(".{call}[foo]"),
+                    }
+                    .run();
                 }
                 SugarType::Delimiters(delim) => LintTest {
                     lint: SugarUsage::new(),
