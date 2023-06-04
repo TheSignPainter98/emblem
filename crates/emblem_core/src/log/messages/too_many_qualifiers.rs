@@ -1,6 +1,7 @@
 use crate::log::messages::Message;
 use crate::log::{Log, Note, Src};
 use crate::parser::Location;
+use crate::util;
 use derive_new::new;
 
 #[derive(Default, new)]
@@ -15,17 +16,21 @@ impl<'i> Message<'i> for TooManyQualifiers<'i> {
     }
 
     fn log(self) -> Log<'i> {
-        let msg = if self.dot_locs.len() > 1 {
-            "extra dot in command name"
-        } else {
-            "extra dots in command name"
-        };
-        Log::error(msg).with_id(Self::id()).explainable().with_src({
+        Log::error(format!(
+            "too many {} found in call",
+            util::plural(self.dot_locs.len(), "dot", "dots")
+        ))
+        .with_id(Self::id())
+        .explainable()
+        .with_src({
             let mut src = Src::new(&self.loc);
             for (i, dot_loc) in self.dot_locs.iter().enumerate() {
                 src = src.with_annotation(Note::error(
                     dot_loc,
-                    if i == 0 { "found here" } else { "and here" },
+                    match i {
+                        0 => "found here",
+                        _ => "and here",
+                    },
                 ));
             }
             src
