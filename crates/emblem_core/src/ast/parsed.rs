@@ -6,9 +6,11 @@ use crate::ast::AstDebug;
 
 pub type ParsedFile<'i> = File<ParPart<Content<'i>>>;
 
+#[allow(clippy::large_enum_variant)] // TODO(kcza): re-evaluate this (requires benchmarks)
 #[derive(Debug)]
 pub enum Content<'i> {
     Command {
+        qualifier: Option<Text<'i>>,
         name: Text<'i>,
         pluses: usize,
         attrs: Option<Attrs<'i>>,
@@ -58,6 +60,7 @@ impl AstDebug for Content<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
             Self::Command {
+                qualifier,
                 name,
                 pluses,
                 attrs,
@@ -67,6 +70,10 @@ impl AstDebug for Content<'_> {
                 ..
             } => {
                 buf.push('.'.into());
+                if let Some(qualifier) = qualifier {
+                    qualifier.surround(buf, "(", ")");
+                    buf.push('.'.into());
+                }
                 name.test_fmt(buf);
                 if let Some(attrs) = attrs {
                     attrs.test_fmt(buf);

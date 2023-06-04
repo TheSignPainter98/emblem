@@ -1,6 +1,7 @@
 use crate::log::messages::{
-    DelimiterMismatch, ExtraCommentClose, HeadingTooDeep, NewlineInAttrs, NewlineInEmphDelimiter,
-    NewlineInInlineArg, UnclosedComments, UnexpectedChar, UnexpectedEOF, UnexpectedHeading,
+    DelimiterMismatch, EmptyQualifier, ExtraCommentClose, HeadingTooDeep, NewlineInAttrs,
+    NewlineInEmphDelimiter, NewlineInInlineArg, TooManyQualifiers, UnclosedComments,
+    UnexpectedChar, UnexpectedEOF, UnexpectedHeading,
 };
 use crate::log::Log;
 use crate::parser::Location;
@@ -100,7 +101,7 @@ impl<'input> Lexer<'input> {
     }
 
     fn can_start_attrs(&self) -> bool {
-        matches!(self.last_tok, Some(Tok::Command(_, _)))
+        matches!(self.last_tok, Some(Tok::Command { .. }))
     }
 
     fn location(&self) -> Location<'input> {
@@ -164,7 +165,6 @@ impl<'input> Iterator for Lexer<'input> {
             let COLON          = r":[ \t]*";
             let DOUBLE_COLON   = r"::";
             let INITIAL_INDENT = r"[ \t]*";
-            let COMMAND        = r"\.[^ \t{}\[\]\r\n:+]+\+*";
             let VERBATIM       = r"![^!\r\n]+!";
             let BRACE_LEFT     = r"\{";
             let BRACE_RIGHT    = r"\}";
@@ -176,6 +176,9 @@ impl<'input> Iterator for Lexer<'input> {
             let EQUALS         = r"={1,2}";
             let BACKTICKS      = r"`";
             let HEADING        = r"#+\+*";
+
+            let QUALIFIED_COMMAND = r"(\.+[^ \t{}\[\]\r\n:+.]*){2,}[^ \t{}\[\]\r\n:+.]\+*";
+            let COMMAND           = r"\.[^ \t{}\[\]\r\n:+.]+\+*";
 
             let OPEN_ATTRS   = r"\[";
             let CLOSE_ATTRS  = r"]";
@@ -391,12 +394,48 @@ impl<'input> Iterator for Lexer<'input> {
                 Err(Box::new(LexicalError::UnmatchedCommentClose { loc: self.location() }))
             },
 
-            COMMAND    => |s:&'input str| {
+            QUALIFIED_COMMAND => |s:&'input str| {
                 let pluses = s.chars().rev().take_while(|c| *c == '+').count();
-                Ok(Tok::Command(&s[1..s.len()-pluses], pluses))
+                let dot_idx = 1 + s[1..].find('.').unwrap();
+
+                let name = &s[1+dot_idx..s.len()-pluses];
+                if name.contains('.') {
+                    let loc = self.location();
+                    let extra_dots_start = loc.start().shift(&s[..1+dot_idx]);
+                    let dot_locs = name.char_indices()
+                        .filter_map(|(i, c)| if c == '.' { Some(i) } else { None })
+                        .map(|i| {
+                            let dot_pos = extra_dots_start.clone().shift(&s[..i]);
+                            Location::new(&dot_pos, &dot_pos.clone().shift("."))
+                        })
+                        .collect();
+                    return Err(Box::new(LexicalError::TooManyQualifiers { loc, dot_locs }));
+                }
+
+                let qualifier = &s[1..dot_idx];
+                if qualifier.is_empty() {
+                    let loc = self.location();
+                    let start = loc.start();
+                    let qualifier_loc = Location::new(&start, &start.clone().shift(".."));
+                    return Err(Box::new(LexicalError::EmptyQualifier { loc, qualifier_loc }));
+                }
+
+                Ok(Tok::Command{
+                    qualifier: Some(qualifier),
+                    name,
+                    pluses
+                })
             },
-            DASH       => |s:&'input str| Ok(Tok::Dash(s)),
-            GLUE       => |s:&'input str| {
+            COMMAND => |s:&'input str| {
+                let pluses = s.chars().rev().take_while(|c| *c == '+').count();
+                Ok(Tok::Command{
+                    qualifier: None,
+                    name: &s[1..s.len()-pluses],
+                    pluses,
+                })
+            },
+            DASH => |s:&'input str| Ok(Tok::Dash(s)),
+            GLUE => |s:&'input str| {
                 let newline_after = matches!(self.input.chars().next(), None | Some('\r') | Some('\n'));
                 if newline_after
                     || line_started_before_match
@@ -412,12 +451,12 @@ impl<'input> Iterator for Lexer<'input> {
                 }
                 Ok(Tok::Glue(s))
             },
-            UNDERSCORES    => |s:&'input str| self.emph(s),
-            ASTERISKS      => |s:&'input str| self.emph(s),
-            EQUALS         => |s:&'input str| self.emph(s),
-            BACKTICKS      => |s:&'input str| self.emph(s),
-            HEADING        => |_| Err(Box::new(LexicalError::UnexpectedHeading{ loc: self.location() })),
-            VERBATIM       => |s:&'input str| {
+            UNDERSCORES => |s:&'input str| self.emph(s),
+            ASTERISKS   => |s:&'input str| self.emph(s),
+            EQUALS      => |s:&'input str| self.emph(s),
+            BACKTICKS   => |s:&'input str| self.emph(s),
+            HEADING     => |_| Err(Box::new(LexicalError::UnexpectedHeading{ loc: self.location() })),
+            VERBATIM    => |s:&'input str| {
                 self.opening_delimiters = false;
                 Ok(Tok::Verbatim(&s[1..s.len()-1]))
             },
@@ -446,13 +485,20 @@ pub enum Tok<'input> {
     NamedAttr(&'input str),
     UnnamedAttr(&'input str),
     AttrComma,
-    Command(&'input str, usize),
+    Command {
+        qualifier: Option<&'input str>,
+        name: &'input str,
+        pluses: usize,
+    },
     ItalicOpen(&'input str),
     BoldOpen(&'input str),
     MonospaceOpen(&'input str),
     SmallcapsOpen(&'input str),
     AlternateFaceOpen(&'input str),
-    Heading { level: usize, pluses: usize },
+    Heading {
+        level: usize,
+        pluses: usize,
+    },
     ItalicClose,
     BoldClose,
     MonospaceClose,
@@ -468,7 +514,9 @@ pub enum Tok<'input> {
     NestedCommentOpen,
     NestedCommentClose,
     Comment(&'input str),
-    Newline { at_eof: bool },
+    Newline {
+        at_eof: bool,
+    },
 }
 
 impl Display for Tok<'_> {
@@ -485,7 +533,7 @@ impl Display for Tok<'_> {
             Tok::NamedAttr(_) => "named-attr",
             Tok::UnnamedAttr(_) => "unnamed-attr",
             Tok::AttrComma => "comma",
-            Tok::Command(_, _) => "command",
+            Tok::Command { .. } => "command",
             Tok::ItalicOpen(_) => "italic-open",
             Tok::ItalicClose => "italic-close",
             Tok::BoldOpen(_) => "bold-open",
@@ -572,6 +620,14 @@ pub enum LexicalError<'input> {
         loc: Location<'input>,
         level: usize,
     },
+    TooManyQualifiers {
+        loc: Location<'input>,
+        dot_locs: Vec<Location<'input>>,
+    },
+    EmptyQualifier {
+        loc: Location<'input>,
+        qualifier_loc: Location<'input>,
+    },
 }
 
 impl<'input> Message<'input> for LexicalError<'input> {
@@ -601,6 +657,13 @@ impl<'input> Message<'input> for LexicalError<'input> {
             } => DelimiterMismatch::new(loc, to_close_loc, expected).log(),
             Self::UnexpectedHeading { loc } => UnexpectedHeading::new(loc).log(),
             Self::HeadingTooDeep { loc, level } => HeadingTooDeep::new(loc, level).log(),
+            Self::TooManyQualifiers {
+                loc,
+                dot_locs: dot_loc,
+            } => TooManyQualifiers::new(loc, dot_loc).log(),
+            Self::EmptyQualifier { loc, qualifier_loc } => {
+                EmptyQualifier::new(loc, qualifier_loc).log()
+            }
         }
     }
 }
@@ -655,6 +718,23 @@ impl Display for LexicalError<'_> {
             }
             Self::HeadingTooDeep { loc, level } => {
                 write!(f, "heading too deep at {loc} ({level} levels)")
+            }
+            Self::TooManyQualifiers { loc, dot_locs } => {
+                write!(
+                    f,
+                    "extra dots found at {} in command name at {loc}",
+                    dot_locs
+                        .iter()
+                        .map(|l| l.to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+            Self::EmptyQualifier { loc, qualifier_loc } => {
+                write!(
+                    f,
+                    "empty qualifier found at {qualifier_loc} in command name at {loc}",
+                )
             }
         }
     }
