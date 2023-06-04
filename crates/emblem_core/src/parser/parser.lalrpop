@@ -59,12 +59,20 @@ MaybeLineContent: Vec<Content<'input>> = {
 
 LineContent: Vec<Content<'input>> = {
 	LineElement+,
+	Shebang => vec![<>],
 	HeadingLine => vec![<>],
 	<mut content:LineElement*> <tail:RemainderCommand> => {
 		content.push(tail);
 		content
 	},
 }
+
+Shebang: Content<'input> = {
+	<l:@L> <shebang:shebang> <r:@R> => Content::Shebang {
+		text: shebang,
+		loc: Location::new(&l, &r),
+	},
+};
 
 HeadingLine: Content<'input> = {
 	<l:@L> <marker:HeadingMarker> <standoff:whitespace> <arg:LineContent> <r:@R> => Content::Sugar(Sugar::Heading{
@@ -214,6 +222,7 @@ extern {
 	type Error = Box<LexicalError<'input>>;
 
 	enum Tok<'input> {
+		shebang              => Tok::Shebang(<&'input str>),
 		indent               => Tok::Indent,
 		dedent               => Tok::Dedent,
 		":"                  => Tok::Colon,

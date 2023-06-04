@@ -145,6 +145,31 @@ pub mod test {
         }
     }
 
+    mod shebang {
+        use super::*;
+
+        #[test]
+        fn general() {
+            assert_structure("empty", "#!", "File[Par[[Shebang()]]]");
+            assert_structure("sole", "#!em build", "File[Par[[Shebang(em build)]]]");
+        }
+
+        #[test]
+        fn whitespace_preserved() {
+            assert_structure("space", "#! em build", r"File[Par[[Shebang( em build)]]]");
+            assert_structure("tab", "#!\tem build", r"File[Par[[Shebang(\tem build)]]]");
+        }
+
+        #[test]
+        fn only_at_start() {
+            assert_parse_error(
+                "at-end",
+                "#!foo\nbar\n#!baz",
+                "Unrecognised token `word` found at 3:2:3:6",
+            );
+        }
+    }
+
     mod orphans {
         use super::*;
 

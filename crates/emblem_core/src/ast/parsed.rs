@@ -9,6 +9,10 @@ pub type ParsedFile<'i> = File<ParPart<Content<'i>>>;
 #[allow(clippy::large_enum_variant)] // TODO(kcza): re-evaluate this (requires benchmarks)
 #[derive(Debug)]
 pub enum Content<'i> {
+    Shebang {
+        text: &'i str,
+        loc: Location<'i>,
+    },
     Command {
         qualifier: Option<Text<'i>>,
         name: Text<'i>,
@@ -59,6 +63,7 @@ pub enum Content<'i> {
 impl AstDebug for Content<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
+            Self::Shebang { text, .. } => text.surround(buf, "Shebang(", ")"),
             Self::Command {
                 qualifier,
                 name,

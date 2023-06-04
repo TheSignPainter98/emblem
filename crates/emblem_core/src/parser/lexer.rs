@@ -158,6 +158,8 @@ impl<'input> Iterator for Lexer<'input> {
         }
 
         token_patterns! {
+            let SHEBANG = r"#![^\r\n]*";
+
             let WORD           = r"([^ /\t\r\n}_*`=~-]|/[^ /\t\r\n}_*`=~-])+";
             let WHITESPACE     = r"[ \t]+";
             let PAR_BREAKS     = r"([ \t]*(\n|\r\n|\r))+";
@@ -343,6 +345,13 @@ impl<'input> Iterator for Lexer<'input> {
         }
 
         if self.start_of_line {
+            if self.curr_point.index == 0 {
+                if let Some(shebang) = &self.try_consume(&SHEBANG) {
+                    let command = &shebang[2..];
+                    return Some(Ok(self.span(Tok::Shebang(command))));
+                }
+            }
+
             if let Some(heading) = &self.try_consume(&HEADING) {
                 self.start_of_line = false;
                 let heading = heading.trim_end();
@@ -474,6 +483,7 @@ impl<'input> Iterator for Lexer<'input> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Tok<'input> {
+    Shebang(&'input str),
     Indent,
     Dedent,
     Colon,
@@ -522,6 +532,7 @@ pub enum Tok<'input> {
 impl Display for Tok<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Tok::Shebang(_) => "shebang",
             Tok::Indent => "indent",
             Tok::Dedent => "dedent",
             Tok::Colon => ":",

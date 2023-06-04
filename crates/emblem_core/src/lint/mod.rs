@@ -109,7 +109,8 @@ impl<'i> Lintable<'i> for Content<'i> {
                 trailer_args.lint(lints, problems);
             }
             Self::Sugar(sugar) => sugar.lint(lints, problems),
-            Self::Word { .. }
+            Self::Shebang { .. }
+            | Self::Word { .. }
             | Self::Whitespace { .. }
             | Self::Dash { .. }
             | Self::Glue { .. }

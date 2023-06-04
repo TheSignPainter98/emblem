@@ -57,7 +57,8 @@ impl<'i> Lint<'i> for DuplicateAttrs {
                 }
                 ret
             }
-            Content::Command { .. }
+            Content::Shebang { .. }
+            | Content::Command { .. }
             | Content::Sugar(_)
             | Content::Word { .. }
             | Content::Whitespace { .. }
