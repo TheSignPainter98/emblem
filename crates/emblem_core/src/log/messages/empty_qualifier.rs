@@ -25,16 +25,18 @@ impl<'i> Message<'i> for EmptyQualifier<'i> {
 
     fn explain(&self) -> &'static str {
         concat!(
-            "This error means that a command-call has been made where the qualifier cannot refer to any package.\n",
+            "This error means that a command has been called with an empty qualifier. ",
+            "This likely originates from a call which looks like `..cmd`. ",
+            "There are two ways to call a command:\n",
             "\n",
-            ".cmd     // causes emblem to search for a single extension which defines a 'cmd' command\n",
-            ".pkg.cmd // causes emblem to specifically search the 'pkg' extension for a definition of 'cmd'\n",
+            ".cmd     // qualifier is absent, causing emblem to search for the extension which defines the 'cmd' command\n",
+            ".ext.cmd // qualifier is 'ext', causing emblem to specifically search the 'ext' extension for a definition of 'cmd'\n",
             "\n",
-            "If multiple extensions define 'foo', then `.foo` would be ambiguous. ",
-            "In this case, a qualifier may be added to tell emblem to look at the definitions made by a particular extension (i.e. `.pkg.cmd` is never ambiguous).\n",
+            "An empty qualifier (such as in `..cmd`) would represent an invalid extension name.\n",
             "\n",
-            "As extension names have at least one character, an empty qualifier cannot be valid; two dots cannot start a command invocation (e.g. `..cmd`). ",
-            "If two dots are required, consider adding glue to separate the tokens (e.g. `.~.cmd` is a dot followed immediately by a call to 'cmd')."
+            "If a literal dot is required to precede an unqualified command invocation, use glue:\n",
+            "\n",
+            ".~.cmd // represents a '.', glued to a call to 'cmd').",
         )
     }
 }

@@ -34,8 +34,8 @@ impl<'i> Message<'i> for TooManyQualifiers<'i> {
 
     fn explain(&self) -> &'static str {
         concat!(
-            "This error means that a command has been specified with too many qualifiers. For example, .pkg.pkg2.cmd and .pkg.pkg2.pkg3.cmd are invalid ways of accessing 'cmd'. ",
-            "To keep things concise, emblem only allows for a single qualifier per command, for example, .pkg.cmd"
+            "This error means that a command has been specified with too many qualifiers, for example, .foo.bar.baz.quz. ",
+            "To keep things concise, emblem allows at most one qualifier per command, for example `.foo.bar`",
         )
     }
 }
