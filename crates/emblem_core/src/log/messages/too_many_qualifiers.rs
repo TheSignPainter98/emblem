@@ -39,10 +39,10 @@ impl<'i> Message<'i> for TooManyQualifiers<'i> {
     }
 
     fn explain(&self) -> &'static str {
-        indoc!("
+        indoc! {"
             This error means that a command has been specified with too many qualifiers, for
             example, '.foo.bar.baz.quz'. To keep things concise, emblem allows at most one
             qualifier per command, for example '.foo.bar'.
-        ")
+        "}
     }
 }

@@ -24,9 +24,9 @@ impl<'a> Message<'a> for NoSuchErrorCode {
     }
 
     fn explain(&self) -> &'static str {
-        indoc!("
+        indoc! {"
             Error codes have the form `Eddd`, for digits `d`, such as this error, E001. If you're
             seeing this, please check for any typos.
-        ")
+        "}
     }
 }

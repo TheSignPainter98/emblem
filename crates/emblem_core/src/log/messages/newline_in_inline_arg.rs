@@ -31,7 +31,7 @@ impl<'i> Message<'i> for NewlineInInlineArg<'i> {
     }
 
     fn explain(&self) -> &'static str {
-        indoc!("
+        indoc! {"
             This error means that a newline was detected early in the parsing of arguments.
             Command arguments have two forms:
 
@@ -50,6 +50,6 @@ impl<'i> Message<'i> for NewlineInInlineArg<'i> {
 
             If you are a module author, consider ordering arguments so your users are encouraged to
             place longer ones later
-        ")
+        "}
     }
 }

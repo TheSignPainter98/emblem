@@ -34,7 +34,7 @@ impl<'i> Message<'i> for DelimiterMismatch<'i> {
     }
 
     fn explain(&self) -> &'static str {
-        indoc!("
+        indoc! {"
             This error means that a closing delimiter was found which did not match the most
             recently opened one. This may be the fault of a typo, but in some cases this may be
             caused by emblem incorrectly parsing different delimiters which use the same character,
@@ -48,6 +48,6 @@ impl<'i> Message<'i> for DelimiterMismatch<'i> {
 
             This problem can be entirely avoided by sticking to the convention that _italics use
             underscores_ and **bold use asterisks.**
-        ")
+        "}
     }
 }
