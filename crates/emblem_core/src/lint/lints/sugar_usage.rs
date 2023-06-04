@@ -79,7 +79,7 @@ impl<'i> Lint<'i> for SugarUsage {
                 if let Some(expected) = CALLS_TO_SUGARS.get(name.as_str()) {
                     let attrs = attrs.iter().map(|a| a.args()).next().unwrap_or_default();
                     match (
-                        &attrs[..],
+                        attrs,
                         &inline_args[..],
                         &remainder_arg,
                         &trailer_args[..],
