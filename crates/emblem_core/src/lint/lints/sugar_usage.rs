@@ -54,6 +54,8 @@ lazy_static! {
         ("h4", SugarType::Prefix("####", Some("####+"))),
         ("h5", SugarType::Prefix("#####", Some("#####+"))),
         ("h6", SugarType::Prefix("######", Some("######+"))),
+        ("mark", SugarType::Prefix("@", None)),
+        ("ref", SugarType::Prefix("#", None)),
     ]
     .into();
 }
