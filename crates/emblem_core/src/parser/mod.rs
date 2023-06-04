@@ -1119,6 +1119,17 @@ pub mod test {
                 r"File[Par[[Word(hello)|< >|$mark[sup]|< >|Word(world)]]]",
             );
             assert_structure("in-heading", "# @asdf", r"File[Par[[$h1{[$mark[asdf]]}]]]");
+            for c in ['!', '?', '\'', '"', '(', ')'] {
+                let repr = match c {
+                    '"' | '(' | ')' => format!(r"\{c}"),
+                    c => c.into(),
+                };
+                assert_structure(
+                    &format!("with-terminator-{c}"),
+                    &format!("#foo{c}"),
+                    &format!("File[Par[[$ref[foo]|Word({repr})]]]"),
+                );
+            }
         }
 
         #[test]
@@ -1130,6 +1141,17 @@ pub mod test {
                 "File[Par[[Word(hello)|< >|$ref[world]|Word(!)]]]",
             );
             assert_structure("in-heading", "# #foo", "File[Par[[$h1{[$ref[foo]]}]]]");
+            for c in ['!', '?', '\'', '"', '(', ')'] {
+                let repr = match c {
+                    '"' | '(' | ')' => format!(r"\{c}"),
+                    c => c.into(),
+                };
+                assert_structure(
+                    &format!("with-terminator-{c}"),
+                    &format!("#foo{c}"),
+                    &format!("File[Par[[$ref[foo]|Word({repr})]]]"),
+                );
+            }
         }
 
         mod emph_delimiters {

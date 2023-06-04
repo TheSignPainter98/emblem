@@ -176,8 +176,8 @@ impl<'input> Iterator for Lexer<'input> {
             let EQUALS         = r"={1,2}";
             let BACKTICKS      = r"`";
             let HEADING        = r"#+\+*";
-            let MARK           = r"@[^ \t\r\n#+.,!(){}\[\]]+";
-            let REFERENCE      = r"#[^ \t\r\n#+.,!(){}\[\]]+";
+            let MARK           = r#"@[^ \t\r\n#+.,?!'"(){}\[\]]+"#;
+            let REFERENCE      = r#"#[^ \t\r\n#+.,?!'"(){}\[\]]+"#;
 
             let QUALIFIED_COMMAND = r"(\.+[^ \t{}\[\]\r\n:+.]*){2,}[^ \t{}\[\]\r\n:+.]\+*";
             let COMMAND           = r"\.[^ \t{}\[\]\r\n:+.]+\+*";
