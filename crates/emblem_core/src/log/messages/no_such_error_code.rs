@@ -1,6 +1,7 @@
 use crate::log::messages::Message;
 use crate::log::Log;
 use derive_new::new;
+use indoc::indoc;
 
 #[derive(Default, new)]
 pub struct NoSuchErrorCode {
@@ -23,9 +24,9 @@ impl<'a> Message<'a> for NoSuchErrorCode {
     }
 
     fn explain(&self) -> &'static str {
-        concat!(
-            "Error codes have the form `Eddd`, for digits `d`, such as this error, E001. ",
-            "If you're seeing this, please check for any typos."
-        )
+        indoc! {"
+            Error codes have the form `Eddd`, for digits `d`, such as this error, E001. If you're
+            seeing this, please check for any typos.
+        "}
     }
 }

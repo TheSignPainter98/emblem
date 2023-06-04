@@ -17,6 +17,7 @@ default = ["git2"]
 annotate-snippets = { version = "0.9.1", features = ["color"] }
 derive-new = "0.5.9"
 git2 = { version = "0.16.1", optional = true }
+indoc = "2.0.1"
 lalrpop = "0.19.8"
 lalrpop-util = "0.19.8"
 lazy_static = "1.4.0"

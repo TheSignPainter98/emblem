@@ -217,5 +217,29 @@ mod test {
             }
             assert!(!failed, "some explanations were too short, see above");
         }
+
+        #[test]
+        fn lines_not_too_long() {
+            const LINE_MAX_LEN: usize = 90;
+            let mut failed = false;
+
+            for info in messages().iter().filter(|info| !info.id.is_empty()) {
+                for line in info.explanation().lines() {
+                    if line.chars().count() > LINE_MAX_LEN {
+                        failed = true;
+                        println!(
+                            "{}: Line longer than {LINE_MAX_LEN} chars: {line:?}",
+                            info.id()
+                        );
+                        println!("\tline should end before the inserted `|`:");
+                        println!("\t{}|{}", &line[..81], &line[81..]);
+                    }
+                }
+            }
+
+            if failed {
+                panic!("some lines were too long");
+            }
+        }
     }
 }

@@ -2,6 +2,7 @@ use crate::log::messages::Message;
 use crate::log::{Log, Note, Src};
 use crate::parser::Location;
 use derive_new::new;
+use indoc::indoc;
 
 #[derive(Default, new)]
 pub struct NewlineInInlineArg<'i> {
@@ -30,26 +31,25 @@ impl<'i> Message<'i> for NewlineInInlineArg<'i> {
     }
 
     fn explain(&self) -> &'static str {
-        concat!(
-            "This error means that a newline was detected early in the parsing of arguments. ",
-            "Command arguments have two forms:\n",
-            "\n",
-            "```\n",
-            ".command{inline-arg-1}{inline-arg-2}{...}: remainder-arg\n",
-            "// or\n",
-            ".command{inline-arg-1}{inline-arg-2}{...}:\n",
-            "\ttrailer\n",
-            "\targ\n",
-            "\t1\n",
-            "::\n",
-            "\ttrailer\n",
-            "\targ\n",
-            "\t2\n",
-            "::\n",
-            "\t...\n",
-            "```\n",
-            "\n",
-            "If you are a module author, consider ordering arguments so your users are encouraged to place longer ones later.",
-        )
+        indoc! {"
+            This error means that a newline was detected early in the parsing of arguments.
+            Command arguments have two forms:
+
+            .command{inline-arg-1}{inline-arg-2}{...}: remainder-arg
+            // or
+            .command{inline-arg-1}{inline-arg-2}{...}:
+                trailer
+                arg
+                1
+            ::
+                trailer
+                arg
+                2
+            ::
+                ...
+
+            If you are a module author, consider ordering arguments so your users are encouraged to
+            place longer ones later
+        "}
     }
 }
