@@ -178,6 +178,8 @@ impl<'input> Iterator for Lexer<'input> {
             let EQUALS         = r"={1,2}";
             let BACKTICKS      = r"`";
             let HEADING        = r"#+\+*";
+            let MARK           = r#"@[^ \t\r\n#+.,?!'"(){}\[\]]+"#;
+            let REFERENCE      = r#"#[^ \t\r\n#+.,?!'"(){}\[\]]+"#;
 
             let QUALIFIED_COMMAND = r"(\.+[^ \t{}\[\]\r\n:+.]*){2,}[^ \t{}\[\]\r\n:+.]\+*";
             let COMMAND           = r"\.[^ \t{}\[\]\r\n:+.]+\+*";
@@ -344,6 +346,11 @@ impl<'input> Iterator for Lexer<'input> {
             return Some(Ok(ret));
         }
 
+        // Avoid clash with heading '#'
+        if let Some(reference) = &self.try_consume(&REFERENCE) {
+            return Some(Ok(self.span(Tok::Reference(&reference[1..]))));
+        }
+
         if self.start_of_line {
             if self.curr_point.index == 0 {
                 if let Some(shebang) = &self.try_consume(&SHEBANG) {
@@ -465,6 +472,7 @@ impl<'input> Iterator for Lexer<'input> {
             EQUALS      => |s:&'input str| self.emph(s),
             BACKTICKS   => |s:&'input str| self.emph(s),
             HEADING     => |_| Err(Box::new(LexicalError::UnexpectedHeading{ loc: self.location() })),
+            MARK        => |s:&'input str| Ok(Tok::Mark(&s[1..])),
             VERBATIM    => |s:&'input str| {
                 self.opening_delimiters = false;
                 Ok(Tok::Verbatim(&s[1..s.len()-1]))
@@ -514,6 +522,8 @@ pub enum Tok<'input> {
     MonospaceClose,
     SmallcapsClose,
     AlternateFaceClose,
+    Reference(&'input str),
+    Mark(&'input str),
     ParBreak,
     Word(&'input str),
     Whitespace(&'input str),
@@ -556,6 +566,8 @@ impl Display for Tok<'_> {
             Tok::AlternateFaceOpen(_) => "alternate-face-open",
             Tok::AlternateFaceClose => "alternate-face-close",
             Tok::Heading { .. } => "heading",
+            Tok::Reference(_) => "reference",
+            Tok::Mark(_) => "mark",
             Tok::ParBreak => "par-break",
             Tok::Word(_) => "word",
             Tok::Whitespace(_) => "whitespace",

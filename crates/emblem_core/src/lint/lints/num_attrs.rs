@@ -13,6 +13,8 @@ lazy_static! {
     static ref AFFECTED_COMMANDS: HashMap<&'static str, (usize, usize)> = {
         vec![
             ("cite", (1, 1)),
+            ("mark", (1, 1)),
+            ("ref", (1, 1)),
             ("toc", (0, 0)),
             ("bf", (0, 0)),
             ("it", (0, 0)),
