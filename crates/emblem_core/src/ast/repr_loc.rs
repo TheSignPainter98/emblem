@@ -72,7 +72,9 @@ impl<'em> ReprLoc<'em> for Sugar<'em> {
             | Self::Heading {
                 invocation_loc: loc,
                 ..
-            } => loc.clone(),
+            }
+            | Self::Mark { loc, .. }
+            | Self::Reference { loc, .. } => loc.clone(),
         }
     }
 }

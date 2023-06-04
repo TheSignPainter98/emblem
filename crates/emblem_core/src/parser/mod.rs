@@ -1110,6 +1110,28 @@ pub mod test {
     mod syntactic_sugar {
         use super::*;
 
+        #[test]
+        fn mark() {
+            assert_structure("sole", "@foo", "File[Par[[$mark[foo]]]]");
+            assert_structure(
+                "mid-line",
+                "hello @sup world",
+                r"File[Par[[Word(hello)|< >|$mark[sup]|< >|Word(world)]]]",
+            );
+            assert_structure("in-heading", "# @asdf", r"File[Par[[$h1{[$mark[asdf]]}]]]");
+        }
+
+        #[test]
+        fn reference() {
+            assert_structure("sole", "#foo", "File[Par[[$ref[foo]]]]");
+            assert_structure(
+                "mid-line",
+                "hello #world!",
+                "File[Par[[Word(hello)|< >|$ref[world]|Word(!)]]]",
+            );
+            assert_structure("in-heading", "# #foo", "File[Par[[$h1{[$ref[foo]]}]]]");
+        }
+
         mod emph_delimiters {
             use super::*;
 
@@ -1278,7 +1300,7 @@ pub mod test {
                     "unexpected heading at inline[^:]*:1:5-8",
                 );
                 assert_parse_error(
-                    "inline",
+                    "inline-complex",
                     "foo .bar: ###+ baz",
                     "unexpected heading at inline[^:]*:1:11-14",
                 );

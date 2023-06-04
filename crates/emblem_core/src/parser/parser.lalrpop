@@ -109,6 +109,9 @@ LineElement: Content<'input> = {
 	<l:@L> <raw:spilt_glue>        <r:@R> => Content::SpiltGlue{ raw, loc: Location::new(&l, &r) },
 	<l:@L> <verbatim:verbatim>     <r:@R> => Content::Verbatim{ verbatim, loc: Location::new(&l, &r) },
 
+	<l:@L> <mark:mark>             <r:@R> => Content::Sugar(Sugar::Mark{ mark, loc: Location::new(&l, &r) }),
+	<l:@L> <reference:reference>   <r:@R> => Content::Sugar(Sugar::Reference{ reference, loc: Location::new(&l, &r) }),
+
 	EmphSugar,
 
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
@@ -239,6 +242,8 @@ extern {
 									level: <usize>,
 									pluses: <usize>
 								},
+		mark                 => Tok::Mark(<&'input str>),
+		reference            => Tok::Reference(<&'input str>),
 		par_break            => Tok::ParBreak,
 		word                 => Tok::Word(<&'input str>),
 		dash                 => Tok::Dash(<&'input str>),
