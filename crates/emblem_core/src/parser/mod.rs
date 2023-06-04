@@ -249,10 +249,32 @@ pub mod test {
         #[test]
         fn command_only() {
             for num_pluses in 0..=3 {
+                let pluses = "+".repeat(num_pluses);
+                let ast_pluses = ast_debug_pluses(num_pluses);
                 assert_structure(
                     "command",
-                    &format!(".order-66{}", "+".repeat(num_pluses)),
-                    &format!("File[Par[[.order-66{}]]]", ast_debug_pluses(num_pluses)),
+                    &format!(".order-66{pluses}"),
+                    &format!("File[Par[[.order-66{ast_pluses}]]]"),
+                );
+                assert_structure(
+                    "with-qualifier",
+                    &format!(".order.66{pluses}"),
+                    &format!("File[Par[[.(order).66{ast_pluses}]]]"),
+                );
+                assert_structure(
+                    "trailing-dot",
+                    &format!(".order.66{pluses}."),
+                    &format!("File[Par[[.(order).66{ast_pluses}|Word(.)]]]"),
+                );
+                assert_parse_error(
+                    "many-qualifiers",
+                    &format!(".it.belongs.in.a.museum{pluses}"),
+                    &format!("extra dots found at many-qualifiers[^:]*:1:12-12, many-qualifiers[^:]*:1:15-15, many-qualifiers[^:]*:1:17-17 in command name at many-qualifiers[^:]*:1:1-{}", 23 + num_pluses),
+                );
+                assert_parse_error(
+                    "empty-qualifier",
+                    &format!("..what{pluses}"),
+                    &format!("empty qualifier found at empty-qualifier[^:]*:1:1-2 in command name at empty-qualifier[^:]*:1:1-{}", 6 + num_pluses),
                 );
             }
         }
@@ -268,14 +290,19 @@ pub mod test {
                     &format!("File[Par[[.exec{}{{[Word(order66)]}}]]]", ast_pluses),
                 );
                 assert_structure(
+                    "sole-with-qualifier",
+                    &format!(".ex.ec{}{{order66}}", pluses),
+                    &format!("File[Par[[.(ex).ec{}{{[Word(order66)]}}]]]", ast_pluses),
+                );
+                assert_structure(
                     "start of line",
                     &format!(".old-man-say{}{{leave her Johnny, leave her}} tomorrow ye will get your pay", pluses),
                     &format!("File[Par[[.old-man-say{}{{[Word(leave)|< >|Word(her)|< >|Word(Johnny,)|< >|Word(leave)|< >|Word(her)]}}|< >|Word(tomorrow)|< >|Word(ye)|< >|Word(will)|< >|Word(get)|< >|Word(your)|< >|Word(pay)]]]", ast_pluses)
                 );
                 assert_structure(
                     "end of line",
-                    &format!("I hate to .sail{}{{on this rotten tub}}", pluses),
-                    &format!("File[Par[[Word(I)|< >|Word(hate)|< >|Word(to)|< >|.sail{}{{[Word(on)|< >|Word(this)|< >|Word(rotten)|< >|Word(tub)]}}]]]", ast_pluses),
+                    &format!("I hate to .sail.on{}{{this rotten tub}}", pluses),
+                    &format!("File[Par[[Word(I)|< >|Word(hate)|< >|Word(to)|< >|.(sail).on{}{{[Word(this)|< >|Word(rotten)|< >|Word(tub)]}}]]]", ast_pluses),
                 );
                 assert_structure(
                     "middle of line",
@@ -320,6 +347,11 @@ pub mod test {
                         9 + num_pluses
                     ),
                 );
+                assert_parse_error(
+                    "many-qualifiers",
+                    &format!(".order.6.6{}{{general\n\nkenobi}}", pluses),
+                    &format!("extra dots found at many-qualifiers[^:]*:1:9-9 in command name at many-qualifiers[^:]*:1:1-{}", 10 + num_pluses),
+                );
             }
         }
 
@@ -328,6 +360,11 @@ pub mod test {
             for num_pluses in 0..=3 {
                 let pluses = "+".repeat(num_pluses);
                 let ast_pluses = ast_debug_pluses(num_pluses);
+                assert_structure(
+                    "many-qualifiers",
+                    &format!(".qual.ifier{pluses}"),
+                    &format!("File[Par[[.(qual).ifier{ast_pluses}]]]"),
+                );
                 assert_structure(
                     "start of line",
                     &format!(".now{}{{we are ready}}: to sail for the horn", pluses),
@@ -364,6 +401,11 @@ pub mod test {
                     "randy .dandy-o:",
                     "Unrecognised token `newline` found at 1:1[56]",
                 );
+                assert_parse_error(
+                    "many-qualifiers",
+                    ".randy.dandy.o",
+                    "extra dots found at many-qualifiers[^:]*:1:13-13 in command name at many-qualifiers[^:]*:1:1-14",
+                );
             }
         }
 
@@ -390,6 +432,18 @@ pub mod test {
                             "\tof the fish in the sea",
                         ],
                         expected_structure: &format!("File[Par[.come{}{{[Word(all)|< >|Word(you)]}}::[Par[[Word(young)|< >|Word(sailor)|< >|Word(men)]|[Word(listen)|< >|Word(to)|< >|Word(me)]]]::[Par[[Word(I'll)|< >|Word(sing)|< >|Word(you)|< >|Word(a)|< >|Word(song)]|[Word(of)|< >|Word(the)|< >|Word(fish)|< >|Word(in)|< >|Word(the)|< >|Word(sea)]]]]]", ast_pluses),
+                    },
+                    TrailerTest {
+                        name: "command-with-qualifier",
+                        data: &[
+                            &format!(".come.all{}{{you}}:", pluses),
+                            "\tyoung sailor men",
+                            "\tlisten to me",
+                            "::",
+                            "\tI'll sing you a song",
+                            "\tof the fish in the sea",
+                        ],
+                        expected_structure: &format!("File[Par[.(come).all{}{{[Word(you)]}}::[Par[[Word(young)|< >|Word(sailor)|< >|Word(men)]|[Word(listen)|< >|Word(to)|< >|Word(me)]]]::[Par[[Word(I'll)|< >|Word(sing)|< >|Word(you)|< >|Word(a)|< >|Word(song)]|[Word(of)|< >|Word(the)|< >|Word(fish)|< >|Word(in)|< >|Word(the)|< >|Word(sea)]]]]]", ast_pluses),
                     },
                     TrailerTest {
                         name: "two pars per trailer arg",
@@ -498,6 +552,16 @@ pub mod test {
                     ]
                     .join("\n"),
                     "Unrecognised EOF found at (5:3|6:1)",
+                );
+                assert_parse_error(
+                    "many-qualifiers",
+                    &[
+                        ".met.him.on.the{king's highway}:",
+                        "\tas he went for to be married",
+                        "::",
+                        "\tpressed he was and sent away"
+                    ].join("\n"),
+                    "extra dots found at many-qualifiers[^:]*:1:9-9, many-qualifiers[^:]*:1:12-12 in command name at many-qualifiers[^:]*:1:1-15",
                 );
             }
         }
