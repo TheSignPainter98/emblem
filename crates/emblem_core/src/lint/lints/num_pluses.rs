@@ -38,7 +38,8 @@ impl<'i> Lint<'i> for NumPluses {
 
                 vec![self.message(loc, invocation_loc)]
             }
-            Content::Word { .. }
+            Content::Shebang { .. }
+            | Content::Word { .. }
             | Content::Sugar(_)
             | Content::Whitespace { .. }
             | Content::Dash { .. }

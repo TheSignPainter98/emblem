@@ -23,7 +23,8 @@ impl<'i> Lint<'i> for EmphDelimiters {
                     Src::new(loc).with_annotation(Note::help(loc, "use asterisks instead")),
                 )]
             }
-            Content::Word { .. }
+            Content::Shebang { .. }
+            | Content::Word { .. }
             | Content::Sugar(_)
             | Content::Command { .. }
             | Content::Whitespace { .. }

@@ -109,7 +109,8 @@ impl<'i> Lint<'i> for SugarUsage {
                 }
                 vec![]
             }
-            Content::Sugar(_)
+            Content::Shebang { .. }
+            | Content::Sugar(_)
             | Content::Word { .. }
             | Content::Whitespace { .. }
             | Content::Dash { .. }

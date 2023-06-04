@@ -44,7 +44,8 @@ impl<'em> ReprLoc<'em> for ParPart<Content<'em>> {
 impl<'em> ReprLoc<'em> for Content<'em> {
     fn repr_loc(&self) -> Location<'em> {
         match self {
-            Self::Command {
+            Self::Shebang { loc, .. }
+            | Self::Command {
                 invocation_loc: loc,
                 ..
             }

@@ -25,7 +25,8 @@ impl<'i> Lint<'i> for EmptyAttrs {
                 vec![Log::warn("empty attributes")
                     .with_src(Src::new(loc).with_annotation(Note::info(attrs.loc(), "found here")))]
             }
-            Content::Command { .. }
+            Content::Shebang { .. }
+            | Content::Command { .. }
             | Content::Sugar(_)
             | Content::Word { .. }
             | Content::Whitespace { .. }

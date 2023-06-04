@@ -267,7 +267,8 @@ impl<'em> IntoDoc<'em> for Content<'em> {
                 word: Text::from(verbatim),
                 loc,
             }),
-            Self::Whitespace { .. }
+            Self::Shebang { .. }
+            | Self::Whitespace { .. }
             | Self::SpiltGlue { .. }
             | Self::Comment { .. }
             | Self::MultiLineComment { .. } => None,

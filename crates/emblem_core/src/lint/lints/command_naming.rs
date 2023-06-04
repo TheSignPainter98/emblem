@@ -43,7 +43,8 @@ impl<'i> Lint<'i> for CommandNaming {
 
                 vec![]
             }
-            Content::Word { .. }
+            Content::Shebang { .. }
+            | Content::Word { .. }
             | Content::Sugar(_)
             | Content::Whitespace { .. }
             | Content::Dash { .. }
