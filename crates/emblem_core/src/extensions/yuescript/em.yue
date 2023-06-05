@@ -1,0 +1,11 @@
+$spec ->
+	describe 'em', ->
+		it 'exists', ->
+			assert.not.nil em
+
+		describe 'require', ->
+			it 'returns the global table', ->
+				self = 'em' -- Line broken to stymie cycle checker
+				assert.are.equal em, require self
+
+em

@@ -2,6 +2,7 @@ mod env_extras;
 mod global_sandboxing;
 mod preload_decls;
 mod preload_sandboxing;
+mod em;
 
 use crate::{
     context::{LuaParameters, ResourceLimit, SandboxLevel},
@@ -12,6 +13,7 @@ use mlua::{
 };
 use std::{cell::RefMut, fmt::Display, marker::PhantomData};
 use yuescript::include_yuescript;
+use em::Em;
 
 #[cfg(test)]
 use mlua::AsChunk;
@@ -50,6 +52,7 @@ impl<'em> ExtensionState<'em> {
         Self::insert_safety_hook(&lua, params)?;
         Self::setup_event_listeners(&lua)?;
 
+        lua.globals().set("em", Em::new())?;
         // TODO(kcza): set args
 
         lua.load(STD).exec()?;
