@@ -9,6 +9,10 @@ pub type ParsedFile<'i> = File<ParPart<Content<'i>>>;
 #[allow(clippy::large_enum_variant)] // TODO(kcza): re-evaluate this (requires benchmarks)
 #[derive(Debug)]
 pub enum Content<'i> {
+    Shebang {
+        text: &'i str,
+        loc: Location<'i>,
+    },
     Command {
         qualifier: Option<Text<'i>>,
         name: Text<'i>,
@@ -59,6 +63,7 @@ pub enum Content<'i> {
 impl AstDebug for Content<'_> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
+            Self::Shebang { text, .. } => text.surround(buf, "Shebang(", ")"),
             Self::Command {
                 qualifier,
                 name,
@@ -242,6 +247,14 @@ pub enum Sugar<'i> {
         loc: Location<'i>,
         invocation_loc: Location<'i>,
     },
+    Mark {
+        mark: &'i str,
+        loc: Location<'i>,
+    },
+    Reference {
+        reference: &'i str,
+        loc: Location<'i>,
+    },
 }
 
 impl<'i> Sugar<'i> {
@@ -261,6 +274,8 @@ impl<'i> Sugar<'i> {
                 6 => "h6",
                 _ => panic!("internal error: unknown heading level {level}"),
             },
+            Self::Mark { .. } => "mark",
+            Self::Reference { .. } => "ref",
         }
     }
 }
@@ -268,37 +283,36 @@ impl<'i> Sugar<'i> {
 #[cfg(test)]
 impl<'i> AstDebug for Sugar<'i> {
     fn test_fmt(&self, buf: &mut Vec<String>) {
+        buf.push(format!("${}", self.call_name()));
         match self {
             Self::Italic { arg, delimiter, .. } => {
-                buf.push("$it".into());
                 delimiter.surround(buf, "(", ")");
                 arg.surround(buf, "{", "}");
             }
             Self::Bold { arg, delimiter, .. } => {
-                buf.push("$bf".into());
                 delimiter.surround(buf, "(", ")");
                 arg.surround(buf, "{", "}");
             }
             Self::Monospace { arg, .. } => {
-                buf.push("$tt".into());
                 arg.surround(buf, "{", "}");
             }
             Self::Smallcaps { arg, .. } => {
-                buf.push("$sc".into());
                 arg.surround(buf, "{", "}");
             }
             Self::AlternateFace { arg, .. } => {
-                buf.push("$af".into());
                 arg.surround(buf, "{", "}");
             }
-            Self::Heading {
-                level, arg, pluses, ..
-            } => {
-                buf.push(format!("$h{level}"));
+            Self::Heading { arg, pluses, .. } => {
                 if *pluses > 0 {
                     "+".repeat(*pluses).surround(buf, "(", ")");
                 }
                 arg.surround(buf, "{", "}");
+            }
+            Self::Mark { mark, .. } => {
+                mark.surround(buf, "[", "]");
+            }
+            Self::Reference { reference, .. } => {
+                reference.surround(buf, "[", "]");
             }
         }
     }

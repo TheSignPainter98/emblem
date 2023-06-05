@@ -44,7 +44,8 @@ impl<'i> Lint<'i> for AttrOrdering {
                 }
                 ret
             }
-            Content::Command { .. }
+            Content::Shebang { .. }
+            | Content::Command { .. }
             | Content::Sugar(_)
             | Content::Word { .. }
             | Content::Whitespace { .. }

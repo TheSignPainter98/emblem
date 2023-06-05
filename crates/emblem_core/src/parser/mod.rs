@@ -145,6 +145,31 @@ pub mod test {
         }
     }
 
+    mod shebang {
+        use super::*;
+
+        #[test]
+        fn general() {
+            assert_structure("empty", "#!", "File[Par[[Shebang()]]]");
+            assert_structure("sole", "#!em build", "File[Par[[Shebang(em build)]]]");
+        }
+
+        #[test]
+        fn whitespace_preserved() {
+            assert_structure("space", "#! em build", r"File[Par[[Shebang( em build)]]]");
+            assert_structure("tab", "#!\tem build", r"File[Par[[Shebang(\tem build)]]]");
+        }
+
+        #[test]
+        fn only_at_start() {
+            assert_parse_error(
+                "at-end",
+                "#!foo\nbar\n#!baz",
+                "Unrecognised token `word` found at 3:2:3:6",
+            );
+        }
+    }
+
     mod orphans {
         use super::*;
 
@@ -1110,6 +1135,50 @@ pub mod test {
     mod syntactic_sugar {
         use super::*;
 
+        #[test]
+        fn mark() {
+            assert_structure("sole", "@foo", "File[Par[[$mark[foo]]]]");
+            assert_structure(
+                "mid-line",
+                "hello @sup world",
+                r"File[Par[[Word(hello)|< >|$mark[sup]|< >|Word(world)]]]",
+            );
+            assert_structure("in-heading", "# @asdf", r"File[Par[[$h1{[$mark[asdf]]}]]]");
+            for c in ['!', '?', '\'', '"', '(', ')'] {
+                let repr = match c {
+                    '"' | '(' | ')' => format!(r"\{c}"),
+                    c => c.into(),
+                };
+                assert_structure(
+                    &format!("with-terminator-{c}"),
+                    &format!("#foo{c}"),
+                    &format!("File[Par[[$ref[foo]|Word({repr})]]]"),
+                );
+            }
+        }
+
+        #[test]
+        fn reference() {
+            assert_structure("sole", "#foo", "File[Par[[$ref[foo]]]]");
+            assert_structure(
+                "mid-line",
+                "hello #world!",
+                "File[Par[[Word(hello)|< >|$ref[world]|Word(!)]]]",
+            );
+            assert_structure("in-heading", "# #foo", "File[Par[[$h1{[$ref[foo]]}]]]");
+            for c in ['!', '?', '\'', '"', '(', ')'] {
+                let repr = match c {
+                    '"' | '(' | ')' => format!(r"\{c}"),
+                    c => c.into(),
+                };
+                assert_structure(
+                    &format!("with-terminator-{c}"),
+                    &format!("#foo{c}"),
+                    &format!("File[Par[[$ref[foo]|Word({repr})]]]"),
+                );
+            }
+        }
+
         mod emph_delimiters {
             use super::*;
 
@@ -1278,7 +1347,7 @@ pub mod test {
                     "unexpected heading at inline[^:]*:1:5-8",
                 );
                 assert_parse_error(
-                    "inline",
+                    "inline-complex",
                     "foo .bar: ###+ baz",
                     "unexpected heading at inline[^:]*:1:11-14",
                 );

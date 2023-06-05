@@ -1,6 +1,6 @@
 use crate::{
     ast::{
-        parsed::{Attrs, Content, ParsedFile, Sugar},
+        parsed::{Attr, Attrs, Content, ParsedFile, Sugar},
         Dash, Glue, Par, ParPart, ReprLoc, Text,
     },
     parser::Location,
@@ -267,7 +267,8 @@ impl<'em> IntoDoc<'em> for Content<'em> {
                 word: Text::from(verbatim),
                 loc,
             }),
-            Self::Whitespace { .. }
+            Self::Shebang { .. }
+            | Self::Whitespace { .. }
             | Self::SpiltGlue { .. }
             | Self::Comment { .. }
             | Self::MultiLineComment { .. } => None,
@@ -299,6 +300,34 @@ impl<'em> IntoDoc<'em> for Sugar<'em> {
                     plus: pluses != 0,
                     attrs: None,
                     args: [arg.into_doc(state)].into_iter().flatten().collect(),
+                    result: None,
+                    loc,
+                },
+                Self::Mark { mark, .. } => DocElem::Command {
+                    name,
+                    plus: false,
+                    attrs: Some(Attrs::new(
+                        vec![Attr::Unnamed {
+                            raw: mark,
+                            loc: loc.clone(),
+                        }],
+                        loc.clone(),
+                    )),
+                    args: vec![],
+                    result: None,
+                    loc,
+                },
+                Self::Reference { reference, .. } => DocElem::Command {
+                    name,
+                    plus: false,
+                    attrs: Some(Attrs::new(
+                        vec![Attr::Unnamed {
+                            raw: reference,
+                            loc: loc.clone(),
+                        }],
+                        loc.clone(),
+                    )),
+                    args: vec![],
                     result: None,
                     loc,
                 },

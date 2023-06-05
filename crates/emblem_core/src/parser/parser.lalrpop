@@ -59,12 +59,20 @@ MaybeLineContent: Vec<Content<'input>> = {
 
 LineContent: Vec<Content<'input>> = {
 	LineElement+,
+	Shebang => vec![<>],
 	HeadingLine => vec![<>],
 	<mut content:LineElement*> <tail:RemainderCommand> => {
 		content.push(tail);
 		content
 	},
 }
+
+Shebang: Content<'input> = {
+	<l:@L> <shebang:shebang> <r:@R> => Content::Shebang {
+		text: shebang,
+		loc: Location::new(&l, &r),
+	},
+};
 
 HeadingLine: Content<'input> = {
 	<l:@L> <marker:HeadingMarker> <standoff:whitespace> <arg:LineContent> <r:@R> => Content::Sugar(Sugar::Heading{
@@ -108,6 +116,9 @@ LineElement: Content<'input> = {
 	<l:@L> <glue:glue>             <r:@R> => Content::Glue{ glue: glue.into(), loc: Location::new(&l, &r) },
 	<l:@L> <raw:spilt_glue>        <r:@R> => Content::SpiltGlue{ raw, loc: Location::new(&l, &r) },
 	<l:@L> <verbatim:verbatim>     <r:@R> => Content::Verbatim{ verbatim, loc: Location::new(&l, &r) },
+
+	<l:@L> <mark:mark>             <r:@R> => Content::Sugar(Sugar::Mark{ mark, loc: Location::new(&l, &r) }),
+	<l:@L> <reference:reference>   <r:@R> => Content::Sugar(Sugar::Reference{ reference, loc: Location::new(&l, &r) }),
 
 	EmphSugar,
 
@@ -214,6 +225,7 @@ extern {
 	type Error = Box<LexicalError<'input>>;
 
 	enum Tok<'input> {
+		shebang              => Tok::Shebang(<&'input str>),
 		indent               => Tok::Indent,
 		dedent               => Tok::Dedent,
 		":"                  => Tok::Colon,
@@ -239,6 +251,8 @@ extern {
 									level: <usize>,
 									pluses: <usize>
 								},
+		mark                 => Tok::Mark(<&'input str>),
+		reference            => Tok::Reference(<&'input str>),
 		par_break            => Tok::ParBreak,
 		word                 => Tok::Word(<&'input str>),
 		dash                 => Tok::Dash(<&'input str>),
