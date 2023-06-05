@@ -78,12 +78,7 @@ impl<'i> Lint<'i> for SugarUsage {
             } => {
                 if let Some(expected) = CALLS_TO_SUGARS.get(name.as_str()) {
                     let attrs = attrs.iter().map(|a| a.args()).next().unwrap_or_default();
-                    match (
-                        attrs,
-                        &inline_args[..],
-                        &remainder_arg,
-                        &trailer_args[..],
-                    ) {
+                    match (attrs, &inline_args[..], &remainder_arg, &trailer_args[..]) {
                         // A single argument or attr is suspicious
                         ([_], [], None, []) | ([], [_], None, []) | ([], [], Some(_), []) => {
                             return vec![expected.suggest(
