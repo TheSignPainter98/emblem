@@ -25,7 +25,7 @@ impl<'i> Message<'i> for EmptyQualifier<'i> {
     }
 
     fn explain(&self) -> &'static str {
-        indoc!{"
+        indoc! {"
             This error means that a command has been called with an empty qualifier. This likely
             originates from a call which looks like `..cmd`. There are two ways to call a command:
 
