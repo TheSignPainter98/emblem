@@ -18,7 +18,7 @@ $spec ->
 				assert.false ok
 				assert.truthy err\match "attempt to index global 'em'"
 
-			it 'string repr is semver', ->
+			it 'string repr uses semver', ->
 				assert.truthy (tostring em.version)\match '^<version %d+%.%d+%.%d+>$'
 
 			describe '.major', ->
