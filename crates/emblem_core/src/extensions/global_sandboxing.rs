@@ -78,6 +78,7 @@ const CONSTRAINTS: Map<&'static str, Constraint> = phf_map! {
     // Values
     "_G"       => Constraint::AtMost(SandboxLevel::Strict, None),
     "_VERSION" => Constraint::AtMost(SandboxLevel::Strict, None),
+    "em"       => Constraint::AtMost(SandboxLevel::Strict, None),
 
     // Functions
     "assert"         => Constraint::AtMost(SandboxLevel::Strict, None),

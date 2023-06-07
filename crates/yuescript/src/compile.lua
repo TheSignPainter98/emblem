@@ -209,6 +209,11 @@ local function assert_cyclefree(luas)
 				return true
 			end,
 			on_cycle = function(stack)
+				if test and #stack == 1 then
+					-- Ignore modules importing themselves (helps testing,
+					-- misuse should be obvious enough)
+					return
+				end
 				local min_idx = 1
 				local min = stack[1]
 				for i = 2, #stack do
@@ -243,6 +248,13 @@ local function lint(module, lua, test)
 		globals = {
 			em = {
 				fields = {
+					version = {
+						fields = {
+							major = {},
+							minor = {},
+							patch = {},
+						},
+					},
 					cmds = {
 						other_fields = true,
 					},

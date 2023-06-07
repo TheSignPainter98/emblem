@@ -1,0 +1,53 @@
+$spec ->
+	describe 'em', ->
+		it 'exists', ->
+			assert.not.nil em
+
+		describe 'require "em"', ->
+			it 'returns the global table', ->
+				assert.are.equal em, require 'em'
+
+		describe '.version', ->
+			it 'exists', ->
+				assert.not.nil, em.version
+
+			it 'is immutable', ->
+				ok, err = try
+					em.version = 'foo'
+				assert.false ok
+				assert.truthy err\match "attempt to index global 'em'"
+
+			it 'string repr uses semver', ->
+				assert.truthy (tostring em.version)\match '^<version %d+%.%d+%.%d+>$'
+
+			describe '.major', ->
+				it 'is a number', ->
+					assert.is_number em.version.major
+
+				it 'is immutable', ->
+					ok, err = try
+						em.version.major = -1
+					assert.false ok
+					assert.truthy err\match "attempt to index field 'version'"
+
+			describe '.minor', ->
+				it 'is a number', ->
+					assert.is_number em.version.minor
+
+				it 'is immutable', ->
+					ok, err = try
+						em.version.minor = -1
+					assert.false ok
+					assert.truthy err\match "attempt to index field 'version'"
+
+			describe '.patch', ->
+				it 'is a number', ->
+					assert.is_number em.version.patch
+
+				it 'is immutable', ->
+					ok, err = try
+						em.version.patch = -1
+					assert.false ok
+					assert.truthy err\match "attempt to index field 'version'"
+
+em

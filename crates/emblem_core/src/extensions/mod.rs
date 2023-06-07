@@ -1,3 +1,4 @@
+mod em;
 mod env_extras;
 mod global_sandboxing;
 mod preload_decls;
@@ -7,6 +8,7 @@ use crate::{
     context::{LuaParameters, ResourceLimit, SandboxLevel},
     Context,
 };
+use em::Em;
 use mlua::{
     Error as MLuaError, HookTriggers, Lua, MetaMethod, Result as MLuaResult, Table, TableExt, Value,
 };
@@ -50,6 +52,7 @@ impl<'em> ExtensionState<'em> {
         Self::insert_safety_hook(&lua, params)?;
         Self::setup_event_listeners(&lua)?;
 
+        lua.globals().set("em", Em::new())?;
         // TODO(kcza): set args
 
         lua.load(STD).exec()?;
