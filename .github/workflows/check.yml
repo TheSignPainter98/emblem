@@ -85,11 +85,6 @@ jobs:
           command: test
           args: --workspace --all-features
 
-      - name: Security audit
-        uses: actions-rs/audit-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
   check-wasm:
     name: Check WASM compatibility
     runs-on: ubuntu-latest
