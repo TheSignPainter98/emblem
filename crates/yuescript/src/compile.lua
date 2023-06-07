@@ -243,6 +243,13 @@ local function lint(module, lua, test)
 		globals = {
 			em = {
 				fields = {
+					version = {
+						fields = {
+							major = {},
+							minor = {},
+							patch = {},
+						},
+					},
 					cmds = {
 						other_fields = true,
 					},

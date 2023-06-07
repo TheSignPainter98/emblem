@@ -8,4 +8,23 @@ $spec ->
 				self = 'em' -- Line broken to stymie cycle checker
 				assert.are.equal em, require self
 
+		describe '.version', ->
+			it 'exists', ->
+				assert.not.nil, em.version
+
+			it 'string repr is semver', ->
+				assert.truthy (tostring em.version)\match '^<version %d+%.%d+%.%d+>$'
+
+			describe '.minor', ->
+				it 'is a number', ->
+					assert.is_number em.version.minor
+
+			describe '.major', ->
+				it 'is a number', ->
+					assert.is_number em.version.major
+
+			describe '.patch', ->
+				it 'is a number', ->
+					assert.is_number em.version.patch
+
 em
