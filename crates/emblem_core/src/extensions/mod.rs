@@ -1,19 +1,19 @@
+mod em;
 mod env_extras;
 mod global_sandboxing;
 mod preload_decls;
 mod preload_sandboxing;
-mod em;
 
 use crate::{
     context::{LuaParameters, ResourceLimit, SandboxLevel},
     Context,
 };
+use em::Em;
 use mlua::{
     Error as MLuaError, HookTriggers, Lua, MetaMethod, Result as MLuaResult, Table, TableExt, Value,
 };
 use std::{cell::RefMut, fmt::Display, marker::PhantomData};
 use yuescript::include_yuescript;
-use em::Em;
 
 #[cfg(test)]
 use mlua::AsChunk;

@@ -3,7 +3,7 @@ $spec ->
 		it 'exists', ->
 			assert.not.nil em
 
-		describe 'require', ->
+		describe 'require "em"', ->
 			it 'returns the global table', ->
 				self = 'em' -- Line broken to stymie cycle checker
 				assert.are.equal em, require self
