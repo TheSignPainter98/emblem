@@ -53,6 +53,7 @@ jobs:
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
+          default: true
           components: clippy, rustfmt
 
       - name: Run cargo check
@@ -124,6 +125,7 @@ jobs:
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
+          default: true
           components: clippy, rustfmt
 
       - name: Install wasm-pack
