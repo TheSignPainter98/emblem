@@ -209,8 +209,10 @@ local function assert_cyclefree(luas)
 				return true
 			end,
 			on_cycle = function(stack)
-				if #stack == 1 then
-					return -- Ignore modules importing themselves (likely a test, either way should be obvious enough)
+				if test and #stack == 1 then
+					-- Ignore modules importing themselves (helps testing,
+					-- misuse should be obvious enough)
+					return
 				end
 				local min_idx = 1
 				local min = stack[1]
