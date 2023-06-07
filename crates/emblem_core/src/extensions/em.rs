@@ -1,5 +1,4 @@
 use derive_new::new;
-use lazy_static::lazy_static;
 use mlua::{MetaMethod, UserData};
 
 #[derive(new)]
@@ -7,10 +6,7 @@ pub(crate) struct Em {}
 
 impl UserData for Em {
     fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
-        lazy_static! {
-            static ref VERSION: Version = Version::new();
-        }
-        fields.add_field_method_get("version", |lua, _| lua.create_userdata(VERSION.clone()));
+        fields.add_field_method_get("version", |lua, _| lua.create_userdata(Version::new()));
     }
 }
 
