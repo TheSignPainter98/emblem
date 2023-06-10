@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4.24"
-mlua = { version = "0.8.8", features = [ "luajit52", "vendored", "macros" ] }
-thiserror = "1.0.40"
+chrono = "0.4"
+mlua = { version = "0.8", features = [ "luajit52", "vendored", "macros" ] }
+thiserror = "1.0"
 
 [build-dependencies]
-cc = "1.0.79"
+cc = "1.0"
