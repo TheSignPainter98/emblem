@@ -1,10 +1,13 @@
-use crate::parser::{LocationContext, Point};
+use crate::{
+    parser::{LocationContext, Point},
+    FileName,
+};
 use core::fmt::{self, Display};
-use std::{cmp, rc::Rc};
+use std::cmp;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Location<'i> {
-    file_name: Rc<str>,
+    file_name: FileName,
     src: &'i str,
     lines: (usize, usize),
     cols: (usize, usize),
@@ -22,7 +25,7 @@ impl<'i> Location<'i> {
         }
     }
 
-    pub fn file_name(&self) -> &Rc<str> {
+    pub fn file_name(&self) -> &FileName {
         &self.file_name
     }
 
@@ -107,7 +110,7 @@ impl<'i> Location<'i> {
 impl Default for Location<'_> {
     fn default() -> Self {
         Self {
-            file_name: "".into(),
+            file_name: FileName::new(""),
             src: Default::default(),
             lines: Default::default(),
             cols: Default::default(),
@@ -143,12 +146,12 @@ mod test {
         #[test]
         fn mid_line() {
             let text = "my name\nis methos";
-            let start = Point::new("fname.em".into(), text);
+            let start = Point::new(FileName::new("fname.em"), text);
             let end = start.clone().shift(text);
 
             let loc = Location::new(&start, &end);
 
-            assert_eq!(&Rc::from("fname.em"), loc.file_name());
+            assert_eq!("fname.em", loc.file_name());
             assert_eq!(text, loc.src());
             assert_eq!((start.line, end.line), loc.lines());
             assert_eq!((start.col, end.col - 1), loc.cols());
@@ -157,12 +160,12 @@ mod test {
         #[test]
         fn end_of_line() {
             let text = "my name is methos\n";
-            let start = Point::new("fname.em".into(), text);
+            let start = Point::new(FileName::new("fname.em"), text);
             let end = start.clone().shift(text);
 
             let loc = Location::new(&start, &end);
 
-            assert_eq!(&Rc::from("fname.em"), loc.file_name());
+            assert_eq!("fname.em", loc.file_name());
             assert_eq!(text, loc.src());
             assert_eq!((start.line, end.line), loc.lines());
             assert_eq!((start.col, 1), loc.cols());
@@ -172,7 +175,7 @@ mod test {
     #[test]
     fn start() {
         let text = "my name is methos\n";
-        let start = Point::new("fname.em".into(), text);
+        let start = Point::new(FileName::new("fname.em"), text);
         let end = start.clone().shift(text);
 
         let loc = Location::new(&start, &end);
@@ -182,7 +185,7 @@ mod test {
     #[test]
     fn end() {
         let text = "my name is methos\n";
-        let start = Point::new("fname.em".into(), text);
+        let start = Point::new(FileName::new("fname.em"), text);
         let end = start.clone().shift(text);
 
         let loc = Location::new(&start, &end);
@@ -192,7 +195,7 @@ mod test {
     #[test]
     fn span_to() {
         let text = "my name is methos\n";
-        let p1 = Point::new("fname.em".into(), text);
+        let p1 = Point::new(FileName::new("fname.em"), text);
         let p2 = p1.clone().shift("my name");
         let p3 = p2.clone().shift(" is ");
         let p4 = p2.clone().shift("methos");
@@ -224,10 +227,11 @@ mod test {
 
     mod context {
         use super::*;
+
         #[test]
         fn single_line() {
             let text = "oh! santiana gained a day";
-            let text_start = Point::new("fname.em".into(), text);
+            let text_start = Point::new(FileName::new("fname.em"), text);
 
             let loc_start_shift = "oh! ";
             let loc_text = "santiana";
@@ -252,7 +256,7 @@ mod test {
             ];
             for newline in ["\n", "\r", "\r\n"] {
                 let text = lines.join(newline);
-                let text_start = Point::new("fname.em".into(), &text);
+                let text_start = Point::new(FileName::new("fname.em"), &text);
 
                 let loc_start_shift = &format!("oh! santiana gained a day{newline}away ");
                 let loc_text = &format!("santiana!{newline}'napoleon of");

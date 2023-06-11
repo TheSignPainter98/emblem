@@ -10,17 +10,14 @@ pub use location::Location;
 pub use location_context::LocationContext;
 pub use point::Point;
 
-use crate::ast;
 use crate::context::Context;
 use crate::path::SearchResult;
+use crate::{ast, FileName};
 use ast::parsed::ParsedFile;
 use error::StringConversionError;
 use lalrpop_util::lalrpop_mod;
 use lexer::Lexer;
-use std::{
-    io::{BufReader, Read},
-    rc::Rc,
-};
+use std::io::{BufReader, Read};
 
 lalrpop_mod!(
     #[allow(clippy::all)]
@@ -66,7 +63,7 @@ where
 }
 
 /// Parse a given string of emblem source code.
-pub fn parse(name: Rc<str>, content: &str) -> Result<ParsedFile<'_>, Box<Error<'_>>> {
+pub fn parse(name: FileName, content: &str) -> Result<ParsedFile<'_>, Box<Error<'_>>> {
     let lexer = Lexer::new(name, content);
     let parser = parser::FileParser::new();
 
@@ -82,7 +79,7 @@ pub mod test {
     pub fn assert_structure(name: &str, input: &str, expected: &str) {
         assert_eq!(
             {
-                let parse_result = parse(name.into(), input);
+                let parse_result = parse(FileName::new(name), input);
                 assert!(
                     parse_result.is_ok(),
                     "{}: expected Ok parse result when parsing {:?}, got: {:?}",
@@ -101,7 +98,7 @@ pub mod test {
         assert_eq!(
             expected,
             {
-                let parse_result = parse(name.into(), input_with_newline);
+                let parse_result = parse(FileName::new(name), input_with_newline);
                 assert!(
                     parse_result.is_ok(),
                     "{}: expected Ok parse result when parsing {:?}",
@@ -124,7 +121,7 @@ pub mod test {
         ];
 
         for (name, input) in inputs {
-            let result = parse(name.into(), input);
+            let result = parse(FileName::new(name), input);
             assert!(result.is_err(), "{}: unexpected success", name);
 
             let err = result.unwrap_err();

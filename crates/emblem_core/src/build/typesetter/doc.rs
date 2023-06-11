@@ -345,7 +345,7 @@ mod test {
     fn assert_structure(name: &str, input: &str, expected: &str) {
         let ctx = Context::new();
         let src = textwrap::dedent(input);
-        let doc: Doc = parser::parse(ctx.alloc_file_name(name), ctx.alloc_file(src.into()))
+        let doc: Doc = parser::parse(ctx.alloc_file_name(name), ctx.alloc_file(src))
             .unwrap()
             .into();
         assert_eq!(expected, doc.repr(), "{name}");

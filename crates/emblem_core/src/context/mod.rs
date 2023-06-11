@@ -1,11 +1,12 @@
+pub(crate) mod file_name;
 mod module;
 
-use crate::{ExtensionState, Typesetter, Version};
+use crate::{ExtensionState, FileName, Typesetter, Version};
 use derive_new::new;
 use mlua::Result as MLuaResult;
 pub use module::{Module, ModuleVersion};
 use num::{Bounded, Integer};
-use std::{fmt::Debug, rc::Rc};
+use std::fmt::Debug;
 use typed_arena::Arena;
 
 pub const DEFAULT_MAX_STEPS: u32 = 100_000;
@@ -25,8 +26,8 @@ impl<'m> Context<'m> {
         Self::default()
     }
 
-    pub fn alloc_file_name(&self, name: &str) -> Rc<str> {
-        Rc::from(name)
+    pub fn alloc_file_name(&self, name: &str) -> FileName {
+        FileName::new(name)
     }
 
     pub fn alloc_file(&self, content: String) -> &str {
@@ -292,7 +293,7 @@ mod test {
         let name = "/usr/share/man/man1/gcc.1.gz";
 
         let result = ctx.alloc_file_name(name);
-        assert_eq!(result, name.into());
+        assert_eq!(result, name);
     }
 
     #[test]

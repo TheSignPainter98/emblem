@@ -5,10 +5,11 @@ use crate::log::messages::{
 };
 use crate::log::Log;
 use crate::parser::Location;
+use crate::FileName;
 use crate::{log::messages::Message, parser::point::Point};
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::rc::Rc;
+
 use std::{
     collections::VecDeque,
     error::Error,
@@ -33,7 +34,7 @@ pub struct Lexer<'input> {
 }
 
 impl<'input> Lexer<'input> {
-    pub fn new(file: Rc<str>, input: &'input str) -> Self {
+    pub fn new(file: FileName, input: &'input str) -> Self {
         Self {
             input,
             done: false,

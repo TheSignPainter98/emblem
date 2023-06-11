@@ -200,7 +200,7 @@ impl<'i> Log<'i> {
                     Slice {
                         source: context.src(),
                         line_start: s.loc().lines().0,
-                        origin: Some(s.loc().file_name()),
+                        origin: Some(s.loc().file_name().as_ref()),
                         fold: true,
                         annotations: s
                             .annotations()

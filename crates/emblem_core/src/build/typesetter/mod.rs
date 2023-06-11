@@ -435,7 +435,10 @@ mod test {
             }
 
             let err = Typesetter::new(&ctx, &mut ext_state)
-                .typeset(parser::parse("event-listeners.em".into(), "")?)
+                .typeset(parser::parse(
+                    ctx.alloc_file_name("event-listeners.em"),
+                    "",
+                )?)
                 .unwrap_err();
             assert!(
                 err.to_string()

@@ -66,10 +66,13 @@ impl Note<'_> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::parser::{Location, Point};
+    use crate::{
+        parser::{Location, Point},
+        FileName,
+    };
 
     fn dummy_loc() -> Location<'static> {
-        let p = Point::new("main.em".into(), "hello, world!");
+        let p = Point::new(FileName::new("main.em"), "hello, world!");
         let shifted = p.clone().shift("hello");
         Location::new(&p, &shifted)
     }
