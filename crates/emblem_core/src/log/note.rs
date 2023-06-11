@@ -69,7 +69,7 @@ mod test {
     use crate::parser::{Location, Point};
 
     fn dummy_loc() -> Location<'static> {
-        let p = Point::new("main.em", "hello, world!");
+        let p = Point::new("main.em".into(), "hello, world!");
         let shifted = p.clone().shift("hello");
         Location::new(&p, &shifted)
     }

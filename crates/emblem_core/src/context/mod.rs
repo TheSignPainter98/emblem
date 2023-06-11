@@ -5,7 +5,7 @@ use derive_new::new;
 use mlua::Result as MLuaResult;
 pub use module::{Module, ModuleVersion};
 use num::{Bounded, Integer};
-use std::fmt::Debug;
+use std::{fmt::Debug, rc::Rc};
 use typed_arena::Arena;
 
 pub const DEFAULT_MAX_STEPS: u32 = 100_000;
@@ -14,7 +14,7 @@ pub const DEFAULT_MAX_ITERS: u32 = 5;
 
 #[derive(Default)]
 pub struct Context<'m> {
-    files: Arena<File>,
+    files: Arena<String>,
     doc_params: DocumentParameters<'m>,
     lua_params: LuaParameters<'m>,
     typesetter_params: TypesetterParameters,
@@ -25,8 +25,12 @@ impl<'m> Context<'m> {
         Self::default()
     }
 
-    pub fn alloc_file(&self, name: String, content: String) -> &File {
-        self.files.alloc(File { name, content })
+    pub fn alloc_file_name(&self, name: &str) -> Rc<str> {
+        Rc::from(name)
+    }
+
+    pub fn alloc_file(&self, content: String) -> &str {
+        self.files.alloc(content)
     }
 
     pub fn doc_params(&self) -> &DocumentParameters<'m> {
@@ -71,22 +75,6 @@ impl<'m> Context<'m> {
             lua_params: LuaParameters::test_new(),
             typesetter_params: TypesetterParameters::test_new(),
         }
-    }
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct File {
-    name: String,
-    content: String,
-}
-
-impl File {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn content(&self) -> &str {
-        &self.content
     }
 }
 
@@ -299,13 +287,20 @@ mod test {
     use super::*;
 
     #[test]
+    fn alloc_file_name() {
+        let ctx = Context::test_new();
+        let name = "/usr/share/man/man1/gcc.1.gz";
+
+        let result = ctx.alloc_file_name(name);
+        assert_eq!(result, name.into());
+    }
+
+    #[test]
     fn alloc_file() {
         let ctx = Context::test_new();
-        let name = "/usr/share/man/man1/gcc.1.gz".to_owned();
         let content = "hello, world".to_owned();
 
-        let file = ctx.alloc_file(name.clone(), content.clone());
-        assert_eq!(file.name(), name);
-        assert_eq!(file.content(), content);
+        let result = ctx.alloc_file(content.clone());
+        assert_eq!(result, content);
     }
 }

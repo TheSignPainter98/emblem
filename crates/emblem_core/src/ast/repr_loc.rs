@@ -83,15 +83,16 @@ impl<'em> ReprLoc<'em> for Sugar<'em> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{ast::parsed::ParsedFile, parser};
+    use crate::{ast::parsed::ParsedFile, parser, Context};
 
-    fn parse<'i>(name: &'i str, src: &'i str) -> ParsedFile<'i> {
-        parser::parse(name, src).unwrap()
+    fn parse<'ctx>(ctx: &'ctx Context, name: &'ctx str, src: &'ctx str) -> ParsedFile<'ctx> {
+        parser::parse(ctx.alloc_file_name(name), ctx.alloc_file(src.into())).unwrap()
     }
 
     #[test]
     fn par() {
-        let file = parse("par", "have\nfun");
+        let ctx = Context::new();
+        let file = parse(&ctx, "par", "have\nfun");
         assert_eq!(
             "par:1:1-2:4",
             file.pars.first().unwrap().repr_loc().to_string()
@@ -100,7 +101,9 @@ mod test {
 
     #[test]
     fn par_part_command() {
+        let ctx = Context::new();
         let remainder_file = parse(
+            &ctx,
             "par-part-command",
             ".dont{get attached}: to somebody you could lose",
         );
@@ -117,7 +120,11 @@ mod test {
                 .to_string()
         );
 
-        let trailer_file = parse("par-part-command", ".wear{your heart}:\n\ton your cheek");
+        let trailer_file = parse(
+            &ctx,
+            "par-part-command",
+            ".wear{your heart}:\n\ton your cheek",
+        );
         assert_eq!(
             "par-part-command:1:1-5",
             trailer_file.pars[0].parts[0].repr_loc().to_string()
@@ -139,14 +146,15 @@ mod test {
         ];
 
         for (name, loc, idx, src) in tests {
-            let repr_loc = parse(name, src).pars[0].parts[0].line().unwrap()[idx]
+            let ctx = Context::new();
+            let repr_loc = parse(&ctx, name, src).pars[0].parts[0].line().unwrap()[idx]
                 .repr_loc()
                 .to_string();
             assert_eq!(
                 format!("{name}:{loc}"),
                 repr_loc,
                 "incorrect location for {name}={src}: {:#?}",
-                parse(name, src),
+                parse(&ctx, name, src),
             );
         }
     }
@@ -174,9 +182,10 @@ mod test {
         ];
 
         for (name, loc, src) in tests {
+            let ctx = Context::new();
             assert_eq!(
                 format!("{name}:{loc}"),
-                parse(name, src)
+                parse(&ctx, name, src)
                     .pars
                     .first()
                     .unwrap()

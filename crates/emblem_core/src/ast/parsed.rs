@@ -359,7 +359,7 @@ mod test {
 
         #[test]
         fn args() {
-            let p1 = Point::new("fname.em", "helloworld");
+            let p1 = Point::new("fname.em".into(), "helloworld");
             let p2 = p1.clone().shift("hello");
             let p3 = p2.clone().shift("world");
             let tests = vec![
@@ -385,7 +385,7 @@ mod test {
         #[test]
         fn unnamed() {
             let raw = " \tfoo\t ";
-            let p1 = Point::new("fname.em", raw);
+            let p1 = Point::new("fname.em".into(), raw);
             let attr = Attr::unnamed(raw, Location::new(&p1, &p1.clone().shift(raw)));
 
             assert_eq!(attr.name(), "foo");
@@ -396,7 +396,7 @@ mod test {
         #[test]
         fn named() {
             let raw = " \tfoo\t =\t bar \t";
-            let p1 = Point::new("fname.em", raw);
+            let p1 = Point::new("fname.em".into(), raw);
             let attr = Attr::named(raw, Location::new(&p1, &p1.clone().shift(raw)));
 
             assert_eq!(attr.name(), "foo");
@@ -411,7 +411,7 @@ mod test {
         #[test]
         fn call_name() {
             let text = "hello, world!";
-            let p1 = Point::new("main.em", text);
+            let p1 = Point::new("main.em".into(), text);
             let p2 = p1.clone().shift(text);
             let loc = Location::new(&p1, &p2);
 

@@ -85,7 +85,7 @@ mod test {
     {
         pub fn run(self) {
             let id = self.lint.id();
-            let file = parse("lint-test.em", self.src).expect("Failed to parse input");
+            let file = parse("lint-test.em".into(), self.src).expect("Failed to parse input");
 
             let problems = {
                 let mut problems = Vec::new();

@@ -164,9 +164,12 @@ mod test {
             let found_content = &fs::read_to_string(&main_file)?;
 
             assert_eq!(expected_main_content, found_content);
-            assert!(
-                parser::parse(main_file.as_path().to_str().unwrap(), expected_main_content).is_ok()
-            );
+            let ctx = Context::new();
+            assert!(parser::parse(
+                ctx.alloc_file_name(main_file.as_path().to_str().unwrap()),
+                ctx.alloc_file(expected_main_content.into())
+            )
+            .is_ok());
         }
 
         {

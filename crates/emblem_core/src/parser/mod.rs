@@ -17,7 +17,10 @@ use ast::parsed::ParsedFile;
 use error::StringConversionError;
 use lalrpop_util::lalrpop_mod;
 use lexer::Lexer;
-use std::io::{BufReader, Read};
+use std::{
+    io::{BufReader, Read},
+    rc::Rc,
+};
 
 lalrpop_mod!(
     #[allow(clippy::all)]
@@ -33,6 +36,19 @@ pub fn parse_file<'ctx, 'input>(
 where
     'ctx: 'input,
 {
+    let file = {
+        let raw = to_parse.path().as_os_str();
+        let mut path: &str = to_parse
+            .path()
+            .as_os_str()
+            .to_str()
+            .ok_or(StringConversionError::new(raw.to_owned()))?;
+        if path == "-" {
+            path = "(stdin)";
+        }
+        ctx.alloc_file_name(path)
+    };
+
     let content = {
         let file = to_parse.file();
         let hint = file.len_hint();
@@ -43,30 +59,14 @@ where
             .map(String::with_capacity)
             .unwrap_or_default();
         reader.read_to_string(&mut buf)?;
-        buf
+        ctx.alloc_file(buf)
     };
 
-    let file = {
-        let mut path: String = to_parse
-            .path()
-            .to_owned()
-            .into_os_string()
-            .into_string()
-            .map_err(StringConversionError::new)?;
-        if path == "-" {
-            path = "(stdin)".into();
-        }
-        ctx.alloc_file(path, content)
-    };
-
-    parse(file.name(), file.content())
+    parse(file, content)
 }
 
 /// Parse a given string of emblem source code.
-pub fn parse<'file>(
-    name: &'file str,
-    content: &'file str,
-) -> Result<ParsedFile<'file>, Box<Error<'file>>> {
+pub fn parse(name: Rc<str>, content: &str) -> Result<ParsedFile<'_>, Box<Error<'_>>> {
     let lexer = Lexer::new(name, content);
     let parser = parser::FileParser::new();
 
@@ -82,7 +82,7 @@ pub mod test {
     pub fn assert_structure(name: &str, input: &str, expected: &str) {
         assert_eq!(
             {
-                let parse_result = parse(name, input);
+                let parse_result = parse(name.into(), input);
                 assert!(
                     parse_result.is_ok(),
                     "{}: expected Ok parse result when parsing {:?}, got: {:?}",
@@ -101,7 +101,7 @@ pub mod test {
         assert_eq!(
             expected,
             {
-                let parse_result = parse(name, input_with_newline);
+                let parse_result = parse(name.into(), input_with_newline);
                 assert!(
                     parse_result.is_ok(),
                     "{}: expected Ok parse result when parsing {:?}",
@@ -124,7 +124,7 @@ pub mod test {
         ];
 
         for (name, input) in inputs {
-            let result = parse(name, input);
+            let result = parse(name.into(), input);
             assert!(result.is_err(), "{}: unexpected success", name);
 
             let err = result.unwrap_err();
