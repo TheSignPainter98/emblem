@@ -1,10 +1,13 @@
-use crate::parser::{LocationContext, Point};
+use crate::{
+    parser::{LocationContext, Point},
+    FileName,
+};
 use core::fmt::{self, Display};
 use std::cmp;
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Location<'i> {
-    file_name: &'i str,
+    file_name: FileName,
     src: &'i str,
     lines: (usize, usize),
     cols: (usize, usize),
@@ -14,7 +17,7 @@ pub struct Location<'i> {
 impl<'i> Location<'i> {
     pub fn new(start: &Point<'i>, end: &Point<'i>) -> Self {
         Self {
-            file_name: start.file_name,
+            file_name: start.file_name.clone(),
             src: start.src,
             lines: (start.line, end.line),
             indices: (start.index, end.index),
@@ -22,8 +25,8 @@ impl<'i> Location<'i> {
         }
     }
 
-    pub fn file_name(&self) -> &'i str {
-        self.file_name
+    pub fn file_name(&self) -> &FileName {
+        &self.file_name
     }
 
     pub fn src(&self) -> &'i str {
@@ -46,7 +49,7 @@ impl<'i> Location<'i> {
 
     pub fn start(&self) -> Point<'i> {
         Point {
-            file_name: self.file_name,
+            file_name: self.file_name.clone(),
             src: self.src,
             line: self.lines.0,
             col: self.cols.0,
@@ -56,7 +59,7 @@ impl<'i> Location<'i> {
 
     pub fn end(&self) -> Point<'i> {
         Point {
-            file_name: self.file_name,
+            file_name: self.file_name.clone(),
             src: self.src,
             line: self.lines.1,
             col: self.cols.1,
@@ -73,7 +76,7 @@ impl<'i> Location<'i> {
         }
 
         Self {
-            file_name: other.file_name,
+            file_name: other.file_name.clone(),
             src: self.src,
             lines: (
                 cmp::min(self.lines.0, other.lines.0),
@@ -104,6 +107,18 @@ impl<'i> Location<'i> {
     }
 }
 
+impl Default for Location<'_> {
+    fn default() -> Self {
+        Self {
+            file_name: FileName::new(""),
+            src: Default::default(),
+            lines: Default::default(),
+            cols: Default::default(),
+            indices: Default::default(),
+        }
+    }
+}
+
 impl Display for Location<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.lines.0 != self.lines.1 {
@@ -131,7 +146,7 @@ mod test {
         #[test]
         fn mid_line() {
             let text = "my name\nis methos";
-            let start = Point::new("fname.em", text);
+            let start = Point::new(FileName::new("fname.em"), text);
             let end = start.clone().shift(text);
 
             let loc = Location::new(&start, &end);
@@ -145,7 +160,7 @@ mod test {
         #[test]
         fn end_of_line() {
             let text = "my name is methos\n";
-            let start = Point::new("fname.em", text);
+            let start = Point::new(FileName::new("fname.em"), text);
             let end = start.clone().shift(text);
 
             let loc = Location::new(&start, &end);
@@ -160,7 +175,7 @@ mod test {
     #[test]
     fn start() {
         let text = "my name is methos\n";
-        let start = Point::new("fname.em", text);
+        let start = Point::new(FileName::new("fname.em"), text);
         let end = start.clone().shift(text);
 
         let loc = Location::new(&start, &end);
@@ -170,7 +185,7 @@ mod test {
     #[test]
     fn end() {
         let text = "my name is methos\n";
-        let start = Point::new("fname.em", text);
+        let start = Point::new(FileName::new("fname.em"), text);
         let end = start.clone().shift(text);
 
         let loc = Location::new(&start, &end);
@@ -180,7 +195,7 @@ mod test {
     #[test]
     fn span_to() {
         let text = "my name is methos\n";
-        let p1 = Point::new("fname.em", text);
+        let p1 = Point::new(FileName::new("fname.em"), text);
         let p2 = p1.clone().shift("my name");
         let p3 = p2.clone().shift(" is ");
         let p4 = p2.clone().shift("methos");
@@ -212,10 +227,11 @@ mod test {
 
     mod context {
         use super::*;
+
         #[test]
         fn single_line() {
             let text = "oh! santiana gained a day";
-            let text_start = Point::new("fname.em", text);
+            let text_start = Point::new(FileName::new("fname.em"), text);
 
             let loc_start_shift = "oh! ";
             let loc_text = "santiana";
@@ -240,7 +256,7 @@ mod test {
             ];
             for newline in ["\n", "\r", "\r\n"] {
                 let text = lines.join(newline);
-                let text_start = Point::new("fname.em", &text);
+                let text_start = Point::new(FileName::new("fname.em"), &text);
 
                 let loc_start_shift = &format!("oh! santiana gained a day{newline}away ");
                 let loc_text = &format!("santiana!{newline}'napoleon of");

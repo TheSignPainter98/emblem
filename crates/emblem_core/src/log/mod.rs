@@ -200,7 +200,7 @@ impl<'i> Log<'i> {
                     Slice {
                         source: context.src(),
                         line_start: s.loc().lines().0,
-                        origin: Some(s.loc().file_name()),
+                        origin: Some(s.loc().file_name().as_ref()),
                         fold: true,
                         annotations: s
                             .annotations()
@@ -462,7 +462,10 @@ impl<'i> Message<'i> for Log<'i> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::parser::{Location, Point};
+    use crate::{
+        parser::{Location, Point},
+        Context,
+    };
 
     #[test]
     fn msg() {
@@ -514,10 +517,11 @@ mod test {
 
     #[test]
     fn srcs() {
-        let content = "hello, world";
+        let ctx = Context::new();
+        let content = ctx.alloc_file("hello, world".into());
         let srcs = [
-            Point::new("main.em", content),
-            Point::new("something-else.em", content),
+            Point::new(ctx.alloc_file_name("main.em"), content),
+            Point::new(ctx.alloc_file_name("something-else.em"), content),
         ]
         .into_iter()
         .map(|p| {

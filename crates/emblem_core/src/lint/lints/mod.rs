@@ -40,6 +40,7 @@ mod test {
     use crate::{
         lint::{Lint, Lintable},
         parser::parse,
+        FileName,
     };
     use lazy_static::lazy_static;
     use regex::Regex;
@@ -85,7 +86,8 @@ mod test {
     {
         pub fn run(self) {
             let id = self.lint.id();
-            let file = parse("lint-test.em", self.src).expect("Failed to parse input");
+            let file =
+                parse(FileName::new("lint-test.em"), self.src).expect("Failed to parse input");
 
             let problems = {
                 let mut problems = Vec::new();

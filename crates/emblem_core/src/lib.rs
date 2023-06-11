@@ -27,7 +27,7 @@ pub use crate::{
         },
         Builder,
     },
-    context::{Context, ResourceLimit, SandboxLevel},
+    context::{file_name::FileName, Context, ResourceLimit, SandboxLevel},
     explain::Explainer,
     extensions::ExtensionState,
     lint::Linter,

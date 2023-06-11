@@ -56,17 +56,18 @@ impl Src<'_> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::parser::{Location, Point};
-
-    fn dummy_loc() -> Location<'static> {
-        let p = Point::new("main.em", "1111111111111");
-        let shifted = p.clone().shift("1111111111111");
-        Location::new(&p, &shifted)
-    }
+    use crate::{
+        parser::{Location, Point},
+        Context,
+    };
 
     #[test]
     fn loc() {
-        let p = Point::new("main.em", "1111111111111");
+        let ctx = Context::new();
+        let p = Point::new(
+            ctx.alloc_file_name("main.em"),
+            ctx.alloc_file("1111111111111".into()),
+        );
         let shifted = p.clone().shift("1111111111111");
         let loc = Location::new(&p, &shifted);
 
@@ -75,11 +76,15 @@ mod test {
 
     #[test]
     fn annotations() {
-        let start = Point::new("main.em", "111111222222");
+        let ctx = Context::new();
+        let start = Point::new(
+            ctx.alloc_file_name("main.em"),
+            ctx.alloc_file("111111222222".into()),
+        );
         let mid = start.clone().shift("111111");
         let end = mid.clone().shift("222222");
 
-        let mut src = Src::new(&dummy_loc());
+        let mut src = Src::new(&Location::new(&start, &end));
         let annotations = [
             Note::error(&Location::new(&start, &mid), "foo"),
             Note::error(&Location::new(&mid, &end), "foo"),

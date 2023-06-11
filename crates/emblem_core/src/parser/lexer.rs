@@ -5,9 +5,11 @@ use crate::log::messages::{
 };
 use crate::log::Log;
 use crate::parser::Location;
+use crate::FileName;
 use crate::{log::messages::Message, parser::point::Point};
 use lazy_static::lazy_static;
 use regex::Regex;
+
 use std::{
     collections::VecDeque,
     error::Error,
@@ -32,14 +34,14 @@ pub struct Lexer<'input> {
 }
 
 impl<'input> Lexer<'input> {
-    pub fn new(file: &'input str, input: &'input str) -> Self {
+    pub fn new(file: FileName, input: &'input str) -> Self {
         Self {
             input,
             done: false,
             failed: false,
             start_of_line: true,
             current_indent: 0,
-            curr_point: Point::new(file, input),
+            curr_point: Point::new(file.clone(), input),
             prev_point: Point::new(file, input),
             open_braces: Vec::new(),
             next_toks: VecDeque::new(),

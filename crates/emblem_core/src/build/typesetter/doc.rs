@@ -338,13 +338,16 @@ impl<'em> IntoDoc<'em> for Sugar<'em> {
 
 #[cfg(test)]
 mod test {
-    use crate::parser;
+    use crate::{parser, Context};
 
     use super::*;
 
     fn assert_structure(name: &str, input: &str, expected: &str) {
+        let ctx = Context::new();
         let src = textwrap::dedent(input);
-        let doc: Doc = parser::parse(name, &src).unwrap().into();
+        let doc: Doc = parser::parse(ctx.alloc_file_name(name), ctx.alloc_file(src))
+            .unwrap()
+            .into();
         assert_eq!(expected, doc.repr(), "{name}");
     }
 

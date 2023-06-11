@@ -127,7 +127,13 @@ mod test {
         )?;
 
         let typesetter = Typesetter::new(&ctx, &mut ext_state);
-        typesetter.typeset(parser::parse("iter_events.em", "")?)?;
+        typesetter.typeset(
+            parser::parse(
+                ctx.alloc_file_name("iter_events.em"),
+                ctx.alloc_file("".into()),
+            )
+            .unwrap(),
+        )?;
 
         assert_eq!(iter_start_indices.borrow().clone(), [1, 2, 3, 4, 5, 6, 7]);
         assert_eq!(iter_end_indices.borrow().clone(), [1, 2, 3, 4, 5, 6, 7]);
@@ -179,7 +185,13 @@ mod test {
             })?),
         )?;
 
-        Typesetter::new(&ctx, &mut ext_state).typeset(parser::parse("iter_events.em", "")?)?;
+        Typesetter::new(&ctx, &mut ext_state).typeset(
+            parser::parse(
+                ctx.alloc_file_name("iter_events.em"),
+                ctx.alloc_file("".into()),
+            )
+            .unwrap(),
+        )?;
 
         assert_eq!(
             iter_start_indices.borrow().clone(),
@@ -341,7 +353,13 @@ mod test {
             )?;
         }
 
-        Typesetter::new(&ctx, &mut ext_state).typeset(parser::parse("event-listeners.em", "")?)?;
+        Typesetter::new(&ctx, &mut ext_state).typeset(
+            parser::parse(
+                ctx.alloc_file_name("event-listeners.em"),
+                ctx.alloc_file("".into()),
+            )
+            .unwrap(),
+        )?;
 
         assert!(*iter_start_func_called.borrow());
         assert!(*iter_start_table_called.borrow());
@@ -417,7 +435,10 @@ mod test {
             }
 
             let err = Typesetter::new(&ctx, &mut ext_state)
-                .typeset(parser::parse("event-listeners.em", "")?)
+                .typeset(parser::parse(
+                    ctx.alloc_file_name("event-listeners.em"),
+                    "",
+                )?)
                 .unwrap_err();
             assert!(
                 err.to_string()
