@@ -71,7 +71,7 @@ mod test {
         FileName,
     };
 
-    fn dummy_loc() -> Location<'static> {
+    fn placeholder_loc() -> Location<'static> {
         let p = Point::new(FileName::new("main.em"), "hello, world!");
         let shifted = p.clone().shift("hello");
         Location::new(&p, &shifted)
@@ -79,7 +79,7 @@ mod test {
 
     #[test]
     pub fn loc() {
-        let loc = dummy_loc();
+        let loc = placeholder_loc();
 
         assert_eq!(&loc, Note::error(&loc, "foo").loc());
         assert_eq!(&loc, Note::warn(&loc, "foo").loc());
@@ -89,26 +89,26 @@ mod test {
 
     #[test]
     pub fn msg() {
-        assert_eq!("sup", Note::error(&dummy_loc(), "sup").msg());
+        assert_eq!("sup", Note::error(&placeholder_loc(), "sup").msg());
     }
 
     #[test]
     pub fn msg_type() {
         assert_eq!(
             AnnotationType::Error,
-            Note::error(&dummy_loc(), "foo").msg_type()
+            Note::error(&placeholder_loc(), "foo").msg_type()
         );
         assert_eq!(
             AnnotationType::Warning,
-            Note::warn(&dummy_loc(), "foo").msg_type()
+            Note::warn(&placeholder_loc(), "foo").msg_type()
         );
         assert_eq!(
             AnnotationType::Info,
-            Note::info(&dummy_loc(), "foo").msg_type()
+            Note::info(&placeholder_loc(), "foo").msg_type()
         );
         assert_eq!(
             AnnotationType::Help,
-            Note::help(&dummy_loc(), "foo").msg_type()
+            Note::help(&placeholder_loc(), "foo").msg_type()
         );
     }
 }

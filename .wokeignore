@@ -1,0 +1,15 @@
+# Submodules
+crates/yuescript/busted
+crates/yuescript/luacheck
+crates/yuescript/lua_cliargs
+crates/yuescript/luafilesystem
+crates/yuescript/luassert
+crates/yuescript/luasystem
+crates/yuescript/lua-term
+crates/yuescript/mediator_lua
+crates/yuescript/penlight
+crates/yuescript/say
+crates/yuescript/yuescript
+
+# Specific generated files
+docs/theme/mdBook-pagetoc/docs/highlight.js

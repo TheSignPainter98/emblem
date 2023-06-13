@@ -46,8 +46,8 @@ em hello.em
 ```
 
 Which will automatically apply the default style (`article`) and output in the default location based on the input, `hello.pdf`.
-Alternatively, to typeset the above as a presentation outputted as a man page (if you wanted this I guess?) in a file `insanity.1`, this works---
+Alternatively, to typeset the above as a presentation outputted as a man page (if you wanted this I guess?) in a file `craziness.1`, this works---
 
 ```sh
-em -Tman -cpres hello.em -o insanity.1
+em -Tman -cpres hello.em -o craziness.1
 ```
