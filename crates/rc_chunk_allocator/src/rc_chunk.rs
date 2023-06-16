@@ -1,4 +1,4 @@
-use crate::RcChunkAllocator;
+use crate::rc_chunk_allocator_metrics::RcChunkAllocatorMetrics;
 use std::{
     cell::RefCell,
     fmt::Debug,
@@ -7,14 +7,14 @@ use std::{
     rc::Rc as StdRc,
 };
 
-pub(crate) struct Chunk<T: Debug, const N: usize> {
-    inner: StdRc<RefCell<ChunkImpl<T, N>>>,
+pub(crate) struct RcChunk<T: Debug, const N: usize> {
+    inner: StdRc<RefCell<RcChunkImpl<T, N>>>,
 }
 
-impl<T: Debug, const N: usize> Chunk<T, N> {
-    pub(crate) fn new(parent: RcChunkAllocator<T, N>) -> Self {
+impl<T: Debug, const N: usize> RcChunk<T, N> {
+    pub(crate) fn new(parent_metrics: RcChunkAllocatorMetrics<T, N>) -> Self {
         Self {
-            inner: StdRc::new(RefCell::new(ChunkImpl::new(parent))),
+            inner: StdRc::new(RefCell::new(RcChunkImpl::new(parent_metrics))),
         }
     }
 
@@ -27,11 +27,11 @@ impl<T: Debug, const N: usize> Chunk<T, N> {
     }
 
     pub(crate) fn size() -> usize {
-        mem::size_of::<StdRc<RefCell<ChunkImpl<T, N>>>>() + mem::size_of::<ChunkImpl<T, N>>()
+        mem::size_of::<StdRc<RefCell<RcChunkImpl<T, N>>>>() + mem::size_of::<RcChunkImpl<T, N>>()
     }
 }
 
-impl<T: Debug, const N: usize> Clone for Chunk<T, N> {
+impl<T: Debug, const N: usize> Clone for RcChunk<T, N> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
@@ -39,7 +39,7 @@ impl<T: Debug, const N: usize> Clone for Chunk<T, N> {
     }
 }
 
-impl<T: Debug, const N: usize> Index<usize> for Chunk<T, N> {
+impl<T: Debug, const N: usize> Index<usize> for RcChunk<T, N> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -47,16 +47,16 @@ impl<T: Debug, const N: usize> Index<usize> for Chunk<T, N> {
     }
 }
 
-struct ChunkImpl<T: Debug, const N: usize> {
-    parent: RcChunkAllocator<T, N>,
+struct RcChunkImpl<T: Debug, const N: usize> {
+    parent_metrics: RcChunkAllocatorMetrics<T, N>,
     len: usize,
     chunk: [MaybeUninit<T>; N],
 }
 
-impl<T: Debug, const N: usize> ChunkImpl<T, N> {
-    fn new(parent: RcChunkAllocator<T, N>) -> Self {
+impl<T: Debug, const N: usize> RcChunkImpl<T, N> {
+    fn new(parent_metrics: RcChunkAllocatorMetrics<T, N>) -> Self {
         Self {
-            parent,
+            parent_metrics,
             len: 0,
             chunk: unsafe { MaybeUninit::uninit().assume_init() },
         }
@@ -78,7 +78,7 @@ impl<T: Debug, const N: usize> ChunkImpl<T, N> {
     }
 }
 
-impl<T: Debug, const N: usize> Index<usize> for ChunkImpl<T, N> {
+impl<T: Debug, const N: usize> Index<usize> for RcChunkImpl<T, N> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -87,7 +87,7 @@ impl<T: Debug, const N: usize> Index<usize> for ChunkImpl<T, N> {
     }
 }
 
-impl<T: Debug, const N: usize> Drop for ChunkImpl<T, N> {
+impl<T: Debug, const N: usize> Drop for RcChunkImpl<T, N> {
     fn drop(&mut self) {
         println!("dropping chunk");
         for elem in &mut self.chunk[..self.len] {
@@ -96,6 +96,6 @@ impl<T: Debug, const N: usize> Drop for ChunkImpl<T, N> {
             }
         }
 
-        self.parent.on_child_dropped();
+        self.parent_metrics.on_child_dropped();
     }
 }

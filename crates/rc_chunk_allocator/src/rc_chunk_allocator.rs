@@ -1,9 +1,9 @@
-use crate::{chunk::Chunk, chunk_allocator_metrics::ChunkAllocatorMetrics, rc::Rc};
+use crate::{rc_chunk::RcChunk, rc_chunk_allocator_metrics::RcChunkAllocatorMetrics, rc::Rc};
 use std::{cell::RefCell, fmt::Debug, rc::Rc as StdRc};
 
 pub struct RcChunkAllocator<T: Debug, const N: usize> {
     inner: StdRc<RefCell<RcChunkAllocatorImpl<T, N>>>,
-    metrics: StdRc<RefCell<ChunkAllocatorMetrics<T, N>>>,
+    metrics: RcChunkAllocatorMetrics<T, N>,
 }
 
 impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
@@ -11,7 +11,7 @@ impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
         Self::check();
         Self {
             inner: StdRc::new(RefCell::new(RcChunkAllocatorImpl::new())),
-            metrics: StdRc::new(RefCell::new(ChunkAllocatorMetrics::new())),
+            metrics: RcChunkAllocatorMetrics::new(),
         }
     }
 
@@ -29,15 +29,11 @@ impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
 
     /// Approximate the amount of memory used by the top level of child constructs
     pub fn memory_used(&self) -> usize {
-        self.metrics.try_borrow().unwrap().memory_used()
+        self.metrics.memory_used()
     }
 
-    pub(crate) fn on_child_created(&self) {
-        self.metrics.try_borrow_mut().unwrap().on_child_created()
-    }
-
-    pub(crate) fn on_child_dropped(&self) {
-        self.metrics.try_borrow_mut().unwrap().on_child_dropped()
+    fn metrics(&self) -> &RcChunkAllocatorMetrics<T, N> {
+        &self.metrics
     }
 }
 
@@ -61,7 +57,7 @@ impl<T: Debug, const N: usize> Clone for RcChunkAllocator<T, N> {
 }
 
 struct RcChunkAllocatorImpl<T: Debug, const N: usize> {
-    chunk: Option<Chunk<T, N>>,
+    chunk: Option<RcChunk<T, N>>,
 }
 
 impl<T: Debug, const N: usize> RcChunkAllocatorImpl<T, N> {
@@ -90,12 +86,12 @@ impl<T: Debug, const N: usize> RcChunkAllocatorImpl<T, N> {
     }
 
     fn is_clean(&self) -> bool {
-        self.chunk.as_ref().is_some_and(Chunk::is_empty)
+        self.chunk.as_ref().is_some_and(RcChunk::is_empty)
     }
 
     fn clean(&mut self, parent: &RcChunkAllocator<T, N>) {
-        parent.on_child_created();
-        self.chunk = Some(Chunk::new(parent.to_owned()));
+        parent.metrics().on_child_created();
+        self.chunk = Some(RcChunk::new(parent.metrics().to_owned()));
     }
 }
 

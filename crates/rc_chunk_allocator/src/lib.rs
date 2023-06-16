@@ -1,14 +1,15 @@
-mod chunk;
-mod chunk_allocator;
-mod chunk_allocator_metrics;
 mod rc;
+mod rc_chunk;
+mod rc_chunk_allocator;
+mod rc_chunk_allocator_metrics;
 
-pub use crate::chunk_allocator::RcChunkAllocator;
 pub use crate::rc::Rc;
+pub use crate::rc_chunk_allocator::RcChunkAllocator;
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::{cell::RefCell, rc::Rc as StdRc};
 
     #[derive(Debug)]
     struct TestElem {

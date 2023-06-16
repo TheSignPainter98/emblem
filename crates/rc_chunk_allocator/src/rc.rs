@@ -1,16 +1,16 @@
-use crate::chunk::Chunk;
+use crate::rc_chunk::RcChunk;
 use std::{
     fmt::{self, Debug},
     ops::Deref,
 };
 
 pub struct Rc<T: Debug, const N: usize> {
-    chunk: Chunk<T, N>,
+    chunk: RcChunk<T, N>,
     index: usize,
 }
 
 impl<T: Debug, const N: usize> Rc<T, N> {
-    pub(crate) fn new(chunk: Chunk<T, N>, index: usize) -> Self {
+    pub(crate) fn new(chunk: RcChunk<T, N>, index: usize) -> Self {
         Self { chunk, index }
     }
 }
