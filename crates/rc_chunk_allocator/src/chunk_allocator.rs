@@ -1,8 +1,9 @@
-use crate::{rc::Rc, chunk::Chunk};
+use crate::{rc::Rc, chunk::Chunk, chunk_allocator_metrics::ChunkAllocatorMetrics};
 use std::{rc::Rc as StdRc, fmt::Debug, cell::RefCell};
 
 pub struct RcChunkAllocator<T: Debug, const N: usize> {
     inner: StdRc<RefCell<RcChunkAllocatorImpl<T, N>>>,
+    metrics: StdRc<RefCell<ChunkAllocatorMetrics<T, N>>>,
 }
 
 impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
@@ -10,6 +11,7 @@ impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
         Self::check();
         Self {
             inner: StdRc::new(RefCell::new(RcChunkAllocatorImpl::new())),
+            metrics: StdRc::new(RefCell::new(ChunkAllocatorMetrics::new())),
         }
     }
 
@@ -25,17 +27,17 @@ impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
         self.inner.try_borrow_mut().unwrap().alloc(&self, t)
     }
 
-    pub fn refresh(&self) {
-        self.inner.try_borrow_mut().unwrap().clean(self);
-    }
-
+    /// Approximate the amount of memory used by the top level of child constructs
     pub fn memory_used(&self) -> usize {
-        self.inner.try_borrow().unwrap().memory_used()
+        self.metrics.try_borrow().unwrap().memory_used()
     }
 
-    pub(crate) fn on_child_dropped(&mut self) {
-        // println!("on_child_dropped");
-        // self.inner.try_borrow_mut().unwrap().on_child_dropped()
+    pub(crate) fn on_child_created(&self) {
+        self.metrics.try_borrow_mut().unwrap().on_child_created()
+    }
+
+    pub(crate) fn on_child_dropped(&self) {
+        self.metrics.try_borrow_mut().unwrap().on_child_dropped()
     }
 }
 
@@ -47,19 +49,18 @@ impl<T: Debug, const N: usize> Clone for RcChunkAllocator<T, N> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
+            metrics: self.metrics.clone(),
         }
     }
 }
 
 struct RcChunkAllocatorImpl<T: Debug, const N: usize> {
-    children: usize,
     chunk: Option<Chunk<T, N>>,
 }
 
 impl<T: Debug, const N: usize> RcChunkAllocatorImpl<T, N> {
     fn new() -> Self {
         Self {
-            children: 0,
             chunk: None,
         }
     }
@@ -89,17 +90,8 @@ impl<T: Debug, const N: usize> RcChunkAllocatorImpl<T, N> {
     }
 
     fn clean(&mut self, parent: &RcChunkAllocator<T, N>) {
-        self.children += 1;
+        parent.on_child_created();
         self.chunk = Some(Chunk::new(parent.to_owned()));
-    }
-
-    /// Approximate the amount of memory used by the top level of child constructs
-    fn memory_used(&self) -> usize {
-        self.children * Chunk::<T, N>::size()
-    }
-
-    pub(crate) fn on_child_dropped(&mut self) {
-        self.children -= 1;
     }
 }
 

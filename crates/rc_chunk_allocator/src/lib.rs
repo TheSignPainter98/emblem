@@ -1,5 +1,6 @@
 mod chunk;
 mod chunk_allocator;
+mod chunk_allocator_metrics;
 mod rc;
 
 pub use crate::chunk_allocator::RcChunkAllocator;
