@@ -27,11 +27,6 @@ impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
         self.inner.try_borrow_mut().unwrap().alloc(self, t)
     }
 
-    /// Approximate the amount of memory used by the top level of child constructs
-    pub fn memory_used(&self) -> usize {
-        self.metrics.memory_used()
-    }
-
     fn metrics(&self) -> &RcChunkAllocatorMetrics<T, N> {
         &self.metrics
     }
@@ -100,7 +95,7 @@ impl<T: Debug, const N: usize> RcChunkAllocatorImpl<T, N> {
     }
 }
 
-pub trait Check {
+trait Check {
     const VALID: ();
 
     #[allow(clippy::let_unit_value)]
