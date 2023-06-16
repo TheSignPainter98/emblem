@@ -1,5 +1,5 @@
-use crate::{rc::Rc, chunk::Chunk, chunk_allocator_metrics::ChunkAllocatorMetrics};
-use std::{rc::Rc as StdRc, fmt::Debug, cell::RefCell};
+use crate::{chunk::Chunk, chunk_allocator_metrics::ChunkAllocatorMetrics, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, rc::Rc as StdRc};
 
 pub struct RcChunkAllocator<T: Debug, const N: usize> {
     inner: StdRc<RefCell<RcChunkAllocatorImpl<T, N>>>,
@@ -20,11 +20,11 @@ impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
     }
 
     pub fn clean(&self) {
-        self.inner.try_borrow_mut().unwrap().clean(&self);
+        self.inner.try_borrow_mut().unwrap().clean(self);
     }
 
     pub fn alloc(&self, t: T) -> Rc<T, N> {
-        self.inner.try_borrow_mut().unwrap().alloc(&self, t)
+        self.inner.try_borrow_mut().unwrap().alloc(self, t)
     }
 
     /// Approximate the amount of memory used by the top level of child constructs
@@ -38,6 +38,12 @@ impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
 
     pub(crate) fn on_child_dropped(&self) {
         self.metrics.try_borrow_mut().unwrap().on_child_dropped()
+    }
+}
+
+impl<T: Debug, const N: usize> Default for RcChunkAllocator<T, N> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -60,9 +66,7 @@ struct RcChunkAllocatorImpl<T: Debug, const N: usize> {
 
 impl<T: Debug, const N: usize> RcChunkAllocatorImpl<T, N> {
     fn new() -> Self {
-        Self {
-            chunk: None,
-        }
+        Self { chunk: None }
     }
 
     fn alloc(&mut self, parent: &RcChunkAllocator<T, N>, t: T) -> Rc<T, N> {
@@ -98,6 +102,7 @@ impl<T: Debug, const N: usize> RcChunkAllocatorImpl<T, N> {
 pub trait Check {
     const VALID: ();
 
+    #[allow(clippy::let_unit_value)]
     fn check() {
         _ = Self::VALID;
     }

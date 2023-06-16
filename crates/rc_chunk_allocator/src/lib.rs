@@ -36,7 +36,7 @@ mod test {
         let mut elems = vec![];
         println!(">>{}", alloc.memory_used());
         for i in 0..(OVERFILL * N) {
-        println!("<>{}", alloc.memory_used());
+            println!("<>{}", alloc.memory_used());
             elems.push(alloc.alloc(TestElem::new(i)));
         }
         println!("<<{}", alloc.memory_used());
