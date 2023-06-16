@@ -27,6 +27,14 @@ impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
         self.inner.try_borrow_mut().unwrap().alloc(self, t)
     }
 
+    pub fn memory_used(&self) -> usize {
+        self.metrics.memory_used()
+    }
+
+    pub fn max_alive_children(&self) -> usize {
+        self.metrics.max_alive_children()
+    }
+
     fn metrics(&self) -> &RcChunkAllocatorMetrics<T, N> {
         &self.metrics
     }

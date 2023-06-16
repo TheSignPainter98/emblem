@@ -1,7 +1,7 @@
 use crate::rc_chunk::RcChunk;
 use std::{cell::RefCell, fmt::Debug, marker::PhantomData, rc::Rc as StdRc};
 
-pub struct RcChunkAllocatorMetrics<T: Debug, const N: usize> {
+pub(crate) struct RcChunkAllocatorMetrics<T: Debug, const N: usize> {
     inner: StdRc<RefCell<RcChunkAllocatorMetricsImpl<T, N>>>,
 }
 
@@ -12,20 +12,29 @@ impl<T: Debug, const N: usize> RcChunkAllocatorMetrics<T, N> {
         }
     }
 
-    pub fn memory_used(&self) -> usize {
-        self.inner.try_borrow().unwrap().memory_used()
+    pub(crate) fn memory_used(&self) -> usize {
+        self.inner
+            .try_borrow()
+            .expect("internal error: metrics implementation being mutated")
+            .memory_used()
     }
 
-    fn max_alive_children(&self) -> usize {
-        self.inner.try_borrow().unwrap().max_alive_children()
+    pub(crate) fn max_alive_children(&self) -> usize {
+        self.inner.try_borrow()
+            .expect("internal error: metrics implementation being mutated")
+            .max_alive_children()
     }
 
-    pub fn on_child_created(&self) {
-        self.inner.try_borrow_mut().unwrap().on_child_created()
+    pub(crate) fn on_child_created(&self) {
+        self.inner.try_borrow_mut()
+            .expect("internal error: metrics implementation being mutated")
+            .on_child_created()
     }
 
-    pub fn on_child_dropped(&self) {
-        self.inner.try_borrow_mut().unwrap().on_child_dropped()
+    pub(crate) fn on_child_dropped(&self) {
+        self.inner.try_borrow_mut()
+            .expect("internal error: metrics implementation being mutated")
+            .on_child_dropped()
     }
 }
 
