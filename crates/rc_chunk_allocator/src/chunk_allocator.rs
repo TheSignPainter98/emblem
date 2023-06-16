@@ -77,7 +77,7 @@ impl<T: Debug, const N: usize> RcChunkAllocatorImpl<T, N> {
                 let index = self
                     .chunk
                     .as_ref()
-                    .expect("internal error: refresh did not create fresh chunk")
+                    .expect("internal error: clean did not create fresh chunk")
                     .try_alloc(t)
                     .expect("internal error: fresh chunk failed to allocate");
                 Rc::new(self.chunk.as_ref().unwrap().clone(), index)
