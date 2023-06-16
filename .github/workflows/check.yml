@@ -86,6 +86,48 @@ jobs:
           command: test
           args: --workspace --all-features
 
+  check-miri:
+    name: Run tests with Miri
+    needs: check-native
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cargo/env
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Source cargo environment
+        run: |
+          [[ -f ~/.cargo/env ]] && source ~/.cargo/env || true
+
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          default: true
+          components: miri
+
+      - name: Run cargo miri test
+        run: cargo miri test -p rc_chunk_allocator
+
   check-wasm:
     name: Check WASM compatibility
     runs-on: ubuntu-latest
