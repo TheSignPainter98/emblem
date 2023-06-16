@@ -82,7 +82,7 @@ impl<T: Debug, const N: usize> Index<usize> for ChunkImpl<T, N> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
-        assert!(index > self.len);
+        assert!(index < self.len);
         unsafe { self.chunk[index].assume_init_ref() }
     }
 }
