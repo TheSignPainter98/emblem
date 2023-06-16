@@ -18,10 +18,6 @@ impl<T: Debug, const N: usize> RcChunk<T, N> {
         }
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
-        self.inner.try_borrow().unwrap().is_empty()
-    }
-
     pub(crate) fn try_alloc(&self, t: T) -> Result<usize, T> {
         self.inner.try_borrow_mut().unwrap().try_alloc(t)
     }
@@ -60,10 +56,6 @@ impl<T: Debug, const N: usize> RcChunkImpl<T, N> {
             len: 0,
             chunk: unsafe { MaybeUninit::uninit().assume_init() },
         }
-    }
-
-    fn is_empty(&self) -> bool {
-        self.len == 0
     }
 
     fn try_alloc(&mut self, t: T) -> Result<usize, T> {

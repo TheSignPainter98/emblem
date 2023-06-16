@@ -20,7 +20,7 @@ impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
     }
 
     pub fn clean(&self) {
-        self.inner.try_borrow_mut().unwrap().clean(self);
+        self.inner.try_borrow_mut().unwrap().clean();
     }
 
     pub fn alloc(&self, t: T) -> Rc<T, N> {
@@ -67,17 +67,18 @@ impl<T: Debug, const N: usize> RcChunkAllocatorImpl<T, N> {
 
     fn alloc(&mut self, parent: &RcChunkAllocator<T, N>, t: T) -> Rc<T, N> {
         if self.chunk.is_none() {
-            self.clean(parent)
+            self.refresh(parent)
         }
 
-        match self.chunk.as_ref().unwrap().try_alloc(t) {
-            Ok(index) => Rc::new(self.chunk.as_ref().unwrap().clone(), index),
+        let chunk = self.chunk.as_ref().unwrap();
+        match chunk.try_alloc(t) {
+            Ok(index) => Rc::new(chunk.clone(), index),
             Err(t) => {
-                self.clean(parent);
+                self.refresh(parent);
                 let index = self
                     .chunk
                     .as_ref()
-                    .expect("internal error: clean did not create fresh chunk")
+                    .expect("internal error: refresh did not create fresh chunk")
                     .try_alloc(t)
                     .expect("internal error: fresh chunk failed to allocate");
                 Rc::new(self.chunk.as_ref().unwrap().clone(), index)
@@ -86,10 +87,14 @@ impl<T: Debug, const N: usize> RcChunkAllocatorImpl<T, N> {
     }
 
     fn is_clean(&self) -> bool {
-        self.chunk.as_ref().is_some_and(RcChunk::is_empty)
+        self.chunk.is_none()
     }
 
-    fn clean(&mut self, parent: &RcChunkAllocator<T, N>) {
+    fn clean(&mut self) {
+        self.chunk = None;
+    }
+
+    fn refresh(&mut self, parent: &RcChunkAllocator<T, N>) {
         parent.metrics().on_child_created();
         self.chunk = Some(RcChunk::new(parent.metrics().to_owned()));
     }
