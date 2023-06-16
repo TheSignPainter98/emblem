@@ -1,4 +1,4 @@
-use crate::{rc_chunk::RcChunk, rc_chunk_allocator_metrics::RcChunkAllocatorMetrics, rc::Rc};
+use crate::{rc::Rc, rc_chunk::RcChunk, rc_chunk_allocator_metrics::RcChunkAllocatorMetrics};
 use std::{cell::RefCell, fmt::Debug, rc::Rc as StdRc};
 
 pub struct RcChunkAllocator<T: Debug, const N: usize> {

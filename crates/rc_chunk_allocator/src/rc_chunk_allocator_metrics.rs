@@ -1,5 +1,5 @@
 use crate::rc_chunk::RcChunk;
-use std::{fmt::Debug, marker::PhantomData, rc::Rc as StdRc, cell::RefCell};
+use std::{cell::RefCell, fmt::Debug, marker::PhantomData, rc::Rc as StdRc};
 
 pub(crate) struct RcChunkAllocatorMetrics<T: Debug, const N: usize> {
     inner: StdRc<RefCell<RcChunkAllocatorMetricsImpl<T, N>>>,
