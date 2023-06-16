@@ -16,6 +16,7 @@ members = [
 	"crates/arg_parser",
 	"crates/emblem_core",
 	"crates/yuescript",
+	"crates/rc_chunk_allocator",
 ]
 
 [profile.release]
