@@ -15,25 +15,28 @@ impl<T: Debug, const N: usize> RcChunkAllocatorMetrics<T, N> {
     pub(crate) fn memory_used(&self) -> usize {
         self.inner
             .try_borrow()
-            .expect("internal error: metrics implementation being mutated")
+            .expect("internal error: metrics being mutated")
             .memory_used()
     }
 
     pub(crate) fn max_alive_children(&self) -> usize {
-        self.inner.try_borrow()
-            .expect("internal error: metrics implementation being mutated")
+        self.inner
+            .try_borrow()
+            .expect("internal error: metrics being mutated")
             .max_alive_children()
     }
 
     pub(crate) fn on_child_created(&self) {
-        self.inner.try_borrow_mut()
-            .expect("internal error: metrics implementation being mutated")
+        self.inner
+            .try_borrow_mut()
+            .expect("internal error: metrics being mutated")
             .on_child_created()
     }
 
     pub(crate) fn on_child_dropped(&self) {
-        self.inner.try_borrow_mut()
-            .expect("internal error: metrics implementation being mutated")
+        self.inner
+            .try_borrow_mut()
+            .expect("internal error: metrics being mutated")
             .on_child_dropped()
     }
 }

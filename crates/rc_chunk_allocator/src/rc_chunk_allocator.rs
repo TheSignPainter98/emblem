@@ -16,15 +16,24 @@ impl<T: Debug, const N: usize> RcChunkAllocator<T, N> {
     }
 
     pub fn is_clean(&self) -> bool {
-        self.inner.try_borrow().unwrap().is_clean()
+        self.inner
+            .try_borrow()
+            .expect("internal error: allocator being mutated")
+            .is_clean()
     }
 
     pub fn clean(&self) {
-        self.inner.try_borrow_mut().unwrap().clean();
+        self.inner
+            .try_borrow_mut()
+            .expect("internal error: allocator being mutated")
+            .clean();
     }
 
     pub fn alloc(&self, t: T) -> Rc<T, N> {
-        self.inner.try_borrow_mut().unwrap().alloc(self, t)
+        self.inner
+            .try_borrow_mut()
+            .expect("internal error: allocator being mutated")
+            .alloc(self, t)
     }
 
     pub fn memory_used(&self) -> usize {
@@ -73,18 +82,22 @@ impl<T: Debug, const N: usize> RcChunkAllocatorImpl<T, N> {
             self.refresh(parent)
         }
 
-        let chunk = self.chunk.as_ref().unwrap();
+        let chunk = self
+            .chunk
+            .as_ref()
+            .expect("internal error: refresh did not create fresh chunk");
         match chunk.try_alloc(t) {
             Ok(index) => Rc::new(chunk.clone(), index),
             Err(t) => {
                 self.refresh(parent);
-                let index = self
+                let chunk = self
                     .chunk
                     .as_ref()
-                    .expect("internal error: refresh did not create fresh chunk")
+                    .expect("internal error: refresh did not create fresh chunk");
+                let index = chunk
                     .try_alloc(t)
                     .expect("internal error: fresh chunk failed to allocate");
-                Rc::new(self.chunk.as_ref().unwrap().clone(), index)
+                Rc::new(chunk.clone(), index)
             }
         }
     }

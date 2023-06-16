@@ -19,7 +19,10 @@ impl<T: Debug, const N: usize> RcChunk<T, N> {
     }
 
     pub(crate) fn try_alloc(&self, t: T) -> Result<usize, T> {
-        self.inner.try_borrow_mut().unwrap().try_alloc(t)
+        self.inner
+            .try_borrow_mut()
+            .expect("internal error: chunk being mutated")
+            .try_alloc(t)
     }
 
     pub(crate) fn size() -> usize {
