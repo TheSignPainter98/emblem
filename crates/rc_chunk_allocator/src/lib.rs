@@ -39,6 +39,12 @@ mod test {
             "initial memory should be zero, got {}",
             alloc.memory_used()
         );
+        assert_eq!(
+            alloc.max_alive_children(),
+            0,
+            "initial children should be zero, got {}",
+            alloc.max_alive_children(),
+        );
         let increment;
         {
             let mut nums = 1..;
@@ -57,12 +63,20 @@ mod test {
                         tmp.push(alloc.alloc(TestElem::new(nums.next().unwrap())))
                     }
                 }
-                let expected = (1 + TRANSIENT_REPS) * increment;
+                let expected_memory = (1 + TRANSIENT_REPS) * increment;
                 assert_eq!(
                     alloc.memory_used(),
-                    expected,
-                    "expected {expected} memory used, got {}",
+                    expected_memory,
+                    "expected {expected_memory} memory used, got {}",
                     alloc.memory_used()
+                );
+
+                let expected_max_alive_children = (1 + TRANSIENT_REPS) * N;
+                assert_eq!(
+                    alloc.max_alive_children(),
+                    expected_max_alive_children,
+                    "expected {expected_max_alive_children} max alive children, got {}",
+                    alloc.max_alive_children(),
                 );
             }
 
@@ -73,12 +87,20 @@ mod test {
                 }
             }
 
-            let expected = (1 + PERSISTENT_REPS) * increment;
+            let expected_memory = (1 + PERSISTENT_REPS) * increment;
             assert_eq!(
                 alloc.memory_used(),
-                expected,
-                "expected {expected} memory used, got {}",
+                expected_memory,
+                "expected {expected_memory} memory used, got {}",
                 alloc.memory_used()
+            );
+
+            let expected_max_alive_children = (1 + PERSISTENT_REPS) * N;
+            assert_eq!(
+                alloc.max_alive_children(),
+                expected_max_alive_children,
+                "expected {expected_max_alive_children} memory used, got {}",
+                alloc.max_alive_children(),
             );
         }
         assert_eq!(
@@ -86,6 +108,12 @@ mod test {
             increment,
             "final memory should be {increment}, got {}",
             alloc.memory_used()
+        );
+        assert_eq!(
+            alloc.max_alive_children(),
+            N,
+            "final memory should be {N}, got {}",
+            alloc.max_alive_children()
         );
     }
 
