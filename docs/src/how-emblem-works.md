@@ -1,6 +1,23 @@
-# How Emblem Works
+# How Emblem works
 
-In this document, we will discuss the [how documents are processed](#the-typesetting-loop), [how documents are styled](#styling-documents-with-css), [extensions](#extensions) and [input and output drivers](#input-and-output-drivers).
+Assuming you have already installed Emblem, let's build a document.
+
+<!-- we will discuss [how documents are processed](#the-typesetting-loop), [how documents are styled](#styling-documents-with-css), [extensions](#extensions) and [input and output drivers](#input-and-output-drivers). -->
+
+First, we create a document - call it `my-first-doc.em`, and in it, type:
+
+```emblem
+.toc // Constructs the table of contents
+.h1: Hello, world!
+This is my first document.
+```
+Now, in the same directory as the file you've just created, run:
+
+```bash
+em my-first-doc
+```
+
+A PDF will be generated in the same directory, called `my-first-doc.pdf`.
 
 At its most abstracted level, Emblem takes input of a document, typesets it and outputs it.
 It does this by parsing its input looking for _directives,_ structuring-calls calls which sub-divide a document’s source, which can apply both styles to and perform computation upon document content.
@@ -81,7 +98,7 @@ When a call to a directive, _d_, is evaluated, Emblem first checks to see whethe
 If it is, then this function is executed and its result is taken to be a part of the document.
 [An example of this can be seen above concerning the `.toc` directive](#how-emblem-works), which constructs a table of contents from headings.
 
-Extensions are simply [Lua][lua] files and have two purposes in Emblem---the import of custom style sheets and the creation of new directive functions.
+Extensions are [Lua][lua] files and have two purposes in Emblem---the import of custom style sheets and the creation of new directive functions.
 These style sheets are considered to be ‘above’ the user’s one, thus allowing for defaults to be created and overridden as required.
 Conversely, directive functions have slightly more nuance.
 As Emblem processes a document, it maintains a Lua environment which contains a _public table_ called ‘em.’
@@ -94,7 +111,7 @@ For example, to include an extension `ext` with parameter `param` given a value 
 em -x ext -a ext.param=arg
 ```
 
-To define a new directive function, an extension simply adds an entry into the ‘em’ table,[^em-loc] alongside help text and the number of parameters it expects.
+To define a new directive function, an extension adds an entry into the ‘em’ table,[^em-loc] alongside help text and the number of parameters it expects.
 The entry also encodes some basic type information, so if a directive is called with the wrong number of arguments, a warning can be issued.
 These entries also encode a help message which can be accessed through the `.help` directive.
 The following example shows information about the `.echo` directive:
