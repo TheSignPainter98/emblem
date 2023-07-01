@@ -1,3 +1,4 @@
+pub(crate) mod file_content;
 pub(crate) mod file_name;
 mod module;
 
