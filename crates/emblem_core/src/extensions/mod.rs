@@ -389,7 +389,7 @@ mod test {
 
     #[test]
     fn memory_limited() -> Result<(), Box<dyn Error>> {
-        let threshold = Memory(100000);
+        let threshold = Memory(500000);
         for limit in [ResourceLimit::Unlimited, ResourceLimit::Limited(threshold)] {
             let ctx = {
                 let mut ctx = Context::test_new();
