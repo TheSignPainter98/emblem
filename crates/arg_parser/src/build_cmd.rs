@@ -3,10 +3,10 @@ use crate::{
     resource_limit::ResourceLimit,
 };
 use clap::Parser;
-use emblem_core::context::DEFAULT_MAX_ITERS;
+use emblem_core::context::Iteration;
 
 /// Arguments to the build subcommand
-#[derive(Clone, Debug, Parser, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Parser, PartialEq, Eq)]
 #[warn(missing_docs)]
 pub struct BuildCmd {
     #[command(flatten)]
@@ -22,25 +22,14 @@ pub struct BuildCmd {
     pub lua: LuaArgs,
 
     /// Max iterations of the typesetting loop
-    #[arg(long, value_parser = ResourceLimit::<u32>::parser(), default_value_t = ResourceLimit::Limited(DEFAULT_MAX_ITERS), value_name = "max")]
-    pub max_iters: ResourceLimit<u32>,
+    #[arg(long, value_parser = ResourceLimit::<Iteration>::parser(), default_value_t = Default::default(), value_name = "max")]
+    pub max_iters: ResourceLimit<Iteration>,
 }
 
 impl BuildCmd {
     #[allow(dead_code)]
     pub fn output_stem(&self) -> ArgPath {
         self.output.stem.infer_from(&self.input.file)
-    }
-}
-
-impl Default for BuildCmd {
-    fn default() -> Self {
-        Self {
-            input: Default::default(),
-            output: Default::default(),
-            lua: Default::default(),
-            max_iters: ResourceLimit::Limited(DEFAULT_MAX_ITERS),
-        }
     }
 }
 
@@ -59,7 +48,7 @@ impl From<&BuildCmd> for emblem_core::Builder {
 mod test {
     use super::*;
     use crate::{sandbox_level::SandboxLevel, Args};
-    use emblem_core::context::{DEFAULT_MAX_ITERS, DEFAULT_MAX_MEM, DEFAULT_MAX_STEPS};
+    use emblem_core::context::{Memory, Resource, Step};
 
     #[test]
     fn output_driver() {
@@ -187,7 +176,7 @@ mod test {
                 .unwrap()
                 .lua
                 .max_mem,
-            ResourceLimit::Limited(DEFAULT_MAX_MEM),
+            ResourceLimit::Limited(Resource::default_limit()),
         );
         assert_eq!(
             Args::try_parse_from(["em", "build", "--max-mem", "25"])
@@ -197,7 +186,7 @@ mod test {
                 .unwrap()
                 .lua
                 .max_mem,
-            ResourceLimit::Limited(25)
+            ResourceLimit::Limited(Memory(25))
         );
         assert_eq!(
             Args::try_parse_from(["em", "build", "--max-mem", "25K"])
@@ -207,7 +196,7 @@ mod test {
                 .unwrap()
                 .lua
                 .max_mem,
-            ResourceLimit::Limited(25 * 1024)
+            ResourceLimit::Limited(Memory(25 * 1024))
         );
         assert_eq!(
             Args::try_parse_from(["em", "build", "--max-mem", "25M"])
@@ -217,7 +206,7 @@ mod test {
                 .unwrap()
                 .lua
                 .max_mem,
-            ResourceLimit::Limited(25 * 1024 * 1024)
+            ResourceLimit::Limited(Memory(25 * 1024 * 1024))
         );
         assert_eq!(
             Args::try_parse_from(["em", "build", "--max-mem", "25G"])
@@ -227,7 +216,7 @@ mod test {
                 .unwrap()
                 .lua
                 .max_mem,
-            ResourceLimit::Limited(25 * 1024 * 1024 * 1024)
+            ResourceLimit::Limited(Memory(25 * 1024 * 1024 * 1024))
         );
         assert_eq!(
             Args::try_parse_from(["em", "build", "--max-mem", "unlimited"])
@@ -256,7 +245,7 @@ mod test {
                 .unwrap()
                 .lua
                 .max_steps,
-            ResourceLimit::Limited(DEFAULT_MAX_STEPS),
+            ResourceLimit::Limited(Resource::default_limit()),
         );
         assert_eq!(
             Args::try_parse_from(["em", "build", "--max-steps", "25"])
@@ -266,7 +255,7 @@ mod test {
                 .unwrap()
                 .lua
                 .max_steps,
-            ResourceLimit::Limited(25)
+            ResourceLimit::Limited(Step(25))
         );
         assert_eq!(
             Args::try_parse_from(["em", "build", "--max-steps", "25K"])
@@ -276,7 +265,7 @@ mod test {
                 .unwrap()
                 .lua
                 .max_steps,
-            ResourceLimit::Limited(25 * 1024)
+            ResourceLimit::Limited(Step(25 * 1024))
         );
         assert_eq!(
             Args::try_parse_from(["em", "build", "--max-steps", "25M"])
@@ -286,7 +275,7 @@ mod test {
                 .unwrap()
                 .lua
                 .max_steps,
-            ResourceLimit::Limited(25 * 1024 * 1024)
+            ResourceLimit::Limited(Step(25 * 1024 * 1024))
         );
         assert_eq!(
             Args::try_parse_from(["em", "build", "--max-steps", "unlimited"])
@@ -309,7 +298,7 @@ mod test {
             .unwrap_err()
             .to_string();
             assert!(
-                err.contains("resource limit too large, expected at most 4294967295"),
+                err.contains("invalid value '4294967296'"),
                 "unexpected error: {err:#?}"
             );
         }
@@ -319,7 +308,7 @@ mod test {
                 .unwrap_err()
                 .to_string();
             assert!(
-                err.contains("resource limit too large, expected at most 4294967295"),
+                err.contains("invalid value '10000G'"),
                 "unexpected error: {err:#?}",
             );
         }
@@ -421,7 +410,7 @@ mod test {
                 .build()
                 .unwrap()
                 .max_iters,
-            ResourceLimit::Limited(DEFAULT_MAX_ITERS),
+            ResourceLimit::Limited(Resource::default_limit()),
         );
         assert_eq!(
             Args::try_parse_from(["em", "build", "--max-iters", "25"])
@@ -430,7 +419,7 @@ mod test {
                 .build()
                 .unwrap()
                 .max_iters,
-            ResourceLimit::Limited(25),
+            ResourceLimit::Limited(Iteration(25)),
         );
         assert_eq!(
             Args::try_parse_from(["em", "build", "--max-iters", "unlimited"])
