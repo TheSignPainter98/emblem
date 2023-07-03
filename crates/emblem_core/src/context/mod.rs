@@ -1,11 +1,13 @@
 pub(crate) mod file_name;
 mod module;
+mod resource_limit;
 mod resources;
 
 use crate::{ExtensionState, FileName, Typesetter, Version};
 use derive_new::new;
 use mlua::Result as MLuaResult;
 pub use module::{Module, ModuleVersion};
+pub use resource_limit::ResourceLimit;
 pub use resources::{Iteration, Memory, Resource, Step};
 use std::fmt::Debug;
 use typed_arena::Arena;
@@ -243,27 +245,6 @@ impl TypesetterParameters {
         Self {
             max_iters: ResourceLimit::Unlimited,
         }
-    }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum ResourceLimit<T: Resource> {
-    Unlimited,
-    Limited(T),
-}
-
-impl<T: Resource> ResourceLimit<T> {
-    pub(crate) fn contains(&self, amount: T) -> bool {
-        match self {
-            Self::Unlimited => true,
-            Self::Limited(l) => amount < *l,
-        }
-    }
-}
-
-impl<T: Resource> Default for ResourceLimit<T> {
-    fn default() -> Self {
-        Self::Limited(T::default_limit())
     }
 }
 
