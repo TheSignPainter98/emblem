@@ -12,11 +12,11 @@ pub struct LuaArgs {
     pub args: Vec<ExtArg>, // TODO(kcza): plumb me!
 
     /// Limit lua memory usage
-    #[arg(long, value_parser = ResourceLimit::<Memory>::parser(), default_value_t = Default::default(), value_name = "amount")]
+    #[arg(long, value_parser = ResourceLimit::<Memory>::parser(), default_value_t, value_name = "amount")]
     pub max_mem: ResourceLimit<Memory>,
 
     /// Limit lua execution steps
-    #[arg(long, value_parser = ResourceLimit::<Step>::parser(), default_value_t = Default::default(), value_name = "steps")]
+    #[arg(long, value_parser = ResourceLimit::<Step>::parser(), default_value_t, value_name = "steps")]
     pub max_steps: ResourceLimit<Step>,
 
     /// Restrict system access

@@ -22,7 +22,7 @@ pub struct BuildCmd {
     pub lua: LuaArgs,
 
     /// Max iterations of the typesetting loop
-    #[arg(long, value_parser = ResourceLimit::<Iteration>::parser(), default_value_t = Default::default(), value_name = "max")]
+    #[arg(long, value_parser = ResourceLimit::<Iteration>::parser(), default_value_t, value_name = "max")]
     pub max_iters: ResourceLimit<Iteration>,
 }
 
