@@ -3,6 +3,7 @@ use std::error::Error;
 use crate::{
     ast::parsed::ParsedFile,
     build::typesetter::doc::Doc,
+    context::Iteration,
     extensions::{Event, ExtensionState},
     Context, ResourceLimit,
 };
@@ -13,15 +14,15 @@ pub(crate) mod doc;
 
 pub struct Typesetter<'em> {
     ext_state: &'em mut ExtensionState<'em>,
-    curr_iter: u32,
-    max_iters: ResourceLimit<u32>,
+    curr_iter: Iteration,
+    max_iters: ResourceLimit<Iteration>,
 }
 
 impl<'em> Typesetter<'em> {
     pub fn new(ctx: &'em Context<'em>, ext_state: &'em mut ExtensionState<'em>) -> Self {
         Self {
             ext_state,
-            curr_iter: 0,
+            curr_iter: Iteration(0),
             max_iters: ctx.typesetter_params().max_iters(),
         }
     }
@@ -45,8 +46,7 @@ impl<'em> Typesetter<'em> {
     }
 
     fn will_reiter(&self) -> bool {
-        self.ext_state.reiter_requested()
-            && self.curr_iter < self.max_iters.limit().unwrap_or(u32::MAX)
+        self.ext_state.reiter_requested() && self.max_iters.contains(self.curr_iter)
     }
 
     fn reset_reiter_request(&self) {
@@ -54,9 +54,10 @@ impl<'em> Typesetter<'em> {
     }
 
     fn iter(&mut self, _root: &mut Doc<'em>) -> Result<(), Box<dyn Error>> {
-        self.curr_iter += 1;
+        self.curr_iter += Iteration(1);
 
-        println!("Doing iteration {} of {:?}", self.curr_iter, self.max_iters);
+        let Iteration(iter) = &self.curr_iter;
+        println!("Doing iteration {iter} of {:?}", self.max_iters);
 
         self.ext_state.handle(Event::IterStart {
             iter: self.curr_iter,
@@ -92,7 +93,7 @@ mod test {
         let ctx = {
             let mut ctx = Context::test_new();
             ctx.typesetter_params_mut()
-                .set_max_iters(ResourceLimit::Limited(7));
+                .set_max_iters(ResourceLimit::Limited(Iteration(7)));
             ctx
         };
         let mut ext_state = ctx.extension_state()?;
