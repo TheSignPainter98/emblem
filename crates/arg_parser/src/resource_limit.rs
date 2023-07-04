@@ -4,50 +4,27 @@ use clap::{
     error::{Error as ClapError, ErrorKind as ClapErrorKind},
     CommandFactory,
 };
-use emblem_core::context::ResourceLimit as EmblemResourceLimit;
-use num::{Bounded, FromPrimitive, Integer, ToPrimitive};
-use std::{fmt::Display, str::FromStr};
+use emblem_core::context::{Resource, ResourceLimit as EmblemResourceLimit};
+use std::{error::Error, fmt::Display};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum ResourceLimit<T: Bounded + Clone + Copy + Integer> {
+pub enum ResourceLimit<T: Resource> {
     Unlimited,
     Limited(T),
 }
 
-impl<T> ResourceLimit<T>
+impl<T: Resource> ResourceLimit<T>
 where
-    T: Bounded
-        + Clone
-        + Copy
-        + Display
-        + FromPrimitive
-        + FromStr
-        + Integer
-        + ToPrimitive
-        + Send
-        + Sync
-        + 'static,
-    <T as FromStr>::Err: Display,
+    <T as TryFrom<u64>>::Error: Error,
 {
     pub(crate) fn parser() -> impl TypedValueParser {
         StringValueParser::new().try_map(Self::try_from)
     }
 }
 
-impl<T> TryFrom<String> for ResourceLimit<T>
+impl<T: Resource> TryFrom<String> for ResourceLimit<T>
 where
-    T: Bounded
-        + Clone
-        + Copy
-        + Display
-        + FromPrimitive
-        + FromStr
-        + Integer
-        + ToPrimitive
-        + Send
-        + Sync
-        + 'static,
-    <T as FromStr>::Err: Display,
+    <T as TryFrom<u64>>::Error: Error,
 {
     type Error = ClapError;
 
@@ -56,81 +33,24 @@ where
     }
 }
 
-impl<T> TryFrom<&str> for ResourceLimit<T>
+impl<T: Resource> TryFrom<&str> for ResourceLimit<T>
 where
-    T: Bounded
-        + Clone
-        + Copy
-        + Display
-        + FromPrimitive
-        + FromStr
-        + Integer
-        + ToPrimitive
-        + Send
-        + Sync
-        + 'static,
-    <T as FromStr>::Err: Display,
+    <T as TryFrom<u64>>::Error: Error,
 {
     type Error = ClapError;
 
     fn try_from(raw: &str) -> Result<Self, Self::Error> {
-        if raw.is_empty() {
-            let mut cmd = RawArgs::command();
-            return Err(cmd.error(ClapErrorKind::InvalidValue, "need amount"));
-        }
-
         if raw == "unlimited" {
             return Ok(Self::Unlimited);
         }
 
-        let (raw_amt, unit): (String, String) = raw.chars().partition(|c| c.is_numeric());
-        let amt: T = raw_amt.parse().map_err(|_| {
-            RawArgs::command().error(
-                ClapErrorKind::InvalidValue,
-                format!(
-                    "resource limit too large, expected at most {}",
-                    T::max_value()
-                ),
-            )
-        })?;
-
-        let max = T::max_value();
-        let multiplier: T = {
-            let max = max.to_u64().expect("internal error: max value too large");
-            match &unit[..] {
-                "K" if max >= 1 << 10 => T::from_u64(1 << 10).unwrap(),
-                "M" if max >= 1 << 20 => T::from_u64(1 << 20).unwrap(),
-                "G" if max >= 1 << 30 => T::from_u64(1 << 30).unwrap(),
-                "" => T::from_u64(1).unwrap(),
-                _ => {
-                    let mut cmd = RawArgs::command();
-                    return Err(cmd.error(
-                        ClapErrorKind::InvalidValue,
-                        format!("unrecognised unit: {}", unit),
-                    ));
-                }
-            }
-        };
-
-        if max / multiplier < amt {
-            let mut cmd = RawArgs::command();
-            return Err(cmd.error(
-                ClapErrorKind::InvalidValue,
-                format!(
-                    "resource limit too large, expected at most {}",
-                    T::max_value()
-                ),
-            ));
-        }
-
-        Ok(Self::Limited(amt * multiplier))
+        Ok(Self::Limited(T::parse(raw).map_err(|err| {
+            RawArgs::command().error(ClapErrorKind::InvalidValue, err.to_string())
+        })?))
     }
 }
 
-impl<T> Display for ResourceLimit<T>
-where
-    T: Bounded + Clone + Copy + Display + Integer,
-{
+impl<T: Resource> Display for ResourceLimit<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Unlimited => write!(f, "unlimited"),
@@ -139,14 +59,17 @@ where
     }
 }
 
-impl<T> From<ResourceLimit<T>> for EmblemResourceLimit<T>
-where
-    T: Bounded + Integer + Clone + Copy,
-{
+impl<T: Resource> From<ResourceLimit<T>> for EmblemResourceLimit<T> {
     fn from(limit: ResourceLimit<T>) -> Self {
         match limit {
             ResourceLimit::Limited(n) => Self::Limited(n),
             ResourceLimit::Unlimited => Self::Unlimited,
         }
+    }
+}
+
+impl<T: Resource> Default for ResourceLimit<T> {
+    fn default() -> Self {
+        Self::Limited(T::default_limit())
     }
 }
