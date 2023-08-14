@@ -5,17 +5,17 @@ use derive_new::new;
 use indoc::indoc;
 
 #[derive(Default, new)]
-pub struct EmptyQualifier<'i> {
-    loc: Location<'i>,
-    qualifier_loc: Location<'i>,
+pub struct EmptyQualifier {
+    loc: Location,
+    qualifier_loc: Location,
 }
 
-impl<'i> Message<'i> for EmptyQualifier<'i> {
+impl<'i> Message<'i> for EmptyQualifier {
     fn id() -> &'static str {
         "E004"
     }
 
-    fn log(self) -> Log<'i> {
+    fn log(self) -> Log {
         Log::error("empty qualifier in command name")
             .with_id(Self::id())
             .explainable()

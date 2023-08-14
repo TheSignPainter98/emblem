@@ -23,7 +23,7 @@ pub struct Linter {
 impl Action for Linter {
     type Response = ();
 
-    fn run<'ctx>(&self, ctx: &'ctx mut context::Context) -> EmblemResult<'ctx, Self::Response> {
+    fn run<'ctx>(&self, ctx: &'ctx mut context::Context) -> EmblemResult<Self::Response> {
         let problems = match self.input.as_ref().try_into() {
             Ok(r) => self.lint_root(ctx, r),
             Err(e) => vec![Log::error(e.to_string())],
@@ -33,7 +33,7 @@ impl Action for Linter {
 }
 
 impl Linter {
-    fn lint_root<'em>(&self, ctx: &'em mut Context, file: SearchResult) -> Vec<Log<'em>> {
+    fn lint_root<'em>(&self, ctx: &'em mut Context, file: SearchResult) -> Vec<Log> {
         let file = match parser::parse_file(ctx, file) {
             Ok(f) => f,
             Err(e) => return vec![e.log()],
@@ -45,24 +45,24 @@ impl Linter {
     }
 }
 
-pub type Lints<'i> = Vec<Box<dyn Lint<'i>>>;
+pub type Lints = Vec<Box<dyn Lint>>;
 
-pub trait Lint<'i> {
-    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>>;
+pub trait Lint {
+    fn analyse(&mut self, content: &Content) -> Vec<Log>;
 
-    fn done(&mut self) -> Vec<Log<'i>> {
+    fn done(&mut self) -> Vec<Log> {
         vec![]
     }
 
     fn id(&self) -> &'static str;
 }
 
-pub trait Lintable<'i> {
-    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>);
+pub trait Lintable {
+    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Log>);
 }
 
-impl<'i, T: Lintable<'i>> Lintable<'i> for File<T> {
-    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
+impl<T: Lintable> Lintable for File<T> {
+    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Log>) {
         self.pars.lint(lints, problems);
 
         for lint in lints {
@@ -73,14 +73,14 @@ impl<'i, T: Lintable<'i>> Lintable<'i> for File<T> {
     }
 }
 
-impl<'i, T: Lintable<'i>> Lintable<'i> for Par<T> {
-    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
+impl<T: Lintable> Lintable for Par<T> {
+    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Log>) {
         self.parts.lint(lints, problems);
     }
 }
 
-impl<'i, T: Lintable<'i>> Lintable<'i> for ParPart<T> {
-    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
+impl<T: Lintable> Lintable for ParPart<T> {
+    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Log>) {
         match self {
             Self::Command(cmd) => cmd.lint(lints, problems),
             Self::Line(line) => line.lint(lints, problems),
@@ -88,8 +88,8 @@ impl<'i, T: Lintable<'i>> Lintable<'i> for ParPart<T> {
     }
 }
 
-impl<'i> Lintable<'i> for Content<'i> {
-    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
+impl Lintable for Content {
+    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Log>) {
         for lint in lints.iter_mut() {
             for problem in lint.analyse(self) {
                 problems.push(problem.with_id(lint.id()));
@@ -122,8 +122,8 @@ impl<'i> Lintable<'i> for Content<'i> {
     }
 }
 
-impl<'i> Lintable<'i> for Sugar<'i> {
-    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
+impl Lintable for Sugar {
+    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Log>) {
         match self {
             Self::Italic { arg, .. } => arg.lint(lints, problems),
             Self::Bold { arg, .. } => arg.lint(lints, problems),
@@ -136,16 +136,16 @@ impl<'i> Lintable<'i> for Sugar<'i> {
     }
 }
 
-impl<'i, T: Lintable<'i>> Lintable<'i> for Option<T> {
-    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
+impl<T: Lintable> Lintable for Option<T> {
+    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Log>) {
         if let Some(t) = self {
             t.lint(lints, problems);
         }
     }
 }
 
-impl<'i, T: Lintable<'i>> Lintable<'i> for Vec<T> {
-    fn lint(&self, lints: &mut Lints<'i>, problems: &mut Vec<Log<'i>>) {
+impl<T: Lintable> Lintable for Vec<T> {
+    fn lint(&self, lints: &mut Lints, problems: &mut Vec<Log>) {
         for elem in self {
             elem.lint(lints, problems)
         }

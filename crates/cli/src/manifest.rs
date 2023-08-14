@@ -18,13 +18,13 @@ pub(crate) struct DocManifest<'m> {
 }
 
 impl<'m> TryFrom<&'m str> for DocManifest<'m> {
-    type Error = Box<Log<'m>>;
+    type Error = Box<Log>;
 
     fn try_from(src: &'m str) -> Result<Self, Self::Error> {
         let parsed: DocManifest<'_> =
             serde_yaml::from_str(src).map_err(|e| Log::error(e.to_string()))?;
 
-        parsed.validate().map_err(|e| Log::error(&*e))?;
+        parsed.validate().map_err(|e| Log::error(e))?;
 
         Ok(parsed)
     }

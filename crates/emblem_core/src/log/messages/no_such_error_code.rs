@@ -16,7 +16,7 @@ impl<'a> Message<'a> for NoSuchErrorCode {
         "E001"
     }
 
-    fn log(self) -> Log<'a> {
+    fn log(self) -> Log {
         Log::error(format!("no such error code ‘{}’", self.id))
             .with_id(Self::id())
             .explainable()

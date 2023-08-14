@@ -37,7 +37,7 @@ impl From<&InitCmd> for Initialiser<PathBuf> {
 impl<T: AsRef<Path>> Action for Initialiser<T> {
     type Response = ();
 
-    fn run<'ctx>(&self, _: &'ctx mut Context) -> EmblemResult<'ctx, Self::Response> {
+    fn run<'ctx>(&self, _: &'ctx mut Context) -> EmblemResult<Self::Response> {
         let logs = match self.run_internal() {
             Ok(_) => vec![],
             Err(e) => vec![Log::error(e.to_string())],
@@ -125,7 +125,7 @@ mod test {
     };
     use tempfile::TempDir;
 
-    fn do_init<'em>(ctx: &'em mut Context<'em>, tmpdir: &TempDir) -> EmblemResult<'em, ()> {
+    fn do_init<'em>(ctx: &'em mut Context<'em>, tmpdir: &TempDir) -> EmblemResult<()> {
         Initialiser::new(tmpdir).run(ctx)
     }
 
@@ -167,7 +167,7 @@ mod test {
             let ctx = Context::new();
             assert!(parser::parse(
                 ctx.alloc_file_name(main_file.as_path().to_str().unwrap()),
-                ctx.alloc_file(expected_main_content.into())
+                ctx.alloc_file_content(expected_main_content)
             )
             .is_ok());
         }

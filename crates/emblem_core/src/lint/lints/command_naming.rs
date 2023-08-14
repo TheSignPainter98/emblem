@@ -1,4 +1,5 @@
 use crate::ast::parsed::Content;
+use crate::context::file_content::FileSlice;
 use crate::lint::Lint;
 use crate::log::{Log, Note, Src};
 use derive_new::new;
@@ -12,12 +13,12 @@ lazy_static! {
     static ref CONFORMANT_NAME: Regex = Regex::new(r"^[a-z0-9-]*?$").unwrap();
 }
 
-impl<'i> Lint<'i> for CommandNaming {
+impl Lint for CommandNaming {
     fn id(&self) -> &'static str {
         "command-naming"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
+    fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
             Content::Command {
                 name,
@@ -25,7 +26,7 @@ impl<'i> Lint<'i> for CommandNaming {
                 invocation_loc,
                 ..
             } => {
-                if !CONFORMANT_NAME.is_match(name.as_str()) {
+                if !CONFORMANT_NAME.is_match(name.to_str()) {
                     return vec![Log::warn(format!(
                         "commands should be lowercase with dashes: got ‘.{name}’"
                     ))
@@ -33,7 +34,7 @@ impl<'i> Lint<'i> for CommandNaming {
                         invocation_loc,
                         format!(
                             "try changing this to ‘.{}’",
-                            name.as_str().to_lowercase().replace('_', "-")
+                            name.to_str().to_lowercase().replace('_', "-")
                         ),
                     )))
                     .with_note(

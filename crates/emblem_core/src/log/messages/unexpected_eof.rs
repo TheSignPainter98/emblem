@@ -3,13 +3,13 @@ use crate::log::{Log, Note, Src};
 use crate::parser::{Location, Point};
 
 #[derive(Default)]
-pub struct UnexpectedEOF<'i> {
-    point: Point<'i>,
+pub struct UnexpectedEOF {
+    point: Point,
     expected: Vec<String>,
 }
 
-impl<'i> UnexpectedEOF<'i> {
-    pub fn new(mut point: Point<'i>, expected: Vec<String>) -> Self {
+impl UnexpectedEOF {
+    pub fn new(mut point: Point, expected: Vec<String>) -> Self {
         assert!(
             point.index > 0,
             "internal error: empty files are supposed to be valid"
@@ -21,8 +21,8 @@ impl<'i> UnexpectedEOF<'i> {
     }
 }
 
-impl<'i> Message<'i> for UnexpectedEOF<'i> {
-    fn log(self) -> Log<'i> {
+impl<'i> Message<'i> for UnexpectedEOF {
+    fn log(self) -> Log {
         let loc = Location::new(&self.point, &self.point.clone().shift("\0"));
         Log::error("unexpected eof")
             .with_src(Src::new(&loc).with_annotation(Note::error(&loc, "file ended early here")))

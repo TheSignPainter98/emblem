@@ -6,12 +6,12 @@ use derive_new::new;
 #[derive(new)]
 pub struct EmptyAttrs {}
 
-impl<'i> Lint<'i> for EmptyAttrs {
+impl Lint for EmptyAttrs {
     fn id(&self) -> &'static str {
         "empty-attrs"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
+    fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
             Content::Command {
                 loc,

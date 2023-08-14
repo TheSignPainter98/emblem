@@ -14,24 +14,25 @@ use crate::ast::{
 		ParsedFile,
 		Sugar,
 	},
-	Par, ParPart, Text
+	Par, ParPart,
 };
+use crate::FileContentSlice;
 
-grammar<'input>;
+grammar;
 
-pub File: ParsedFile<'input> = {
+pub File: ParsedFile = {
     FileContent => <>.into(),
 };
 
-FileContent: Vec<Par<ParPart<Content<'input>>>> = {
+FileContent: Vec<Par<ParPart<Content>>> = {
 	MaybeSepList<Par, par_break>
 }
 
-Par: Par<ParPart<Content<'input>>> = {
+Par: Par<ParPart<Content>> = {
 	ParPart+ => <>.into(),
 }
 
-ParPart: ParPart<Content<'input>> = {
+ParPart: ParPart<Content> = {
 	<MaybeLineContent> "\n" => ParPart::Line(<>),
 
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> ":" "\n" <trail_head:Indented<FileContent>> <trail_tail:("::" "\n" <Indented<FileContent>>)*> <r:@R> => {
@@ -53,11 +54,11 @@ ParPart: ParPart<Content<'input>> = {
 	},
 }
 
-MaybeLineContent: Vec<Content<'input>> = {
+MaybeLineContent: Vec<Content> = {
 	LineContent? => <>.unwrap_or_default()
 }
 
-LineContent: Vec<Content<'input>> = {
+LineContent: Vec<Content> = {
 	LineElement+,
 	Shebang => vec![<>],
 	HeadingLine => vec![<>],
@@ -67,14 +68,14 @@ LineContent: Vec<Content<'input>> = {
 	},
 }
 
-Shebang: Content<'input> = {
+Shebang: Content = {
 	<l:@L> <shebang:shebang> <r:@R> => Content::Shebang {
 		text: shebang,
 		loc: Location::new(&l, &r),
 	},
 };
 
-HeadingLine: Content<'input> = {
+HeadingLine: Content = {
 	<l:@L> <marker:HeadingMarker> <standoff:whitespace> <arg:LineContent> <r:@R> => Content::Sugar(Sugar::Heading{
 		level: marker.0,
 		pluses: marker.1,
@@ -85,11 +86,11 @@ HeadingLine: Content<'input> = {
 	}),
 }
 
-HeadingMarker: (usize, usize, Location<'input>) = {
+HeadingMarker: (usize, usize, Location) = {
 	<l:@L> <h:heading> <r:@R> => (h.0, h.1, Location::new(&l, &r)),
 }
 
-RemainderCommand: Content<'input> = {
+RemainderCommand: Content = {
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <remainder_arg:(":" <LineContent>)> <r:@R> => Content::Command {
 		qualifier: name.0,
 		name: name.1,
@@ -103,11 +104,11 @@ RemainderCommand: Content<'input> = {
 	}
 }
 
-CommandName: (Option<Text<'input>>, Text<'input>, usize, Location<'input>) = {
+CommandName: (Option<FileContentSlice>, FileContentSlice, usize, Location) = {
 	<l:@L> <command:command> <r:@R> => (command.0.map(Into::into), command.1.into(), command.2.into(), Location::new(&l, &r)),
 }
 
-LineElement: Content<'input> = {
+LineElement: Content = {
 	<l:@L> <comment:comment>       <r:@R> => Content::Comment{ comment, loc: Location::new(&l, &r) },
 	<l:@L> <content:NestedComment> <r:@R> => Content::MultiLineComment{ content, loc: Location::new(&l, &r) },
 	<l:@L> <whitespace:whitespace> <r:@R> => Content::Whitespace{ whitespace, loc: Location::new(&l, &r) },
@@ -135,7 +136,7 @@ LineElement: Content<'input> = {
 	},
 }
 
-EmphSugar: Content<'input> = {
+EmphSugar: Content = {
 	<l:@L> <delimiter:italic_open> <arg:LineElement+> italic_close <r:@R> => Content::Sugar(
 		Sugar::Italic{
 			delimiter,
@@ -170,24 +171,24 @@ EmphSugar: Content<'input> = {
 	),
 }
 
-Attrs: Attrs<'input> = {
+Attrs: Attrs = {
 	<l:@L> "[" <attrs:MaybeSepList<Attr, ",">> "]" <r:@R> => Attrs::new(attrs, Location::new(&l, &r)),
 }
 
-Attr: Attr<'input> = {
+Attr: Attr = {
 	<l:@L> <attr:named_attr> <r:@R> => Attr::named(attr, Location::new(&l, &r)),
 	<l:@L> <attr:unnamed_attr> <r:@R> => Attr::unnamed(attr, Location::new(&l, &r)),
 };
 
-NestedComment: MultiLineComment<'input> = {
+NestedComment: MultiLineComment = {
 	"/*" <NestedCommentContent> "*/"
 }
 
-NestedCommentContent: MultiLineComment<'input> = {
+NestedCommentContent: MultiLineComment = {
 	<NestedCommentPart*> => MultiLineComment(<>),
 }
 
-NestedCommentPart: MultiLineCommentPart<'input> = {
+NestedCommentPart: MultiLineCommentPart = {
 	"\n"          => MultiLineCommentPart::Newline,
 	comment       => MultiLineCommentPart::Comment(<>),
 	NestedComment => MultiLineCommentPart::Nested(<>),
@@ -221,11 +222,11 @@ MaybeIndented<T>: T = {
 }
 
 extern {
-	type Location = Point<'input>;
-	type Error = Box<LexicalError<'input>>;
+	type Location = Point;
+	type Error = Box<LexicalError>;
 
-	enum Tok<'input> {
-		shebang              => Tok::Shebang(<&'input str>),
+	enum Tok {
+		shebang              => Tok::Shebang(<FileContentSlice>),
 		indent               => Tok::Indent,
 		dedent               => Tok::Dedent,
 		":"                  => Tok::Colon,
@@ -233,15 +234,15 @@ extern {
 		"{"                  => Tok::LBrace,
 		"}"                  => Tok::RBrace,
 		command              => Tok::Command {
-									qualifier: <Option<&'input str>>,
-									name: <&'input str>,
+									qualifier: <Option<FileContentSlice>>,
+									name: <FileContentSlice>,
 									pluses: <usize>
 								},
-		italic_open          => Tok::ItalicOpen(<&'input str>),
-		bold_open            => Tok::BoldOpen(<&'input str>),
-		monospace_open       => Tok::MonospaceOpen(<&'input str>),
-		smallcaps_open       => Tok::SmallcapsOpen(<&'input str>),
-		alternate_face_open  => Tok::AlternateFaceOpen(<&'input str>),
+		italic_open          => Tok::ItalicOpen(<FileContentSlice>),
+		bold_open            => Tok::BoldOpen(<FileContentSlice>),
+		monospace_open       => Tok::MonospaceOpen(<FileContentSlice>),
+		smallcaps_open       => Tok::SmallcapsOpen(<FileContentSlice>),
+		alternate_face_open  => Tok::AlternateFaceOpen(<FileContentSlice>),
 		italic_close         => Tok::ItalicClose,
 		bold_close           => Tok::BoldClose,
 		monospace_close      => Tok::MonospaceClose,
@@ -251,23 +252,23 @@ extern {
 									level: <usize>,
 									pluses: <usize>
 								},
-		mark                 => Tok::Mark(<&'input str>),
-		reference            => Tok::Reference(<&'input str>),
+		mark                 => Tok::Mark(<FileContentSlice>),
+		reference            => Tok::Reference(<FileContentSlice>),
 		par_break            => Tok::ParBreak,
-		word                 => Tok::Word(<&'input str>),
-		dash                 => Tok::Dash(<&'input str>),
-		glue                 => Tok::Glue(<&'input str>),
-		spilt_glue           => Tok::SpiltGlue(<&'input str>),
-		verbatim             => Tok::Verbatim(<&'input str>),
-		whitespace           => Tok::Whitespace(<&'input str>),
+		word                 => Tok::Word(<FileContentSlice>),
+		dash                 => Tok::Dash(<FileContentSlice>),
+		glue                 => Tok::Glue(<FileContentSlice>),
+		spilt_glue           => Tok::SpiltGlue(<FileContentSlice>),
+		verbatim             => Tok::Verbatim(<FileContentSlice>),
+		whitespace           => Tok::Whitespace(<FileContentSlice>),
 		"["                  => Tok::LBracket,
 		"]"                  => Tok::RBracket,
 		","                  => Tok::AttrComma,
-		named_attr           => Tok::NamedAttr(<&'input str>),
-		unnamed_attr         => Tok::UnnamedAttr(<&'input str>),
+		named_attr           => Tok::NamedAttr(<FileContentSlice>),
+		unnamed_attr         => Tok::UnnamedAttr(<FileContentSlice>),
 		"/*"                 => Tok::NestedCommentOpen,
 		"*/"                 => Tok::NestedCommentClose,
 		"\n"                 => Tok::Newline { .. },
-		comment              => Tok::Comment(<&'input str>),
+		comment              => Tok::Comment(<FileContentSlice>),
 	}
 }

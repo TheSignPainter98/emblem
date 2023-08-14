@@ -4,13 +4,13 @@ use crate::parser::{lexer::Tok, Location};
 use derive_new::new;
 
 #[derive(Debug, new)]
-pub struct UnexpectedToken<'i> {
-    loc: Location<'i>,
-    token: Tok<'i>,
+pub struct UnexpectedToken {
+    loc: Location,
+    token: Tok,
     expected: Vec<String>,
 }
 
-impl Default for UnexpectedToken<'_> {
+impl Default for UnexpectedToken {
     fn default() -> Self {
         Self {
             loc: Default::default(),
@@ -20,8 +20,8 @@ impl Default for UnexpectedToken<'_> {
     }
 }
 
-impl<'i> Message<'i> for UnexpectedToken<'i> {
-    fn log(self) -> Log<'i> {
+impl<'i> Message<'i> for UnexpectedToken {
+    fn log(self) -> Log {
         if matches!(self.token, Tok::Newline { at_eof: true }) {
             return UnexpectedEOF::new(self.loc.end(), vec![]).log();
         }

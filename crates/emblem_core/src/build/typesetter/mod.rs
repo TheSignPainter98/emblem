@@ -19,7 +19,7 @@ pub struct Typesetter<'em> {
 }
 
 impl<'em> Typesetter<'em> {
-    pub fn new(ctx: &'em Context<'em>, ext_state: &'em mut ExtensionState<'em>) -> Self {
+    pub fn new(ctx: &Context<'em>, ext_state: &'em mut ExtensionState<'em>) -> Self {
         Self {
             ext_state,
             curr_iter: Iteration(0),
@@ -27,7 +27,7 @@ impl<'em> Typesetter<'em> {
         }
     }
 
-    pub fn typeset(mut self, root: ParsedFile<'em>) -> Result<(), Box<dyn Error>> {
+    pub fn typeset(mut self, root: ParsedFile) -> Result<(), Box<dyn Error>> {
         let mut root = Doc::from(root);
         loop {
             self.iter(&mut root)?;
@@ -53,7 +53,7 @@ impl<'em> Typesetter<'em> {
         self.ext_state.reset_reiter_request();
     }
 
-    fn iter(&mut self, _root: &mut Doc<'em>) -> Result<(), Box<dyn Error>> {
+    fn iter(&mut self, _root: &mut Doc) -> Result<(), Box<dyn Error>> {
         self.curr_iter += Iteration(1);
 
         let Iteration(iter) = &self.curr_iter;
@@ -131,7 +131,7 @@ mod test {
         typesetter.typeset(
             parser::parse(
                 ctx.alloc_file_name("iter_events.em"),
-                ctx.alloc_file("".into()),
+                ctx.alloc_file_content(""),
             )
             .unwrap(),
         )?;
@@ -189,7 +189,7 @@ mod test {
         Typesetter::new(&ctx, &mut ext_state).typeset(
             parser::parse(
                 ctx.alloc_file_name("iter_events.em"),
-                ctx.alloc_file("".into()),
+                ctx.alloc_file_content(""),
             )
             .unwrap(),
         )?;
@@ -357,7 +357,7 @@ mod test {
         Typesetter::new(&ctx, &mut ext_state).typeset(
             parser::parse(
                 ctx.alloc_file_name("event-listeners.em"),
-                ctx.alloc_file("".into()),
+                ctx.alloc_file_content(""),
             )
             .unwrap(),
         )?;
@@ -438,7 +438,7 @@ mod test {
             let err = Typesetter::new(&ctx, &mut ext_state)
                 .typeset(parser::parse(
                     ctx.alloc_file_name("event-listeners.em"),
-                    "",
+                    ctx.alloc_file_content(""),
                 )?)
                 .unwrap_err();
             assert!(

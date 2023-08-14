@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::ast::parsed::Content;
+use crate::context::file_content::FileSlice;
 use crate::lint::Lint;
 use crate::log::{Log, Note, Src};
 use crate::parser::Location;
@@ -21,13 +22,7 @@ pub enum SugarType {
 }
 
 impl SugarType {
-    fn suggest<'i>(
-        &self,
-        name: &str,
-        pluses: usize,
-        loc: &Location<'i>,
-        invocation_loc: &Location<'i>,
-    ) -> Log<'i> {
+    fn suggest(&self, name: &str, pluses: usize, loc: &Location, invocation_loc: &Location) -> Log {
         Log::warn(format!("syntactic sugar exists for .{name}"))
             .with_src(Src::new(loc).with_annotation(Note::help(invocation_loc, "found here")))
             .with_help(match self {
@@ -60,12 +55,12 @@ lazy_static! {
     .into();
 }
 
-impl<'i> Lint<'i> for SugarUsage {
+impl Lint for SugarUsage {
     fn id(&self) -> &'static str {
         "sugar-usage"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
+    fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
             Content::Command {
                 name,
@@ -78,13 +73,13 @@ impl<'i> Lint<'i> for SugarUsage {
                 attrs,
                 ..
             } => {
-                if let Some(expected) = CALLS_TO_SUGARS.get(name.as_str()) {
+                if let Some(expected) = CALLS_TO_SUGARS.get(name.to_str()) {
                     let attrs = attrs.iter().map(|a| a.args()).next().unwrap_or_default();
                     match (attrs, &inline_args[..], &remainder_arg, &trailer_args[..]) {
                         // A single argument or attr is suspicious
                         ([_], [], None, []) | ([], [_], None, []) | ([], [], Some(_), []) => {
                             return vec![expected.suggest(
-                                name.as_str(),
+                                name.to_str(),
                                 *pluses,
                                 loc,
                                 invocation_loc,
@@ -94,7 +89,7 @@ impl<'i> Lint<'i> for SugarUsage {
                             let [p] = &a[..] else { return vec![]; };
                             if let [_] = &p.parts[..] {
                                 return vec![expected.suggest(
-                                    name.as_str(),
+                                    name.to_str(),
                                     *pluses,
                                     loc,
                                     invocation_loc,

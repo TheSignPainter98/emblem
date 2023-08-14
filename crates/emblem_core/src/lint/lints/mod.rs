@@ -11,7 +11,7 @@ mod sugar_usage;
 
 use super::Lints;
 
-pub fn lints<'i>() -> Lints<'i> {
+pub fn lints() -> Lints {
     macro_rules! lints {
         ($($lint:expr),* $(,)?) => {
             vec![
@@ -40,7 +40,7 @@ mod test {
     use crate::{
         lint::{Lint, Lintable},
         parser::parse,
-        FileName,
+        Context,
     };
     use lazy_static::lazy_static;
     use regex::Regex;
@@ -72,7 +72,7 @@ mod test {
 
     pub struct LintTest<'i, L>
     where
-        L: Lint<'i> + 'static,
+        L: Lint + 'static,
     {
         pub lint: L,
         pub num_problems: usize,
@@ -82,40 +82,41 @@ mod test {
 
     impl<'i, L> LintTest<'i, L>
     where
-        L: Lint<'i> + 'static,
+        L: Lint + 'static,
     {
         pub fn run(self) {
+            let ctx = Context::new();
             let id = self.lint.id();
-            let file =
-                parse(FileName::new("lint-test.em"), self.src).expect("Failed to parse input");
+            let file = parse(
+                ctx.alloc_file_name("lint-test.em"),
+                ctx.alloc_file_content(self.src),
+            )
+            .expect("failed to parser output");
 
             let problems = {
                 let mut problems = Vec::new();
                 file.lint(&mut vec![Box::new(self.lint)], &mut problems);
                 problems
             };
-
             assert_eq!(
                 self.num_problems,
                 problems.len(),
                 "{} problems testing {} (expected {})",
                 problems.len(),
-                self.src,
+                &self.src,
                 self.num_problems
             );
-
             for problem in problems {
                 problem.assert_compliant();
-
                 assert_eq!(problem.id(), Some(id), "Incorrect ID");
 
                 let text = problem.annotation_text().join("\n\t");
                 for r#match in &self.matches {
-                    let re = Regex::new(r#match).unwrap();
+                    let re = Regex::new(r#match.as_ref()).unwrap();
                     assert!(
                         re.is_match(&text),
                         "Could not match '{}' in:\n\t{}",
-                        r#match,
+                        &r#match,
                         text
                     );
                 }

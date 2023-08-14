@@ -1,43 +1,44 @@
 use crate::{
     ast::{
         parsed::{Attr, Attrs, Content, ParsedFile, Sugar},
-        Dash, Glue, Par, ParPart, ReprLoc, Text,
+        Dash, Glue, Par, ParPart, ReprLoc,
     },
     parser::Location,
+    FileContentSlice,
 };
 
 #[cfg(test)]
-use crate::ast::AstDebug;
+use crate::{ast::AstDebug, context::file_content::FileSlice};
 
-pub type Doc<'em> = DocElem<'em>;
+pub type Doc = DocElem;
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum DocElem<'em> {
+pub enum DocElem {
     Word {
-        word: Text<'em>,
-        loc: Location<'em>,
+        word: FileContentSlice,
+        loc: Location,
     },
     Dash {
         dash: Dash,
-        loc: Location<'em>,
+        loc: Location,
     },
     Glue {
         glue: Glue,
-        loc: Location<'em>,
+        loc: Location,
     },
     Command {
-        name: Text<'em>,
+        name: CommandName,
         plus: bool,
-        attrs: Option<Attrs<'em>>,
-        args: Vec<DocElem<'em>>,
-        result: Option<Box<DocElem<'em>>>,
-        loc: Location<'em>,
+        attrs: Option<Attrs>,
+        args: Vec<DocElem>,
+        result: Option<Box<DocElem>>,
+        loc: Location,
     },
-    Content(Vec<DocElem<'em>>),
+    Content(Vec<DocElem>),
 }
 
-impl<'em> DocElem<'em> {
-    fn into_content(self) -> Option<Vec<DocElem<'em>>> {
+impl DocElem {
+    fn into_content(self) -> Option<Vec<DocElem>> {
         match self {
             Self::Content(cs) => Some(cs),
             _ => None,
@@ -68,14 +69,14 @@ impl<'em> DocElem<'em> {
     }
 }
 
-impl Default for DocElem<'_> {
+impl Default for DocElem {
     fn default() -> Self {
         Self::Content(vec![])
     }
 }
 
 #[cfg(test)]
-impl<'em> AstDebug for Doc<'em> {
+impl AstDebug for Doc {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
             Self::Word { word, .. } => word.surround(buf, "Word(", ")"),
@@ -105,6 +106,35 @@ impl<'em> AstDebug for Doc<'em> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum CommandName {
+    Literal(&'static str),
+    FileContentSlice(FileContentSlice),
+}
+
+impl From<&'static str> for CommandName {
+    fn from(literal: &'static str) -> Self {
+        Self::Literal(literal)
+    }
+}
+
+impl From<FileContentSlice> for CommandName {
+    fn from(slice: FileContentSlice) -> Self {
+        Self::FileContentSlice(slice)
+    }
+}
+
+#[cfg(test)]
+impl AstDebug for CommandName {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
+        match self {
+            Self::Literal(l) => l,
+            Self::FileContentSlice(s) => s.to_str(),
+        }
+        .test_fmt(buf);
+    }
+}
+
 #[derive(Clone)]
 struct DocStackState {
     discern_pars: bool,
@@ -120,8 +150,8 @@ impl DocStackState {
     }
 }
 
-impl<'i> From<ParsedFile<'i>> for Doc<'i> {
-    fn from(parsed: ParsedFile<'i>) -> Self {
+impl From<ParsedFile> for Doc {
+    fn from(parsed: ParsedFile) -> Self {
         parsed
             .into_doc(DocStackState::new())
             .unwrap_or_default()
@@ -129,18 +159,18 @@ impl<'i> From<ParsedFile<'i>> for Doc<'i> {
     }
 }
 
-trait IntoDoc<'em> {
-    fn into_doc(self, state: DocStackState) -> Option<DocElem<'em>>;
+trait IntoDoc {
+    fn into_doc(self, state: DocStackState) -> Option<DocElem>;
 }
 
-impl<'em> IntoDoc<'em> for ParsedFile<'em> {
-    fn into_doc(self, state: DocStackState) -> Option<DocElem<'em>> {
+impl IntoDoc for ParsedFile {
+    fn into_doc(self, state: DocStackState) -> Option<DocElem> {
         self.pars.into_doc(state)
     }
 }
 
-impl<'em> IntoDoc<'em> for Vec<Par<ParPart<Content<'em>>>> {
-    fn into_doc(self, state: DocStackState) -> Option<DocElem<'em>> {
+impl IntoDoc for Vec<Par<ParPart<Content>>> {
+    fn into_doc(self, state: DocStackState) -> Option<DocElem> {
         let content: Vec<_> = self
             .into_iter()
             .flat_map(|par| {
@@ -177,7 +207,7 @@ impl<'em> IntoDoc<'em> for Vec<Par<ParPart<Content<'em>>>> {
                     };
                 if apply_paragraph {
                     return Some(DocElem::Command {
-                        name: Text::from("p"),
+                        name: "p".into(),
                         plus: false,
                         attrs: None,
                         result: None,
@@ -197,8 +227,8 @@ impl<'em> IntoDoc<'em> for Vec<Par<ParPart<Content<'em>>>> {
     }
 }
 
-impl<'em> IntoDoc<'em> for Par<ParPart<Content<'em>>> {
-    fn into_doc(self, state: DocStackState) -> Option<DocElem<'em>> {
+impl IntoDoc for Par<ParPart<Content>> {
+    fn into_doc(self, state: DocStackState) -> Option<DocElem> {
         Some(DocElem::Content(
             self.parts
                 .into_iter()
@@ -209,8 +239,8 @@ impl<'em> IntoDoc<'em> for Par<ParPart<Content<'em>>> {
     }
 }
 
-impl<'em> IntoDoc<'em> for ParPart<Content<'em>> {
-    fn into_doc(self, state: DocStackState) -> Option<DocElem<'em>> {
+impl IntoDoc for ParPart<Content> {
+    fn into_doc(self, state: DocStackState) -> Option<DocElem> {
         match self {
             Self::Line(l) => l.into_doc(state),
             Self::Command(c) => c.into_doc(state),
@@ -218,8 +248,8 @@ impl<'em> IntoDoc<'em> for ParPart<Content<'em>> {
     }
 }
 
-impl<'em> IntoDoc<'em> for Vec<Content<'em>> {
-    fn into_doc(self, state: DocStackState) -> Option<DocElem<'em>> {
+impl IntoDoc for Vec<Content> {
+    fn into_doc(self, state: DocStackState) -> Option<DocElem> {
         Some(DocElem::Content(
             self.into_iter()
                 .filter_map(|c| c.into_doc(state.clone()))
@@ -228,8 +258,8 @@ impl<'em> IntoDoc<'em> for Vec<Content<'em>> {
     }
 }
 
-impl<'em> IntoDoc<'em> for Content<'em> {
-    fn into_doc(self, state: DocStackState) -> Option<DocElem<'em>> {
+impl IntoDoc for Content {
+    fn into_doc(self, state: DocStackState) -> Option<DocElem> {
         match self {
             Self::Command {
                 name,
@@ -241,7 +271,7 @@ impl<'em> IntoDoc<'em> for Content<'em> {
                 invocation_loc,
                 ..
             } => Some(DocElem::Command {
-                name,
+                name: name.into(),
                 plus: pluses != 0,
                 attrs,
                 args: {
@@ -264,7 +294,7 @@ impl<'em> IntoDoc<'em> for Content<'em> {
             Self::Dash { dash, loc } => Some(DocElem::Dash { dash, loc }),
             Self::Glue { glue, loc } => Some(DocElem::Glue { glue, loc }),
             Self::Verbatim { verbatim, loc } => Some(DocElem::Word {
-                word: Text::from(verbatim),
+                word: verbatim.into(),
                 loc,
             }),
             Self::Shebang { .. }
@@ -276,10 +306,10 @@ impl<'em> IntoDoc<'em> for Content<'em> {
     }
 }
 
-impl<'em> IntoDoc<'em> for Sugar<'em> {
-    fn into_doc(self, state: DocStackState) -> Option<DocElem<'em>> {
+impl IntoDoc for Sugar {
+    fn into_doc(self, state: DocStackState) -> Option<DocElem> {
         Some({
-            let name = Text::from(self.call_name());
+            let name = self.call_name().into();
             let loc = self.repr_loc();
 
             match self {
@@ -308,6 +338,7 @@ impl<'em> IntoDoc<'em> for Sugar<'em> {
                     plus: false,
                     attrs: Some(Attrs::new(
                         vec![Attr::Unnamed {
+                            value: mark.clone(),
                             raw: mark,
                             loc: loc.clone(),
                         }],
@@ -322,6 +353,7 @@ impl<'em> IntoDoc<'em> for Sugar<'em> {
                     plus: false,
                     attrs: Some(Attrs::new(
                         vec![Attr::Unnamed {
+                            value: reference.clone(),
                             raw: reference,
                             loc: loc.clone(),
                         }],
@@ -345,7 +377,7 @@ mod test {
     fn assert_structure(name: &str, input: &str, expected: &str) {
         let ctx = Context::new();
         let src = textwrap::dedent(input);
-        let doc: Doc = parser::parse(ctx.alloc_file_name(name), ctx.alloc_file(src))
+        let doc: Doc = parser::parse(ctx.alloc_file_name(name), ctx.alloc_file_content(src))
             .unwrap()
             .into();
         assert_eq!(expected, doc.repr(), "{name}");

@@ -5,17 +5,17 @@ use derive_new::new;
 use indoc::indoc;
 
 #[derive(Default, new)]
-pub struct NewlineInInlineArg<'i> {
-    arg_start_loc: Location<'i>,
-    newline_loc: Location<'i>,
+pub struct NewlineInInlineArg {
+    arg_start_loc: Location,
+    newline_loc: Location,
 }
 
-impl<'i> Message<'i> for NewlineInInlineArg<'i> {
+impl<'i> Message<'i> for NewlineInInlineArg {
     fn id() -> &'static str {
         "E002"
     }
 
-    fn log(self) -> Log<'i> {
+    fn log(self) -> Log {
         Log::error("newline in inline (curly-braced) arguments")
             .with_id(Self::id())
             .explainable()

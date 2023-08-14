@@ -1,3 +1,4 @@
+use crate::context::file_content::FileSlice;
 use crate::log::messages::{
     DelimiterMismatch, EmptyQualifier, ExtraCommentClose, HeadingTooDeep, NewlineInAttrs,
     NewlineInEmphDelimiter, NewlineInInlineArg, TooManyQualifiers, UnclosedComments,
@@ -5,8 +6,8 @@ use crate::log::messages::{
 };
 use crate::log::Log;
 use crate::parser::Location;
-use crate::FileName;
 use crate::{log::messages::Message, parser::point::Point};
+use crate::{FileContent, FileContentSlice, FileName};
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -16,32 +17,32 @@ use std::{
     fmt::{self, Display},
 };
 
-pub struct Lexer<'input> {
-    input: &'input str,
+pub struct Lexer {
+    input: FileContentSlice,
     done: bool,
     failed: bool,
     start_of_line: bool,
     current_indent: u32,
-    curr_point: Point<'input>,
-    prev_point: Point<'input>,
-    open_braces: Vec<Location<'input>>,
-    next_toks: VecDeque<SpannedTok<'input>>,
-    multi_line_comment_starts: Vec<Location<'input>>,
-    last_tok: Option<Tok<'input>>,
-    attr_open: Option<Location<'input>>,
+    curr_point: Point,
+    prev_point: Point,
+    open_braces: Vec<Location>,
+    next_toks: VecDeque<SpannedTok>,
+    multi_line_comment_starts: Vec<Location>,
+    last_tok: Option<Tok>,
+    attr_open: Option<Location>,
     opening_delimiters: bool,
-    open_delimiters: Vec<(&'input str, Location<'input>)>,
+    open_delimiters: Vec<(FileContentSlice, Location)>,
 }
 
-impl<'input> Lexer<'input> {
-    pub fn new(file: FileName, input: &'input str) -> Self {
+impl Lexer {
+    pub fn new(file: FileName, input: FileContent) -> Self {
         Self {
-            input,
+            input: input.clone().into(),
             done: false,
             failed: false,
             start_of_line: true,
             current_indent: 0,
-            curr_point: Point::new(file.clone(), input),
+            curr_point: Point::new(file.clone(), input.clone()),
             prev_point: Point::new(file, input),
             open_braces: Vec::new(),
             next_toks: VecDeque::new(),
@@ -53,24 +54,21 @@ impl<'input> Lexer<'input> {
         }
     }
 
-    fn try_consume(&mut self, re: &Regex) -> Option<&'input str> {
-        if let Some(mat) = re.find(self.input) {
-            self.input = &self.input[mat.end()..];
-            self.shift_locs(mat.as_str());
+    fn try_consume(&mut self, re: &Regex) -> Option<FileContentSlice> {
+        if let Some(mat) = re.find(self.input.to_str()) {
+            let curr_point = self.curr_point.clone();
+            self.prev_point = curr_point.clone();
+            self.curr_point = curr_point.shift(mat.as_str());
 
-            Some(mat.as_str())
+            let ret = self.input.slice(mat.range());
+            self.input = self.input.slice(mat.end()..);
+            Some(ret)
         } else {
             None
         }
     }
 
-    fn shift_locs(&mut self, s: &'input str) {
-        let curr_point = self.curr_point.clone();
-        self.prev_point = curr_point.clone();
-        self.curr_point = curr_point.shift(s);
-    }
-
-    fn span(&self, tok: Tok<'input>) -> SpannedTok<'input> {
+    fn span(&self, tok: Tok) -> SpannedTok {
         (self.prev_point.clone(), tok, self.curr_point.clone())
     }
 
@@ -94,11 +92,11 @@ impl<'input> Lexer<'input> {
         self.current_indent = target;
     }
 
-    fn dequeue(&mut self) -> Option<SpannedTok<'input>> {
+    fn dequeue(&mut self) -> Option<SpannedTok> {
         self.next_toks.pop_front()
     }
 
-    fn enqueue(&mut self, t: SpannedTok<'input>) {
+    fn enqueue(&mut self, t: SpannedTok) {
         self.next_toks.push_back(t)
     }
 
@@ -106,18 +104,18 @@ impl<'input> Lexer<'input> {
         matches!(self.last_tok, Some(Tok::Command { .. }))
     }
 
-    fn location(&self) -> Location<'input> {
+    fn location(&self) -> Location {
         Location::new(&self.prev_point, &self.curr_point)
     }
 
-    fn emph(&mut self, raw: &'input str) -> Result<Tok<'input>, Box<LexicalError<'input>>> {
+    fn emph(&mut self, raw: FileContentSlice) -> Result<Tok, Box<LexicalError>> {
         if self.opening_delimiters {
-            self.open_delimiters.push((raw, self.location()));
+            self.open_delimiters.push((raw.clone(), self.location()));
 
-            return match raw {
+            return match raw.to_str() {
                 "_" | "*" => Ok(Tok::ItalicOpen(raw)),
                 "__" | "**" => Ok(Tok::BoldOpen(raw)),
-                "=" => Ok(Tok::SmallcapsOpen(raw)),
+                "=" => Ok(Tok::SmallcapsOpen(raw)), // TODO(kcza): remove unnecessary
                 "==" => Ok(Tok::AlternateFaceOpen(raw)),
                 "`" => Ok(Tok::MonospaceOpen(raw)),
                 _ => panic!("internal error: unknown emphasis string {:?}", raw),
@@ -136,7 +134,7 @@ impl<'input> Lexer<'input> {
             }
         }
 
-        match raw {
+        match raw.to_str() {
             "_" | "*" => Ok(Tok::ItalicClose),
             "__" | "**" => Ok(Tok::BoldClose),
             "=" => Ok(Tok::SmallcapsClose),
@@ -147,8 +145,8 @@ impl<'input> Lexer<'input> {
     }
 }
 
-impl<'input> Iterator for Lexer<'input> {
-    type Item = Result<SpannedTok<'input>, Box<LexicalError<'input>>>;
+impl Iterator for Lexer {
+    type Item = Result<SpannedTok, Box<LexicalError>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         macro_rules! token_patterns {
@@ -216,7 +214,8 @@ impl<'input> Iterator for Lexer<'input> {
                     Some($on_eof)
                 }
                 $(else if let Some(mat) = self.try_consume(&$re) {
-                    let ret = $to_tok(mat).map(|t| self.span(t));
+                    let mat: FileContentSlice = mat; // assert $to_tok input type
+                    let ret = $to_tok(mat).map(|t: Tok| self.span(t));
                     self.last_tok = ret.as_ref().ok().map(|s| s.1.clone());
                     Some(ret)
                 })*
@@ -241,7 +240,7 @@ impl<'input> Iterator for Lexer<'input> {
                     }))
                 },
 
-                NESTED_COMMENT_PART => |s: &'input str| Ok(Tok::Comment(s)) ,
+                NESTED_COMMENT_PART => |s: FileContentSlice| Ok(Tok::Comment(s)) ,
                 LN                  => |_| Ok(Tok::Newline{ at_eof: false }) ,
                 NESTED_COMMENT_OPEN => |_| {
                     self.multi_line_comment_starts.push(self.location());
@@ -265,10 +264,10 @@ impl<'input> Iterator for Lexer<'input> {
                     }))
                 },
 
-                NAMED_ATTR   => |s: &'input str| Ok(Tok::NamedAttr(s)),
-                UNNAMED_ATTR => |s: &'input str| Ok(Tok::UnnamedAttr(s)),
+                NAMED_ATTR   => |s: FileContentSlice| Ok(Tok::NamedAttr(s)),
+                UNNAMED_ATTR => |s: FileContentSlice| Ok(Tok::UnnamedAttr(s)),
                 COMMA        => |_| Ok(Tok::AttrComma),
-                OPEN_ATTRS   => |s: &'input str| {
+                OPEN_ATTRS   => |s: FileContentSlice| {
                     Err(Box::new(LexicalError::UnexpectedChar {
                         found: s.chars().next().unwrap(),
                         loc: self.location(),
@@ -332,7 +331,7 @@ impl<'input> Iterator for Lexer<'input> {
 
             {
                 let target = if let Some(indent) = self.try_consume(&WHITESPACE) {
-                    indent_level(indent)
+                    indent_level(indent.to_str())
                 } else {
                     0
                 };
@@ -350,20 +349,19 @@ impl<'input> Iterator for Lexer<'input> {
 
         // Avoid clash with heading '#'
         if let Some(reference) = &self.try_consume(&REFERENCE) {
-            return Some(Ok(self.span(Tok::Reference(&reference[1..]))));
+            return Some(Ok(self.span(Tok::Reference(reference.slice(1..)))));
         }
 
         if self.start_of_line {
             if self.curr_point.index == 0 {
                 if let Some(shebang) = &self.try_consume(&SHEBANG) {
-                    let command = &shebang[2..];
-                    return Some(Ok(self.span(Tok::Shebang(command))));
+                    return Some(Ok(self.span(Tok::Shebang(shebang.slice(2..)))));
                 }
             }
 
             if let Some(heading) = &self.try_consume(&HEADING) {
                 self.start_of_line = false;
-                let heading = heading.trim_end();
+                let heading = heading.trimmed_right();
 
                 let level = heading.find('+').unwrap_or(heading.len());
                 if level > 6 {
@@ -389,7 +387,7 @@ impl<'input> Iterator for Lexer<'input> {
         match_token! {
             ! => panic!("internal error: unexpected EOF"),
 
-            COMMENT      => |s: &'input str| Ok(Tok::Comment(&s[2..])),
+            COMMENT      => |s: FileContentSlice| Ok(Tok::Comment(s.slice(2..))),
             DOUBLE_COLON => |_| Ok(Tok::DoubleColon),
             COLON        => |_| Ok(Tok::Colon),
 
@@ -398,9 +396,7 @@ impl<'input> Iterator for Lexer<'input> {
                 Ok(Tok::LBrace)
             },
             BRACE_RIGHT => |_| {
-                if !self.open_braces.is_empty() {
-                    self.open_braces.pop();
-                }
+                self.open_braces.pop();
                 Ok(Tok::RBrace)
             },
             NESTED_COMMENT_OPEN => |_| {
@@ -412,11 +408,11 @@ impl<'input> Iterator for Lexer<'input> {
                 Err(Box::new(LexicalError::UnmatchedCommentClose { loc: self.location() }))
             },
 
-            QUALIFIED_COMMAND => |s:&'input str| {
+            QUALIFIED_COMMAND => |s: FileContentSlice| {
                 let pluses = s.chars().rev().take_while(|c| *c == '+').count();
-                let dot_idx = 1 + s[1..].find('.').unwrap();
+                let dot_idx = 1 + s.to_str()[1..].find('.').unwrap();
 
-                let name = &s[1+dot_idx..s.len()-pluses];
+                let name = s.slice(1+dot_idx..s.len()-pluses);
                 if name.contains('.') {
                     let loc = self.location();
                     let extra_dots_start = loc.start().shift(&s[..1+dot_idx]);
@@ -430,30 +426,31 @@ impl<'input> Iterator for Lexer<'input> {
                     return Err(Box::new(LexicalError::TooManyQualifiers { loc, dot_locs }));
                 }
 
-                let qualifier = &s[1..dot_idx];
-                if qualifier.is_empty() {
+                if dot_idx == 1 {
                     let loc = self.location();
                     let start = loc.start();
                     let qualifier_loc = Location::new(&start, &start.clone().shift(".."));
                     return Err(Box::new(LexicalError::EmptyQualifier { loc, qualifier_loc }));
                 }
 
+                let qualifier = Some(s.slice(1..dot_idx));
                 Ok(Tok::Command{
-                    qualifier: Some(qualifier),
+                    qualifier,
                     name,
                     pluses
                 })
             },
-            COMMAND => |s:&'input str| {
+            COMMAND => |s: FileContentSlice| {
                 let pluses = s.chars().rev().take_while(|c| *c == '+').count();
+                let name = s.slice(1..s.len()-pluses);
                 Ok(Tok::Command{
                     qualifier: None,
-                    name: &s[1..s.len()-pluses],
+                    name,
                     pluses,
                 })
             },
-            DASH => |s:&'input str| Ok(Tok::Dash(s)),
-            GLUE => |s:&'input str| {
+            DASH => |s: FileContentSlice| Ok(Tok::Dash(s)),
+            GLUE => |s: FileContentSlice| {
                 let newline_after = matches!(self.input.chars().next(), None | Some('\r') | Some('\n'));
                 if newline_after
                     || line_started_before_match
@@ -469,21 +466,21 @@ impl<'input> Iterator for Lexer<'input> {
                 }
                 Ok(Tok::Glue(s))
             },
-            UNDERSCORES => |s:&'input str| self.emph(s),
-            ASTERISKS   => |s:&'input str| self.emph(s),
-            EQUALS      => |s:&'input str| self.emph(s),
-            BACKTICKS   => |s:&'input str| self.emph(s),
+            UNDERSCORES => |s: FileContentSlice| self.emph(s),
+            ASTERISKS   => |s: FileContentSlice| self.emph(s),
+            EQUALS      => |s: FileContentSlice| self.emph(s),
+            BACKTICKS   => |s: FileContentSlice| self.emph(s),
             HEADING     => |_| Err(Box::new(LexicalError::UnexpectedHeading{ loc: self.location() })),
-            MARK        => |s:&'input str| Ok(Tok::Mark(&s[1..])),
-            VERBATIM    => |s:&'input str| {
+            MARK        => |s: FileContentSlice| Ok(Tok::Mark(s.slice(1..))),
+            VERBATIM    => |s: FileContentSlice| {
                 self.opening_delimiters = false;
-                Ok(Tok::Verbatim(&s[1..s.len()-1]))
+                Ok(Tok::Verbatim(s.slice(1..s.len()-1)))
             },
-            WORD => |s:&'input str| {
+            WORD => |s: FileContentSlice| {
                 self.opening_delimiters = false;
                 Ok(Tok::Word(s))
             },
-            WHITESPACE => |s:&'input str| {
+            WHITESPACE => |s: FileContentSlice| {
                 self.opening_delimiters = true;
                 Ok(Tok::Whitespace(s))
             },
@@ -492,8 +489,8 @@ impl<'input> Iterator for Lexer<'input> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Tok<'input> {
-    Shebang(&'input str),
+pub enum Tok {
+    Shebang(FileContentSlice),
     Indent,
     Dedent,
     Colon,
@@ -502,19 +499,19 @@ pub enum Tok<'input> {
     RBrace,
     LBracket,
     RBracket,
-    NamedAttr(&'input str),
-    UnnamedAttr(&'input str),
+    NamedAttr(FileContentSlice),
+    UnnamedAttr(FileContentSlice),
     AttrComma,
     Command {
-        qualifier: Option<&'input str>,
-        name: &'input str,
+        qualifier: Option<FileContentSlice>,
+        name: FileContentSlice,
         pluses: usize,
     },
-    ItalicOpen(&'input str),
-    BoldOpen(&'input str),
-    MonospaceOpen(&'input str),
-    SmallcapsOpen(&'input str),
-    AlternateFaceOpen(&'input str),
+    ItalicOpen(FileContentSlice),
+    BoldOpen(FileContentSlice),
+    MonospaceOpen(FileContentSlice),
+    SmallcapsOpen(FileContentSlice),
+    AlternateFaceOpen(FileContentSlice),
     Heading {
         level: usize,
         pluses: usize,
@@ -524,24 +521,24 @@ pub enum Tok<'input> {
     MonospaceClose,
     SmallcapsClose,
     AlternateFaceClose,
-    Reference(&'input str),
-    Mark(&'input str),
+    Reference(FileContentSlice),
+    Mark(FileContentSlice),
     ParBreak,
-    Word(&'input str),
-    Whitespace(&'input str),
-    Dash(&'input str),
-    Glue(&'input str),
-    SpiltGlue(&'input str),
-    Verbatim(&'input str),
+    Word(FileContentSlice),
+    Whitespace(FileContentSlice),
+    Dash(FileContentSlice),
+    Glue(FileContentSlice),
+    SpiltGlue(FileContentSlice),
+    Verbatim(FileContentSlice),
     NestedCommentOpen,
     NestedCommentClose,
-    Comment(&'input str),
+    Comment(FileContentSlice),
     Newline {
         at_eof: bool,
     },
 }
 
-impl Display for Tok<'_> {
+impl Display for Tok {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Tok::Shebang(_) => "shebang",
@@ -602,61 +599,61 @@ fn indent_level(s: &str) -> u32 {
     tabs + (spaces as f32 / 4_f32).ceil() as u32
 }
 
-pub type SpannedTok<'input> = (Point<'input>, Tok<'input>, Point<'input>);
+pub type SpannedTok = (Point, Tok, Point);
 
 #[derive(Debug)]
-pub enum LexicalError<'input> {
+pub enum LexicalError {
     UnexpectedChar {
-        loc: Location<'input>,
+        loc: Location,
         found: char,
     },
     UnexpectedEOF {
-        point: Point<'input>,
+        point: Point,
         expected: Vec<String>,
     },
     UnmatchedCommentOpen {
-        unclosed: Vec<Location<'input>>,
+        unclosed: Vec<Location>,
     },
     UnmatchedCommentClose {
-        loc: Location<'input>,
+        loc: Location,
     },
     NewlineInArg {
-        arg_start_loc: Location<'input>,
-        newline_loc: Location<'input>,
+        arg_start_loc: Location,
+        newline_loc: Location,
     },
     NewlineInAttrs {
-        attr_start_loc: Location<'input>,
-        newline_loc: Location<'input>,
+        attr_start_loc: Location,
+        newline_loc: Location,
     },
     NewlineInEmphDelimiter {
-        delimiter_start_loc: Location<'input>,
-        newline_loc: Location<'input>,
-        expected: &'input str,
+        delimiter_start_loc: Location,
+        newline_loc: Location,
+        expected: FileContentSlice,
     },
     DelimiterMismatch {
-        loc: Location<'input>,
-        to_close_loc: Location<'input>,
-        expected: &'input str,
+        loc: Location,
+        to_close_loc: Location,
+        expected: FileContentSlice,
     },
     UnexpectedHeading {
-        loc: Location<'input>,
+        loc: Location,
     },
     HeadingTooDeep {
-        loc: Location<'input>,
+        loc: Location,
         level: usize,
     },
     TooManyQualifiers {
-        loc: Location<'input>,
-        dot_locs: Vec<Location<'input>>,
+        loc: Location,
+        dot_locs: Vec<Location>,
     },
     EmptyQualifier {
-        loc: Location<'input>,
-        qualifier_loc: Location<'input>,
+        loc: Location,
+        qualifier_loc: Location,
     },
 }
 
-impl<'input> Message<'input> for LexicalError<'input> {
-    fn log(self) -> Log<'input> {
+impl<'input> Message<'input> for LexicalError {
+    fn log(self) -> Log {
         match self {
             Self::UnexpectedChar { found, loc } => UnexpectedChar::new(loc, found).log(),
             Self::UnexpectedEOF { point, expected } => UnexpectedEOF::new(point, expected).log(),
@@ -693,9 +690,9 @@ impl<'input> Message<'input> for LexicalError<'input> {
     }
 }
 
-impl Error for LexicalError<'_> {}
+impl Error for LexicalError {}
 
-impl Display for LexicalError<'_> {
+impl Display for LexicalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnexpectedChar { found, loc } => {

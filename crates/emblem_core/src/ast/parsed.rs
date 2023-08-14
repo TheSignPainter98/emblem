@@ -1,66 +1,68 @@
-use crate::ast::{text::Text, Dash, File, Glue, Par, ParPart};
+use crate::ast::{Dash, File, Glue, Par, ParPart};
+use crate::context::file_content::FileSlice;
 use crate::parser::Location;
+use crate::FileContentSlice;
 
 #[cfg(test)]
 use crate::ast::AstDebug;
 
-pub type ParsedFile<'i> = File<ParPart<Content<'i>>>;
+pub type ParsedFile = File<ParPart<Content>>;
 
 #[allow(clippy::large_enum_variant)] // TODO(kcza): re-evaluate this (requires benchmarks)
 #[derive(Debug)]
-pub enum Content<'i> {
+pub enum Content {
     Shebang {
-        text: &'i str,
-        loc: Location<'i>,
+        text: FileContentSlice,
+        loc: Location,
     },
     Command {
-        qualifier: Option<Text<'i>>,
-        name: Text<'i>,
+        qualifier: Option<FileContentSlice>,
+        name: FileContentSlice,
         pluses: usize,
-        attrs: Option<Attrs<'i>>,
-        inline_args: Vec<Vec<Content<'i>>>,
-        remainder_arg: Option<Vec<Content<'i>>>,
-        trailer_args: Vec<Vec<Par<ParPart<Content<'i>>>>>,
-        loc: Location<'i>,
-        invocation_loc: Location<'i>,
+        attrs: Option<Attrs>,
+        inline_args: Vec<Vec<Content>>,
+        remainder_arg: Option<Vec<Content>>,
+        trailer_args: Vec<Vec<Par<ParPart<Content>>>>,
+        loc: Location,
+        invocation_loc: Location,
     },
-    Sugar(Sugar<'i>),
+    Sugar(Sugar),
     Word {
-        word: Text<'i>,
-        loc: Location<'i>,
+        word: FileContentSlice,
+        loc: Location,
     },
     Whitespace {
-        whitespace: &'i str,
-        loc: Location<'i>,
+        whitespace: FileContentSlice,
+        loc: Location,
     },
     Dash {
         dash: Dash,
-        loc: Location<'i>,
+        loc: Location,
     },
     Glue {
         glue: Glue,
-        loc: Location<'i>,
+        loc: Location,
     },
     SpiltGlue {
-        raw: &'i str,
-        loc: Location<'i>,
+        raw: FileContentSlice,
+        loc: Location,
     },
     Verbatim {
-        verbatim: &'i str,
-        loc: Location<'i>,
+        verbatim: FileContentSlice,
+        loc: Location,
     },
     Comment {
-        comment: &'i str,
-        loc: Location<'i>,
+        comment: FileContentSlice,
+        loc: Location,
     },
     MultiLineComment {
-        content: MultiLineComment<'i>,
-        loc: Location<'i>,
+        content: MultiLineComment,
+        loc: Location,
     },
 }
 
 #[cfg(test)]
-impl AstDebug for Content<'_> {
+impl AstDebug for Content {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
             Self::Shebang { text, .. } => text.surround(buf, "Shebang(", ")"),
@@ -115,74 +117,91 @@ impl AstDebug for Content<'_> {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Attrs<'i> {
-    attrs: Vec<Attr<'i>>,
-    loc: Location<'i>,
+pub struct Attrs {
+    attrs: Vec<Attr>,
+    loc: Location,
 }
 
-impl<'i> Attrs<'i> {
-    pub fn new(attrs: Vec<Attr<'i>>, loc: Location<'i>) -> Self {
+impl Attrs {
+    pub fn new(attrs: Vec<Attr>, loc: Location) -> Self {
         Self { attrs, loc }
     }
 
-    pub fn args(&self) -> &[Attr<'i>] {
+    pub fn args(&self) -> &[Attr] {
         &self.attrs
     }
 
-    pub fn loc(&self) -> &Location<'i> {
+    pub fn loc(&self) -> &Location {
         &self.loc
     }
 }
 
 #[cfg(test)]
-impl AstDebug for Attrs<'_> {
+impl AstDebug for Attrs {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         self.args().test_fmt(buf);
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Attr<'i> {
+pub enum Attr {
+    // TODO(kcza): make near-duplicate to allow preservation to the appropriate point.
     Named {
-        eq_idx: usize,
-        raw: &'i str,
-        loc: Location<'i>,
+        name: FileContentSlice,
+        value: FileContentSlice,
+        raw: FileContentSlice,
+        loc: Location,
     },
     Unnamed {
-        raw: &'i str,
-        loc: Location<'i>,
+        value: FileContentSlice,
+        raw: FileContentSlice,
+        loc: Location,
     },
 }
 
-impl<'i> Attr<'i> {
-    pub fn named(raw: &'i str, loc: Location<'i>) -> Self {
+impl Attr {
+    pub fn named(raw: FileContentSlice, loc: Location) -> Self {
+        let eq_idx = raw
+            .to_str()
+            .find('=')
+            .expect("intenral error: named attribute had no equals sign");
+        let name = raw.slice(..eq_idx).trim();
+        let value = raw.slice(eq_idx + 1..).trim();
         Self::Named {
-            eq_idx: raw.find('=').unwrap(),
+            name,
+            value,
             raw,
             loc,
         }
     }
 
-    pub fn unnamed(raw: &'i str, loc: Location<'i>) -> Self {
-        Self::Unnamed { raw, loc }
+    pub fn unnamed(raw: FileContentSlice, loc: Location) -> Self {
+        let value = raw.trimmed();
+        Self::Unnamed { raw, value, loc }
     }
 
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> Option<&FileContentSlice> {
         match self {
-            Self::Named { raw, eq_idx, .. } => raw[..*eq_idx].trim(),
-            Self::Unnamed { raw, .. } => raw.trim(),
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn value(&self) -> Option<&str> {
-        match self {
-            Self::Named { raw, eq_idx, .. } => Some(raw[eq_idx + 1..].trim()),
+            Self::Named { name, .. } => Some(name),
             Self::Unnamed { .. } => None,
         }
     }
 
-    pub fn loc(&self) -> &Location<'i> {
+    #[allow(dead_code)]
+    pub fn value(&self) -> &FileContentSlice {
+        match self {
+            Self::Named { value, .. } | Self::Unnamed { value, .. } => value,
+        }
+    }
+
+    pub fn repr(&self) -> &FileContentSlice {
+        match self {
+            Self::Named { name, .. } => name,
+            Self::Unnamed { value, .. } => value,
+        }
+    }
+
+    pub fn loc(&self) -> &Location {
         match self {
             Self::Named { loc, .. } => loc,
             Self::Unnamed { loc, .. } => loc,
@@ -190,7 +209,7 @@ impl<'i> Attr<'i> {
     }
 
     #[allow(dead_code)]
-    fn raw(&self) -> &str {
+    fn raw(&self) -> &FileContentSlice {
         match self {
             Self::Named { raw, .. } => raw,
             Self::Unnamed { raw, .. } => raw,
@@ -199,65 +218,64 @@ impl<'i> Attr<'i> {
 }
 
 #[cfg(test)]
-impl AstDebug for Attr<'_> {
+impl AstDebug for Attr {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
-            Self::Unnamed { .. } => {
-                self.raw().surround(buf, "(", ")");
+            Self::Unnamed { value, .. } => {
+                value.surround(buf, "(", ")");
             }
-            Self::Named { eq_idx, .. } => {
-                let raw = self.raw();
-                (&raw[..*eq_idx]).surround(buf, "(", ")");
+            Self::Named { name, value, .. } => {
+                name.surround(buf, "(", ")");
                 buf.push("=".into());
-                (&raw[*eq_idx + 1..]).surround(buf, "(", ")");
+                value.surround(buf, "(", ")");
             }
         }
     }
 }
 
 #[derive(Debug)]
-pub enum Sugar<'i> {
+pub enum Sugar {
     Italic {
-        delimiter: &'i str,
-        arg: Vec<Content<'i>>,
-        loc: Location<'i>,
+        delimiter: FileContentSlice,
+        arg: Vec<Content>,
+        loc: Location,
     },
     Bold {
-        delimiter: &'i str,
-        arg: Vec<Content<'i>>,
-        loc: Location<'i>,
+        delimiter: FileContentSlice,
+        arg: Vec<Content>,
+        loc: Location,
     },
     Monospace {
-        arg: Vec<Content<'i>>,
-        loc: Location<'i>,
+        arg: Vec<Content>,
+        loc: Location,
     },
     Smallcaps {
-        arg: Vec<Content<'i>>,
-        loc: Location<'i>,
+        arg: Vec<Content>,
+        loc: Location,
     },
     AlternateFace {
-        arg: Vec<Content<'i>>,
-        loc: Location<'i>,
+        arg: Vec<Content>,
+        loc: Location,
     },
     Heading {
         level: usize,
         pluses: usize,
-        standoff: &'i str,
-        arg: Vec<Content<'i>>,
-        loc: Location<'i>,
-        invocation_loc: Location<'i>,
+        standoff: FileContentSlice,
+        arg: Vec<Content>,
+        loc: Location,
+        invocation_loc: Location,
     },
     Mark {
-        mark: &'i str,
-        loc: Location<'i>,
+        mark: FileContentSlice,
+        loc: Location,
     },
     Reference {
-        reference: &'i str,
-        loc: Location<'i>,
+        reference: FileContentSlice,
+        loc: Location,
     },
 }
 
-impl<'i> Sugar<'i> {
+impl Sugar {
     pub fn call_name(&self) -> &'static str {
         match self {
             Self::Italic { .. } => "it",
@@ -281,7 +299,7 @@ impl<'i> Sugar<'i> {
 }
 
 #[cfg(test)]
-impl<'i> AstDebug for Sugar<'i> {
+impl AstDebug for Sugar {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         buf.push(format!("${}", self.call_name()));
         match self {
@@ -319,24 +337,24 @@ impl<'i> AstDebug for Sugar<'i> {
 }
 
 #[derive(Debug)]
-pub struct MultiLineComment<'i>(pub Vec<MultiLineCommentPart<'i>>);
+pub struct MultiLineComment(pub Vec<MultiLineCommentPart>);
 
 #[cfg(test)]
-impl AstDebug for MultiLineComment<'_> {
+impl AstDebug for MultiLineComment {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         self.0.test_fmt(buf);
     }
 }
 
 #[derive(Debug)]
-pub enum MultiLineCommentPart<'i> {
+pub enum MultiLineCommentPart {
     Newline,
-    Comment(&'i str),
-    Nested(MultiLineComment<'i>),
+    Comment(FileContentSlice),
+    Nested(MultiLineComment),
 }
 
 #[cfg(test)]
-impl AstDebug for MultiLineCommentPart<'_> {
+impl AstDebug for MultiLineCommentPart {
     fn test_fmt(&self, buf: &mut Vec<String>) {
         match self {
             Self::Newline => buf.push(r"\n".into()),
@@ -356,18 +374,22 @@ mod test {
 
     mod attrs {
         use super::*;
-        use crate::FileName;
+        use crate::Context;
 
         #[test]
         fn args() {
-            let p1 = Point::new(FileName::new("fname.em"), "helloworld");
+            let ctx = Context::new();
+            let p1 = Point::new(
+                ctx.alloc_file_name("fname.em"),
+                ctx.alloc_file_content("helloworld"),
+            );
             let p2 = p1.clone().shift("hello");
             let p3 = p2.clone().shift("world");
             let tests = vec![
                 vec![],
                 vec![
-                    Attr::unnamed("hello", Location::new(&p1, &p2)),
-                    Attr::unnamed("world", Location::new(&p2, &p3)),
+                    Attr::unnamed(p2.src.clone(), Location::new(&p1, &p2)),
+                    Attr::unnamed(p3.src.clone(), Location::new(&p2, &p3)),
                 ],
             ];
 
@@ -382,46 +404,51 @@ mod test {
 
     mod attr {
         use super::*;
-        use crate::FileName;
+        use crate::Context;
 
         #[test]
         fn unnamed() {
+            let ctx = Context::new();
             let raw = " \tfoo\t ";
-            let p1 = Point::new(FileName::new("fname.em"), raw);
-            let attr = Attr::unnamed(raw, Location::new(&p1, &p1.clone().shift(raw)));
+            let p1 = Point::new(ctx.alloc_file_name("fname.em"), ctx.alloc_file_content(raw));
+            let attr = Attr::unnamed(p1.src.clone(), Location::new(&p1, &p1.clone().shift(raw)));
 
-            assert_eq!(attr.name(), "foo");
-            assert_eq!(attr.value(), None);
+            assert_eq!(attr.name(), None);
+            assert_eq!(attr.repr(), "foo");
+            assert_eq!(attr.value(), "foo");
             assert_eq!(attr.raw(), raw);
         }
 
         #[test]
         fn named() {
+            let ctx = Context::new();
             let raw = " \tfoo\t =\t bar \t";
-            let p1 = Point::new(FileName::new("fname.em"), raw);
-            let attr = Attr::named(raw, Location::new(&p1, &p1.clone().shift(raw)));
+            let p1 = Point::new(ctx.alloc_file_name("fname.em"), ctx.alloc_file_content(raw));
+            let attr = Attr::named(p1.src.clone(), Location::new(&p1, &p1.clone().shift(raw)));
 
-            assert_eq!(attr.name(), "foo");
-            assert_eq!(attr.value(), Some("bar"));
+            assert_eq!(attr.name().unwrap(), "foo");
+            assert_eq!(attr.repr(), "foo");
+            assert_eq!(attr.value(), "bar");
             assert_eq!(attr.raw(), raw);
         }
     }
 
     mod sugar {
         use super::*;
-        use crate::FileName;
+        use crate::Context;
 
         #[test]
         fn call_name() {
+            let ctx = Context::new();
             let text = "hello, world!";
-            let p1 = Point::new(FileName::new("main.em"), text);
+            let p1 = Point::new(ctx.alloc_file_name("main.em"), ctx.alloc_file_content(text));
             let p2 = p1.clone().shift(text);
             let loc = Location::new(&p1, &p2);
 
             assert_eq!(
                 "it",
                 Sugar::Italic {
-                    delimiter: "_",
+                    delimiter: ctx.alloc_file_content("_").into(),
                     arg: vec![],
                     loc: loc.clone()
                 }
@@ -430,7 +457,7 @@ mod test {
             assert_eq!(
                 "bf",
                 Sugar::Bold {
-                    delimiter: "**",
+                    delimiter: ctx.alloc_file_content("**").into(),
                     arg: vec![],
                     loc: loc.clone()
                 }
@@ -461,6 +488,7 @@ mod test {
                 .call_name()
             );
 
+            let standoff = ctx.alloc_file_content(" ");
             for level in 1..=6 {
                 for pluses in 0..=2 {
                     assert_eq!(
@@ -468,7 +496,7 @@ mod test {
                         Sugar::Heading {
                             level,
                             pluses,
-                            standoff: " ",
+                            standoff: standoff.clone().into(),
                             arg: vec![],
                             loc: loc.clone(),
                             invocation_loc: loc.clone(),

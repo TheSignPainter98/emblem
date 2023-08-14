@@ -1,22 +1,23 @@
 use crate::log::messages::Message;
 use crate::log::{Log, Note, Src};
 use crate::parser::Location;
+use crate::FileContentSlice;
 use derive_new::new;
 use indoc::indoc;
 
 #[derive(Default, new)]
-pub struct DelimiterMismatch<'i> {
-    loc: Location<'i>,
-    to_close_loc: Location<'i>,
-    expected: &'i str,
+pub struct DelimiterMismatch {
+    loc: Location,
+    to_close_loc: Location,
+    expected: FileContentSlice,
 }
 
-impl<'i> Message<'i> for DelimiterMismatch<'i> {
+impl<'i> Message<'i> for DelimiterMismatch {
     fn id() -> &'static str {
         "E003"
     }
 
-    fn log(self) -> Log<'i> {
+    fn log(self) -> Log {
         Log::error("mismatching delimiter")
             .with_id(Self::id())
             .explainable()

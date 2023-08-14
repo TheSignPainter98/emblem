@@ -7,12 +7,12 @@ use derive_new::new;
 #[derive(new)]
 pub struct NumPluses {}
 
-impl<'i> Lint<'i> for NumPluses {
+impl Lint for NumPluses {
     fn id(&self) -> &'static str {
         "num-pluses"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
+    fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
             Content::Command {
                 loc,
@@ -53,7 +53,7 @@ impl<'i> Lint<'i> for NumPluses {
 }
 
 impl NumPluses {
-    fn message<'i>(&self, loc: &Location<'i>, invocation_loc: &Location<'i>) -> Log<'i> {
+    fn message<'i>(&self, loc: &Location, invocation_loc: &Location) -> Log {
         Log::warn("extra plus modifiers ignored").with_src(
             Src::new(loc)
                 .with_annotation(Note::help(invocation_loc, "remove all but one plus symbol")),

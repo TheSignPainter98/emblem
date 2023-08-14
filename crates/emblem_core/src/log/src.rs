@@ -5,35 +5,35 @@ use crate::parser::Location;
 use annotate_snippets::snippet::AnnotationType;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Src<'i> {
-    loc: Location<'i>,
-    annotations: Vec<Note<'i>>,
+pub struct Src {
+    loc: Location,
+    annotations: Vec<Note>,
 }
 
-impl<'i> Src<'i> {
-    pub fn new(loc: &Location<'i>) -> Self {
+impl Src {
+    pub fn new(loc: &Location) -> Self {
         Self {
             loc: loc.clone(),
             annotations: Vec::new(),
         }
     }
 
-    pub fn loc(&self) -> &Location<'i> {
+    pub fn loc(&self) -> &Location {
         &self.loc
     }
 
-    pub fn with_annotation(mut self, note: Note<'i>) -> Self {
+    pub fn with_annotation(mut self, note: Note) -> Self {
         self.annotations.push(note);
         self
     }
 
-    pub fn annotations(&self) -> &Vec<Note<'i>> {
+    pub fn annotations(&self) -> &Vec<Note> {
         &self.annotations
     }
 }
 
 #[cfg(test)]
-impl Src<'_> {
+impl Src {
     pub fn text(&self) -> Vec<&str> {
         self.annotations.iter().flat_map(|a| a.text()).collect()
     }
@@ -66,7 +66,7 @@ mod test {
         let ctx = Context::new();
         let p = Point::new(
             ctx.alloc_file_name("main.em"),
-            ctx.alloc_file("1111111111111".into()),
+            ctx.alloc_file_content("1111111111111"),
         );
         let shifted = p.clone().shift("1111111111111");
         let loc = Location::new(&p, &shifted);
@@ -79,7 +79,7 @@ mod test {
         let ctx = Context::new();
         let start = Point::new(
             ctx.alloc_file_name("main.em"),
-            ctx.alloc_file("111111222222".into()),
+            ctx.alloc_file_content("111111222222"),
         );
         let mid = start.clone().shift("111111");
         let end = mid.clone().shift("222222");

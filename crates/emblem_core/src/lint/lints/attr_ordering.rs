@@ -6,12 +6,12 @@ use derive_new::new;
 #[derive(new)]
 pub struct AttrOrdering {}
 
-impl<'i> Lint<'i> for AttrOrdering {
+impl Lint for AttrOrdering {
     fn id(&self) -> &'static str {
         "attr-ordering"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
+    fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
             Content::Command {
                 loc,

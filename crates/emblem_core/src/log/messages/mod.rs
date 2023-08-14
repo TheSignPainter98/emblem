@@ -41,7 +41,7 @@ pub trait Message<'i> {
     }
 
     /// Format this message into a log.
-    fn log(self) -> Log<'i>;
+    fn log(self) -> Log;
 
     fn default() -> Box<Self>
     where
@@ -60,7 +60,7 @@ pub trait Message<'i> {
 pub struct MessageInfo {
     id: &'static str,
     #[cfg(test)]
-    default_log: Log<'static>,
+    default_log: Log,
     explanation: &'static str,
 }
 

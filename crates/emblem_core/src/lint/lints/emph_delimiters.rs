@@ -6,19 +6,19 @@ use derive_new::new;
 #[derive(new)]
 pub struct EmphDelimiters {}
 
-impl<'i> Lint<'i> for EmphDelimiters {
+impl Lint for EmphDelimiters {
     fn id(&self) -> &'static str {
         "emph-delimiters"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
+    fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
-            Content::Sugar(Sugar::Italic { delimiter, loc, .. }) if *delimiter == "*" => {
+            Content::Sugar(Sugar::Italic { delimiter, loc, .. }) if delimiter == "*" => {
                 vec![Log::warn("asterisks used to delimit italic text").with_src(
                     Src::new(loc).with_annotation(Note::help(loc, "use underscores instead")),
                 )]
             }
-            Content::Sugar(Sugar::Bold { delimiter, loc, .. }) if *delimiter == "__" => {
+            Content::Sugar(Sugar::Bold { delimiter, loc, .. }) if delimiter == "__" => {
                 vec![Log::warn("underscores used to delimit bold text").with_src(
                     Src::new(loc).with_annotation(Note::help(loc, "use asterisks instead")),
                 )]
@@ -48,28 +48,28 @@ mod test {
         LintTest {
             lint: EmphDelimiters::new(),
             num_problems: 0,
-            matches: vec![],
+            matches: Vec::<&str>::new(),
             src: "",
         }
         .run();
         LintTest {
             lint: EmphDelimiters::new(),
             num_problems: 0,
-            matches: vec![],
+            matches: Vec::<&str>::new(),
             src: "foo",
         }
         .run();
         LintTest {
             lint: EmphDelimiters::new(),
             num_problems: 0,
-            matches: vec![],
+            matches: Vec::<&str>::new(),
             src: "_foo_",
         }
         .run();
         LintTest {
             lint: EmphDelimiters::new(),
             num_problems: 0,
-            matches: vec![],
+            matches: Vec::<&str>::new(),
             src: "**foo**",
         }
         .run();
