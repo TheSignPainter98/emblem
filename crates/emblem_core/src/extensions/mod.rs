@@ -5,7 +5,7 @@ mod preload_decls;
 mod preload_sandboxing;
 
 use crate::{
-    context::{LuaParameters, ResourceLimit, SandboxLevel},
+    context::{Iteration, LuaParameters, Memory, ResourceLimit, SandboxLevel, Step},
     Context,
 };
 use em::Em;
@@ -73,7 +73,7 @@ impl<'em> ExtensionState<'em> {
             HookTriggers::every_nth_instruction(INSTRUCTION_INTERVAL),
             move |lua, _debug| {
                 if let ResourceLimit::Limited(max_mem) = max_mem {
-                    if lua.used_memory() >= max_mem {
+                    if Memory(lua.used_memory()) >= max_mem {
                         return Err(MLuaError::SafetyError("too much memory used".into()));
                     }
                 }
@@ -81,7 +81,7 @@ impl<'em> ExtensionState<'em> {
                 let mut data: RefMut<'_, ExtensionData> = lua
                     .app_data_mut()
                     .expect("internal error: expected lua app data to be set");
-                data.curr_step += INSTRUCTION_INTERVAL;
+                data.curr_step += Step(INSTRUCTION_INTERVAL);
                 if let ResourceLimit::Limited(max_steps) = max_steps {
                     if data.curr_step > max_steps {
                         return Err(MLuaError::SafetyError("too many steps".into()));
@@ -186,6 +186,7 @@ impl<'em> ExtensionState<'em> {
             | Event::IterEnd { iter }
             | Event::Done { final_iter: iter } => {
                 let event = self.lua.create_table_with_capacity(0, 1)?;
+                let Iteration(iter) = iter;
                 event.set("iter", iter)?;
                 event
             }
@@ -240,7 +241,7 @@ fn callable(value: &Value) -> bool {
 
 #[derive(Debug, Default)]
 pub(crate) struct ExtensionData {
-    curr_step: u32,
+    curr_step: Step,
     reiter_requested: bool,
 }
 
@@ -261,9 +262,9 @@ impl ExtensionData {
 
 #[derive(Copy, Clone)]
 pub enum Event {
-    IterStart { iter: u32 },
-    IterEnd { iter: u32 },
-    Done { final_iter: u32 },
+    IterStart { iter: Iteration },
+    IterEnd { iter: Iteration },
+    Done { final_iter: Iteration },
 }
 
 impl Event {
@@ -358,7 +359,7 @@ mod test {
 
     #[test]
     fn steps_limited() -> Result<(), Box<dyn Error>> {
-        let threshold = 10000;
+        let threshold = Step(10000);
         for limit in [ResourceLimit::Unlimited, ResourceLimit::Limited(threshold)] {
             let ctx = {
                 let mut ctx = Context::test_new();
@@ -388,7 +389,7 @@ mod test {
 
     #[test]
     fn memory_limited() -> Result<(), Box<dyn Error>> {
-        let threshold = 100000;
+        let threshold = Memory(500000);
         for limit in [ResourceLimit::Unlimited, ResourceLimit::Limited(threshold)] {
             let ctx = {
                 let mut ctx = Context::test_new();
@@ -398,12 +399,15 @@ mod test {
             let ext_state = ctx.extension_state()?;
             let lua = ext_state.lua();
             let iters = {
-                let used_memory = lua.used_memory();
+                let used_memory = Memory(lua.used_memory());
                 assert!(
                     threshold > used_memory,
                     "test invalidated: need threshold > used_memory ({threshold} > {used_memory})"
                 );
-                threshold - used_memory
+
+                let Memory(threshold) = threshold;
+                let Memory(used_memory) = used_memory;
+                Memory(threshold - used_memory)
             };
             let result = lua
                 .load(chunk! {

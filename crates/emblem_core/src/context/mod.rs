@@ -1,17 +1,17 @@
+pub(crate) mod file_content;
 pub(crate) mod file_name;
 mod module;
+mod resource_limit;
+mod resources;
 
 use crate::{ExtensionState, FileName, Typesetter, Version};
 use derive_new::new;
 use mlua::Result as MLuaResult;
 pub use module::{Module, ModuleVersion};
-use num::{Bounded, Integer};
+pub use resource_limit::ResourceLimit;
+pub use resources::{Iteration, Memory, Resource, Step};
 use std::fmt::Debug;
 use typed_arena::Arena;
-
-pub const DEFAULT_MAX_STEPS: u32 = 100_000;
-pub const DEFAULT_MAX_MEM: usize = 100_000;
-pub const DEFAULT_MAX_ITERS: u32 = 5;
 
 #[derive(Default)]
 pub struct Context<'m> {
@@ -136,25 +136,13 @@ impl<'m> DocumentParameters<'m> {
     }
 }
 
-#[derive(new, Debug)]
+#[derive(new, Debug, Default)]
 pub struct LuaParameters<'m> {
     sandbox_level: SandboxLevel,
-    max_mem: ResourceLimit<usize>,
-    max_steps: ResourceLimit<u32>,
+    max_mem: ResourceLimit<Memory>,
+    max_steps: ResourceLimit<Step>,
     general_args: Option<Vec<(&'m str, &'m str)>>,
     modules: Vec<Module<'m>>,
-}
-
-impl<'m> Default for LuaParameters<'m> {
-    fn default() -> Self {
-        Self {
-            sandbox_level: Default::default(),
-            max_mem: ResourceLimit::Limited(DEFAULT_MAX_MEM),
-            max_steps: ResourceLimit::Limited(DEFAULT_MAX_STEPS),
-            general_args: Default::default(),
-            modules: Default::default(),
-        }
-    }
 }
 
 impl<'m> LuaParameters<'m> {
@@ -166,19 +154,19 @@ impl<'m> LuaParameters<'m> {
         self.sandbox_level
     }
 
-    pub fn set_max_mem(&mut self, max_mem: ResourceLimit<usize>) {
+    pub fn set_max_mem(&mut self, max_mem: ResourceLimit<Memory>) {
         self.max_mem = max_mem;
     }
 
-    pub fn max_mem(&self) -> ResourceLimit<usize> {
+    pub fn max_mem(&self) -> ResourceLimit<Memory> {
         self.max_mem
     }
 
-    pub fn set_max_steps(&mut self, max_steps: ResourceLimit<u32>) {
+    pub fn set_max_steps(&mut self, max_steps: ResourceLimit<Step>) {
         self.max_steps = max_steps;
     }
 
-    pub fn max_steps(&self) -> ResourceLimit<u32> {
+    pub fn max_steps(&self) -> ResourceLimit<Step> {
         self.max_steps
     }
 
@@ -237,24 +225,17 @@ impl SandboxLevel {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct TypesetterParameters {
-    max_iters: ResourceLimit<u32>,
-}
-
-impl Default for TypesetterParameters {
-    fn default() -> Self {
-        Self {
-            max_iters: ResourceLimit::Limited(DEFAULT_MAX_ITERS),
-        }
-    }
+    max_iters: ResourceLimit<Iteration>,
 }
 
 impl TypesetterParameters {
-    pub fn max_iters(&self) -> ResourceLimit<u32> {
+    pub fn max_iters(&self) -> ResourceLimit<Iteration> {
         self.max_iters
     }
 
-    pub fn set_max_iters(&mut self, max_iters: ResourceLimit<u32>) {
+    pub fn set_max_iters(&mut self, max_iters: ResourceLimit<Iteration>) {
         self.max_iters = max_iters
     }
 }
@@ -264,21 +245,6 @@ impl TypesetterParameters {
     pub fn test_new() -> Self {
         Self {
             max_iters: ResourceLimit::Unlimited,
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum ResourceLimit<T: Bounded + Clone + Integer> {
-    Unlimited,
-    Limited(T),
-}
-
-impl<T: Bounded + Clone + Integer> ResourceLimit<T> {
-    pub(crate) fn limit(&self) -> Option<T> {
-        match self {
-            Self::Unlimited => None,
-            Self::Limited(l) => Some(l.clone()),
         }
     }
 }
