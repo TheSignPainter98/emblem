@@ -326,7 +326,7 @@ mod test {
         );
         assert_eq!(
             "to spend a sleepless, lonely night",
-            FileContent::new("\t  \tthere's no need tonight\t\t    ")
+            FileContent::new("\t  \tto spend a sleepless, lonely night\t\t    ")
                 .slice(..)
                 .trim()
         );
@@ -352,7 +352,7 @@ mod test {
         );
         assert_eq!(
             "to spend a sleepless, lonely night",
-            FileContent::new("\t  \tthere's no need tonight\t\t    ")
+            FileContent::new("\t  \tto spend a sleepless, lonely night\t\t    ")
                 .slice(..)
                 .trimmed()
         );
@@ -409,7 +409,7 @@ mod test {
                 .trimmed_right()
         );
         assert_eq!(
-            "And you're here to do it tight, burn your wings now and cry\t\t    ",
+            "\t  \tAnd you're here to do it tight, burn your wings now and cry",
             FileContent::new(
                 "\t  \tAnd you're here to do it tight, burn your wings now and cry\t\t    "
             )

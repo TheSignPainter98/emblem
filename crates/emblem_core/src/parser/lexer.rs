@@ -10,6 +10,7 @@ use crate::{log::messages::Message, parser::point::Point};
 use crate::{FileContent, FileContentSlice, FileName};
 use lazy_static::lazy_static;
 use regex::Regex;
+use uniquote::Quote;
 
 use std::{
     collections::VecDeque,
@@ -720,8 +721,9 @@ impl Display for LexicalError {
             } => {
                 write!(
                     f,
-                    "newline in {:?} emphasis found at {}",
-                    expected, newline_loc
+                    r#"newline in {} emphasis found at {}"#,
+                    expected.quote(),
+                    newline_loc
                 )
             }
             Self::DelimiterMismatch {

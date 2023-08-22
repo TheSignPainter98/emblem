@@ -596,11 +596,15 @@ pub mod test {
                 "we are .outward-bound[for,kingston,town]",
                 "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]",
             );
-            assert_structure("unnamed-only-with-spaces", "we are .outward-bound[ for , kingston , town ]", "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[( for )|( kingston )|( town )]]]]");
+            assert_structure(
+                "unnamed-only-with-spaces",
+                "we are .outward-bound[ for , kingston , town ]",
+                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]",
+            );
             assert_structure(
                 "unnamed-only-with-tabs",
                 "we are .outward-bound[\tfor\t,\tkingston\t,\ttown\t]",
-                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(\tfor\t)|(\tkingston\t)|(\ttown\t)]]]]",
+                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]",
             );
 
             assert_structure(
@@ -608,11 +612,15 @@ pub mod test {
                 "we are .outward-bound[for=kingston,town]",
                 "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]",
             );
-            assert_structure("named-with-spaces", "we are .outward-bound[   for   =   kingston   ,   town   ]", "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(   for   )=(   kingston   )|(   town   )]]]]");
+            assert_structure(
+                "named-with-spaces",
+                "we are .outward-bound[   for   =   kingston   ,   town   ]",
+                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]",
+            );
             assert_structure(
                 "named-with-spaces",
                 "we are .outward-bound[\tfor\t=\tkingston\t,\ttown\t]",
-                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(\tfor\t)=(\tkingston\t)|(\ttown\t)]]]]",
+                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]",
             );
 
             assert_structure(
