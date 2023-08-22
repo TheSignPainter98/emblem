@@ -49,8 +49,14 @@ impl FileSlice for FileContent {
         let end = match index.end_bound() {
             Bound::Included(i) => *i + 1,
             Bound::Excluded(i) => *i,
-            Bound::Unbounded => self.as_ref().len(),
+            Bound::Unbounded => self.len(),
         };
+        if end > self.len() {
+            panic!(
+                "internal error: byte {end} is out of bounds of `{}`",
+                self.raw(),
+            );
+        }
         FileContentSlice {
             raw: self.clone(),
             range: start..end,
@@ -183,12 +189,18 @@ impl FileSlice for FileContentSlice {
                 Bound::Excluded(_) => panic!("internal error: excluded left lower bound"),
                 Bound::Unbounded => 0,
             };
-        let end = self.range.end
+        let end = self.range.start
             + match index.end_bound() {
                 Bound::Included(i) => *i + 1,
                 Bound::Excluded(i) => *i,
-                Bound::Unbounded => self.as_ref().len(),
+                Bound::Unbounded => self.len(),
             };
+        if end > self.raw.len() {
+            panic!(
+                "internal error: byte {end} is out of bounds of `{}`",
+                self.raw()
+            );
+        }
         Self {
             raw: self.raw.clone(),
             range: start..end,
@@ -283,6 +295,15 @@ mod test {
         let content = FileContent::new(original);
         let range = 1..=10;
         assert_eq!(&original[range.clone()], content.slice(range).as_ref());
+    }
+
+    #[test]
+    fn slice_of_slice() {
+        let original = "abcba";
+        let content = FileContent::new(original);
+        let slice = content.slice(1..4);
+        assert_eq!("bcb", slice);
+        assert_eq!("c", slice.slice(1..2));
     }
 
     #[test]

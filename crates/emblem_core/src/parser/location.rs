@@ -278,9 +278,15 @@ mod test {
                 let loc = Location::new(&loc_start, &loc_end);
                 let context = loc.context();
 
-                assert_eq!(context.raw(), lines[1..3].join(newline));
-                assert_eq!(*context.range(), 25 + newline.len()..lines.len());
-                assert_eq!(loc.indices_in(&context), (5, 26 + newline.len()));
+                let newline_len = newline.len();
+                assert_eq!(context, lines[1..3].join(newline));
+                assert_eq!(*context.range(), {
+                    let start_idx = lines[0].len() + newline_len;
+                    let end_idx =
+                        2 * newline_len + lines[..3].iter().map(|line| line.len()).sum::<usize>();
+                    start_idx..end_idx
+                });
+                assert_eq!(loc.indices_in(&context), (5, 26 + newline_len));
             }
         }
     }
