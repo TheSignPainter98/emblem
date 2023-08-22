@@ -259,7 +259,7 @@ impl PartialEq<FileContentSlice> for &str {
 
 impl Display for FileContentSlice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.as_ref().fmt(f)
+        self.to_str().fmt(f)
     }
 }
 
