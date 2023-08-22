@@ -24,7 +24,7 @@ impl<'m> TryFrom<&'m str> for DocManifest<'m> {
         let parsed: DocManifest<'_> =
             serde_yaml::from_str(src).map_err(|e| Log::error(e.to_string()))?;
 
-        parsed.validate().map_err(|e| Log::error(e))?;
+        parsed.validate().map_err(Log::error)?;
 
         Ok(parsed)
     }

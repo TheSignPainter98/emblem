@@ -112,7 +112,7 @@ mod test {
 
                 let text = problem.annotation_text().join("\n\t");
                 for r#match in &self.matches {
-                    let re = Regex::new(r#match.as_ref()).unwrap();
+                    let re = Regex::new(r#match).unwrap();
                     assert!(
                         re.is_match(&text),
                         "Could not match '{}' in:\n\t{}",

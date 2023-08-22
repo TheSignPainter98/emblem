@@ -37,7 +37,7 @@ impl From<&InitCmd> for Initialiser<PathBuf> {
 impl<T: AsRef<Path>> Action for Initialiser<T> {
     type Response = ();
 
-    fn run<'ctx>(&self, _: &'ctx mut Context) -> EmblemResult<Self::Response> {
+    fn run(&self, _: &mut Context) -> EmblemResult<Self::Response> {
         let logs = match self.run_internal() {
             Ok(_) => vec![],
             Err(e) => vec![Log::error(e.to_string())],

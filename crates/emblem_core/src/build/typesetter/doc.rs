@@ -294,7 +294,7 @@ impl IntoDoc for Content {
             Self::Dash { dash, loc } => Some(DocElem::Dash { dash, loc }),
             Self::Glue { glue, loc } => Some(DocElem::Glue { glue, loc }),
             Self::Verbatim { verbatim, loc } => Some(DocElem::Word {
-                word: verbatim.into(),
+                word: verbatim,
                 loc,
             }),
             Self::Shebang { .. }

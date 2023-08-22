@@ -78,7 +78,7 @@ impl Logger {
             let plural = if tot_warnings > 1 { "s" } else { "" };
             alert!(
                 &mut self,
-                Log::warn(&format!("generated {} warning{plural}", tot_warnings))
+                Log::warn(format!("generated {} warning{plural}", tot_warnings))
             );
         }
 
@@ -96,7 +96,7 @@ impl Logger {
             .unwrap();
         alert!(
             &mut self,
-            Log::error(&format!(
+            Log::error(format!(
                 "`{exe}` failed due to {} error{plural}",
                 tot_errors
             ))
@@ -212,7 +212,7 @@ impl Log {
                             .map(|a| SourceAnnotation {
                                 annotation_type: a.msg_type(),
                                 label: a.msg(),
-                                range: a.loc().indices_in(&context),
+                                range: a.loc().indices_in(context),
                             })
                             .collect(),
                     }

@@ -23,7 +23,7 @@ pub struct Linter {
 impl Action for Linter {
     type Response = ();
 
-    fn run<'ctx>(&self, ctx: &'ctx mut context::Context) -> EmblemResult<Self::Response> {
+    fn run(&self, ctx: &mut context::Context) -> EmblemResult<Self::Response> {
         let problems = match self.input.as_ref().try_into() {
             Ok(r) => self.lint_root(ctx, r),
             Err(e) => vec![Log::error(e.to_string())],
@@ -33,7 +33,7 @@ impl Action for Linter {
 }
 
 impl Linter {
-    fn lint_root<'em>(&self, ctx: &'em mut Context, file: SearchResult) -> Vec<Log> {
+    fn lint_root(&self, ctx: &mut Context, file: SearchResult) -> Vec<Log> {
         let file = match parser::parse_file(ctx, file) {
             Ok(f) => f,
             Err(e) => return vec![e.log()],

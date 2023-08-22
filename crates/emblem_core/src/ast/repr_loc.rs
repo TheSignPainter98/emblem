@@ -10,7 +10,7 @@ pub trait ReprLoc {
     fn repr_loc(&self) -> Location;
 }
 
-impl<'em> ReprLoc for Par<ParPart<Content>> {
+impl ReprLoc for Par<ParPart<Content>> {
     fn repr_loc(&self) -> Location {
         let parts = self
             .parts

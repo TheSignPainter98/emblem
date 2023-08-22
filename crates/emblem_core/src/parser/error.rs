@@ -17,6 +17,7 @@ use std::io;
 
 pub type LalrpopError = LalrpopParseError<Point, Tok, Box<LexicalError>>;
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum Error {
     StringConversion(StringConversionError),
@@ -75,7 +76,7 @@ impl From<io::Error> for Box<Error> {
     }
 }
 
-impl<'i> From<LalrpopError> for Box<Error> {
+impl From<LalrpopError> for Box<Error> {
     fn from(err: LalrpopError) -> Self {
         Box::new(Error::Parse(err))
     }

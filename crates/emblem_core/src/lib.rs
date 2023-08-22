@@ -46,7 +46,7 @@ pub trait Action {
 
     fn run<'ctx>(&self, ctx: &'ctx mut context::Context<'ctx>) -> EmblemResult<Self::Response>;
 
-    fn output<'ctx>(&self, _: Self::Response) -> EmblemResult<()> {
+    fn output(&self, _: Self::Response) -> EmblemResult<()> {
         EmblemResult::new(vec![], ())
     }
 }
