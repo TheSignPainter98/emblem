@@ -8,7 +8,7 @@ pub struct UnexpectedHeading {
     loc: Location,
 }
 
-impl<'i> Message<'i> for UnexpectedHeading {
+impl Message for UnexpectedHeading {
     fn log(self) -> Log {
         Log::error("unexpected heading")
             .with_src(Src::new(&self.loc).with_annotation(Note::error(&self.loc, "found here")))

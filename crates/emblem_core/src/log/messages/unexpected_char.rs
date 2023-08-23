@@ -9,7 +9,7 @@ pub struct UnexpectedChar {
     found: char,
 }
 
-impl<'i> Message<'i> for UnexpectedChar {
+impl Message for UnexpectedChar {
     fn log(self) -> Log {
         Log::error(format!("unexpected character ‘{}’", self.found))
             .with_src(Src::new(&self.loc).with_annotation(Note::error(&self.loc, "found here")))

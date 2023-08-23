@@ -8,7 +8,7 @@ pub struct NoSuchErrorCode {
     id: String,
 }
 
-impl<'a> Message<'a> for NoSuchErrorCode {
+impl Message for NoSuchErrorCode {
     fn id() -> &'static str
     where
         Self: Sized,

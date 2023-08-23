@@ -20,7 +20,7 @@ impl Default for UnexpectedToken {
     }
 }
 
-impl<'i> Message<'i> for UnexpectedToken {
+impl Message for UnexpectedToken {
     fn log(self) -> Log {
         if matches!(self.token, Tok::Newline { at_eof: true }) {
             return UnexpectedEOF::new(self.loc.end(), vec![]).log();

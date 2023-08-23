@@ -11,7 +11,7 @@ pub struct TooManyQualifiers {
     dot_locs: Vec<Location>,
 }
 
-impl<'i> Message<'i> for TooManyQualifiers {
+impl Message for TooManyQualifiers {
     fn id() -> &'static str {
         "E005"
     }

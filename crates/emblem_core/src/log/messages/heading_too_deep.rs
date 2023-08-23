@@ -9,7 +9,7 @@ pub struct HeadingTooDeep {
     level: usize,
 }
 
-impl<'i> Message<'i> for HeadingTooDeep {
+impl Message for HeadingTooDeep {
     fn log(self) -> Log {
         Log::error("heading too deep")
             .with_src(Src::new(&self.loc).with_annotation(Note::error(

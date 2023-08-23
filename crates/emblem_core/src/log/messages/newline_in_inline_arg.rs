@@ -10,7 +10,7 @@ pub struct NewlineInInlineArg {
     newline_loc: Location,
 }
 
-impl<'i> Message<'i> for NewlineInInlineArg {
+impl Message for NewlineInInlineArg {
     fn id() -> &'static str {
         "E002"
     }

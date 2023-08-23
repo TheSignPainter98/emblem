@@ -10,7 +10,7 @@ pub struct EmptyQualifier {
     qualifier_loc: Location,
 }
 
-impl<'i> Message<'i> for EmptyQualifier {
+impl Message for EmptyQualifier {
     fn id() -> &'static str {
         "E004"
     }

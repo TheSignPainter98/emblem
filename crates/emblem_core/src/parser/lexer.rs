@@ -653,7 +653,7 @@ pub enum LexicalError {
     },
 }
 
-impl<'input> Message<'input> for LexicalError {
+impl Message for LexicalError {
     fn log(self) -> Log {
         match self {
             Self::UnexpectedChar { found, loc } => UnexpectedChar::new(loc, found).log(),

@@ -12,7 +12,7 @@ pub struct DelimiterMismatch {
     expected: FileContentSlice,
 }
 
-impl<'i> Message<'i> for DelimiterMismatch {
+impl Message for DelimiterMismatch {
     fn id() -> &'static str {
         "E003"
     }

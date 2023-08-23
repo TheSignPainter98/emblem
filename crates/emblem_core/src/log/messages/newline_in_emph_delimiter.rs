@@ -11,7 +11,7 @@ pub struct NewlineInEmphDelimiter {
     expected: FileContentSlice,
 }
 
-impl<'i> Message<'i> for NewlineInEmphDelimiter {
+impl Message for NewlineInEmphDelimiter {
     fn log(self) -> Log {
         Log::error(format!("newline in ‘{}’ emphasis", self.expected)).with_src(
             Src::new(&self.delimiter_start_loc.span_to(&self.newline_loc))

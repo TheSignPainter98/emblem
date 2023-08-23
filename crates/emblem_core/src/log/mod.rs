@@ -457,7 +457,7 @@ impl Log {
     }
 }
 
-impl<'i> Message<'i> for Log {
+impl Message for Log {
     fn log(self) -> Log {
         self
     }

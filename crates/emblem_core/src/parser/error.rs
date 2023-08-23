@@ -25,7 +25,7 @@ pub enum Error {
     Parse(LalrpopError),
 }
 
-impl<'i> Message<'i> for parser::Error {
+impl Message for parser::Error {
     fn log(self) -> Log {
         match self {
             parser::Error::StringConversion(e) => Log::error(e.to_string()),

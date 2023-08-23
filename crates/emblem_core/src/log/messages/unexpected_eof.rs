@@ -21,7 +21,7 @@ impl UnexpectedEOF {
     }
 }
 
-impl<'i> Message<'i> for UnexpectedEOF {
+impl Message for UnexpectedEOF {
     fn log(self) -> Log {
         let loc = Location::new(&self.point, &self.point.clone().shift("\0"));
         Log::error("unexpected eof")

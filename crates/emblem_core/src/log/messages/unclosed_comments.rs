@@ -8,7 +8,7 @@ pub struct UnclosedComments {
     unclosed: Vec<Location>,
 }
 
-impl<'i> Message<'i> for UnclosedComments {
+impl Message for UnclosedComments {
     fn log(self) -> Log {
         let msg = if self.unclosed.len() > 1 {
             "unclosed comments"
