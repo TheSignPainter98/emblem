@@ -77,7 +77,7 @@ mod test {
         let ctx = Context::new();
         let src = "my name is methos";
         let start = Point::new(ctx.alloc_file_name("fname"), ctx.alloc_file_content(src));
-        let mid = start.clone().shift("my name is ");
+        let mid = start.shift("my name is ");
         let end = mid.clone().shift("methos");
 
         assert_eq!("fname", mid.file_name);
@@ -113,7 +113,7 @@ mod test {
             ctx.alloc_file_name("file_name"),
             ctx.alloc_file_content(&src),
         );
-        let end = start.clone().shift(&src);
+        let end = start.shift(&src);
 
         assert_eq!("file_name", end.file_name);
         assert_eq!(src, end.src);

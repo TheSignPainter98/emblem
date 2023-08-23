@@ -243,7 +243,7 @@ mod test {
             let loc_start_shift = "oh! ";
             let loc_text = "santiana";
 
-            let loc_start = text_start.clone().shift(loc_start_shift);
+            let loc_start = text_start.shift(loc_start_shift);
             let loc_end = loc_start.clone().shift(loc_text);
 
             let loc = Location::new(&loc_start, &loc_end);
