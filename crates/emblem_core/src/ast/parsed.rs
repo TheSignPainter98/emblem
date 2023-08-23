@@ -164,7 +164,7 @@ impl Attr {
         let eq_idx = raw
             .to_str()
             .find('=')
-            .expect("intenral error: named attribute had no equals sign");
+            .expect("internal error: named attribute had no equals sign");
         let name = raw.slice(..eq_idx).trim();
         let value = raw.slice(eq_idx + 1..).trim();
         Self::Named {
