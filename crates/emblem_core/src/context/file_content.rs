@@ -90,18 +90,6 @@ impl PartialEq<FileContent> for &str {
     }
 }
 //
-// impl Borrow<str> for FileContent {
-//     fn borrow(&self) -> &str {
-//         self.inner.borrow()
-//     }
-// }
-
-// impl PartialEq<FileContent> for &str {
-//     fn eq(&self, other: &FileContent) -> bool {
-//         *self == other.to_str()
-//     }
-// }
-//
 impl Display for FileContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.to_str().fmt(f)
