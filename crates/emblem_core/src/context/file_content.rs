@@ -260,38 +260,134 @@ impl AstDebug for FileContentSlice {
 
 #[cfg(test)]
 mod test {
+    use crate::Context;
+
     use super::*;
 
     #[test]
-    fn slice_unbounded() {
-        let original = "hello big world";
-        let content = FileContent::new(original);
-        assert_eq!(original, content.slice(..).as_ref());
-    }
+    fn slice() {
+        fn range_test(
+            name: &str,
+            ctx: &Context,
+            raw: &str,
+            range: impl RangeBounds<usize>,
+            expect: &str,
+        ) {
+            let content = ctx.alloc_file_content(raw);
+            let slice = content.slice(range);
+            assert_eq!(
+                expect, slice,
+                "range test '{name}' failed: expected {expect} but got {slice}",
+            );
+        }
 
-    #[test]
-    fn slice_exclusive() {
-        let original = "hello big world";
-        let content = FileContent::new(original);
-        let range = 1..10;
-        assert_eq!(&original[range.clone()], content.slice(range).as_ref());
-    }
-
-    #[test]
-    fn slice_inclusive() {
-        let original = "hello big world";
-        let content = FileContent::new(original);
-        let range = 1..=10;
-        assert_eq!(&original[range.clone()], content.slice(range).as_ref());
+        let ctx = Context::new();
+        range_test(
+            "range",
+            &ctx,
+            "garage? I don't care about garage",
+            16..20,
+            "care",
+        );
+        range_test(
+            "range-from",
+            &ctx,
+            "listen to this---it don't sound like garage",
+            26..,
+            "sound like garage",
+        );
+        range_test(
+            "range-full",
+            &ctx,
+            "who told you that I make garage?",
+            ..,
+            "who told you that I make garage?",
+        );
+        range_test(
+            "range-inclusive",
+            &ctx,
+            "Wiley Kat'z got his own sound---it's not garage",
+            20..=28,
+            "own sound",
+        );
+        range_test(
+            "range-to",
+            &ctx,
+            "here in London there's a sound called garage but",
+            ..14,
+            "here in London",
+        );
+        range_test(
+            "range-to-inclusive",
+            &ctx,
+            "this is my sound, it sure ain't garage",
+            ..=15,
+            "this is my sound",
+        );
     }
 
     #[test]
     fn slice_of_slice() {
-        let original = "abcba";
-        let content = FileContent::new(original);
-        let slice = content.slice(1..4);
-        assert_eq!("bcb", slice);
-        assert_eq!("c", slice.slice(1..2));
+        fn range_test(
+            name: &str,
+            ctx: &Context,
+            raw: &str,
+            range: impl RangeBounds<usize>,
+            expect: &str,
+        ) {
+            let content = ctx.alloc_file_content(format!("header{raw}trailer"));
+            let left_pad_len = "header".len();
+            let slice = content.slice(left_pad_len..left_pad_len + raw.len());
+            let slice_of_slice = slice.slice(range);
+            assert_eq!(
+                expect, slice_of_slice,
+                "range test '{name}' failed: expected {expect} but got {slice_of_slice}",
+            );
+        }
+
+        let ctx = Context::new();
+        range_test(
+            "range",
+            &ctx,
+            "I heard they don't like me in garage",
+            19..26,
+            "like me",
+        );
+        range_test(
+            "range-from",
+            &ctx,
+            "'cause I use their scene but make my own sound",
+            34..,
+            "my own sound",
+        );
+        range_test(
+            "range-full",
+            &ctx,
+            "the Eskimo sound is mine, recognise it's mine",
+            ..,
+            "the Eskimo sound is mine, recognise it's mine",
+        );
+        range_test(
+            "range-inclusive",
+            &ctx,
+            "you can't claim what's mine",
+            10..=14,
+            "claim",
+        );
+        range_test(
+            "range-to",
+            &ctx,
+            "it's my time to bait you up",
+            ..24,
+            "it's my time to bait you",
+        );
+        range_test(
+            "range-to-inclusive",
+            &ctx,
+            "I don't hate you but some of you have got a problem",
+            ..=15,
+            "I don't hate you",
+        );
     }
 
     #[test]
