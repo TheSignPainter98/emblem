@@ -89,7 +89,7 @@ impl PartialEq<FileContent> for &str {
         *self == rhs.to_str()
     }
 }
-//
+
 impl Display for FileContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.to_str().fmt(f)
