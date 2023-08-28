@@ -43,8 +43,8 @@ impl Lexer {
             failed: false,
             start_of_line: true,
             current_indent: 0,
-            curr_point: Point::new(file.clone(), input.clone()),
-            prev_point: Point::new(file, input),
+            curr_point: Point::at_start_of(file.clone(), input.clone()),
+            prev_point: Point::at_start_of(file, input),
             open_braces: Vec::new(),
             next_toks: VecDeque::new(),
             multi_line_comment_starts: Vec::new(),
@@ -354,7 +354,7 @@ impl Iterator for Lexer {
         }
 
         if self.start_of_line {
-            if self.curr_point.index == 0 {
+            if self.curr_point.index() == 0 {
                 if let Some(shebang) = &self.try_consume(&SHEBANG) {
                     return Some(Ok(self.span(Tok::Shebang(shebang.slice(2..)))));
                 }

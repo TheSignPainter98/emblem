@@ -379,7 +379,7 @@ mod test {
         #[test]
         fn args() {
             let ctx = Context::new();
-            let p1 = Point::new(
+            let p1 = Point::at_start_of(
                 ctx.alloc_file_name("fname.em"),
                 ctx.alloc_file_content("helloworld"),
             );
@@ -388,8 +388,8 @@ mod test {
             let tests = vec![
                 vec![],
                 vec![
-                    Attr::unnamed(p2.src.clone(), Location::new(&p1, &p2)),
-                    Attr::unnamed(p3.src.clone(), Location::new(&p2, &p3)),
+                    Attr::unnamed(p2.src().clone(), Location::new(&p1, &p2)),
+                    Attr::unnamed(p3.src().clone(), Location::new(&p2, &p3)),
                 ],
             ];
 
@@ -410,8 +410,9 @@ mod test {
         fn unnamed() {
             let ctx = Context::new();
             let raw = " \tfoo\t ";
-            let p1 = Point::new(ctx.alloc_file_name("fname.em"), ctx.alloc_file_content(raw));
-            let attr = Attr::unnamed(p1.src.clone(), Location::new(&p1, &p1.clone().shift(raw)));
+            let p1 =
+                Point::at_start_of(ctx.alloc_file_name("fname.em"), ctx.alloc_file_content(raw));
+            let attr = Attr::unnamed(p1.src().clone(), Location::new(&p1, &p1.clone().shift(raw)));
 
             assert_eq!(attr.name(), None);
             assert_eq!(attr.repr(), "foo");
@@ -423,8 +424,9 @@ mod test {
         fn named() {
             let ctx = Context::new();
             let raw = " \tfoo\t =\t bar \t";
-            let p1 = Point::new(ctx.alloc_file_name("fname.em"), ctx.alloc_file_content(raw));
-            let attr = Attr::named(p1.src.clone(), Location::new(&p1, &p1.clone().shift(raw)));
+            let p1 =
+                Point::at_start_of(ctx.alloc_file_name("fname.em"), ctx.alloc_file_content(raw));
+            let attr = Attr::named(p1.src().clone(), Location::new(&p1, &p1.clone().shift(raw)));
 
             assert_eq!(attr.name().unwrap(), "foo");
             assert_eq!(attr.repr(), "foo");
@@ -441,7 +443,8 @@ mod test {
         fn call_name() {
             let ctx = Context::new();
             let text = "hello, world!";
-            let p1 = Point::new(ctx.alloc_file_name("main.em"), ctx.alloc_file_content(text));
+            let p1 =
+                Point::at_start_of(ctx.alloc_file_name("main.em"), ctx.alloc_file_content(text));
             let p2 = p1.clone().shift(text);
             let loc = Location::new(&p1, &p2);
 

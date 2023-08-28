@@ -1,3 +1,4 @@
+use derive_new::new;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::fmt::{self, Display};
@@ -8,18 +9,17 @@ lazy_static! {
     static ref NEWLINE: Regex = Regex::new("(\n|\r\n|\r)").unwrap();
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, new)]
 pub struct Point {
-    // TODO(kcza): make methods for these
-    pub file_name: FileName,
-    pub src: FileContentSlice,
-    pub line: usize,
-    pub col: usize,
-    pub index: usize,
+    file_name: FileName,
+    src: FileContentSlice,
+    line: usize,
+    col: usize,
+    index: usize,
 }
 
 impl Point {
-    pub fn new(file_name: FileName, src: FileContent) -> Self {
+    pub fn at_start_of(file_name: FileName, src: FileContent) -> Self {
         Self {
             file_name,
             src: src.into(),
@@ -46,6 +46,30 @@ impl Point {
 
         self
     }
+
+    pub fn file_name(&self) -> &FileName {
+        &self.file_name
+    }
+
+    pub fn src(&self) -> &FileContentSlice {
+        &self.src
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    pub(crate) fn index_mut(&mut self) -> &mut usize {
+        &mut self.index
+    }
+
+    pub fn line(&self) -> usize {
+        self.line
+    }
+
+    pub fn col(&self) -> usize {
+        self.col
+    }
 }
 
 impl Display for Point {
@@ -56,52 +80,52 @@ impl Display for Point {
 
 #[cfg(test)]
 mod test {
-    use crate::{context::file_content::FileSlice, Context};
+    use crate::Context;
 
     use super::*;
     #[test]
     fn new() {
         let ctx = Context::new();
         let src = "content";
-        let loc = Point::new(ctx.alloc_file_name("fname"), ctx.alloc_file_content(src));
+        let loc = Point::at_start_of(ctx.alloc_file_name("fname"), ctx.alloc_file_content(src));
 
         assert_eq!("fname", &loc.file_name);
-        assert_eq!(src, loc.src.to_str());
-        assert_eq!(0, loc.index);
-        assert_eq!(1, loc.line);
-        assert_eq!(1, loc.col);
+        assert_eq!(src, loc.src());
+        assert_eq!(0, loc.index());
+        assert_eq!(1, loc.line());
+        assert_eq!(1, loc.col());
     }
 
     #[test]
     fn shift_single_line() {
         let ctx = Context::new();
         let src = "my name is methos";
-        let start = Point::new(ctx.alloc_file_name("fname"), ctx.alloc_file_content(src));
+        let start = Point::at_start_of(ctx.alloc_file_name("fname"), ctx.alloc_file_content(src));
         let mid = start.shift("my name is ");
         let end = mid.clone().shift("methos");
 
         assert_eq!("fname", mid.file_name);
-        assert_eq!(src, mid.src);
-        assert_eq!(11, mid.index);
-        assert_eq!(1, mid.line);
-        assert_eq!(12, mid.col);
+        assert_eq!(src, mid.src());
+        assert_eq!(11, mid.index());
+        assert_eq!(1, mid.line());
+        assert_eq!(12, mid.col());
 
-        assert_eq!("fname", end.file_name);
-        assert_eq!(src, end.src);
-        assert_eq!(17, end.index);
-        assert_eq!(1, end.line);
-        assert_eq!(18, end.col);
+        assert_eq!("fname", end.file_name());
+        assert_eq!(src, end.src());
+        assert_eq!(17, end.index());
+        assert_eq!(1, end.line());
+        assert_eq!(18, end.col());
     }
 
     #[test]
     fn tabs() {
         let ctx = Context::new();
         let src = "\thello,\tworld";
-        let start = Point::new(ctx.alloc_file_name("fname"), ctx.alloc_file_content(src));
+        let start = Point::at_start_of(ctx.alloc_file_name("fname"), ctx.alloc_file_content(src));
         let end = start.shift(src);
 
-        assert_eq!(13, end.index);
-        assert_eq!(20, end.col);
+        assert_eq!(13, end.index());
+        assert_eq!(20, end.col());
     }
 
     #[test]
@@ -109,16 +133,16 @@ mod test {
         let ctx = Context::new();
         let raw_src = "Welcome! Welcome to City 17! You have chosen, or been chosen, to relocate to one of our finest remaining urban centres";
         let src = raw_src.replace(' ', "\n");
-        let start = Point::new(
+        let start = Point::at_start_of(
             ctx.alloc_file_name("file_name"),
             ctx.alloc_file_content(&src),
         );
         let end = start.shift(&src);
 
-        assert_eq!("file_name", end.file_name);
-        assert_eq!(src, end.src);
-        assert_eq!(21, end.line);
-        assert_eq!(118, end.index);
-        assert_eq!(8, end.col);
+        assert_eq!("file_name", end.file_name());
+        assert_eq!(src, end.src());
+        assert_eq!(21, end.line());
+        assert_eq!(118, end.index());
+        assert_eq!(8, end.col());
     }
 }
