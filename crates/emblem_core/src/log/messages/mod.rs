@@ -30,7 +30,7 @@ pub use unexpected_token::UnexpectedToken;
 
 use crate::log::Log;
 
-pub trait Message<'i> {
+pub trait Message {
     /// If implemented, returns the unique identifier for the message. This must have the form
     /// `Eddd` for digits `d`.
     fn id() -> &'static str
@@ -41,7 +41,7 @@ pub trait Message<'i> {
     }
 
     /// Format this message into a log.
-    fn log(self) -> Log<'i>;
+    fn log(self) -> Log;
 
     fn default() -> Box<Self>
     where
@@ -60,7 +60,7 @@ pub trait Message<'i> {
 pub struct MessageInfo {
     id: &'static str,
     #[cfg(test)]
-    default_log: Log<'static>,
+    default_log: Log,
     explanation: &'static str,
 }
 
@@ -81,7 +81,7 @@ pub fn messages() -> Vec<MessageInfo> {
                 vec![
                     $(
                         {
-                            let default = <$msg as Message<'_>>::default();
+                            let default = <$msg as Message>::default();
                             let explanation = default.explain();
                             MessageInfo {
                                 id: $msg::id(),

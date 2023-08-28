@@ -6,7 +6,7 @@ pub struct FileName {
 }
 
 impl FileName {
-    pub(crate) fn new(raw: &str) -> Self {
+    pub(super) fn new(raw: &str) -> Self {
         Self {
             inner: Rc::from(raw),
         }

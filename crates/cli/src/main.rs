@@ -66,14 +66,14 @@ fn main() -> ExitCode {
     }
 }
 
-fn load_manifest<'ctx, 'm, 'a>(
-    ctx: &'ctx mut Context<'m>,
-    src: &'m str,
+fn load_manifest<'ctx, 'src, 'a>(
+    ctx: &'ctx mut Context<'src>,
+    src: &'src str,
     args: &'a Args,
-) -> Result<(), Box<Log<'m>>>
+) -> Result<(), Box<Log>>
 where
-    'm: 'ctx,
-    'a: 'm,
+    'src: 'ctx,
+    'a: 'src,
 {
     let manifest = DocManifest::try_from(src)?;
 
@@ -158,7 +158,7 @@ fn execute<'ctx, C, R>(
     ctx: &'ctx mut Context<'ctx>,
     cmd: C,
     warnings_as_errors: bool,
-) -> (Vec<Log<'_>>, bool)
+) -> (Vec<Log>, bool)
 where
     C: Action<Response = R>,
 {

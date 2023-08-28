@@ -3,9 +3,12 @@ mod note;
 mod src;
 mod verbosity;
 
+use crate::context::file_content::FileSlice;
+
 pub use self::messages::Message;
 pub use note::Note;
 pub use src::Src;
+use typed_arena::Arena;
 pub use verbosity::Verbosity;
 
 use annotate_snippets::{
@@ -75,7 +78,7 @@ impl Logger {
             let plural = if tot_warnings > 1 { "s" } else { "" };
             alert!(
                 &mut self,
-                Log::warn(&format!("generated {} warning{plural}", tot_warnings))
+                Log::warn(format!("generated {} warning{plural}", tot_warnings))
             );
         }
 
@@ -93,7 +96,7 @@ impl Logger {
             .unwrap();
         alert!(
             &mut self,
-            Log::error(&format!(
+            Log::error(format!(
                 "`{exe}` failed due to {} error{plural}",
                 tot_errors
             ))
@@ -102,18 +105,18 @@ impl Logger {
 }
 
 #[derive(Debug)]
-pub struct Log<'i> {
+pub struct Log {
     msg: String,
     msg_type: AnnotationType,
     id: Option<&'static str>,
     help: Option<String>,
     note: Option<String>,
-    srcs: Vec<Src<'i>>,
+    srcs: Vec<Src>,
     explainable: bool,
     expected: Option<Vec<String>>,
 }
 
-impl<'i> Log<'i> {
+impl Log {
     fn new<S: Into<String>>(msg_type: AnnotationType, msg: S) -> Self {
         Self {
             msg: msg.into(),
@@ -183,6 +186,7 @@ impl<'i> Log<'i> {
             footer
         };
 
+        let contexts = Arena::new();
         let snippet = Snippet {
             title: Some(Annotation {
                 id: self.id,
@@ -196,9 +200,9 @@ impl<'i> Log<'i> {
                 .srcs
                 .iter()
                 .map(|s| {
-                    let context = s.loc().context();
+                    let context = contexts.alloc(s.loc().context());
                     Slice {
-                        source: context.src(),
+                        source: context.raw(),
                         line_start: s.loc().lines().0,
                         origin: Some(s.loc().file_name().as_ref()),
                         fold: true,
@@ -208,7 +212,7 @@ impl<'i> Log<'i> {
                             .map(|a| SourceAnnotation {
                                 annotation_type: a.msg_type(),
                                 label: a.msg(),
-                                range: a.loc().indices(&context),
+                                range: a.loc().indices_in(context),
                             })
                             .collect(),
                     }
@@ -318,12 +322,12 @@ impl<'i> Log<'i> {
         &self.help
     }
 
-    pub fn with_src(mut self, src: Src<'i>) -> Self {
+    pub fn with_src(mut self, src: Src) -> Self {
         self.srcs.push(src);
         self
     }
 
-    pub fn srcs(&self) -> &Vec<Src<'i>> {
+    pub fn srcs(&self) -> &Vec<Src> {
         &self.srcs
     }
 
@@ -346,7 +350,7 @@ impl<'i> Log<'i> {
 }
 
 #[cfg(test)]
-impl Log<'_> {
+impl Log {
     pub fn text(&self) -> Vec<&str> {
         let mut ret = vec![&self.msg[..]];
 
@@ -453,8 +457,8 @@ impl Log<'_> {
     }
 }
 
-impl<'i> Message<'i> for Log<'i> {
-    fn log(self) -> Log<'i> {
+impl Message for Log {
+    fn log(self) -> Log {
         self
     }
 }
@@ -518,9 +522,9 @@ mod test {
     #[test]
     fn srcs() {
         let ctx = Context::new();
-        let content = ctx.alloc_file("hello, world".into());
+        let content = ctx.alloc_file_content("hello, world");
         let srcs = [
-            Point::new(ctx.alloc_file_name("main.em"), content),
+            Point::new(ctx.alloc_file_name("main.em"), content.clone()),
             Point::new(ctx.alloc_file_name("something-else.em"), content),
         ]
         .into_iter()

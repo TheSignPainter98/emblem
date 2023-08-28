@@ -2,14 +2,14 @@ use crate::parser::Location;
 use annotate_snippets::snippet::AnnotationType;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Note<'i> {
-    loc: Location<'i>,
+pub struct Note {
+    loc: Location,
     msg: String,
     msg_type: AnnotationType,
 }
 
-impl<'i> Note<'i> {
-    fn new<S: Into<String>>(msg_type: AnnotationType, loc: &Location<'i>, msg: S) -> Self {
+impl Note {
+    fn new<S: Into<String>>(msg_type: AnnotationType, loc: &Location, msg: S) -> Self {
         Self {
             loc: loc.clone(),
             msg: msg.into(),
@@ -17,25 +17,25 @@ impl<'i> Note<'i> {
         }
     }
 
-    pub fn error<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
+    pub fn error<S: Into<String>>(loc: &Location, msg: S) -> Self {
         Self::new(AnnotationType::Error, loc, msg)
     }
 
     #[allow(dead_code)]
-    pub fn warn<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
+    pub fn warn<S: Into<String>>(loc: &Location, msg: S) -> Self {
         Self::new(AnnotationType::Warning, loc, msg)
     }
 
-    pub fn info<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
+    pub fn info<S: Into<String>>(loc: &Location, msg: S) -> Self {
         Self::new(AnnotationType::Info, loc, msg)
     }
 
     #[allow(dead_code)]
-    pub fn help<S: Into<String>>(loc: &Location<'i>, msg: S) -> Self {
+    pub fn help<S: Into<String>>(loc: &Location, msg: S) -> Self {
         Self::new(AnnotationType::Help, loc, msg)
     }
 
-    pub fn loc(&self) -> &Location<'i> {
+    pub fn loc(&self) -> &Location {
         &self.loc
     }
 
@@ -49,7 +49,7 @@ impl<'i> Note<'i> {
 }
 
 #[cfg(test)]
-impl Note<'_> {
+impl Note {
     pub fn text(&self) -> Vec<&str> {
         vec![&self.msg]
     }
@@ -68,11 +68,15 @@ mod test {
     use super::*;
     use crate::{
         parser::{Location, Point},
-        FileName,
+        Context,
     };
 
-    fn placeholder_loc() -> Location<'static> {
-        let p = Point::new(FileName::new("main.em"), "hello, world!");
+    fn placeholder_loc() -> Location {
+        let ctx = Context::new();
+        let p = Point::new(
+            ctx.alloc_file_name("main.em"),
+            ctx.alloc_file_content("hello, world!"),
+        );
         let shifted = p.clone().shift("hello");
         Location::new(&p, &shifted)
     }

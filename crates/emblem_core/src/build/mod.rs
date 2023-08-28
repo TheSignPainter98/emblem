@@ -26,7 +26,7 @@ pub struct Builder {
 impl Action for Builder {
     type Response = Option<Vec<(ArgPath, String)>>;
 
-    fn run<'ctx>(&self, ctx: &'ctx mut Context<'ctx>) -> EmblemResult<'ctx, Self::Response> {
+    fn run<'ctx>(&self, ctx: &'ctx mut Context<'ctx>) -> EmblemResult<Self::Response> {
         let fname: SearchResult = match self.input.as_ref().try_into() {
             Ok(f) => f,
             Err(e) => return EmblemResult::new(vec![Log::error(e.to_string())], None),

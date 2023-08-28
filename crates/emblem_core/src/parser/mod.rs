@@ -1,18 +1,16 @@
 pub mod error;
 pub mod lexer;
 pub mod location;
-mod location_context;
 mod point;
 
 pub use error::Error;
 pub use lexer::LexicalError;
 pub use location::Location;
-pub use location_context::LocationContext;
 pub use point::Point;
 
 use crate::context::Context;
 use crate::path::SearchResult;
-use crate::{ast, FileName};
+use crate::{ast, FileContent, FileName};
 use ast::parsed::ParsedFile;
 use error::StringConversionError;
 use lalrpop_util::lalrpop_mod;
@@ -26,13 +24,7 @@ lalrpop_mod!(
 );
 
 /// Parse an emblem source file at the given location.
-pub fn parse_file<'ctx, 'input>(
-    ctx: &'ctx Context<'ctx>,
-    mut to_parse: SearchResult,
-) -> Result<ParsedFile<'input>, Box<Error<'input>>>
-where
-    'ctx: 'input,
-{
+pub fn parse_file(ctx: &Context<'_>, mut to_parse: SearchResult) -> Result<ParsedFile, Box<Error>> {
     let file = {
         let raw = to_parse.path().as_os_str();
         let mut path: &str = to_parse
@@ -56,14 +48,14 @@ where
             .map(String::with_capacity)
             .unwrap_or_default();
         reader.read_to_string(&mut buf)?;
-        ctx.alloc_file(buf)
+        ctx.alloc_file_content(buf)
     };
 
     parse(file, content)
 }
 
 /// Parse a given string of emblem source code.
-pub fn parse(name: FileName, content: &str) -> Result<ParsedFile<'_>, Box<Error<'_>>> {
+pub fn parse(name: FileName, content: FileContent) -> Result<ParsedFile, Box<Error>> {
     let lexer = Lexer::new(name, content);
     let parser = parser::FileParser::new();
 
@@ -77,9 +69,12 @@ pub mod test {
     use regex::Regex;
 
     pub fn assert_structure(name: &str, input: &str, expected: &str) {
+        let ctx = Context::new();
+        let name = ctx.alloc_file_name(name);
         assert_eq!(
             {
-                let parse_result = parse(FileName::new(name), input);
+                let input = ctx.alloc_file_content(input);
+                let parse_result = parse(name.clone(), input.clone());
                 assert!(
                     parse_result.is_ok(),
                     "{}: expected Ok parse result when parsing {:?}, got: {:?}",
@@ -94,16 +89,16 @@ pub mod test {
             name
         );
 
-        let input_with_newline = &format!("{}\n", input);
         assert_eq!(
             expected,
             {
-                let parse_result = parse(FileName::new(name), input_with_newline);
+                let input = ctx.alloc_file_content(format!("{}\n", input));
+                let parse_result = parse(name.clone(), input.clone());
                 assert!(
                     parse_result.is_ok(),
                     "{}: expected Ok parse result when parsing {:?}",
                     name,
-                    input_with_newline
+                    input
                 );
                 parse_result.unwrap().repr()
             },
@@ -113,6 +108,7 @@ pub mod test {
     }
 
     fn assert_parse_error(name: &str, input: &str, expected: &str) {
+        let ctx = Context::new();
         let re = Regex::new(&("^".to_owned() + expected)).unwrap();
 
         let inputs = [
@@ -121,7 +117,7 @@ pub mod test {
         ];
 
         for (name, input) in inputs {
-            let result = parse(FileName::new(name), input);
+            let result = parse(ctx.alloc_file_name(name), ctx.alloc_file_content(input));
             assert!(result.is_err(), "{}: unexpected success", name);
 
             let err = result.unwrap_err();
@@ -600,11 +596,15 @@ pub mod test {
                 "we are .outward-bound[for,kingston,town]",
                 "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]",
             );
-            assert_structure("unnamed-only-with-spaces", "we are .outward-bound[ for , kingston , town ]", "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[( for )|( kingston )|( town )]]]]");
+            assert_structure(
+                "unnamed-only-with-spaces",
+                "we are .outward-bound[ for , kingston , town ]",
+                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]",
+            );
             assert_structure(
                 "unnamed-only-with-tabs",
                 "we are .outward-bound[\tfor\t,\tkingston\t,\ttown\t]",
-                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(\tfor\t)|(\tkingston\t)|(\ttown\t)]]]]",
+                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]",
             );
 
             assert_structure(
@@ -612,11 +612,15 @@ pub mod test {
                 "we are .outward-bound[for=kingston,town]",
                 "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]",
             );
-            assert_structure("named-with-spaces", "we are .outward-bound[   for   =   kingston   ,   town   ]", "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(   for   )=(   kingston   )|(   town   )]]]]");
+            assert_structure(
+                "named-with-spaces",
+                "we are .outward-bound[   for   =   kingston   ,   town   ]",
+                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]",
+            );
             assert_structure(
                 "named-with-spaces",
                 "we are .outward-bound[\tfor\t=\tkingston\t,\ttown\t]",
-                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(\tfor\t)=(\tkingston\t)|(\ttown\t)]]]]",
+                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]",
             );
 
             assert_structure(

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::ast::parsed::Attr;
 use crate::ast::parsed::Content;
+use crate::context::file_content::FileSlice;
 use crate::lint::Lint;
 use crate::log::{Log, Note, Src};
 use derive_new::new;
@@ -9,12 +10,12 @@ use derive_new::new;
 #[derive(new)]
 pub struct DuplicateAttrs {}
 
-impl<'i> Lint<'i> for DuplicateAttrs {
+impl Lint for DuplicateAttrs {
     fn id(&self) -> &'static str {
         "duplicate-attrs"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
+    fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
             Content::Command {
                 loc,
@@ -22,13 +23,13 @@ impl<'i> Lint<'i> for DuplicateAttrs {
                 ..
             } => {
                 let mut first_seen: HashMap<&str, &crate::ast::parsed::Attr> = HashMap::new();
-                let mut dups = Vec::new();
+                let mut dups: Vec<(_, &Attr)> = vec![];
                 for attr in attrs.args() {
-                    let name = attr.name();
-                    if let Some(first) = first_seen.get(name) {
-                        dups.push((attr, <&Attr<'_>>::clone(first)));
+                    let repr = attr.repr().to_str();
+                    if let Some(first) = first_seen.get(repr) {
+                        dups.push((attr, first));
                     } else {
-                        first_seen.insert(name, attr);
+                        first_seen.insert(repr, attr);
                     }
                 }
 
@@ -41,15 +42,15 @@ impl<'i> Lint<'i> for DuplicateAttrs {
                     ret.push(
                         Log::warn("duplicate attributes")
                             .with_src({
-                                let name = duplicate.name();
+                                let repr = duplicate.repr();
                                 Src::new(loc)
                                     .with_annotation(Note::warn(
                                         duplicate.loc(),
-                                        format!("found duplicate ‘{}’ here", name),
+                                        format!("found duplicate ‘{}’ here", repr),
                                     ))
                                     .with_annotation(Note::info(
                                         original.loc(),
-                                        format!("‘{}’ first defined here", name),
+                                        format!("‘{}’ first defined here", repr),
                                     ))
                             })
                             .with_help("remove multiple occurrences of the same attribute"),

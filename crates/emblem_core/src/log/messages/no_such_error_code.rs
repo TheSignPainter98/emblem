@@ -8,7 +8,7 @@ pub struct NoSuchErrorCode {
     id: String,
 }
 
-impl<'a> Message<'a> for NoSuchErrorCode {
+impl Message for NoSuchErrorCode {
     fn id() -> &'static str
     where
         Self: Sized,
@@ -16,7 +16,7 @@ impl<'a> Message<'a> for NoSuchErrorCode {
         "E001"
     }
 
-    fn log(self) -> Log<'a> {
+    fn log(self) -> Log {
         Log::error(format!("no such error code ‘{}’", self.id))
             .with_id(Self::id())
             .explainable()

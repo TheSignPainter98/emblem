@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use lazy_static::lazy_static;
 
 use crate::ast::parsed::Content;
+use crate::context::file_content::FileSlice;
 use crate::lint::Lint;
 use crate::log::{Log, Note, Src};
 use crate::util;
@@ -36,12 +37,12 @@ lazy_static! {
     };
 }
 
-impl<'i> Lint<'i> for NumArgs {
+impl Lint for NumArgs {
     fn id(&self) -> &'static str {
         "num-args"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
+    fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
             Content::Command {
                 name,
@@ -52,7 +53,7 @@ impl<'i> Lint<'i> for NumArgs {
                 invocation_loc,
                 ..
             } => {
-                if let Some((min, max)) = AFFECTED_COMMANDS.get(name.as_str()) {
+                if let Some((min, max)) = AFFECTED_COMMANDS.get(name.to_str()) {
                     let num_args =
                         inline_args.len() + remainder_arg.iter().len() + trailer_args.len();
 

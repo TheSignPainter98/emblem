@@ -6,17 +6,17 @@ use derive_new::new;
 use indoc::indoc;
 
 #[derive(Default, new)]
-pub struct TooManyQualifiers<'i> {
-    loc: Location<'i>,
-    dot_locs: Vec<Location<'i>>,
+pub struct TooManyQualifiers {
+    loc: Location,
+    dot_locs: Vec<Location>,
 }
 
-impl<'i> Message<'i> for TooManyQualifiers<'i> {
+impl Message for TooManyQualifiers {
     fn id() -> &'static str {
         "E005"
     }
 
-    fn log(self) -> Log<'i> {
+    fn log(self) -> Log {
         Log::error(format!(
             "too many {} found in call",
             util::plural(self.dot_locs.len(), "dot", "dots")

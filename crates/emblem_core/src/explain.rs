@@ -13,14 +13,14 @@ pub struct Explainer {
 impl Action for Explainer {
     type Response = Option<&'static str>;
 
-    fn run<'ctx>(&self, _: &'ctx mut Context) -> EmblemResult<'ctx, Self::Response> {
+    fn run(&self, _: &mut Context) -> EmblemResult<Self::Response> {
         match self.get_explanation() {
             Some(e) => EmblemResult::new(vec![], Some(e)),
             None => EmblemResult::new(vec![NoSuchErrorCode::new(self.id.clone()).log()], None),
         }
     }
 
-    fn output<'ctx>(&self, resp: Self::Response) -> EmblemResult<'ctx, ()> {
+    fn output<'ctx>(&self, resp: Self::Response) -> EmblemResult<()> {
         if let Some(explanation) = resp {
             println!("{}", explanation);
         }

@@ -6,12 +6,12 @@ use derive_new::new;
 #[derive(new)]
 pub struct SpiltGlue {}
 
-impl<'i> Lint<'i> for SpiltGlue {
+impl Lint for SpiltGlue {
     fn id(&self) -> &'static str {
         "spilt-glue"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
+    fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
             Content::SpiltGlue { loc, .. } => {
                 vec![Log::warn("glue does not connect text fragments")

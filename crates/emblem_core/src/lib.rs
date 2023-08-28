@@ -44,23 +44,20 @@ use derive_new::new;
 pub trait Action {
     type Response;
 
-    fn run<'ctx>(
-        &self,
-        ctx: &'ctx mut context::Context<'ctx>,
-    ) -> EmblemResult<'ctx, Self::Response>;
+    fn run<'ctx>(&self, ctx: &'ctx mut context::Context<'ctx>) -> EmblemResult<Self::Response>;
 
-    fn output<'ctx>(&self, _: Self::Response) -> EmblemResult<'ctx, ()> {
+    fn output(&self, _: Self::Response) -> EmblemResult<()> {
         EmblemResult::new(vec![], ())
     }
 }
 
 #[derive(new, Debug)]
-pub struct EmblemResult<'em, R> {
-    pub logs: Vec<Log<'em>>,
+pub struct EmblemResult<R> {
+    pub logs: Vec<Log>,
     pub response: R,
 }
 
-impl<'em, T> EmblemResult<'em, T> {
+impl<T> EmblemResult<T> {
     pub fn successful(&self, warnings_as_errors: bool) -> bool {
         self.logs.iter().all(|l| l.successful(warnings_as_errors))
     }

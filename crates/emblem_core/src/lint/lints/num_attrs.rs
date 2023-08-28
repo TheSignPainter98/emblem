@@ -1,4 +1,5 @@
 use crate::ast::parsed::Content;
+use crate::context::file_content::FileSlice;
 use crate::lint::Lint;
 use crate::log::{Log, Note, Src};
 use crate::util;
@@ -35,12 +36,12 @@ lazy_static! {
     };
 }
 
-impl<'i> Lint<'i> for NumAttrs {
+impl Lint for NumAttrs {
     fn id(&self) -> &'static str {
         "num-attrs"
     }
 
-    fn analyse(&mut self, content: &Content<'i>) -> Vec<Log<'i>> {
+    fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
             Content::Command {
                 name,
@@ -49,7 +50,7 @@ impl<'i> Lint<'i> for NumAttrs {
                 attrs,
                 ..
             } => {
-                if let Some((min, max)) = AFFECTED_COMMANDS.get(name.as_str()) {
+                if let Some((min, max)) = AFFECTED_COMMANDS.get(name.to_str()) {
                     let num_attrs = attrs.as_ref().map(|a| a.args().len()).unwrap_or_default();
 
                     let report_loc = if let Some(attrs) = attrs {

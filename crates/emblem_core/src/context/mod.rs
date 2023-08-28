@@ -4,18 +4,16 @@ mod module;
 mod resource_limit;
 mod resources;
 
-use crate::{ExtensionState, FileName, Typesetter, Version};
+use crate::{ExtensionState, FileContent, FileName, Typesetter, Version};
 use derive_new::new;
 use mlua::Result as MLuaResult;
 pub use module::{Module, ModuleVersion};
 pub use resource_limit::ResourceLimit;
 pub use resources::{Iteration, Memory, Resource, Step};
 use std::fmt::Debug;
-use typed_arena::Arena;
 
 #[derive(Default)]
 pub struct Context<'m> {
-    files: Arena<String>,
     doc_params: DocumentParameters<'m>,
     lua_params: LuaParameters<'m>,
     typesetter_params: TypesetterParameters,
@@ -26,12 +24,12 @@ impl<'m> Context<'m> {
         Self::default()
     }
 
-    pub fn alloc_file_name(&self, name: &str) -> FileName {
-        FileName::new(name)
+    pub fn alloc_file_name<T: AsRef<str>>(&self, name: T) -> FileName {
+        FileName::new(name.as_ref())
     }
 
-    pub fn alloc_file(&self, content: String) -> &str {
-        self.files.alloc(content)
+    pub fn alloc_file_content<T: AsRef<str>>(&self, content: T) -> FileContent {
+        FileContent::new(content.as_ref())
     }
 
     pub fn doc_params(&self) -> &DocumentParameters<'m> {
@@ -71,7 +69,6 @@ impl<'m> Context<'m> {
 impl<'m> Context<'m> {
     pub fn test_new() -> Self {
         Self {
-            files: Arena::new(),
             doc_params: DocumentParameters::test_new(),
             lua_params: LuaParameters::test_new(),
             typesetter_params: TypesetterParameters::test_new(),
@@ -267,7 +264,7 @@ mod test {
         let ctx = Context::test_new();
         let content = "hello, world".to_owned();
 
-        let result = ctx.alloc_file(content.clone());
-        assert_eq!(result, content);
+        let result = ctx.alloc_file_content(content.clone());
+        assert_eq!(result.as_ref(), content);
     }
 }

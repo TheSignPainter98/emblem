@@ -1,24 +1,21 @@
-use crate::{
-    parser::{LocationContext, Point},
-    FileName,
-};
+use crate::{context::file_content::FileSlice, parser::Point, FileContentSlice, FileName};
 use core::fmt::{self, Display};
 use std::cmp;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Location<'i> {
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Location {
     file_name: FileName,
-    src: &'i str,
+    src: FileContentSlice,
     lines: (usize, usize),
     cols: (usize, usize),
     indices: (usize, usize),
 }
 
-impl<'i> Location<'i> {
-    pub fn new(start: &Point<'i>, end: &Point<'i>) -> Self {
+impl Location {
+    pub fn new(start: &Point, end: &Point) -> Self {
         Self {
             file_name: start.file_name.clone(),
-            src: start.src,
+            src: start.src.clone(),
             lines: (start.line, end.line),
             indices: (start.index, end.index),
             cols: (start.col, cmp::max(1, end.col - 1)),
@@ -29,8 +26,8 @@ impl<'i> Location<'i> {
         &self.file_name
     }
 
-    pub fn src(&self) -> &'i str {
-        self.src
+    pub fn src(&self) -> &FileContentSlice {
+        &self.src
     }
 
     pub fn lines(&self) -> (usize, usize) {
@@ -41,26 +38,26 @@ impl<'i> Location<'i> {
         self.cols
     }
 
-    pub fn indices(&self, context: &LocationContext) -> (usize, usize) {
+    pub fn indices_in(&self, context: &FileContentSlice) -> (usize, usize) {
         let (start, end) = self.indices;
-        let context_start = context.starting_index();
+        let context_start = context.range().start;
         (start - context_start, end - context_start)
     }
 
-    pub fn start(&self) -> Point<'i> {
+    pub fn start(&self) -> Point {
         Point {
             file_name: self.file_name.clone(),
-            src: self.src,
+            src: self.src.clone(),
             line: self.lines.0,
             col: self.cols.0,
             index: self.indices.0,
         }
     }
 
-    pub fn end(&self) -> Point<'i> {
+    pub fn end(&self) -> Point {
         Point {
             file_name: self.file_name.clone(),
-            src: self.src,
+            src: self.src.clone(),
             line: self.lines.1,
             col: self.cols.1,
             index: self.indices.1,
@@ -77,7 +74,7 @@ impl<'i> Location<'i> {
 
         Self {
             file_name: other.file_name.clone(),
-            src: self.src,
+            src: self.src.clone(),
             lines: (
                 cmp::min(self.lines.0, other.lines.0),
                 cmp::max(self.lines.1, other.lines.1),
@@ -93,33 +90,21 @@ impl<'i> Location<'i> {
         }
     }
 
-    pub fn context(&self) -> LocationContext<'i> {
-        let start = self.src[..self.indices.0]
+    pub fn context(&self) -> FileContentSlice {
+        let raw = self.src.raw();
+        let start = raw[..self.indices.0]
             .rfind(['\r', '\n'])
             .map(|i| i + 1)
             .unwrap_or_default();
-        let end = self.src[self.indices.1..]
+        let end = raw[self.indices.1..]
             .find(['\r', '\n'])
             .map(|i| i + self.indices.1)
-            .unwrap_or(self.src.len());
-
-        LocationContext::new(&self.src[start..end], start)
+            .unwrap_or(raw.len());
+        self.src.slice(start..end)
     }
 }
 
-impl Default for Location<'_> {
-    fn default() -> Self {
-        Self {
-            file_name: FileName::new(""),
-            src: Default::default(),
-            lines: Default::default(),
-            cols: Default::default(),
-            indices: Default::default(),
-        }
-    }
-}
-
-impl Display for Location<'_> {
+impl Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.lines.0 != self.lines.1 {
             write!(
@@ -139,34 +124,42 @@ impl Display for Location<'_> {
 
 #[cfg(test)]
 mod test {
+    use crate::Context;
+
     use super::*;
 
     mod lines_cols {
+        use crate::Context;
+
         use super::*;
         #[test]
         fn mid_line() {
+            let ctx = Context::new();
             let text = "my name\nis methos";
-            let start = Point::new(FileName::new("fname.em"), text);
+            let start = Point::new(
+                ctx.alloc_file_name("fname.em"),
+                ctx.alloc_file_content(text),
+            );
             let end = start.clone().shift(text);
-
             let loc = Location::new(&start, &end);
-
             assert_eq!("fname.em", loc.file_name());
-            assert_eq!(text, loc.src());
+            assert_eq!(text, loc.src().raw());
             assert_eq!((start.line, end.line), loc.lines());
             assert_eq!((start.col, end.col - 1), loc.cols());
         }
 
         #[test]
         fn end_of_line() {
+            let ctx = Context::new();
             let text = "my name is methos\n";
-            let start = Point::new(FileName::new("fname.em"), text);
+            let start = Point::new(
+                ctx.alloc_file_name("fname.em"),
+                ctx.alloc_file_content(text),
+            );
             let end = start.clone().shift(text);
-
             let loc = Location::new(&start, &end);
-
             assert_eq!("fname.em", loc.file_name());
-            assert_eq!(text, loc.src());
+            assert_eq!(text, loc.src().raw());
             assert_eq!((start.line, end.line), loc.lines());
             assert_eq!((start.col, 1), loc.cols());
         }
@@ -174,28 +167,38 @@ mod test {
 
     #[test]
     fn start() {
+        let ctx = Context::new();
         let text = "my name is methos\n";
-        let start = Point::new(FileName::new("fname.em"), text);
+        let start = Point::new(
+            ctx.alloc_file_name("fname.em"),
+            ctx.alloc_file_content(text),
+        );
         let end = start.clone().shift(text);
-
         let loc = Location::new(&start, &end);
         assert_eq!(loc.start(), start);
     }
 
     #[test]
     fn end() {
+        let ctx = Context::new();
         let text = "my name is methos\n";
-        let start = Point::new(FileName::new("fname.em"), text);
+        let start = Point::new(
+            ctx.alloc_file_name("fname.em"),
+            ctx.alloc_file_content(text),
+        );
         let end = start.clone().shift(text);
-
         let loc = Location::new(&start, &end);
         assert_eq!(loc.end(), end);
     }
 
     #[test]
     fn span_to() {
+        let ctx = Context::new();
         let text = "my name is methos\n";
-        let p1 = Point::new(FileName::new("fname.em"), text);
+        let p1 = Point::new(
+            ctx.alloc_file_name("fname.em"),
+            ctx.alloc_file_content(text),
+        );
         let p2 = p1.clone().shift("my name");
         let p3 = p2.clone().shift(" is ");
         let p4 = p2.clone().shift("methos");
@@ -230,24 +233,29 @@ mod test {
 
         #[test]
         fn single_line() {
+            let ctx = Context::new();
             let text = "oh! santiana gained a day";
-            let text_start = Point::new(FileName::new("fname.em"), text);
+            let text_start = Point::new(
+                ctx.alloc_file_name("fname.em"),
+                ctx.alloc_file_content(text),
+            );
 
             let loc_start_shift = "oh! ";
             let loc_text = "santiana";
 
-            let loc_start = text_start.clone().shift(loc_start_shift);
+            let loc_start = text_start.shift(loc_start_shift);
             let loc_end = loc_start.clone().shift(loc_text);
 
             let loc = Location::new(&loc_start, &loc_end);
             let context = loc.context();
-            assert_eq!(context.src(), text);
-            assert_eq!(context.starting_index(), 0);
-            assert_eq!(loc.indices(&context), (4, 12));
+            assert_eq!(context.raw(), text);
+            assert_eq!(*context.range(), 0..text.len());
+            assert_eq!(loc.indices_in(&context), (4, 12));
         }
 
         #[test]
         fn multi_line() {
+            let ctx = Context::new();
             let lines = [
                 "oh! santiana gained a day",
                 "away santiana!",
@@ -256,7 +264,10 @@ mod test {
             ];
             for newline in ["\n", "\r", "\r\n"] {
                 let text = lines.join(newline);
-                let text_start = Point::new(FileName::new("fname.em"), &text);
+                let text_start = Point::new(
+                    ctx.alloc_file_name("fname.em"),
+                    ctx.alloc_file_content(&text),
+                );
 
                 let loc_start_shift = &format!("oh! santiana gained a day{newline}away ");
                 let loc_text = &format!("santiana!{newline}'napoleon of");
@@ -267,9 +278,15 @@ mod test {
                 let loc = Location::new(&loc_start, &loc_end);
                 let context = loc.context();
 
-                assert_eq!(context.src(), lines[1..3].join(newline));
-                assert_eq!(context.starting_index(), 25 + newline.len());
-                assert_eq!(loc.indices(&context), (5, 26 + newline.len()));
+                let newline_len = newline.len();
+                assert_eq!(context, lines[1..3].join(newline));
+                assert_eq!(*context.range(), {
+                    let start_idx = lines[0].len() + newline_len;
+                    let end_idx =
+                        2 * newline_len + lines[..3].iter().map(|line| line.len()).sum::<usize>();
+                    start_idx..end_idx
+                });
+                assert_eq!(loc.indices_in(&context), (5, 26 + newline_len));
             }
         }
     }

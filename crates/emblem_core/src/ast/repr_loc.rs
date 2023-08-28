@@ -6,12 +6,12 @@ use crate::{
     parser::Location,
 };
 
-pub trait ReprLoc<'em> {
-    fn repr_loc(&self) -> Location<'em>;
+pub trait ReprLoc {
+    fn repr_loc(&self) -> Location;
 }
 
-impl<'em> ReprLoc<'em> for Par<ParPart<Content<'em>>> {
-    fn repr_loc(&self) -> Location<'em> {
+impl ReprLoc for Par<ParPart<Content>> {
+    fn repr_loc(&self) -> Location {
         let parts = self
             .parts
             .iter()
@@ -25,8 +25,8 @@ impl<'em> ReprLoc<'em> for Par<ParPart<Content<'em>>> {
     }
 }
 
-impl<'em> ReprLoc<'em> for ParPart<Content<'em>> {
-    fn repr_loc(&self) -> Location<'em> {
+impl ReprLoc for ParPart<Content> {
+    fn repr_loc(&self) -> Location {
         match self {
             Self::Line(l) => match &l[..] {
                 [sole] => sole.repr_loc(),
@@ -41,8 +41,8 @@ impl<'em> ReprLoc<'em> for ParPart<Content<'em>> {
     }
 }
 
-impl<'em> ReprLoc<'em> for Content<'em> {
-    fn repr_loc(&self) -> Location<'em> {
+impl ReprLoc for Content {
+    fn repr_loc(&self) -> Location {
         match self {
             Self::Shebang { loc, .. }
             | Self::Command {
@@ -62,8 +62,8 @@ impl<'em> ReprLoc<'em> for Content<'em> {
     }
 }
 
-impl<'em> ReprLoc<'em> for Sugar<'em> {
-    fn repr_loc(&self) -> Location<'em> {
+impl ReprLoc for Sugar {
+    fn repr_loc(&self) -> Location {
         match self {
             Self::Italic { loc, .. }
             | Self::Bold { loc, .. }
@@ -85,8 +85,8 @@ mod test {
     use super::*;
     use crate::{ast::parsed::ParsedFile, parser, Context};
 
-    fn parse<'ctx>(ctx: &'ctx Context, name: &'ctx str, src: &'ctx str) -> ParsedFile<'ctx> {
-        parser::parse(ctx.alloc_file_name(name), ctx.alloc_file(src.into())).unwrap()
+    fn parse(ctx: &Context, name: &str, src: &str) -> ParsedFile {
+        parser::parse(ctx.alloc_file_name(name), ctx.alloc_file_content(src)).unwrap()
     }
 
     #[test]

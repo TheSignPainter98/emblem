@@ -4,12 +4,12 @@ use crate::parser::Location;
 use derive_new::new;
 
 #[derive(Default, new)]
-pub struct UnclosedComments<'i> {
-    unclosed: Vec<Location<'i>>,
+pub struct UnclosedComments {
+    unclosed: Vec<Location>,
 }
 
-impl<'i> Message<'i> for UnclosedComments<'i> {
-    fn log(self) -> Log<'i> {
+impl Message for UnclosedComments {
+    fn log(self) -> Log {
         let msg = if self.unclosed.len() > 1 {
             "unclosed comments"
         } else {

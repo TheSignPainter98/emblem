@@ -438,6 +438,7 @@ dependencies = [
  "tempfile",
  "textwrap",
  "typed-arena",
+ "uniquote",
  "wasm-bindgen",
  "yuescript",
 ]
@@ -1509,6 +1510,12 @@ name = "unicode-xid"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
+
+[[package]]
+name = "uniquote"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54a900eeb2aef304818fb781cf422a42c2f67f760c25927ccc83edc6b0fdfd0c"
 
 [[package]]
 name = "unsafe-libyaml"
