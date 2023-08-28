@@ -116,9 +116,9 @@ impl Lexer {
             return match raw.to_str() {
                 "_" | "*" => Ok(Tok::ItalicOpen(raw)),
                 "__" | "**" => Ok(Tok::BoldOpen(raw)),
-                "=" => Ok(Tok::SmallcapsOpen(raw)), // TODO(kcza): remove unnecessary
-                "==" => Ok(Tok::AlternateFaceOpen(raw)),
-                "`" => Ok(Tok::MonospaceOpen(raw)),
+                "=" => Ok(Tok::SmallcapsOpen),
+                "==" => Ok(Tok::AlternateFaceOpen),
+                "`" => Ok(Tok::MonospaceOpen),
                 _ => panic!("internal error: unknown emphasis string {:?}", raw),
             };
         }
@@ -510,9 +510,9 @@ pub enum Tok {
     },
     ItalicOpen(FileContentSlice),
     BoldOpen(FileContentSlice),
-    MonospaceOpen(FileContentSlice),
-    SmallcapsOpen(FileContentSlice),
-    AlternateFaceOpen(FileContentSlice),
+    MonospaceOpen,
+    SmallcapsOpen,
+    AlternateFaceOpen,
     Heading {
         level: usize,
         pluses: usize,
@@ -559,11 +559,11 @@ impl Display for Tok {
             Tok::ItalicClose => "italic-close",
             Tok::BoldOpen(_) => "bold-open",
             Tok::BoldClose => "bold-close",
-            Tok::MonospaceOpen(_) => "monospace-open",
+            Tok::MonospaceOpen => "monospace-open",
             Tok::MonospaceClose => "monospace-close",
-            Tok::SmallcapsOpen(_) => "smallcaps-open",
+            Tok::SmallcapsOpen => "smallcaps-open",
             Tok::SmallcapsClose => "smallcaps-close",
-            Tok::AlternateFaceOpen(_) => "alternate-face-open",
+            Tok::AlternateFaceOpen => "alternate-face-open",
             Tok::AlternateFaceClose => "alternate-face-close",
             Tok::Heading { .. } => "heading",
             Tok::Reference(_) => "reference",
