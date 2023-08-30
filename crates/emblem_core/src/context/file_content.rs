@@ -78,15 +78,39 @@ impl Deref for FileContent {
     }
 }
 
-impl PartialEq<&str> for FileContent {
-    fn eq(&self, rhs: &&str) -> bool {
-        self.to_str() == *rhs
+impl PartialEq<String> for FileContent {
+    fn eq(&self, rhs: &String) -> bool {
+        self.to_str() == rhs
+    }
+}
+
+impl PartialEq<FileContent> for String {
+    fn eq(&self, rhs: &FileContent) -> bool {
+        self == rhs.to_str()
+    }
+}
+
+impl PartialEq<FileContent> for str {
+    fn eq(&self, rhs: &FileContent) -> bool {
+        self == rhs.to_str()
+    }
+}
+
+impl PartialEq<str> for FileContent {
+    fn eq(&self, rhs: &str) -> bool {
+        self.to_str() == rhs
     }
 }
 
 impl PartialEq<FileContent> for &str {
     fn eq(&self, rhs: &FileContent) -> bool {
         *self == rhs.to_str()
+    }
+}
+
+impl PartialEq<&str> for FileContent {
+    fn eq(&self, rhs: &&str) -> bool {
+        self.to_str() == *rhs
     }
 }
 
@@ -233,6 +257,24 @@ impl PartialEq<FileContentSlice> for String {
     }
 }
 
+impl PartialEq<String> for &FileContentSlice {
+    fn eq(&self, rhs: &String) -> bool {
+        self.to_str() == rhs
+    }
+}
+
+impl PartialEq<&FileContentSlice> for String {
+    fn eq(&self, rhs: &&FileContentSlice) -> bool {
+        *self == rhs.to_str()
+    }
+}
+
+impl PartialEq<FileContentSlice> for str {
+    fn eq(&self, rhs: &FileContentSlice) -> bool {
+        self == rhs.to_str()
+    }
+}
+
 impl PartialEq<str> for FileContentSlice {
     fn eq(&self, rhs: &str) -> bool {
         self.to_str() == rhs
@@ -242,6 +284,12 @@ impl PartialEq<str> for FileContentSlice {
 impl PartialEq<FileContentSlice> for &str {
     fn eq(&self, rhs: &FileContentSlice) -> bool {
         *self == rhs.to_str()
+    }
+}
+
+impl PartialEq<&str> for FileContentSlice {
+    fn eq(&self, rhs: &&str) -> bool {
+        self.to_str() == *rhs
     }
 }
 

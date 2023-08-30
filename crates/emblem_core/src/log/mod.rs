@@ -524,8 +524,8 @@ mod test {
         let ctx = Context::new();
         let content = ctx.alloc_file_content("hello, world");
         let srcs = [
-            Point::new(ctx.alloc_file_name("main.em"), content.clone()),
-            Point::new(ctx.alloc_file_name("something-else.em"), content),
+            Point::at_start_of(ctx.alloc_file_name("main.em"), content.clone()),
+            Point::at_start_of(ctx.alloc_file_name("something-else.em"), content),
         ]
         .into_iter()
         .map(|p| {

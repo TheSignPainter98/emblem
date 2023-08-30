@@ -14,11 +14,11 @@ pub struct Location {
 impl Location {
     pub fn new(start: &Point, end: &Point) -> Self {
         Self {
-            file_name: start.file_name.clone(),
-            src: start.src.clone(),
-            lines: (start.line, end.line),
-            indices: (start.index, end.index),
-            cols: (start.col, cmp::max(1, end.col - 1)),
+            file_name: start.file_name().clone(),
+            src: start.src().clone(),
+            lines: (start.line(), end.line()),
+            indices: (start.index(), end.index()),
+            cols: (start.col(), cmp::max(1, end.col() - 1)),
         }
     }
 
@@ -45,23 +45,23 @@ impl Location {
     }
 
     pub fn start(&self) -> Point {
-        Point {
-            file_name: self.file_name.clone(),
-            src: self.src.clone(),
-            line: self.lines.0,
-            col: self.cols.0,
-            index: self.indices.0,
-        }
+        Point::new(
+            self.file_name.clone(),
+            self.src.clone(),
+            self.lines.0,
+            self.cols.0,
+            self.indices.0,
+        )
     }
 
     pub fn end(&self) -> Point {
-        Point {
-            file_name: self.file_name.clone(),
-            src: self.src.clone(),
-            line: self.lines.1,
-            col: self.cols.1,
-            index: self.indices.1,
-        }
+        Point::new(
+            self.file_name.clone(),
+            self.src.clone(),
+            self.lines.1,
+            self.cols.1,
+            self.indices.1,
+        )
     }
 
     pub fn span_to(&self, other: &Self) -> Self {
@@ -136,7 +136,7 @@ mod test {
         fn mid_line() {
             let ctx = Context::new();
             let text = "my name\nis methos";
-            let start = Point::new(
+            let start = Point::at_start_of(
                 ctx.alloc_file_name("fname.em"),
                 ctx.alloc_file_content(text),
             );
@@ -144,15 +144,15 @@ mod test {
             let loc = Location::new(&start, &end);
             assert_eq!("fname.em", loc.file_name());
             assert_eq!(text, loc.src().raw());
-            assert_eq!((start.line, end.line), loc.lines());
-            assert_eq!((start.col, end.col - 1), loc.cols());
+            assert_eq!((start.line(), end.line()), loc.lines());
+            assert_eq!((start.col(), end.col() - 1), loc.cols());
         }
 
         #[test]
         fn end_of_line() {
             let ctx = Context::new();
             let text = "my name is methos\n";
-            let start = Point::new(
+            let start = Point::at_start_of(
                 ctx.alloc_file_name("fname.em"),
                 ctx.alloc_file_content(text),
             );
@@ -160,8 +160,8 @@ mod test {
             let loc = Location::new(&start, &end);
             assert_eq!("fname.em", loc.file_name());
             assert_eq!(text, loc.src().raw());
-            assert_eq!((start.line, end.line), loc.lines());
-            assert_eq!((start.col, 1), loc.cols());
+            assert_eq!((start.line(), end.line()), loc.lines());
+            assert_eq!((start.col(), 1), loc.cols());
         }
     }
 
@@ -169,7 +169,7 @@ mod test {
     fn start() {
         let ctx = Context::new();
         let text = "my name is methos\n";
-        let start = Point::new(
+        let start = Point::at_start_of(
             ctx.alloc_file_name("fname.em"),
             ctx.alloc_file_content(text),
         );
@@ -182,7 +182,7 @@ mod test {
     fn end() {
         let ctx = Context::new();
         let text = "my name is methos\n";
-        let start = Point::new(
+        let start = Point::at_start_of(
             ctx.alloc_file_name("fname.em"),
             ctx.alloc_file_content(text),
         );
@@ -195,7 +195,7 @@ mod test {
     fn span_to() {
         let ctx = Context::new();
         let text = "my name is methos\n";
-        let p1 = Point::new(
+        let p1 = Point::at_start_of(
             ctx.alloc_file_name("fname.em"),
             ctx.alloc_file_content(text),
         );
@@ -235,7 +235,7 @@ mod test {
         fn single_line() {
             let ctx = Context::new();
             let text = "oh! santiana gained a day";
-            let text_start = Point::new(
+            let text_start = Point::at_start_of(
                 ctx.alloc_file_name("fname.em"),
                 ctx.alloc_file_content(text),
             );
@@ -264,7 +264,7 @@ mod test {
             ];
             for newline in ["\n", "\r", "\r\n"] {
                 let text = lines.join(newline);
-                let text_start = Point::new(
+                let text_start = Point::at_start_of(
                     ctx.alloc_file_name("fname.em"),
                     ctx.alloc_file_content(&text),
                 );
