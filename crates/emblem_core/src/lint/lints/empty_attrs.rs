@@ -1,5 +1,5 @@
 use crate::ast::parsed::Content;
-use crate::lint::Lint;
+use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
 use derive_new::new;
 
@@ -7,8 +7,8 @@ use derive_new::new;
 pub struct EmptyAttrs {}
 
 impl Lint for EmptyAttrs {
-    fn id(&self) -> &'static str {
-        "empty-attrs"
+    fn id(&self) -> LintId {
+        "empty-attrs".into()
     }
 
     fn analyse(&mut self, content: &Content) -> Vec<Log> {

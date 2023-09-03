@@ -1,5 +1,5 @@
 use crate::ast::parsed::{Content, Sugar};
-use crate::lint::Lint;
+use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
 use derive_new::new;
 
@@ -7,8 +7,8 @@ use derive_new::new;
 pub struct EmphDelimiters {}
 
 impl Lint for EmphDelimiters {
-    fn id(&self) -> &'static str {
-        "emph-delimiters"
+    fn id(&self) -> LintId {
+        "emph-delimiters".into()
     }
 
     fn analyse(&mut self, content: &Content) -> Vec<Log> {

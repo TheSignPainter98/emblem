@@ -1,5 +1,7 @@
 mod lints;
 
+use std::fmt::Display;
+
 use crate::args::ArgPath;
 use crate::ast::parsed::{Content, Sugar};
 use crate::ast::{File, Par, ParPart};
@@ -10,6 +12,7 @@ use crate::path::SearchResult;
 use crate::Action;
 use crate::Log;
 use crate::{context, EmblemResult};
+use derive_more::From;
 use derive_new::new;
 
 #[derive(new)]
@@ -54,7 +57,22 @@ pub trait Lint {
         vec![]
     }
 
-    fn id(&self) -> &'static str;
+    fn id(&self) -> LintId;
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, From)]
+pub struct LintId(&'static str);
+
+impl LintId {
+    pub(crate) fn raw(&self) -> &'static str {
+        self.0
+    }
+}
+
+impl Display for LintId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
 }
 
 pub trait Lintable {
@@ -67,7 +85,7 @@ impl<T: Lintable> Lintable for File<T> {
 
         for lint in lints {
             for problem in lint.done() {
-                problems.push(problem.with_id(lint.id()));
+                problems.push(problem.with_id(lint.id().into()));
             }
         }
     }
@@ -92,7 +110,7 @@ impl Lintable for Content {
     fn lint(&self, lints: &mut Lints, problems: &mut Vec<Log>) {
         for lint in lints.iter_mut() {
             for problem in lint.analyse(self) {
-                problems.push(problem.with_id(lint.id()));
+                problems.push(problem.with_id(lint.id().into()));
             }
         }
 
@@ -149,5 +167,17 @@ impl<T: Lintable> Lintable for Vec<T> {
         for elem in self {
             elem.lint(lints, problems)
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn lint_id() {
+        let raw = "something-concerning";
+        let lint_id = LintId::from(raw);
+        assert_eq!(raw, lint_id.raw());
     }
 }

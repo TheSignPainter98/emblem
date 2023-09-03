@@ -1,13 +1,16 @@
 use crate::{
     context::Context,
-    log::messages::{self, Message, NoSuchErrorCode},
+    log::{
+        messages::{self, Message, NoSuchErrorCode},
+        LogId,
+    },
     Action, EmblemResult,
 };
 use derive_new::new;
 
 #[derive(new)]
 pub struct Explainer {
-    id: String,
+    id: LogId,
 }
 
 impl Action for Explainer {
@@ -22,7 +25,7 @@ impl Action for Explainer {
 
     fn output<'ctx>(&self, resp: Self::Response) -> EmblemResult<()> {
         if let Some(explanation) = resp {
-            println!("{}", explanation);
+            print!("{explanation}");
         }
         EmblemResult::new(vec![], ())
     }
@@ -30,13 +33,13 @@ impl Action for Explainer {
 
 impl Explainer {
     fn get_explanation(&self) -> Option<&'static str> {
-        if self.id.is_empty() {
+        if !self.id.is_defined() {
             return None;
         }
 
         messages::messages()
             .into_iter()
-            .find(|msg| msg.id() == self.id)
+            .find(|msg| msg.id() == &self.id)
             .map(|msg| msg.explanation())
     }
 }
@@ -47,7 +50,7 @@ mod test {
 
     #[test]
     fn get_explanation() {
-        let explainer = Explainer::new("E001".to_owned());
+        let explainer = Explainer::new("E001".into());
         assert!(explainer.get_explanation().is_some());
     }
 }

@@ -1,5 +1,5 @@
 use crate::log::messages::Message;
-use crate::log::{Log, Note, Src};
+use crate::log::{Log, LogId, Note, Src};
 use crate::parser::Location;
 use derive_new::new;
 use indoc::indoc;
@@ -11,8 +11,8 @@ pub struct NewlineInInlineArg {
 }
 
 impl Message for NewlineInInlineArg {
-    fn id() -> &'static str {
-        "E002"
+    fn id() -> LogId {
+        "E002".into()
     }
 
     fn log(self) -> Log {

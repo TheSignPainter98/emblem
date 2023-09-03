@@ -1,5 +1,5 @@
 use crate::ast::parsed::{Content, Sugar};
-use crate::lint::Lint;
+use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
 use crate::parser::Location;
 use derive_new::new;
@@ -8,8 +8,8 @@ use derive_new::new;
 pub struct NumPluses {}
 
 impl Lint for NumPluses {
-    fn id(&self) -> &'static str {
-        "num-pluses"
+    fn id(&self) -> LintId {
+        "num-pluses".into()
     }
 
     fn analyse(&mut self, content: &Content) -> Vec<Log> {

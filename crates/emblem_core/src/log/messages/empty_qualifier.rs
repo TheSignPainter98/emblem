@@ -1,5 +1,5 @@
 use crate::log::messages::Message;
-use crate::log::{Log, Note, Src};
+use crate::log::{Log, LogId, Note, Src};
 use crate::parser::Location;
 use derive_new::new;
 use indoc::indoc;
@@ -11,8 +11,8 @@ pub struct EmptyQualifier {
 }
 
 impl Message for EmptyQualifier {
-    fn id() -> &'static str {
-        "E004"
+    fn id() -> LogId {
+        "E004".into()
     }
 
     fn log(self) -> Log {

@@ -4,7 +4,7 @@ use lazy_static::lazy_static;
 
 use crate::ast::parsed::Content;
 use crate::context::file_content::FileSlice;
-use crate::lint::Lint;
+use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
 use crate::util;
 use derive_new::new;
@@ -38,8 +38,8 @@ lazy_static! {
 }
 
 impl Lint for NumArgs {
-    fn id(&self) -> &'static str {
-        "num-args"
+    fn id(&self) -> LintId {
+        "num-args".into()
     }
 
     fn analyse(&mut self, content: &Content) -> Vec<Log> {
