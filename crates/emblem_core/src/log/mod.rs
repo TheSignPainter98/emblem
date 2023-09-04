@@ -481,10 +481,7 @@ impl LogId {
     }
 
     pub fn is_defined(&self) -> bool {
-        match self {
-            Self::Defined(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::Defined(_))
     }
 }
 
