@@ -3,7 +3,9 @@ mod note;
 mod src;
 mod verbosity;
 
-use crate::context::file_content::FileSlice;
+use std::{borrow::Cow, fmt::Display};
+
+use crate::{context::file_content::FileSlice, lint::LintId};
 
 pub use self::messages::Message;
 pub use note::Note;
@@ -108,7 +110,7 @@ impl Logger {
 pub struct Log {
     msg: String,
     msg_type: AnnotationType,
-    id: Option<&'static str>,
+    id: LogId,
     help: Option<String>,
     note: Option<String>,
     srcs: Vec<Src>,
@@ -120,7 +122,7 @@ impl Log {
     fn new<S: Into<String>>(msg_type: AnnotationType, msg: S) -> Self {
         Self {
             msg: msg.into(),
-            id: None,
+            id: LogId::Undefined,
             msg_type,
             help: None,
             note: None,
@@ -189,7 +191,7 @@ impl Log {
         let contexts = Arena::new();
         let snippet = Snippet {
             title: Some(Annotation {
-                id: self.id,
+                id: self.id.defined(),
                 label: Some(&self.msg),
                 annotation_type: match (logger.warnings_as_errors, self.msg_type) {
                     (true, AnnotationType::Warning) => AnnotationType::Error,
@@ -234,13 +236,13 @@ impl Log {
         }
 
         if self.explainable {
-            if self.id.is_none() {
+            if !self.id.is_defined() {
                 panic!("internal error: explainable message has no id")
             }
 
             let info_instruction = &format!(
                 "For more information about this error, try `em explain {}`",
-                self.id.unwrap()
+                self.id
             );
             let mut display_list = DisplayList::from(snippet);
             display_list
@@ -280,17 +282,17 @@ impl Log {
         self.msg_type
     }
 
-    pub fn with_id(mut self, id: &'static str) -> Self {
-        self.id = Some(id);
+    pub fn with_id(mut self, id: LogId) -> Self {
+        self.id = id;
         self
     }
 
-    pub fn id(&self) -> Option<&'static str> {
-        self.id
+    pub fn id(&self) -> &LogId {
+        &self.id
     }
 
     pub fn explainable(mut self) -> Self {
-        if self.id.is_none() {
+        if !self.id.is_defined() {
             panic!("internal error: attempted to mark log without id as explainable")
         }
 
@@ -463,6 +465,62 @@ impl Message for Log {
     }
 }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq, Default)]
+pub enum LogId {
+    #[default]
+    Undefined,
+    Defined(Cow<'static, str>),
+}
+
+impl LogId {
+    pub fn defined(&self) -> Option<&str> {
+        match self {
+            Self::Defined(raw) => Some(raw),
+            _ => None,
+        }
+    }
+
+    pub fn is_defined(&self) -> bool {
+        matches!(self, Self::Defined(_))
+    }
+}
+
+impl From<&'static str> for LogId {
+    fn from(raw: &'static str) -> Self {
+        Self::Defined(raw.into())
+    }
+}
+
+impl From<String> for LogId {
+    fn from(raw: String) -> Self {
+        Self::Defined(raw.into())
+    }
+}
+
+impl From<LintId> for LogId {
+    fn from(id: LintId) -> Self {
+        id.raw().into()
+    }
+}
+
+impl From<LogId> for Option<&'static str> {
+    fn from(id: LogId) -> Self {
+        match id {
+            LogId::Defined(Cow::Borrowed(raw)) => Some(raw),
+            _ => None,
+        }
+    }
+}
+
+impl Display for LogId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Defined(raw) => raw.fmt(f),
+            _ => Ok(()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -481,8 +539,8 @@ mod test {
 
     #[test]
     fn id() {
-        let id = "E69";
-        assert_eq!(Some(id), Log::error("foo").with_id(id).id(),);
+        let id = LogId::from("E69");
+        assert_eq!(id, *Log::error("foo").with_id(id.clone()).id());
     }
 
     #[test]
@@ -495,7 +553,7 @@ mod test {
     #[test]
     fn is_explainable() {
         assert!(Log::error("foo")
-            .with_id("E025")
+            .with_id("E025".into())
             .explainable()
             .is_explainable());
         assert!(!Log::error("foo").is_explainable());
@@ -564,5 +622,18 @@ mod test {
             );
             assert!(Log::info("foo").successful(warnings_as_errors));
         }
+    }
+
+    #[test]
+    fn log_id() {
+        let undefined = LogId::Undefined;
+        assert!(!undefined.is_defined());
+        assert_eq!(None, undefined.defined());
+
+        let raw_id = "E025";
+        let defined = LogId::from(raw_id);
+        assert_eq!(LogId::Defined(raw_id.into()), defined);
+        assert!(defined.is_defined());
+        assert_eq!(Some(raw_id), defined.defined());
     }
 }

@@ -30,14 +30,13 @@ pub use unexpected_token::UnexpectedToken;
 
 use crate::log::Log;
 
+use super::LogId;
+
 pub trait Message {
     /// If implemented, returns the unique identifier for the message. This must have the form
     /// `Eddd` for digits `d`.
-    fn id() -> &'static str
-    where
-        Self: Sized,
-    {
-        ""
+    fn id() -> LogId {
+        Default::default()
     }
 
     /// Format this message into a log.
@@ -58,15 +57,15 @@ pub trait Message {
 }
 
 pub struct MessageInfo {
-    id: &'static str,
+    id: LogId,
     #[cfg(test)]
     default_log: Log,
     explanation: &'static str,
 }
 
 impl MessageInfo {
-    pub fn id(&self) -> &'static str {
-        self.id
+    pub fn id(&self) -> &LogId {
+        &self.id
     }
 
     pub fn explanation(&self) -> &'static str {
@@ -131,23 +130,18 @@ mod test {
             }
 
             let mut seen = HashSet::new();
-            for info in messages().iter().filter(|info| !info.id.is_empty()) {
-                assert!(seen.insert(info.id), "Non-unique id: {}", info.id);
-                assert!(RE.is_match(info.id), "Non-conformant id: {}", info.id);
+            for id in messages().iter().filter_map(|info| info.id.defined()) {
+                assert!(seen.insert(id), "Non-unique id: {id}");
+                assert!(RE.is_match(id), "Non-conformant id: {id}");
             }
         }
 
         #[test]
         fn log_application() {
             for (i, info) in messages().iter().enumerate() {
-                let id = match info.id {
-                    "" => None,
-                    s => Some(s),
-                };
-                let log = &info.default_log;
                 assert_eq!(
-                    id,
-                    log.id(),
+                    &info.id,
+                    info.default_log.id(),
                     "Incorrect id in log for {:?} (message type {})",
                     info.id,
                     i,
@@ -170,9 +164,9 @@ mod test {
         fn prompt_offered_correctly() {
             for info in messages() {
                 assert_eq!(
-                    !info.id.is_empty(),
+                    info.id.is_defined(),
                     info.default_log.is_explainable(),
-                    "message {} is {}explainable",
+                    "message id={:?} is {}explainable",
                     info.id,
                     if info.default_log.is_explainable() {
                         ""
@@ -188,13 +182,13 @@ mod test {
             let mut failed = false;
             for info in messages() {
                 let nchars = info.explanation.chars().count();
-                let limit = if info.id.is_empty() { 0 } else { 1000 };
+                let limit = if info.id.is_defined() { 1000 } else { 0 };
 
                 if nchars > limit {
                     failed = true;
                     println!(
-                        "{} explanation is too long: contains {} chars",
-                        info.id, nchars
+                        "{} explanation is too long: contains {nchars} chars (expected at most {limit})",
+                        info.id.defined().unwrap(),
                     );
                 }
             }
@@ -205,13 +199,14 @@ mod test {
         fn not_too_short() {
             let mut failed = false;
 
-            for info in messages().iter().filter(|info| !info.id.is_empty()) {
+            for info in messages().iter().filter(|info| info.id.is_defined()) {
                 let nchars = info.explanation.chars().count();
                 if nchars < 100 {
                     failed = true;
                     println!(
                         "{} explanation is too short: contains {} chars",
-                        info.id, nchars
+                        info.id.defined().unwrap(),
+                        nchars
                     );
                 }
             }
@@ -223,13 +218,13 @@ mod test {
             const LINE_MAX_LEN: usize = 90;
             let mut failed = false;
 
-            for info in messages().iter().filter(|info| !info.id.is_empty()) {
+            for info in messages().iter().filter(|info| !info.id.is_defined()) {
                 for line in info.explanation().lines() {
                     if line.chars().count() > LINE_MAX_LEN {
                         failed = true;
                         println!(
                             "{}: Line longer than {LINE_MAX_LEN} chars: {line:?}",
-                            info.id()
+                            info.id().defined().unwrap()
                         );
                         println!("\tline should end before the inserted `|`:");
                         println!("\t{}|{}", &line[..81], &line[81..]);

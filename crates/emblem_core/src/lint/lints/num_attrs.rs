@@ -1,6 +1,6 @@
 use crate::ast::parsed::Content;
 use crate::context::file_content::FileSlice;
-use crate::lint::Lint;
+use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
 use crate::util;
 use derive_new::new;
@@ -37,8 +37,8 @@ lazy_static! {
 }
 
 impl Lint for NumAttrs {
-    fn id(&self) -> &'static str {
-        "num-attrs"
+    fn id(&self) -> LintId {
+        "num-attrs".into()
     }
 
     fn analyse(&mut self, content: &Content) -> Vec<Log> {

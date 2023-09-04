@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::ast::parsed::Content;
 use crate::context::file_content::FileSlice;
-use crate::lint::Lint;
+use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
 use crate::parser::Location;
 use derive_new::new;
@@ -56,8 +56,8 @@ lazy_static! {
 }
 
 impl Lint for SugarUsage {
-    fn id(&self) -> &'static str {
-        "sugar-usage"
+    fn id(&self) -> LintId {
+        "sugar-usage".into()
     }
 
     fn analyse(&mut self, content: &Content) -> Vec<Log> {

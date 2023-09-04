@@ -4,6 +4,7 @@ use crate::ast::parsed::Attr;
 use crate::ast::parsed::Content;
 use crate::context::file_content::FileSlice;
 use crate::lint::Lint;
+use crate::lint::LintId;
 use crate::log::{Log, Note, Src};
 use derive_new::new;
 
@@ -11,8 +12,8 @@ use derive_new::new;
 pub struct DuplicateAttrs {}
 
 impl Lint for DuplicateAttrs {
-    fn id(&self) -> &'static str {
-        "duplicate-attrs"
+    fn id(&self) -> LintId {
+        "duplicate-attrs".into()
     }
 
     fn analyse(&mut self, content: &Content) -> Vec<Log> {

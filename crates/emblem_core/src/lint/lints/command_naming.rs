@@ -1,6 +1,6 @@
 use crate::ast::parsed::Content;
 use crate::context::file_content::FileSlice;
-use crate::lint::Lint;
+use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
 use derive_new::new;
 use lazy_static::lazy_static;
@@ -14,8 +14,8 @@ lazy_static! {
 }
 
 impl Lint for CommandNaming {
-    fn id(&self) -> &'static str {
-        "command-naming"
+    fn id(&self) -> LintId {
+        "command-naming".into()
     }
 
     fn analyse(&mut self, content: &Content) -> Vec<Log> {

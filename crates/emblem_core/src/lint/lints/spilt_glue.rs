@@ -1,5 +1,5 @@
 use crate::ast::parsed::Content;
-use crate::lint::Lint;
+use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
 use derive_new::new;
 
@@ -7,8 +7,8 @@ use derive_new::new;
 pub struct SpiltGlue {}
 
 impl Lint for SpiltGlue {
-    fn id(&self) -> &'static str {
-        "spilt-glue"
+    fn id(&self) -> LintId {
+        "spilt-glue".into()
     }
 
     fn analyse(&mut self, content: &Content) -> Vec<Log> {

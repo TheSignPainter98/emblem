@@ -1,5 +1,5 @@
 use crate::log::messages::Message;
-use crate::log::{Log, Note, Src};
+use crate::log::{Log, LogId, Note, Src};
 use crate::parser::Location;
 use crate::util;
 use derive_new::new;
@@ -12,8 +12,8 @@ pub struct TooManyQualifiers {
 }
 
 impl Message for TooManyQualifiers {
-    fn id() -> &'static str {
-        "E005"
+    fn id() -> LogId {
+        "E005".into()
     }
 
     fn log(self) -> Log {

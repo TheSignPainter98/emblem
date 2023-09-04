@@ -1,5 +1,5 @@
 use crate::ast::parsed::{Attr, Content};
-use crate::lint::Lint;
+use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
 use derive_new::new;
 
@@ -7,8 +7,8 @@ use derive_new::new;
 pub struct AttrOrdering {}
 
 impl Lint for AttrOrdering {
-    fn id(&self) -> &'static str {
-        "attr-ordering"
+    fn id(&self) -> LintId {
+        "attr-ordering".into()
     }
 
     fn analyse(&mut self, content: &Content) -> Vec<Log> {

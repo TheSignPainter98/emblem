@@ -1,19 +1,16 @@
 use crate::log::messages::Message;
-use crate::log::Log;
+use crate::log::{Log, LogId};
 use derive_new::new;
 use indoc::indoc;
 
 #[derive(Default, new)]
 pub struct NoSuchErrorCode {
-    id: String,
+    id: LogId,
 }
 
 impl Message for NoSuchErrorCode {
-    fn id() -> &'static str
-    where
-        Self: Sized,
-    {
-        "E001"
+    fn id() -> LogId {
+        "E001".into()
     }
 
     fn log(self) -> Log {

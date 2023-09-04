@@ -1,5 +1,5 @@
 use crate::log::messages::Message;
-use crate::log::{Log, Note, Src};
+use crate::log::{Log, LogId, Note, Src};
 use crate::parser::Location;
 use crate::FileContentSlice;
 use derive_new::new;
@@ -13,8 +13,8 @@ pub struct DelimiterMismatch {
 }
 
 impl Message for DelimiterMismatch {
-    fn id() -> &'static str {
-        "E003"
+    fn id() -> LogId {
+        "E003".into()
     }
 
     fn log(self) -> Log {

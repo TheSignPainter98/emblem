@@ -39,6 +39,7 @@ mod test {
     use super::*;
     use crate::{
         lint::{Lint, Lintable},
+        log::LogId,
         parser::parse,
         Context,
     };
@@ -56,7 +57,7 @@ mod test {
         let ids = lints.iter().map(|l| l.id()).collect::<Vec<_>>();
 
         for id in &ids {
-            if !VALID_ID.is_match(id) {
+            if !VALID_ID.is_match(id.raw()) {
                 panic!("IDs should be lowercase with dashes: got {}", id);
             }
         }
@@ -108,7 +109,7 @@ mod test {
             );
             for problem in problems {
                 problem.assert_compliant();
-                assert_eq!(problem.id(), Some(id), "Incorrect ID");
+                assert_eq!(problem.id(), &LogId::from(id), "Incorrect ID");
 
                 let text = problem.annotation_text().join("\n\t");
                 for r#match in &self.matches {
