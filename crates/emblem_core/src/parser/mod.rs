@@ -24,7 +24,7 @@ lalrpop_mod!(
 );
 
 /// Parse an emblem source file at the given location.
-pub fn parse_file(ctx: &Context<'_>, mut to_parse: SearchResult) -> Result<ParsedFile, Box<Error>> {
+pub fn parse_file(ctx: &Context, mut to_parse: SearchResult) -> Result<ParsedFile, Box<Error>> {
     let file = {
         let raw = to_parse.path().as_os_str();
         let mut path: &str = to_parse

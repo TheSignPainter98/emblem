@@ -1,54 +1,65 @@
 use std::collections::HashMap;
 
-use derive_new::new;
-
-#[derive(new, Debug, Eq, PartialEq)]
-pub struct Module<'m> {
-    name: &'m str,
-    source: &'m str,
-    rename_as: Option<&'m str>,
-    version: ModuleVersion<'m>,
-    args: HashMap<&'m str, &'m str>,
+#[derive(Debug, Eq, PartialEq)]
+pub struct Module {
+    name: String,
+    source: String,
+    rename_as: Option<String>,
+    version: ModuleVersion,
+    args: HashMap<String, String>,
 }
 
-impl<'m> Module<'m> {
-    pub fn name_from_source(source: &'m str) -> &'m str {
-        source
+impl Module {
+    pub fn new(
+        source: String,
+        rename_as: Option<String>,
+        version: ModuleVersion,
+        args: HashMap<String, String>,
+    ) -> Self {
+        let name = source
             .rfind('/')
             .map(|i| &source[1 + i..])
-            .unwrap_or(source)
+            .unwrap_or(&source)
+            .to_owned();
+        Self {
+            name,
+            source,
+            rename_as,
+            version,
+            args,
+        }
     }
 
-    pub fn name(&self) -> &'m str {
-        self.name
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
-    pub fn source(&self) -> &'m str {
-        self.source
+    pub fn source(&self) -> &str {
+        &self.source
     }
 
-    pub fn rename_as(&self) -> Option<&'m str> {
-        self.rename_as
+    pub fn rename_as(&self) -> Option<&str> {
+        self.rename_as.as_deref()
     }
 
-    pub fn version(&self) -> ModuleVersion<'m> {
-        self.version
+    pub fn version(&self) -> &ModuleVersion {
+        &self.version
     }
 
-    pub fn args(&self) -> &HashMap<&'m str, &'m str> {
+    pub fn args(&self) -> &HashMap<String, String> {
         &self.args
     }
 
-    pub fn args_mut(&mut self) -> &mut HashMap<&'m str, &'m str> {
+    pub fn args_mut(&mut self) -> &mut HashMap<String, String> {
         &mut self.args
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum ModuleVersion<'m> {
-    Tag(&'m str),
-    Branch(&'m str),
-    Hash(&'m str),
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ModuleVersion {
+    Tag(String),
+    Branch(String),
+    Hash(String),
 }
 
 #[cfg(test)]
@@ -57,17 +68,24 @@ mod test {
 
     #[test]
     fn getters() {
-        let name = "some-name";
         let source = "github.com/TheSignPainter98/some-repo";
         let rename = "some-new-name";
-        let version = ModuleVersion::Tag("some-tag");
-        let args: HashMap<_, _> = [("foo", "bar"), ("baz", "qux")].into_iter().collect();
+        let version = ModuleVersion::Tag("some-tag".into());
+        let args: HashMap<String, String> = [("foo", "bar"), ("baz", "qux")]
+            .into_iter()
+            .map(|(k, v)| (k.into(), v.into()))
+            .collect();
 
-        let dep = Module::new(name, source, Some(rename), version, args.clone());
-        assert_eq!(name, dep.name());
+        let dep = Module::new(
+            source.to_owned(),
+            Some(rename.to_owned()),
+            version.clone(),
+            args.clone(),
+        );
+        assert_eq!("some-repo", dep.name());
         assert_eq!(source, dep.source());
         assert_eq!(rename, dep.rename_as().unwrap());
-        assert_eq!(version, dep.version());
+        assert_eq!(&version, dep.version());
         assert_eq!(&args, dep.args());
     }
 
@@ -75,17 +93,22 @@ mod test {
     fn rename_as() {
         assert_eq!(
             None,
-            Module::new("foo", ".", None, ModuleVersion::Tag("bar"), HashMap::new()).rename_as()
+            Module::new(
+                ".".into(),
+                None,
+                ModuleVersion::Tag("bar".into()),
+                HashMap::new()
+            )
+            .rename_as()
         );
 
-        let expected = "new-name";
+        let expected = "new-name".to_string();
         assert_eq!(
-            expected,
+            expected.clone(),
             Module::new(
-                "foo",
-                ".",
+                ".".into(),
                 Some(expected),
-                ModuleVersion::Tag("bar"),
+                ModuleVersion::Tag("bar".into()),
                 HashMap::new()
             )
             .rename_as()
@@ -95,22 +118,22 @@ mod test {
 
     #[test]
     fn version() {
-        let tag = ModuleVersion::Tag("bar");
+        let tag = ModuleVersion::Tag("bar".into());
         assert_eq!(
-            tag,
-            Module::new("foo", ".", None, tag, HashMap::new()).version()
+            &tag.clone(),
+            Module::new(".".into(), None, tag, HashMap::new()).version()
         );
 
-        let branch = ModuleVersion::Branch("bar");
+        let branch = ModuleVersion::Branch("bar".into());
         assert_eq!(
-            branch,
-            Module::new("foo", ".", None, branch, HashMap::new()).version()
+            &branch.clone(),
+            Module::new(".".into(), None, branch, HashMap::new()).version()
         );
 
-        let hash = ModuleVersion::Hash("bar");
+        let hash = ModuleVersion::Hash("bar".into());
         assert_eq!(
-            hash,
-            Module::new("foo", ".", None, hash, HashMap::new()).version()
+            &hash.clone(),
+            Module::new(".".into(), None, hash, HashMap::new()).version()
         );
     }
 }

@@ -1,27 +1,24 @@
 use std::error::Error;
 
 use crate::{
-    ast::parsed::ParsedFile,
-    build::typesetter::doc::Doc,
-    context::Iteration,
-    extensions::{Event, ExtensionState},
-    Context, ResourceLimit,
+    ast::parsed::ParsedFile, build::typesetter::doc::Doc, context::Iteration, extensions::Event,
+    Context, ExtensionState, ResourceLimit,
 };
 
 pub(crate) mod doc;
 
 // TODO(kcza): typesettable file -> [fragment]
 
-pub struct Typesetter<'em> {
-    ext_state: &'em mut ExtensionState<'em>,
+pub struct Typesetter<'ctx> {
+    ctx: &'ctx Context,
     curr_iter: Iteration,
     max_iters: ResourceLimit<Iteration>,
 }
 
-impl<'em> Typesetter<'em> {
-    pub fn new(ctx: &Context<'em>, ext_state: &'em mut ExtensionState<'em>) -> Self {
+impl<'ctx> Typesetter<'ctx> {
+    pub(crate) fn new(ctx: &'ctx Context) -> Self {
         Self {
-            ext_state,
+            ctx,
             curr_iter: Iteration(0),
             max_iters: ctx.typesetter_params().max_iters(),
         }
@@ -29,41 +26,38 @@ impl<'em> Typesetter<'em> {
 
     pub fn typeset(mut self, root: ParsedFile) -> Result<(), Box<dyn Error>> {
         let mut root = Doc::from(root);
+        let ext_state = self.ctx.extension_state()?;
         loop {
-            self.iter(&mut root)?;
+            self.iter(ext_state, &mut root)?;
 
-            if !self.will_reiter() {
+            if !self.will_reiter(&ext_state) {
                 break;
             }
-            self.reset_reiter_request();
+            ext_state.reset_reiter_request();
         }
 
-        self.ext_state.handle(Event::Done {
+        ext_state.handle(Event::Done {
             final_iter: self.curr_iter,
         })?;
 
         Ok(())
     }
 
-    fn will_reiter(&self) -> bool {
-        self.ext_state.reiter_requested() && self.max_iters.contains(self.curr_iter)
+    fn will_reiter(&self, ext_state: &ExtensionState) -> bool {
+        ext_state.reiter_requested() && self.max_iters.contains(self.curr_iter)
     }
 
-    fn reset_reiter_request(&self) {
-        self.ext_state.reset_reiter_request();
-    }
-
-    fn iter(&mut self, _root: &mut Doc) -> Result<(), Box<dyn Error>> {
+    fn iter(&mut self, ext_state: &ExtensionState, _root: &mut Doc) -> Result<(), Box<dyn Error>> {
         self.curr_iter += Iteration(1);
 
         let Iteration(iter) = &self.curr_iter;
         println!("Doing iteration {iter} of {:?}", self.max_iters);
 
-        self.ext_state.handle(Event::IterStart {
+        ext_state.handle(Event::IterStart {
             iter: self.curr_iter,
         })?;
         // TODO(kzca): Evaluate the root.
-        self.ext_state.handle(Event::IterEnd {
+        ext_state.handle(Event::IterEnd {
             iter: self.curr_iter,
         })?;
 
@@ -96,7 +90,7 @@ mod test {
                 .set_max_iters(ResourceLimit::Limited(Iteration(7)));
             ctx
         };
-        let mut ext_state = ctx.extension_state()?;
+        let ext_state = ctx.extension_state()?;
         ext_state.add_listener(
             EventType::IterStart,
             Value::Function(ext_state.lua().create_function(move |_, event: Table| {
@@ -127,7 +121,7 @@ mod test {
             })?),
         )?;
 
-        let typesetter = Typesetter::new(&ctx, &mut ext_state);
+        let typesetter = ctx.typesetter();
         typesetter.typeset(
             parser::parse(
                 ctx.alloc_file_name("iter_events.em"),
@@ -153,7 +147,7 @@ mod test {
         let done_triggered_clone = done_triggered.clone();
 
         let ctx = Context::test_new();
-        let mut ext_state = ctx.extension_state()?;
+        let ext_state = ctx.extension_state()?;
         ext_state.add_listener(
             EventType::IterStart,
             Value::Function(ext_state.lua().create_function(move |_, event: Table| {
@@ -186,7 +180,7 @@ mod test {
             })?),
         )?;
 
-        Typesetter::new(&ctx, &mut ext_state).typeset(
+        Typesetter::new(&ctx).typeset(
             parser::parse(
                 ctx.alloc_file_name("iter_events.em"),
                 ctx.alloc_file_content(""),
@@ -223,7 +217,7 @@ mod test {
         }
 
         let ctx = Context::test_new();
-        let mut ext_state = ctx.extension_state()?;
+        let ext_state = ctx.extension_state()?;
 
         let iter_start_func_called = Rc::new(RefCell::new(false));
         let iter_start_table_called = Rc::new(RefCell::new(false));
@@ -354,7 +348,7 @@ mod test {
             )?;
         }
 
-        Typesetter::new(&ctx, &mut ext_state).typeset(
+        Typesetter::new(&ctx).typeset(
             parser::parse(
                 ctx.alloc_file_name("event-listeners.em"),
                 ctx.alloc_file_content(""),
@@ -406,7 +400,7 @@ mod test {
     fn invalidated_event_listeners() -> Result<(), Box<dyn Error>> {
         for event_type in EventType::types() {
             let ctx = Context::test_new();
-            let mut ext_state = ctx.extension_state()?;
+            let ext_state = ctx.extension_state()?;
             let handler_called = Rc::new(RefCell::new(false));
 
             {
@@ -435,7 +429,7 @@ mod test {
                 table.set_metatable(None);
             }
 
-            let err = Typesetter::new(&ctx, &mut ext_state)
+            let err = Typesetter::new(&ctx)
                 .typeset(parser::parse(
                     ctx.alloc_file_name("event-listeners.em"),
                     ctx.alloc_file_content(""),

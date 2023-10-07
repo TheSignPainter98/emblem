@@ -8,20 +8,20 @@ use std::collections::HashMap;
 
 #[derive(Debug, Deserialise)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct DocManifest<'m> {
-    pub name: &'m str,
+pub(crate) struct DocManifest {
+    pub name: String,
     #[serde(rename = "emblem")]
     pub emblem_version: Version,
-    pub authors: Option<Vec<&'m str>>,
-    pub keywords: Option<Vec<&'m str>>,
-    pub requires: Option<HashMap<&'m str, Module<'m>>>,
+    pub authors: Option<Vec<String>>,
+    pub keywords: Option<Vec<String>>,
+    pub requires: Option<HashMap<String, Module>>,
 }
 
-impl<'m> TryFrom<&'m str> for DocManifest<'m> {
+impl TryFrom<&str> for DocManifest {
     type Error = Box<Log>;
 
-    fn try_from(src: &'m str) -> Result<Self, Self::Error> {
-        let parsed: DocManifest<'_> =
+    fn try_from(src: &str) -> Result<Self, Self::Error> {
+        let parsed: DocManifest =
             serde_yaml::from_str(src).map_err(|e| Log::error(e.to_string()))?;
 
         parsed.validate().map_err(Log::error)?;
@@ -30,7 +30,7 @@ impl<'m> TryFrom<&'m str> for DocManifest<'m> {
     }
 }
 
-impl<'m> DocManifest<'m> {
+impl DocManifest {
     fn validate(&self) -> Result<(), String> {
         if let Some(requires) = &self.requires {
             for (name, ext) in requires {
@@ -66,36 +66,36 @@ impl From<Version> for EmblemVersion {
 
 #[derive(Debug, Deserialise, Eq, PartialEq)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
-pub(crate) struct Module<'m> {
-    rename_as: Option<&'m str>,
-    tag: Option<&'m str>,
-    hash: Option<&'m str>,
-    branch: Option<&'m str>,
-    args: Option<HashMap<&'m str, &'m str>>,
+pub(crate) struct Module {
+    rename_as: Option<String>,
+    tag: Option<String>,
+    hash: Option<String>,
+    branch: Option<String>,
+    args: Option<HashMap<String, String>>,
 }
 
-impl<'m> Module<'m> {
+impl Module {
     #[allow(unused)]
-    pub fn rename_as(&self) -> Option<&'m str> {
-        self.rename_as
+    pub fn rename_as(&self) -> Option<&str> {
+        self.rename_as.as_deref()
     }
 
     #[allow(unused)]
-    pub fn version(&self) -> ModuleVersion<'m> {
-        if let Some(tag) = self.tag {
-            return ModuleVersion::Tag(tag);
+    pub fn version(&self) -> ModuleVersion {
+        if let Some(tag) = &self.tag {
+            return ModuleVersion::Tag(tag.to_string());
         }
-        if let Some(branch) = self.branch {
-            return ModuleVersion::Branch(branch);
+        if let Some(branch) = &self.branch {
+            return ModuleVersion::Branch(branch.to_string());
         }
-        if let Some(hash) = self.hash {
-            return ModuleVersion::Hash(hash);
+        if let Some(hash) = &self.hash {
+            return ModuleVersion::Hash(hash.to_string());
         }
         panic!("internal error: no version specified for {self:?}");
     }
 
     #[allow(unused)]
-    pub fn args(&self) -> Option<&HashMap<&'m str, &'m str>> {
+    pub fn args(&self) -> Option<&HashMap<String, String>> {
         match &self.args {
             None => None,
             Some(a) => Some(a),
@@ -110,26 +110,26 @@ impl<'m> Module<'m> {
         }
     }
 
-    pub fn into_module(self, source: &'m str) -> EmblemModule<'m> {
+    pub fn into_module(self, source: String) -> EmblemModule {
+        let version = self.version().into();
         EmblemModule::new(
-            EmblemModule::name_from_source(source),
             source,
             self.rename_as,
-            self.version().into(),
+            version,
             self.args.unwrap_or_default(),
         )
     }
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum ModuleVersion<'m> {
-    Tag(&'m str),
-    Branch(&'m str),
-    Hash(&'m str),
+pub enum ModuleVersion {
+    Tag(String),
+    Branch(String),
+    Hash(String),
 }
 
-impl<'m> From<ModuleVersion<'m>> for EmblemModuleVersion<'m> {
-    fn from(version: ModuleVersion<'m>) -> Self {
+impl From<ModuleVersion> for EmblemModuleVersion {
+    fn from(version: ModuleVersion) -> Self {
         match version {
             ModuleVersion::Tag(t) => Self::Tag(t),
             ModuleVersion::Branch(t) => Self::Branch(t),
@@ -207,7 +207,7 @@ mod test {
             {
                 let foo_tagged = requires.get("foo-tagged").unwrap();
                 assert_eq!("qux", foo_tagged.rename_as().unwrap());
-                assert_eq!(ModuleVersion::Tag("edge"), foo_tagged.version());
+                assert_eq!(ModuleVersion::Tag("edge".into()), foo_tagged.version());
                 assert_eq!(&"value1", foo_tagged.args().unwrap().get("key1").unwrap());
                 assert_eq!(&"value2", foo_tagged.args().unwrap().get("key2").unwrap());
             }
@@ -215,14 +215,14 @@ mod test {
             {
                 let bar_branched = requires.get("bar-branched").unwrap();
                 assert_eq!(None, bar_branched.rename_as());
-                assert_eq!(ModuleVersion::Branch("dev"), bar_branched.version());
+                assert_eq!(ModuleVersion::Branch("dev".into()), bar_branched.version());
                 assert_eq!(None, bar_branched.args());
             }
 
             {
                 let baz_hashed = requires.get("baz-hashed").unwrap();
                 assert_eq!(
-                    ModuleVersion::Hash("0123456789abcdef"),
+                    ModuleVersion::Hash("0123456789abcdef".into()),
                     baz_hashed.version()
                 );
             }

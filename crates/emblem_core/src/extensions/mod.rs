@@ -27,13 +27,12 @@ macro_rules! emblem_registry_key {
 static STD: &[u8] = include_yuescript!(cfg!(test), concat!(env!("OUT_DIR"), "/yue"), "std");
 const EVENT_LISTENERS_RKEY: &str = emblem_registry_key!("events");
 
-pub struct ExtensionState<'em> {
+pub struct ExtensionState {
     lua: Lua,
-    phantom: PhantomData<&'em Context<'em>>,
 }
 
-impl<'em> ExtensionState<'em> {
-    pub fn new(ctx: &'em Context) -> MLuaResult<Self> {
+impl ExtensionState {
+    pub fn new(ctx: &Context) -> MLuaResult<Self> {
         let params = ctx.lua_params();
         let sandbox_level = params.sandbox_level();
 
@@ -57,10 +56,7 @@ impl<'em> ExtensionState<'em> {
 
         lua.load(STD).exec()?;
 
-        Ok(ExtensionState {
-            lua,
-            phantom: PhantomData,
-        })
+        Ok(ExtensionState { lua })
     }
 
     fn insert_safety_hook(lua: &Lua, params: &LuaParameters) -> MLuaResult<()> {
@@ -210,7 +206,7 @@ impl<'em> ExtensionState<'em> {
 }
 
 #[cfg(test)]
-impl ExtensionState<'_> {
+impl ExtensionState {
     pub fn run<'lua, C: AsChunk<'lua> + ?Sized>(&'lua self, chunk: &'lua C) -> MLuaResult<()> {
         self.lua.load(chunk).exec()
     }
