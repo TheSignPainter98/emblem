@@ -9,7 +9,7 @@ use crate::ast::AstDebug;
 
 pub trait FileSlice: AsRef<str> {
     fn raw(&self) -> &str;
-    fn slice<R: RangeBounds<usize>>(&self, index: R) -> FileContentSlice;
+    fn slice(&self, index: impl RangeBounds<usize>) -> FileContentSlice;
 
     fn to_str(&self) -> &str {
         self.as_ref()
@@ -40,7 +40,7 @@ impl FileSlice for FileContent {
         self.as_ref()
     }
 
-    fn slice<R: RangeBounds<usize>>(&self, index: R) -> FileContentSlice {
+    fn slice(&self, index: impl RangeBounds<usize>) -> FileContentSlice {
         let start = match index.start_bound() {
             Bound::Included(i) => *i,
             Bound::Excluded(_) => panic!("internal error: excluded left lower bound"),
@@ -194,7 +194,7 @@ impl FileSlice for FileContentSlice {
         self.raw.to_str()
     }
 
-    fn slice<R: RangeBounds<usize>>(&self, index: R) -> FileContentSlice {
+    fn slice(&self, index: impl RangeBounds<usize>) -> FileContentSlice {
         let start = self.range.start
             + match index.start_bound() {
                 Bound::Included(i) => *i,

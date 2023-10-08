@@ -25,11 +25,11 @@ impl Context {
         Self::default()
     }
 
-    pub fn alloc_file_name<T: AsRef<str>>(&self, name: T) -> FileName {
+    pub fn alloc_file_name(&self, name: impl AsRef<str>) -> FileName {
         FileName::new(name.as_ref())
     }
 
-    pub fn alloc_file_content<T: AsRef<str>>(&self, content: T) -> FileContent {
+    pub fn alloc_file_content(&self, content: impl AsRef<str>) -> FileContent {
         FileContent::new(content.as_ref())
     }
 
