@@ -207,7 +207,7 @@ mod test {
             {
                 let foo_tagged = requires.get("foo-tagged").unwrap();
                 assert_eq!("qux", foo_tagged.rename_as().unwrap());
-                assert_eq!(ModuleVersion::Tag("edge".into()), foo_tagged.version());
+                assert_eq!(ModuleVersion::Tag("edge"), foo_tagged.version());
                 assert_eq!(&"value1", foo_tagged.args().unwrap().get("key1").unwrap());
                 assert_eq!(&"value2", foo_tagged.args().unwrap().get("key2").unwrap());
             }
@@ -215,14 +215,14 @@ mod test {
             {
                 let bar_branched = requires.get("bar-branched").unwrap();
                 assert_eq!(None, bar_branched.rename_as());
-                assert_eq!(ModuleVersion::Branch("dev".into()), bar_branched.version());
+                assert_eq!(ModuleVersion::Branch("dev"), bar_branched.version());
                 assert_eq!(None, bar_branched.args());
             }
 
             {
                 let baz_hashed = requires.get("baz-hashed").unwrap();
                 assert_eq!(
-                    ModuleVersion::Hash("0123456789abcdef".into()),
+                    ModuleVersion::Hash("0123456789abcdef"),
                     baz_hashed.version()
                 );
             }
