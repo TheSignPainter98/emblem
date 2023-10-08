@@ -81,15 +81,15 @@ impl Module {
     }
 
     #[allow(unused)]
-    pub fn version(&self) -> ModuleVersion {
+    pub fn version(&self) -> ModuleVersion<'_> {
         if let Some(tag) = &self.tag {
-            return ModuleVersion::Tag(tag.to_string());
+            return ModuleVersion::Tag(tag);
         }
         if let Some(branch) = &self.branch {
-            return ModuleVersion::Branch(branch.to_string());
+            return ModuleVersion::Branch(branch);
         }
         if let Some(hash) = &self.hash {
-            return ModuleVersion::Hash(hash.to_string());
+            return ModuleVersion::Hash(hash);
         }
         panic!("internal error: no version specified for {self:?}");
     }
@@ -122,18 +122,18 @@ impl Module {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum ModuleVersion {
-    Tag(String),
-    Branch(String),
-    Hash(String),
+pub enum ModuleVersion<'m> {
+    Tag(&'m str),
+    Branch(&'m str),
+    Hash(&'m str),
 }
 
-impl From<ModuleVersion> for EmblemModuleVersion {
+impl From<ModuleVersion<'_>> for EmblemModuleVersion {
     fn from(version: ModuleVersion) -> Self {
         match version {
-            ModuleVersion::Tag(t) => Self::Tag(t),
-            ModuleVersion::Branch(t) => Self::Branch(t),
-            ModuleVersion::Hash(h) => Self::Hash(h),
+            ModuleVersion::Tag(t) => Self::Tag(t.to_string()),
+            ModuleVersion::Branch(t) => Self::Branch(t.to_string()),
+            ModuleVersion::Hash(h) => Self::Hash(h.to_string()),
         }
     }
 }
