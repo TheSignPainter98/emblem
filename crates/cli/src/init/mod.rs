@@ -125,7 +125,7 @@ mod test {
     };
     use tempfile::TempDir;
 
-    fn do_init<'em>(ctx: &'em mut Context<'em>, tmpdir: &TempDir) -> EmblemResult<()> {
+    fn do_init(ctx: &mut Context, tmpdir: &TempDir) -> EmblemResult<()> {
         Initialiser::new(tmpdir).run(ctx)
     }
 

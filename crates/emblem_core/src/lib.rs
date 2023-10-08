@@ -44,7 +44,7 @@ use derive_new::new;
 pub trait Action {
     type Response;
 
-    fn run<'ctx>(&self, ctx: &'ctx mut context::Context<'ctx>) -> EmblemResult<Self::Response>;
+    fn run(&self, ctx: &mut Context) -> EmblemResult<Self::Response>;
 
     fn output(&self, _: Self::Response) -> EmblemResult<()> {
         EmblemResult::new(vec![], ())

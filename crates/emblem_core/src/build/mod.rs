@@ -10,8 +10,6 @@ use crate::EmblemResult;
 use crate::Log;
 use derive_new::new;
 
-use self::typesetter::Typesetter;
-
 #[derive(new)]
 pub struct Builder {
     input: ArgPath,
@@ -26,7 +24,7 @@ pub struct Builder {
 impl Action for Builder {
     type Response = Option<Vec<(ArgPath, String)>>;
 
-    fn run<'ctx>(&self, ctx: &'ctx mut Context<'ctx>) -> EmblemResult<Self::Response> {
+    fn run(&self, ctx: &mut Context) -> EmblemResult<Self::Response> {
         let fname: SearchResult = match self.input.as_ref().try_into() {
             Ok(f) => f,
             Err(e) => return EmblemResult::new(vec![Log::error(e.to_string())], None),
@@ -37,12 +35,7 @@ impl Action for Builder {
             Err(e) => return EmblemResult::new(vec![e.log()], None),
         };
 
-        let mut ext_state = ctx
-            .extension_state()
-            .expect("internal error: failed to create Lua state");
-
-        let typesetter = Typesetter::new(ctx, &mut ext_state);
-        typesetter.typeset(root).unwrap();
+        ctx.typesetter().typeset(root).unwrap();
 
         EmblemResult::new(vec![], Some(vec![]))
     }

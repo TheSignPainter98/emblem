@@ -66,15 +66,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn load_manifest<'ctx, 'src, 'a>(
-    ctx: &'ctx mut Context<'src>,
-    src: &'src str,
-    args: &'a Args,
-) -> Result<(), Box<Log>>
-where
-    'src: 'ctx,
-    'a: 'src,
-{
+fn load_manifest(ctx: &mut Context, src: &str, args: &Args) -> Result<(), Box<Log>> {
     let manifest = DocManifest::try_from(src)?;
 
     let doc_info = ctx.doc_params_mut();
@@ -102,7 +94,7 @@ where
             let name = arg.name();
 
             match name.find('.') {
-                None => general_args.push((name, arg.value())),
+                None => general_args.push((name.to_string(), arg.value().to_string())),
                 Some(0) => {
                     return Err(Box::new(Log::error(format!(
                         "argument module name cannot be empty: got '{}' in '{}={}'",
@@ -131,11 +123,11 @@ where
         .unwrap_or_default()
         .into_iter()
         .map(|(name, module)| {
-            let mut module = module.into_module(name);
-            if let Some(args) = specific_args.remove(module.rename_as().unwrap_or(name)) {
+            let mut module = module.into_module(name.clone());
+            if let Some(args) = specific_args.remove(module.rename_as().unwrap_or(&name)) {
                 let dep_args = module.args_mut();
                 for (k2, v2) in args {
-                    dep_args.insert(k2, v2);
+                    dep_args.insert(k2.to_string(), v2.to_string());
                 }
             }
             module
@@ -154,11 +146,7 @@ where
     Ok(())
 }
 
-fn execute<'ctx, C, R>(
-    ctx: &'ctx mut Context<'ctx>,
-    cmd: C,
-    warnings_as_errors: bool,
-) -> (Vec<Log>, bool)
+fn execute<C, R>(ctx: &mut Context, cmd: C, warnings_as_errors: bool) -> (Vec<Log>, bool)
 where
     C: Action<Response = R>,
 {
