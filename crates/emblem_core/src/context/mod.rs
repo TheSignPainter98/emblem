@@ -58,8 +58,7 @@ impl Context {
     }
 
     pub fn extension_state(&self) -> MLuaResult<&ExtensionState> {
-        self
-            .extension_state
+        self.extension_state
             .get_or_try_init(|| ExtensionState::new(self))
     }
 
