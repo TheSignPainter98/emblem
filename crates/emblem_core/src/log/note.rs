@@ -9,7 +9,7 @@ pub struct Note {
 }
 
 impl Note {
-    fn new<S: Into<String>>(msg_type: AnnotationType, loc: &Location, msg: S) -> Self {
+    fn new(msg_type: AnnotationType, loc: &Location, msg: impl Into<String>) -> Self {
         Self {
             loc: loc.clone(),
             msg: msg.into(),
@@ -17,21 +17,21 @@ impl Note {
         }
     }
 
-    pub fn error<S: Into<String>>(loc: &Location, msg: S) -> Self {
+    pub fn error(loc: &Location, msg: impl Into<String>) -> Self {
         Self::new(AnnotationType::Error, loc, msg)
     }
 
     #[allow(dead_code)]
-    pub fn warn<S: Into<String>>(loc: &Location, msg: S) -> Self {
+    pub fn warn(loc: &Location, msg: impl Into<String>) -> Self {
         Self::new(AnnotationType::Warning, loc, msg)
     }
 
-    pub fn info<S: Into<String>>(loc: &Location, msg: S) -> Self {
+    pub fn info(loc: &Location, msg: impl Into<String>) -> Self {
         Self::new(AnnotationType::Info, loc, msg)
     }
 
     #[allow(dead_code)]
-    pub fn help<S: Into<String>>(loc: &Location, msg: S) -> Self {
+    pub fn help(loc: &Location, msg: impl Into<String>) -> Self {
         Self::new(AnnotationType::Help, loc, msg)
     }
 
