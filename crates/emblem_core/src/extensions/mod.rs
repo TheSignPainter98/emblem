@@ -12,7 +12,7 @@ use em::Em;
 use mlua::{
     Error as MLuaError, HookTriggers, Lua, MetaMethod, Result as MLuaResult, Table, TableExt, Value,
 };
-use std::{cell::RefMut, fmt::Display, marker::PhantomData};
+use std::{cell::RefMut, fmt::Display};
 use yuescript::include_yuescript;
 
 #[cfg(test)]

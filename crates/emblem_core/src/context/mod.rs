@@ -58,9 +58,9 @@ impl Context {
     }
 
     pub fn extension_state(&self) -> MLuaResult<&ExtensionState> {
-        Ok(self
+        self
             .extension_state
-            .get_or_try_init(|| ExtensionState::new(self))?)
+            .get_or_try_init(|| ExtensionState::new(self))
     }
 
     pub fn typesetter(&self) -> Typesetter {

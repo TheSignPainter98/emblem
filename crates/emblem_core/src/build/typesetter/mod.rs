@@ -30,7 +30,7 @@ impl<'ctx> Typesetter<'ctx> {
         loop {
             self.iter(ext_state, &mut root)?;
 
-            if !self.will_reiter(&ext_state) {
+            if !self.will_reiter(ext_state) {
                 break;
             }
             ext_state.reset_reiter_request();
