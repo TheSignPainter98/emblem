@@ -119,7 +119,7 @@ pub struct Log {
 }
 
 impl Log {
-    fn new<S: Into<String>>(msg_type: AnnotationType, msg: S) -> Self {
+    fn new(msg_type: AnnotationType, msg: impl Into<String>) -> Self {
         Self {
             msg: msg.into(),
             id: LogId::Undefined,
@@ -265,16 +265,16 @@ impl Log {
         }
     }
 
-    pub fn error<S: Into<String>>(msg: S) -> Self {
+    pub fn error(msg: impl Into<String>) -> Self {
         Self::new(AnnotationType::Error, msg)
     }
 
-    pub fn warn<S: Into<String>>(msg: S) -> Self {
+    pub fn warn(msg: impl Into<String>) -> Self {
         Self::new(AnnotationType::Warning, msg)
     }
 
     #[allow(dead_code)]
-    pub fn info<S: Into<String>>(msg: S) -> Self {
+    pub fn info(msg: impl Into<String>) -> Self {
         Self::new(AnnotationType::Info, msg)
     }
 
@@ -304,7 +304,7 @@ impl Log {
         self.explainable
     }
 
-    pub fn with_note<S: Into<String>>(mut self, note: S) -> Self {
+    pub fn with_note(mut self, note: impl Into<String>) -> Self {
         self.note = Some(note.into());
         self
     }
@@ -313,7 +313,7 @@ impl Log {
         &self.note
     }
 
-    pub fn with_help<S: Into<String>>(mut self, help: S) -> Self {
+    pub fn with_help(mut self, help: impl Into<String>) -> Self {
         assert!(self.help.is_none());
 
         self.help = Some(help.into());
