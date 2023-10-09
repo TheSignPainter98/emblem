@@ -3,16 +3,14 @@ pub mod lexer;
 pub mod location;
 mod point;
 
-pub use error::Error;
 pub use lexer::LexicalError;
 pub use location::Location;
 pub use point::Point;
 
 use crate::context::Context;
 use crate::path::SearchResult;
-use crate::{ast, FileContent, FileName};
+use crate::{ast, Error, FileContent, FileName, Result};
 use ast::parsed::ParsedFile;
-use error::StringConversionError;
 use lalrpop_util::lalrpop_mod;
 use lexer::Lexer;
 use std::io::{BufReader, Read};
@@ -24,14 +22,14 @@ lalrpop_mod!(
 );
 
 /// Parse an emblem source file at the given location.
-pub fn parse_file(ctx: &Context, mut to_parse: SearchResult) -> Result<ParsedFile, Box<Error>> {
+pub fn parse_file(ctx: &Context, mut to_parse: SearchResult) -> Result<ParsedFile> {
     let file = {
         let raw = to_parse.path().as_os_str();
         let mut path: &str = to_parse
             .path()
             .as_os_str()
             .to_str()
-            .ok_or(StringConversionError::new(raw.to_owned()))?;
+            .ok_or_else(|| Error::string_conversion(raw.to_owned()))?;
         if path == "-" {
             path = "(stdin)";
         }
@@ -55,11 +53,13 @@ pub fn parse_file(ctx: &Context, mut to_parse: SearchResult) -> Result<ParsedFil
 }
 
 /// Parse a given string of emblem source code.
-pub fn parse(name: FileName, content: FileContent) -> Result<ParsedFile, Box<Error>> {
-    let lexer = Lexer::new(name, content);
+pub fn parse(file_name: FileName, content: FileContent) -> Result<ParsedFile> {
+    let lexer = Lexer::new(file_name.clone(), content);
     let parser = parser::FileParser::new();
 
-    Ok(parser.parse(lexer)?)
+    parser
+        .parse(lexer)
+        .map_err(|cause| Error::parse(file_name, cause))
 }
 
 #[cfg(test)]
@@ -109,30 +109,31 @@ pub mod test {
 
     fn assert_parse_error(name: &str, input: &str, expected: &str) {
         let ctx = Context::new();
-        let re = Regex::new(&("^".to_owned() + expected)).unwrap();
-
+        let re = Regex::new(&("^".to_string() + &expected)).unwrap();
         let inputs = [
             (name, input),
             (&format!("{} with newline", name), &format!("{}\n", input)),
         ];
-
         for (name, input) in inputs {
             let result = parse(ctx.alloc_file_name(name), ctx.alloc_file_content(input));
             assert!(result.is_err(), "{}: unexpected success", name);
 
-            let err = result.unwrap_err();
-            let err = err.parse_error();
-            assert!(err.is_some(), "{}: expected error", name);
-
-            let msg = err
-                .unwrap()
-                .to_string()
-                .replace("Unrecognized", "Unrecognised");
+            let msg = result.unwrap_err().to_string();
             assert!(
-                !expected.is_empty() && re.is_match(&msg),
+                msg.contains(name),
+                "expected file name {name:?} in error messages {msg:?}"
+            );
+            let sanitised_msg = {
+                let sanitised_msg = msg.replace("Unrecognized", "Unrecognised");
+                // Remove file name
+                let colon_idx = sanitised_msg.find(':').expect("no colon after file name");
+                sanitised_msg[2 + colon_idx..].to_string()
+            };
+            assert!(
+                !expected.is_empty() && re.is_match(&sanitised_msg),
                 "{}: unexpected error:\n{}\n\nexpected message to start with:\n{}",
                 name,
-                msg,
+                sanitised_msg,
                 expected,
             );
         }
@@ -249,6 +250,15 @@ pub mod test {
                 "According to all known laws of aviation, there is no way that a bee should be able to fly.\nIts wings are too small to get its fat little body off the ground.\n\nThe bee, of course, flies anyway because bees don't care what humans think is impossible.",
                 "File[Par[[Word(According)|< >|Word(to)|< >|Word(all)|< >|Word(known)|< >|Word(laws)|< >|Word(of)|< >|Word(aviation,)|< >|Word(there)|< >|Word(is)|< >|Word(no)|< >|Word(way)|< >|Word(that)|< >|Word(a)|< >|Word(bee)|< >|Word(should)|< >|Word(be)|< >|Word(able)|< >|Word(to)|< >|Word(fly.)]|[Word(Its)|< >|Word(wings)|< >|Word(are)|< >|Word(too)|< >|Word(small)|< >|Word(to)|< >|Word(get)|< >|Word(its)|< >|Word(fat)|< >|Word(little)|< >|Word(body)|< >|Word(off)|< >|Word(the)|< >|Word(ground.)]]|Par[[Word(The)|< >|Word(bee,)|< >|Word(of)|< >|Word(course,)|< >|Word(flies)|< >|Word(anyway)|< >|Word(because)|< >|Word(bees)|< >|Word(don't)|< >|Word(care)|< >|Word(what)|< >|Word(humans)|< >|Word(think)|< >|Word(is)|< >|Word(impossible.)]]]",
             );
+        }
+
+        #[test]
+        fn utf8() {
+            assert_structure(
+                "cyrillic",
+                "Слава Україні!",
+                r"File[Par[[Word(Слава)|< >|Word(Україні!)]]]",
+            )
         }
     }
 

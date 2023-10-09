@@ -1,4 +1,4 @@
-use crate::Log;
+use crate::{Error, Result};
 use emblem_core::{
     context::{Module as EmblemModule, ModuleVersion as EmblemModuleVersion},
     Version as EmblemVersion,
@@ -18,20 +18,17 @@ pub(crate) struct DocManifest {
 }
 
 impl TryFrom<&str> for DocManifest {
-    type Error = Box<Log>;
+    type Error = Error;
 
-    fn try_from(src: &str) -> Result<Self, Self::Error> {
-        let parsed: DocManifest =
-            serde_yaml::from_str(src).map_err(|e| Log::error(e.to_string()))?;
-
-        parsed.validate().map_err(Log::error)?;
-
+    fn try_from(src: &str) -> Result<Self> {
+        let parsed: DocManifest = serde_yaml::from_str(src)?;
+        parsed.validate()?;
         Ok(parsed)
     }
 }
 
 impl DocManifest {
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<()> {
         if let Some(requires) = &self.requires {
             for (name, ext) in requires {
                 ext.validate(name)?;
@@ -102,11 +99,13 @@ impl Module {
         }
     }
 
-    pub fn validate(&self, name: &str) -> Result<(), String> {
+    pub fn validate(&self, name: &str) -> Result<()> {
         match (&self.tag, &self.branch, &self.hash) {
             (Some(_), None, None) | (None, Some(_), None) | (None, None, Some(_)) => Ok(()),
-            (None, None, None) => Err("expected `tag` or `hash` field".into()),
-            _ => Err(format!("multiple version specifiers found for {name}")),
+            (None, None, None) => Err(Error::manifest_invalid("expected `tag` or `hash` field")),
+            _ => Err(Error::manifest_invalid(format!(
+                "multiple version specifiers found for {name}"
+            ))),
         }
     }
 
@@ -239,7 +238,7 @@ mod test {
         );
         let missing_err = DocManifest::try_from(&missing[..]).unwrap_err();
         let re = Regex::new("emblem: unknown variant `null`, expected").unwrap();
-        let msg = missing_err.msg();
+        let msg = &missing_err.to_string();
         assert!(
             re.is_match(msg),
             "Unknown message doesn't match regex '{re:?}': got {msg}"
@@ -253,7 +252,7 @@ mod test {
         );
         let unknown_err = DocManifest::try_from(&unknown[..]).unwrap_err();
         let re = Regex::new("emblem: unknown variant `UNKNOWN`, expected").unwrap();
-        let msg = unknown_err.msg();
+        let msg = &unknown_err.to_string();
         assert!(
             re.is_match(msg),
             "Unknown message doesn't match regex '{re:?}': got {msg}"
@@ -274,7 +273,7 @@ mod test {
         );
         let err = DocManifest::try_from(&raw[..]).unwrap_err();
         let re = Regex::new("expected `tag` or `hash` field").unwrap();
-        let msg = err.msg();
+        let msg = &err.to_string();
         assert!(
             re.is_match(msg),
             "Unknown message doesn't match regex '{re:?}': got {msg}"
@@ -291,7 +290,7 @@ mod test {
         );
         let err = DocManifest::try_from(&raw[..]).unwrap_err();
         let re = Regex::new("unknown field `INTERLOPER`").unwrap();
-        let msg = err.msg();
+        let msg = &err.to_string();
         assert!(
             re.is_match(msg),
             "Unknown message doesn't match regex '{re:?}': got {msg}"
@@ -318,7 +317,7 @@ mod test {
             ));
             let err = DocManifest::try_from(&raw[..]).unwrap_err();
             let re = Regex::new("multiple version specifiers found for bar").unwrap();
-            let msg = err.msg();
+            let msg = &err.to_string();
             assert!(
                 re.is_match(msg),
                 "Unknown message doesn't match regex '{re:?}': got {msg}"

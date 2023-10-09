@@ -6,12 +6,10 @@ use crate::args::ArgPath;
 use crate::ast::parsed::{Content, Sugar};
 use crate::ast::{File, Par, ParPart};
 use crate::context::Context;
-use crate::log::messages::Message;
-use crate::parser;
 use crate::path::SearchResult;
 use crate::Action;
 use crate::Log;
-use crate::{context, EmblemResult};
+use crate::{parser, Result};
 use derive_more::From;
 use derive_new::new;
 
@@ -26,25 +24,20 @@ pub struct Linter {
 impl Action for Linter {
     type Response = ();
 
-    fn run(&self, ctx: &mut context::Context) -> EmblemResult<Self::Response> {
-        let problems = match self.input.as_ref().try_into() {
-            Ok(r) => self.lint_root(ctx, r),
-            Err(e) => vec![Log::error(e.to_string())],
-        };
-        EmblemResult::new(problems, ())
+    fn run(&self, ctx: &mut Context) -> Result<Self::Response> {
+        let src = SearchResult::try_from(self.input.as_ref())?;
+        self.lint_root(ctx, src)?
+            .into_iter()
+            .try_for_each(|problem| ctx.print(problem))?;
+        Ok(())
     }
 }
 
 impl Linter {
-    fn lint_root(&self, ctx: &mut Context, file: SearchResult) -> Vec<Log> {
-        let file = match parser::parse_file(ctx, file) {
-            Ok(f) => f,
-            Err(e) => return vec![e.log()],
-        };
-
+    fn lint_root(&self, ctx: &mut Context, file: SearchResult) -> Result<Vec<Log>> {
         let mut problems = Vec::new();
-        file.lint(&mut lints::lints(), &mut problems);
-        problems
+        parser::parse_file(ctx, file)?.lint(&mut lints::lints(), &mut problems);
+        Ok(problems)
     }
 }
 

@@ -1,10 +1,10 @@
 use crate::{
     context::Context,
     log::{
-        messages::{self, Message, NoSuchErrorCode},
+        messages::{self /* Message */},
         LogId,
     },
-    Action, EmblemResult,
+    Action, Error, Result,
 };
 use derive_new::new;
 
@@ -14,20 +14,15 @@ pub struct Explainer {
 }
 
 impl Action for Explainer {
-    type Response = Option<&'static str>;
+    type Response = ();
 
-    fn run(&self, _: &mut Context) -> EmblemResult<Self::Response> {
-        match self.get_explanation() {
-            Some(e) => EmblemResult::new(vec![], Some(e)),
-            None => EmblemResult::new(vec![NoSuchErrorCode::new(self.id.clone()).log()], None),
+    fn run(&self, _: &mut Context) -> Result<Self::Response> {
+        if let Some(e) = self.get_explanation() {
+            print!("{e}");
+            Ok(())
+        } else {
+            Err(Error::no_such_error_code(self.id.clone()).into())
         }
-    }
-
-    fn output<'ctx>(&self, resp: Self::Response) -> EmblemResult<()> {
-        if let Some(explanation) = resp {
-            print!("{explanation}");
-        }
-        EmblemResult::new(vec![], ())
     }
 }
 

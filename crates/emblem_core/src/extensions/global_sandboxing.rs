@@ -1,8 +1,8 @@
-use crate::SandboxLevel;
+use crate::{Result, SandboxLevel};
 use mlua::{Error as MLuaError, Lua, Result as MLuaResult, Table, Value};
 use phf::{phf_map, Map};
 
-pub(crate) fn restrict_globals(lua: &Lua, level: SandboxLevel) -> MLuaResult<()> {
+pub(crate) fn restrict_globals(lua: &Lua, level: SandboxLevel) -> Result<()> {
     restrict_table(lua, level, lua.globals(), &CONSTRAINTS)
 }
 
@@ -11,7 +11,7 @@ fn restrict_table(
     level: SandboxLevel,
     table: Table,
     constraints: &Map<&'static str, Constraint>,
-) -> MLuaResult<()> {
+) -> Result<()> {
     let mut to_replace = Vec::new();
     for entry in table.clone().pairs() {
         let (k, v): (String, Value) = entry?;
@@ -54,11 +54,11 @@ enum Replacement {
     Nil,
     NilFunc,
     ErrFunc(&'static str),
-    // Custom(&'static dyn for<'lua> Fn(&'lua Lua, SandboxLevel) -> MLuaResult<Value<'lua>>),
+    // Custom(&'static dyn for<'lua> Fn(&'lua Lua, SandboxLevel) -> Result<Value<'lua>>),
 }
 
 impl Replacement {
-    fn make<'lua>(&self, lua: &'lua Lua, _level: SandboxLevel) -> MLuaResult<Value<'lua>> {
+    fn make<'lua>(&self, lua: &'lua Lua, _level: SandboxLevel) -> Result<Value<'lua>> {
         Ok(match self {
             Self::Nil => Value::Nil,
             Self::NilFunc => Value::Function(lua.create_function(|_, ()| Ok(Value::Nil))?),
@@ -315,10 +315,9 @@ mod test {
     use crate::Context;
 
     use super::*;
-    use std::error::Error;
 
     #[test]
-    fn all_globals_constained() -> Result<(), Box<dyn Error>> {
+    fn all_globals_constained() -> Result<()> {
         let ctx = {
             let mut ctx = Context::test_new();
             ctx.lua_params_mut()
@@ -370,7 +369,7 @@ mod test {
     }
 
     #[test]
-    fn all_constraints_used() -> Result<(), Box<dyn Error>> {
+    fn all_constraints_used() -> Result<()> {
         let ctx = {
             let mut ctx = Context::test_new();
             ctx.lua_params_mut()
@@ -413,7 +412,7 @@ mod test {
             lua: &Lua,
             table: Table,
             constraints: &Map<&'static str, Constraint>,
-        ) -> Result<(), Box<dyn Error>> {
+        ) -> Result<()> {
             for entry in table.pairs() {
                 let (k, v): (String, Value) = entry?;
                 match &constraints[&k] {

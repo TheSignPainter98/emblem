@@ -1,8 +1,9 @@
-use std::error::Error;
-
 use crate::{
-    ast::parsed::ParsedFile, build::typesetter::doc::Doc, context::Iteration, extensions::Event,
-    Context, ExtensionState, ResourceLimit,
+    ast::parsed::ParsedFile,
+    build::typesetter::doc::Doc,
+    context::Iteration,
+    extensions::{Event, EventType, ExtensionState},
+    Context, ErrorContext, ResourceLimit, Result,
 };
 
 pub(crate) mod doc;
@@ -24,7 +25,7 @@ impl<'ctx> Typesetter<'ctx> {
         }
     }
 
-    pub fn typeset(mut self, root: ParsedFile) -> Result<(), Box<dyn Error>> {
+    pub fn typeset(mut self, root: ParsedFile) -> Result<()> {
         let mut root = Doc::from(root);
         let ext_state = self.ctx.extension_state()?;
         loop {
@@ -36,9 +37,11 @@ impl<'ctx> Typesetter<'ctx> {
             ext_state.reset_reiter_request();
         }
 
-        ext_state.handle(Event::Done {
-            final_iter: self.curr_iter,
-        })?;
+        ext_state
+            .handle(Event::Done {
+                final_iter: self.curr_iter,
+            })
+            .with_context(|| format!("failed to handle {} event", EventType::Done))?;
 
         Ok(())
     }
@@ -47,19 +50,23 @@ impl<'ctx> Typesetter<'ctx> {
         ext_state.reiter_requested() && self.max_iters.contains(self.curr_iter)
     }
 
-    fn iter(&mut self, ext_state: &ExtensionState, _root: &mut Doc) -> Result<(), Box<dyn Error>> {
+    fn iter(&mut self, ext_state: &ExtensionState, _root: &mut Doc) -> Result<()> {
         self.curr_iter += Iteration(1);
 
         let Iteration(iter) = &self.curr_iter;
         println!("Doing iteration {iter} of {:?}", self.max_iters);
 
-        ext_state.handle(Event::IterStart {
-            iter: self.curr_iter,
-        })?;
+        ext_state
+            .handle(Event::IterStart {
+                iter: self.curr_iter,
+            })
+            .with_context(|| format!("failed to handle {} event", EventType::IterStart))?;
         // TODO(kzca): Evaluate the root.
-        ext_state.handle(Event::IterEnd {
-            iter: self.curr_iter,
-        })?;
+        ext_state
+            .handle(Event::IterEnd {
+                iter: self.curr_iter,
+            })
+            .with_context(|| format!("failed to handle {} event", EventType::IterEnd))?;
 
         Ok(())
     }
@@ -76,7 +83,7 @@ mod test {
     use std::{cell::RefCell, rc::Rc};
 
     #[test]
-    fn iter_events() -> Result<(), Box<dyn Error>> {
+    fn iter_events() -> Result<()> {
         let iter_start_indices = Rc::new(RefCell::new(Vec::new()));
         let iter_start_indices_clone = iter_start_indices.clone();
         let iter_end_indices = Rc::new(RefCell::new(Vec::new()));
@@ -138,7 +145,7 @@ mod test {
     }
 
     #[test]
-    fn reiter_request() -> Result<(), Box<dyn Error>> {
+    fn reiter_request() -> Result<()> {
         let iter_start_indices = Rc::new(RefCell::new(Vec::new()));
         let iter_start_indices_clone = iter_start_indices.clone();
         let iter_end_indices = Rc::new(RefCell::new(Vec::new()));
@@ -202,7 +209,7 @@ mod test {
     }
 
     #[test]
-    fn event_listeners() -> Result<(), Box<dyn Error>> {
+    fn event_listeners() -> Result<()> {
         struct Callable {
             called: Rc<RefCell<bool>>,
         }
@@ -370,7 +377,7 @@ mod test {
     }
 
     #[test]
-    fn invalid_event_listeners() -> Result<(), Box<dyn Error>> {
+    fn invalid_event_listeners() -> Result<()> {
         struct NonCallable {}
 
         impl UserData for NonCallable {}
@@ -378,26 +385,36 @@ mod test {
         let ctx = Context::test_new();
         let ext_state = ctx.extension_state()?;
         for event_type in EventType::types() {
-            assert_eq!(format!("runtime error: non-callable listener integer found when handling {event_type} event"), ext_state.add_listener(*event_type, Value::Integer(100)).unwrap_err().to_string());
+            assert_eq!(
+                format!("integer is not callable"),
+                ext_state
+                    .add_listener(*event_type, Value::Integer(100))
+                    .unwrap_err()
+                    .to_string()
+            );
 
             assert_eq!(
-                format!(
-                    "runtime error: non-callable listener table found when handling {event_type} event"
-                ),
+                format!("table is not callable"),
                 ext_state
                     .add_listener(*event_type, Value::Table(ext_state.lua().create_table()?))
                     .unwrap_err()
                     .to_string()
             );
 
-            assert_eq!(format!("runtime error: non-callable listener userdata found when handling {event_type} event"), ext_state.add_listener(*event_type, NonCallable {}.to_lua(ext_state.lua())?).unwrap_err().to_string());
+            assert_eq!(
+                format!("userdata is not callable"),
+                ext_state
+                    .add_listener(*event_type, NonCallable {}.to_lua(ext_state.lua())?)
+                    .unwrap_err()
+                    .to_string()
+            );
         }
 
         Ok(())
     }
 
     #[test]
-    fn invalidated_event_listeners() -> Result<(), Box<dyn Error>> {
+    fn invalidated_event_listeners() -> Result<()> {
         for event_type in EventType::types() {
             let ctx = Context::test_new();
             let ext_state = ctx.extension_state()?;

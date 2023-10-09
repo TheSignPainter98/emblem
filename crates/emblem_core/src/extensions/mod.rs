@@ -6,12 +6,10 @@ mod preload_sandboxing;
 
 use crate::{
     context::{Iteration, LuaParameters, Memory, ResourceLimit, SandboxLevel, Step},
-    Context,
+    Context, Error, Result,
 };
 use em::Em;
-use mlua::{
-    Error as MLuaError, HookTriggers, Lua, MetaMethod, Result as MLuaResult, Table, TableExt, Value,
-};
+use mlua::{Error as MLuaError, HookTriggers, Lua, MetaMethod, Table, TableExt, Value};
 use std::{cell::RefMut, fmt::Display};
 use yuescript::include_yuescript;
 
@@ -32,7 +30,7 @@ pub struct ExtensionState {
 }
 
 impl ExtensionState {
-    pub fn new(ctx: &Context) -> MLuaResult<Self> {
+    pub fn new(ctx: &Context) -> Result<Self> {
         let params = ctx.lua_params();
         let sandbox_level = params.sandbox_level();
 
@@ -59,13 +57,13 @@ impl ExtensionState {
         Ok(ExtensionState { lua })
     }
 
-    fn insert_safety_hook(lua: &Lua, params: &LuaParameters) -> MLuaResult<()> {
+    fn insert_safety_hook(lua: &Lua, params: &LuaParameters) -> Result<()> {
         const INSTRUCTION_INTERVAL: u32 = 1;
 
         let max_mem = params.max_mem();
         let max_steps = params.max_steps();
 
-        lua.set_hook(
+        Ok(lua.set_hook(
             HookTriggers::every_nth_instruction(INSTRUCTION_INTERVAL),
             move |lua, _debug| {
                 if let ResourceLimit::Limited(max_mem) = max_mem {
@@ -86,11 +84,11 @@ impl ExtensionState {
 
                 Ok(())
             },
-        )
+        )?)
     }
 
-    fn setup_event_listeners(lua: &Lua) -> MLuaResult<()> {
-        lua.set_named_registry_value(EVENT_LISTENERS_RKEY, {
+    fn setup_event_listeners(lua: &Lua) -> Result<()> {
+        Ok(lua.set_named_registry_value(EVENT_LISTENERS_RKEY, {
             let types = EventType::types();
             let listeners = lua.create_table_with_capacity(
                 0,
@@ -103,36 +101,30 @@ impl ExtensionState {
                 listeners.set(r#type.name(), lua.create_table()?)?;
             }
             listeners
-        })
+        })?)
     }
     pub fn lua(&self) -> &Lua {
         &self.lua
     }
 
-    pub fn add_listener(&self, event: EventType, listener: Value) -> MLuaResult<()> {
+    pub fn add_listener(&self, event_type: EventType, listener: Value) -> Result<()> {
         if !callable(&listener) {
-            return Err(MLuaError::RuntimeError(format!(
-                "non-callable listener {} found when handling {event} event",
-                listener.type_name()
-            )));
+            return Err(Error::uncallable_listener(listener.type_name()));
         }
 
         let listeners: Table = self.lua.named_registry_value(EVENT_LISTENERS_RKEY)?;
-        let event_listeners = match listeners.get::<_, Option<Table>>(event.name())? {
-            Some(ls) => ls,
-            None => panic!("internal error: {event} event has no listeners table"),
+        let Some(event_listeners) = listeners.get::<_, Option<Table>>(event_type.name())? else {
+            panic!("internal error: {event_type} event has no listener table")
         };
-
-        event_listeners.push(listener)
+        Ok(event_listeners.push(listener)?)
     }
 
-    pub fn handle(&self, event: Event) -> MLuaResult<()> {
+    pub fn handle(&self, event: Event) -> Result<()> {
         let listeners: Table = self.lua.named_registry_value(EVENT_LISTENERS_RKEY)?;
         let event_listeners = match listeners.get::<_, Option<Table>>(event.r#type().name())? {
             Some(ls) => ls,
             None => panic!("internal error: {event} event has no listeners table"),
         };
-
         for listener in event_listeners.sequence_values::<Value>() {
             self.call_listener(listener?, event)?;
         }
@@ -140,28 +132,32 @@ impl ExtensionState {
         Ok(())
     }
 
-    fn call_listener(&self, listener: Value, event: Event) -> MLuaResult<()> {
+    fn call_listener(&self, listener: Value, event: Event) -> Result<()> {
         if let Value::Function(f) = listener {
-            f.call(self.event_data(event))
+            f.call(self.event_data(event)?)?;
         } else {
-            self.call_listener_method(listener, event)
+            self.call_listener_method(listener, event)?;
         }
+
+        Ok(())
     }
 
-    fn call_listener_method(&self, listener: Value, event: Event) -> MLuaResult<()> {
-        let type_name = listener.type_name();
+    fn call_listener_method(&self, listener: Value, event: Event) -> Result<()> {
+        let listener_type = listener.type_name();
 
         match listener.clone() {
-            Value::Function(f) => return f.call(self.event_data(event)?),
-            Value::Table(t) => return t.call(self.event_data(event)?),
+            Value::Function(f) => return Ok(f.call(self.event_data(event)?)?),
+            Value::Table(t) => return Ok(t.call(self.event_data(event)?)?),
             Value::UserData(u) => {
                 if let Ok(mt) = u.get_metatable() {
                     if let Ok(m) = mt.get::<_, Value>(MetaMethod::Call.name()) {
                         match m {
                             Value::Function(f) => {
-                                return f.call((listener, self.event_data(event)?))
+                                return Ok(f.call((listener, self.event_data(event)?))?);
                             }
-                            Value::Table(t) => return t.call((listener, self.event_data(event)?)),
+                            Value::Table(t) => {
+                                return Ok(t.call((listener, self.event_data(event)?))?);
+                            }
                             Value::UserData(_) => return self.call_listener_method(m, event),
                             _ => {}
                         }
@@ -171,12 +167,10 @@ impl ExtensionState {
             _ => {}
         }
 
-        Err(MLuaError::RuntimeError(format!(
-            "non-callable listener (got a {type_name}) found when handling {event} event",
-        )))
+        Err(Error::uncallable_listener(listener_type))
     }
 
-    fn event_data(&self, event: Event) -> MLuaResult<Value> {
+    fn event_data(&self, event: Event) -> Result<Value> {
         let data = match event {
             Event::IterStart { iter }
             | Event::IterEnd { iter }
@@ -207,8 +201,8 @@ impl ExtensionState {
 
 #[cfg(test)]
 impl ExtensionState {
-    pub fn run<'lua, C: AsChunk<'lua> + ?Sized>(&'lua self, chunk: &'lua C) -> MLuaResult<()> {
-        self.lua.load(chunk).exec()
+    pub fn run<'lua, C: AsChunk<'lua> + ?Sized>(&'lua self, chunk: &'lua C) -> Result<()> {
+        Ok(self.lua.load(chunk).exec()?)
     }
 }
 
@@ -280,7 +274,7 @@ impl Display for Event {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum EventType {
     IterStart,
     IterEnd,
@@ -312,7 +306,6 @@ mod test {
     use mlua::chunk;
 
     use super::*;
-    use std::error::Error;
 
     #[test]
     fn std_tests() {
@@ -354,7 +347,7 @@ mod test {
     }
 
     #[test]
-    fn steps_limited() -> Result<(), Box<dyn Error>> {
+    fn steps_limited() -> Result<()> {
         let threshold = Step(10000);
         for limit in [ResourceLimit::Unlimited, ResourceLimit::Limited(threshold)] {
             let ctx = {
@@ -384,7 +377,7 @@ mod test {
     }
 
     #[test]
-    fn memory_limited() -> Result<(), Box<dyn Error>> {
+    fn memory_limited() -> Result<()> {
         let threshold = Memory(500000);
         for limit in [ResourceLimit::Unlimited, ResourceLimit::Limited(threshold)] {
             let ctx = {
