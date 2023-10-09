@@ -103,8 +103,8 @@ impl<T: AsRef<Path>> Initialiser<T> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::manifest::DocManifest;
     use crate::Result;
+    use crate::{manifest::DocManifest, Error};
     use emblem_core::parser;
     use std::{
         fs::{self, File},
@@ -133,7 +133,7 @@ mod test {
 
         let lines: Vec<String> = BufReader::new(File::open(dot_gitignore)?)
             .lines()
-            .map(|r| r.map_err(|err| Error::from(err)))
+            .map(|r| r.map_err(Error::from))
             .collect::<Result<Vec<_>>>()?;
 
         for ignore in IGNORES {
