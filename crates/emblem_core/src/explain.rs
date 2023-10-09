@@ -21,7 +21,7 @@ impl Action for Explainer {
             print!("{e}");
             Ok(())
         } else {
-            Err(Error::no_such_error_code(self.id.clone()).into())
+            Err(Error::no_such_error_code(self.id.clone()))
         }
     }
 }

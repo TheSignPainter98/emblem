@@ -56,6 +56,7 @@ impl Display for Error {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, thiserror::Error)]
 enum ErrorImpl {
     #[error("IO error: {0}")]
