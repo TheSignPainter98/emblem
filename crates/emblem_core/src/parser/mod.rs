@@ -959,12 +959,10 @@ pub mod test {
 
         #[test]
         fn stacked() {
-            let lines = vec![
-                "There once was a ship that put to sea",
+            let lines = ["There once was a ship that put to sea",
                 "And the name of that ship was the Billy O’ Tea",
                 "The winds blew hard, her bow dipped down",
-                "Blow, me bully boys, blow",
-            ];
+                "Blow, me bully boys, blow"];
             assert_structure(
                 "multiple-comments",
                 &format!("//{}\n", lines.join("\n//")),

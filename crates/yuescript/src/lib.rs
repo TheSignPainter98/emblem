@@ -170,13 +170,13 @@ impl Tester {
         .unwrap();
 
         lua.load(
-            r#"
+            r"
                 local __luatest, err = require('__luatest')
                 if err ~= nil then
                     error('failed to load tests:\n' .. err)
                 end
                 __luatest()
-            "#,
+            ",
         )
         .exec()
         .map_err(|e| {

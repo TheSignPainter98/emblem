@@ -277,7 +277,7 @@ impl IntoDoc for Content {
                 args: {
                     inline_args
                         .into_iter()
-                        .chain(remainder_arg.into_iter())
+                        .chain(remainder_arg)
                         .map(|arg| arg.into_doc(state.clone()).unwrap_or_default())
                         .chain(
                             trailer_args
