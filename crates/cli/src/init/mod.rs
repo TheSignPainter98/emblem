@@ -1,16 +1,10 @@
-use crate::Context;
-use crate::Log;
+use crate::{Context, Result};
 use arg_parser::InitCmd;
 use derive_new::new;
-use emblem_core::{Action, EmblemResult};
-use git2::{Error as GitError, Repository, RepositoryInitOptions};
-use std::error::Error;
+use git2::{Repository, RepositoryInitOptions};
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
-use std::{
-    fs::OpenOptions,
-    io::{self, Write},
-};
+use std::{fs::OpenOptions, io::Write};
 
 static MAIN_CONTENTS: &str = r#"
 # Welcome! Welcome to Emblem.
@@ -28,26 +22,8 @@ pub struct Initialiser<T: AsRef<Path>> {
     dir: T,
 }
 
-impl From<&InitCmd> for Initialiser<PathBuf> {
-    fn from(cmd: &InitCmd) -> Self {
-        Self::new(PathBuf::from(cmd.dir.clone()))
-    }
-}
-
-impl<T: AsRef<Path>> Action for Initialiser<T> {
-    type Response = ();
-
-    fn run(&self, _: &mut Context) -> EmblemResult<Self::Response> {
-        let logs = match self.run_internal() {
-            Ok(_) => vec![],
-            Err(e) => vec![Log::error(e.to_string())],
-        };
-        EmblemResult::new(logs, ())
-    }
-}
-
 impl<T: AsRef<Path>> Initialiser<T> {
-    fn run_internal(&self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self, _: &mut Context) -> Result<()> {
         let p;
         let dir = {
             if !self.dir.as_ref().is_absolute() && !self.dir.as_ref().starts_with("./") {
@@ -70,9 +46,17 @@ impl<T: AsRef<Path>> Initialiser<T> {
 
         Ok(())
     }
+}
 
+impl From<&InitCmd> for Initialiser<PathBuf> {
+    fn from(cmd: &InitCmd) -> Self {
+        Self::new(PathBuf::from(cmd.dir.clone()))
+    }
+}
+
+impl<T: AsRef<Path>> Initialiser<T> {
     /// Construct the contents of the manifest file
-    fn generate_manifest(&self) -> Result<String, Box<dyn Error>> {
+    fn generate_manifest(&self) -> Result<String> {
         let name = self
             .dir
             .as_ref()
@@ -99,33 +83,36 @@ impl<T: AsRef<Path>> Initialiser<T> {
     }
 
     /// Try to create a new file with given contents. Optionally skip if file is already present.
-    fn try_create_file(&self, path: &Path, contents: &str) -> Result<(), io::Error> {
+    fn try_create_file(&self, path: &Path, contents: &str) -> Result<()> {
         match OpenOptions::new().write(true).create_new(true).open(path) {
-            Ok(mut file) => writeln!(file, "{}", contents.trim()),
+            Ok(mut file) => Ok(writeln!(file, "{}", contents.trim())?),
             Err(e) if e.kind() == ErrorKind::AlreadyExists => Ok(()),
-            e => e.map(|_| ()),
+            Err(e) => Err(e.into()),
         }
     }
 
     /// Create a new code repository at the given path.
-    fn init_repo(&self) -> Result<Repository, GitError> {
-        Repository::init_opts(&self.dir, RepositoryInitOptions::new().mkdir(true))
+    fn init_repo(&self) -> Result<Repository> {
+        Ok(Repository::init_opts(
+            &self.dir,
+            RepositoryInitOptions::new().mkdir(true),
+        )?)
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::manifest::DocManifest;
-    use emblem_core::{parser, EmblemResult};
-    use std::error::Error;
+    use crate::Result;
+    use crate::{manifest::DocManifest, Error};
+    use emblem_core::parser;
     use std::{
         fs::{self, File},
         io::{BufRead, BufReader},
     };
     use tempfile::TempDir;
 
-    fn do_init(ctx: &mut Context, tmpdir: &TempDir) -> EmblemResult<()> {
+    fn do_init(ctx: &mut Context, tmpdir: &TempDir) -> Result<()> {
         Initialiser::new(tmpdir).run(ctx)
     }
 
@@ -133,7 +120,7 @@ mod test {
         dir: &TempDir,
         expected_main_content: &str,
         expected_manifest_content: &str,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<()> {
         let dot_git = dir.path().join(".git");
         assert!(dot_git.exists(), "no .git");
         assert!(dot_git.is_dir(), ".git is not a directory");
@@ -146,7 +133,8 @@ mod test {
 
         let lines: Vec<String> = BufReader::new(File::open(dot_gitignore)?)
             .lines()
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|r| r.map_err(Error::from))
+            .collect::<Result<Vec<_>>>()?;
 
         for ignore in IGNORES {
             assert!(
@@ -187,16 +175,12 @@ mod test {
     }
 
     #[test]
-    fn empty_dir() -> Result<(), Box<dyn Error>> {
+    fn empty_dir() -> Result<()> {
         let tmpdir = tempfile::tempdir()?;
 
         let mut ctx = Context::new();
-        let problems = do_init(&mut ctx, &tmpdir);
-        assert!(
-            problems.logs.is_empty(),
-            "unexpected problems: {:?}",
-            problems.logs
-        );
+        let result = do_init(&mut ctx, &tmpdir);
+        assert!(result.is_ok(), "unexpected error: {}", result.unwrap_err());
 
         let expected_manifest_contents = textwrap::dedent(
             &format!(
@@ -221,7 +205,7 @@ mod test {
     }
 
     #[test]
-    fn non_empty_dir() -> Result<(), Box<dyn Error>> {
+    fn non_empty_dir() -> Result<()> {
         let tmpdir = tempfile::tempdir()?;
 
         let main_file_path = tmpdir.path().join("main.em");
@@ -234,31 +218,21 @@ mod test {
 
         {
             let mut ctx = Context::new();
-            let problems = do_init(&mut ctx, &tmpdir);
-            assert_eq!(
-                0,
-                problems.logs.len(),
-                "unexpected problems: {:?})",
-                problems.logs
-            );
+            let result = do_init(&mut ctx, &tmpdir);
+            assert!(result.is_ok(), "unexpected error: {}", result.unwrap_err());
             test_files(&tmpdir, main_file_content, manifest_file_content)?;
         }
 
         {
             let mut ctx = Context::new();
-            let problems = do_init(&mut ctx, &tmpdir);
-            assert!(
-                problems.logs.is_empty(),
-                "unexpected problems: {:?}",
-                problems
-            );
-
+            let result = do_init(&mut ctx, &tmpdir);
+            assert!(result.is_ok(), "unexpected error: {}", result.unwrap_err());
             test_files(&tmpdir, main_file_content, manifest_file_content)
         }
     }
 
     #[test]
-    fn init_repo() -> Result<(), Box<dyn Error>> {
+    fn init_repo() -> Result<()> {
         let dir = tempfile::tempdir()?;
 
         let initialiser = Initialiser::new(dir.path());

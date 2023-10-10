@@ -4,13 +4,17 @@ mod module;
 mod resource_limit;
 mod resources;
 
-use crate::{ExtensionState, FileContent, FileName, Typesetter, Version};
+use crate::{
+    log::{Log, Logger},
+    ExtensionState, FileContent, FileName, Result, Typesetter, Version,
+};
 use derive_new::new;
-use mlua::Result as MLuaResult;
 pub use module::{Module, ModuleVersion};
 use once_cell::unsync::OnceCell;
 pub use resource_limit::ResourceLimit;
 pub use resources::{Iteration, Memory, Resource, Step};
+use std::cell::RefCell;
+use std::fmt::Debug;
 
 #[derive(Default)]
 pub struct Context {
@@ -18,11 +22,19 @@ pub struct Context {
     lua_params: LuaParameters,
     typesetter_params: TypesetterParameters,
     extension_state: OnceCell<ExtensionState>,
+    logger: RefCell<Logger>,
 }
 
 impl Context {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn new_with_logger(logger: Logger) -> Self {
+        Self {
+            logger: RefCell::new(logger),
+            ..Self::default()
+        }
     }
 
     pub fn alloc_file_name(&self, name: impl AsRef<str>) -> FileName {
@@ -57,13 +69,21 @@ impl Context {
         &mut self.typesetter_params
     }
 
-    pub fn extension_state(&self) -> MLuaResult<&ExtensionState> {
+    pub fn extension_state(&self) -> Result<&ExtensionState> {
         self.extension_state
             .get_or_try_init(|| ExtensionState::new(self))
     }
 
     pub fn typesetter(&self) -> Typesetter {
         Typesetter::new(self)
+    }
+
+    pub fn print(&self, log: impl Into<Log>) -> Result<()> {
+        self.logger.borrow_mut().print(log)
+    }
+
+    pub fn report(self) -> Result<()> {
+        self.logger.into_inner().report()
     }
 }
 
@@ -75,12 +95,14 @@ impl Context {
             lua_params: LuaParameters::test_new(),
             typesetter_params: TypesetterParameters::test_new(),
             extension_state: OnceCell::new(),
+            logger: RefCell::new(Logger::test_new()),
         }
     }
 }
 
 #[derive(Debug, Default)]
 pub struct DocumentParameters {
+    // TODO(kcza): use a nice Rc<str>-like representation
     name: Option<String>,
     emblem_version: Option<Version>,
     authors: Option<Vec<String>>,

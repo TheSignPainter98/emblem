@@ -5,7 +5,7 @@ mod verbosity;
 
 use std::{borrow::Cow, fmt::Display};
 
-use crate::{context::file_content::FileSlice, lint::LintId};
+use crate::{context::file_content::FileSlice, lint::LintId, Result};
 
 pub use self::messages::Message;
 pub use note::Note;
@@ -42,7 +42,9 @@ macro_rules! log_filter {
                 if $logger.verbosity >= $verbosity {
                     #[allow(unused_imports)]
                     use crate::log::messages::Message;
-                    $msg.log().print($logger)
+                    $logger.print($msg.log())
+                } else {
+                    Ok(())
                 }
             };
         }
@@ -53,6 +55,7 @@ log_filter!(alert, Verbosity::Terse);
 log_filter!(inform, Verbosity::Verbose);
 log_filter!(debug, Verbosity::Debug);
 
+#[derive(Default)]
 pub struct Logger {
     verbosity: Verbosity,
     colourise: bool,
@@ -72,80 +75,17 @@ impl Logger {
         }
     }
 
-    pub fn report(mut self) {
-        let tot_warnings = self.tot_warnings;
-        let tot_errors = self.tot_errors;
-
-        if tot_warnings > 0 {
-            let plural = if tot_warnings > 1 { "s" } else { "" };
-            alert!(
-                &mut self,
-                Log::warn(format!("generated {} warning{plural}", tot_warnings))
-            );
-        }
-
-        if tot_errors == 0 {
-            return;
-        }
-
-        let plural = if tot_errors > 1 { "s" } else { "" };
-        let exe = std::env::current_exe().unwrap();
-        let exe = exe
-            .file_name()
-            .unwrap()
-            .to_os_string()
-            .into_string()
-            .unwrap();
-        alert!(
-            &mut self,
-            Log::error(format!(
-                "`{exe}` failed due to {} error{plural}",
-                tot_errors
-            ))
-        );
-    }
-}
-
-#[derive(Debug)]
-pub struct Log {
-    msg: String,
-    msg_type: AnnotationType,
-    id: LogId,
-    help: Option<String>,
-    note: Option<String>,
-    srcs: Vec<Src>,
-    explainable: bool,
-    expected: Option<Vec<String>>,
-}
-
-impl Log {
-    fn new(msg_type: AnnotationType, msg: impl Into<String>) -> Self {
-        Self {
-            msg: msg.into(),
-            id: LogId::Undefined,
-            msg_type,
-            help: None,
-            note: None,
-            srcs: Vec::new(),
-            explainable: false,
-            expected: None,
-        }
-    }
-
-    pub fn msg(&self) -> &str {
-        &self.msg
-    }
-
-    pub fn print(self, logger: &mut Logger) {
-        if !logger.verbosity.permits_printing(self.msg_type) {
-            return;
+    pub fn print(&mut self, log: impl Into<Log>) -> Result<()> {
+        let log = log.into();
+        if !self.verbosity.permits_printing(log.msg_type) {
+            return Ok(());
         }
 
         let expected_string;
         let footer = {
             let mut footer = vec![];
 
-            if let Some(ref help) = self.help {
+            if let Some(ref help) = log.help {
                 footer.push(Annotation {
                     id: None,
                     label: Some(help),
@@ -153,7 +93,7 @@ impl Log {
                 });
             }
 
-            if let Some(ref note) = self.note {
+            if let Some(ref note) = log.note {
                 footer.push(Annotation {
                     id: None,
                     label: Some(note),
@@ -161,7 +101,7 @@ impl Log {
                 });
             }
 
-            if let Some(ref expected) = self.expected {
+            if let Some(ref expected) = log.expected {
                 let len = expected.len();
 
                 expected_string = if len == 1 {
@@ -191,14 +131,14 @@ impl Log {
         let contexts = Arena::new();
         let snippet = Snippet {
             title: Some(Annotation {
-                id: self.id.defined(),
-                label: Some(&self.msg),
-                annotation_type: match (logger.warnings_as_errors, self.msg_type) {
+                id: log.id.defined(),
+                label: Some(&log.msg),
+                annotation_type: match (self.warnings_as_errors, log.msg_type) {
                     (true, AnnotationType::Warning) => AnnotationType::Error,
-                    _ => self.msg_type,
+                    _ => log.msg_type,
                 },
             }),
-            slices: self
+            slices: log
                 .srcs
                 .iter()
                 .map(|s| {
@@ -222,27 +162,27 @@ impl Log {
                 .collect(),
             footer,
             opt: FormatOptions {
-                color: logger.colourise,
+                color: self.colourise,
                 ..Default::default()
             },
         };
 
         if let Some(title) = &snippet.title {
             match title.annotation_type {
-                AnnotationType::Error => logger.tot_errors += 1,
-                AnnotationType::Warning => logger.tot_warnings += 1,
+                AnnotationType::Error => self.tot_errors += 1,
+                AnnotationType::Warning => self.tot_warnings += 1,
                 _ => {}
             }
         }
 
-        if self.explainable {
-            if !self.id.is_defined() {
+        if log.explainable {
+            if !log.id.is_defined() {
                 panic!("internal error: explainable message has no id")
             }
 
             let info_instruction = &format!(
                 "For more information about this error, try `em explain {}`",
-                self.id
+                log.id
             );
             let mut display_list = DisplayList::from(snippet);
             display_list
@@ -263,6 +203,79 @@ impl Log {
         } else {
             eprintln!("{}", DisplayList::from(snippet));
         }
+
+        Ok(())
+    }
+
+    pub fn report(mut self) -> Result<()> {
+        let tot_warnings = self.tot_warnings;
+        let tot_errors = self.tot_errors;
+
+        if tot_warnings > 0 {
+            let plural = if tot_warnings > 1 { "s" } else { "" };
+            alert!(
+                &mut self,
+                Log::warn(format!("generated {} warning{plural}", tot_warnings))
+            )?;
+        }
+
+        if tot_errors == 0 {
+            return Ok(());
+        }
+
+        let plural = if tot_errors > 1 { "s" } else { "" };
+        let exe = std::env::current_exe().unwrap();
+        let exe = exe
+            .file_name()
+            .unwrap()
+            .to_os_string()
+            .into_string()
+            .unwrap();
+        alert!(
+            &mut self,
+            Log::error(format!(
+                "`{exe}` failed due to {} error{plural}",
+                tot_errors
+            ))
+        )
+    }
+}
+
+#[cfg(test)]
+impl Logger {
+    pub fn test_new() -> Self {
+        Self::new(Verbosity::Verbose, false, false)
+    }
+}
+
+#[derive(Debug)]
+pub struct Log {
+    pub(crate) msg: String,
+    pub(crate) msg_type: AnnotationType,
+    pub(crate) id: LogId,
+    pub(crate) help: Option<String>,
+    pub(crate) note: Option<String>,
+    pub(crate) srcs: Vec<Src>,
+    pub(crate) explainable: bool,
+    pub(crate) expected: Option<Vec<String>>,
+}
+
+impl Log {
+    fn new(msg_type: AnnotationType, msg: impl Into<String>) -> Self {
+        Self {
+            msg: msg.into(),
+            id: LogId::Undefined,
+            msg_type,
+            help: None,
+            note: None,
+            srcs: Vec::new(),
+            explainable: false,
+            expected: None,
+        }
+    }
+
+    pub fn msg(&self) -> &str {
+        &self.msg
     }
 
     pub fn error(msg: impl Into<String>) -> Self {

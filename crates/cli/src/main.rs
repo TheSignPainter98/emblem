@@ -2,71 +2,65 @@
 #[macro_use]
 extern crate pretty_assertions;
 
+mod error;
 mod init;
 mod manifest;
+mod result;
 
-pub use crate::init::Initialiser;
+pub use crate::error::Error;
+pub use crate::result::Result;
+
+use crate::init::Initialiser;
 use arg_parser::{Args, Command};
-use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Linter, Log};
-use itertools::Itertools;
+use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Linter};
 use manifest::DocManifest;
 use std::{collections::HashMap, fs, process::ExitCode};
 
 fn main() -> ExitCode {
     let args = Args::parse();
-
-    let mut ctx = Context::new();
-
-    let mut logger = Logger::new(
+    let logger = Logger::new(
         args.log.verbosity.into(),
         args.log.colour,
         args.log.warnings_as_errors,
     );
-
-    let raw_manifest: String;
-    macro_rules! integrate_manifest {
-        () => {
-            raw_manifest = match fs::read_to_string("emblem.yml") {
-                Ok(m) => m,
-                Err(e) => {
-                    Log::error(e.to_string()).print(&mut logger);
-                    return ExitCode::FAILURE;
-                }
-            };
-            if let Err(e) = load_manifest(&mut ctx, &raw_manifest, &args) {
-                e.print(&mut logger);
-                return ExitCode::FAILURE;
-            };
-        };
+    let mut ctx = Context::new_with_logger(logger);
+    let mut raw_manifest = String::new();
+    let r = execute(&mut raw_manifest, &mut ctx, &args);
+    let success = r.is_ok();
+    if let Err(e) = r {
+        ctx.print(e).ok();
     }
 
-    let warnings_as_errors = args.log.warnings_as_errors;
-    let (logs, successful) = match &args.command {
-        Command::Add(args) => todo!("{:?}", args), // integrate_manifest!() here
-        Command::Build(args) => {
-            integrate_manifest!();
-            execute(&mut ctx, Builder::from(args), warnings_as_errors)
-        }
-        Command::Explain(args) => execute(&mut ctx, Explainer::from(args), warnings_as_errors),
-        Command::Format(_) => todo!(),
-        Command::Init(args) => execute(&mut ctx, Initialiser::from(args), warnings_as_errors),
-        Command::Lint(args) => execute(&mut ctx, Linter::from(args), warnings_as_errors),
-        Command::List(_) => todo!(), // integrate_manifest!() here
-    };
-    for log in logs {
-        log.print(&mut logger);
-    }
+    ctx.report()
+        .expect("internal error: failed to output report");
 
-    logger.report();
-
-    if successful {
+    if success {
         ExitCode::SUCCESS
     } else {
         ExitCode::FAILURE
     }
 }
 
-fn load_manifest(ctx: &mut Context, src: &str, args: &Args) -> Result<(), Box<Log>> {
+fn execute<'a, 'b>(raw_manifest: &'a mut String, ctx: &'b mut Context, args: &Args) -> Result<()>
+where
+    'a: 'b,
+{
+    match &args.command {
+        Command::Add(add_args) => todo!("{:?}", add_args), // integrate_manifest!() here
+        Command::Build(build_args) => {
+            *raw_manifest = fs::read_to_string("emblem.yml")?;
+            load_manifest(ctx, raw_manifest, args)?;
+            Ok(Builder::from(build_args).run(ctx).map(|_| ())?)
+        }
+        Command::Explain(explain_args) => Ok(Explainer::from(explain_args).run(ctx)?),
+        Command::Format(_) => todo!(),
+        Command::Init(init_args) => Initialiser::from(init_args).run(ctx),
+        Command::Lint(lint_args) => Ok(Linter::from(lint_args).run(ctx)?),
+        Command::List(_) => todo!(), // integrate_manifest!()  here
+    }
+}
+
+fn load_manifest(ctx: &mut Context, src: &str, args: &Args) -> Result<()> {
     let manifest = DocManifest::try_from(src)?;
 
     let doc_info = ctx.doc_params_mut();
@@ -96,12 +90,10 @@ fn load_manifest(ctx: &mut Context, src: &str, args: &Args) -> Result<(), Box<Lo
             match name.find('.') {
                 None => general_args.push((name.to_string(), arg.value().to_string())),
                 Some(0) => {
-                    return Err(Box::new(Log::error(format!(
-                        "argument module name cannot be empty: got '{}' in '{}={}'",
-                        name,
-                        name,
-                        arg.value(),
-                    ))))
+                    return Err(Error::arg_invalid(
+                        arg.value().to_string(),
+                        "module name cannot be empty",
+                    ));
                 }
                 Some(idx) => {
                     let dep_name = &name[..idx];
@@ -135,30 +127,12 @@ fn load_manifest(ctx: &mut Context, src: &str, args: &Args) -> Result<(), Box<Lo
         .collect();
 
     if !specific_args.is_empty() {
-        return Err(Box::new(Log::error(format!(
-            "Unused arguments: {}",
-            specific_args.keys().join(", ")
-        ))));
+        return Err(Error::unused_args(
+            specific_args.keys().map(ToString::to_string).collect(),
+        ));
     }
 
     lua_info.set_modules(modules);
 
     Ok(())
-}
-
-fn execute<C, R>(ctx: &mut Context, cmd: C, warnings_as_errors: bool) -> (Vec<Log>, bool)
-where
-    C: Action<Response = R>,
-{
-    let mut run_res = cmd.run(ctx);
-
-    if !run_res.successful(warnings_as_errors) {
-        (run_res.logs, false)
-    } else {
-        let output_res = cmd.output(run_res.response);
-        let successful = output_res.successful(warnings_as_errors);
-
-        run_res.logs.extend(output_res.logs);
-        (run_res.logs, successful)
-    }
 }

@@ -1,4 +1,4 @@
-use crate::args::ArgPath;
+use crate::{args::ArgPath, Error, Result};
 use std::{
     fs,
     io::{self, Read},
@@ -113,9 +113,9 @@ impl SearchResult {
 }
 
 impl TryFrom<&str> for SearchResult {
-    type Error = io::Error;
+    type Error = Error;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn try_from(value: &str) -> Result<Self> {
         Ok(Self {
             path: path::PathBuf::from(value),
             file: InputFile::from(fs::File::open(value)?),
@@ -124,9 +124,9 @@ impl TryFrom<&str> for SearchResult {
 }
 
 impl TryFrom<&ArgPath> for SearchResult {
-    type Error = io::Error;
+    type Error = Error;
 
-    fn try_from(value: &ArgPath) -> Result<Self, Self::Error> {
+    fn try_from(value: &ArgPath) -> Result<Self> {
         Ok(match value {
             ArgPath::Path(p) => Self {
                 path: path::PathBuf::from(p),
@@ -421,7 +421,7 @@ mod test {
         }
 
         #[test]
-        fn from_str() -> io::Result<()> {
+        fn from_str() -> Result<()> {
             let src = "from.txt";
 
             let tmpdir = tempfile::tempdir()?;
@@ -444,7 +444,7 @@ mod test {
         }
 
         #[test]
-        fn from_arg_path() -> io::Result<()> {
+        fn from_arg_path() -> Result<()> {
             let src = "from.txt";
 
             let tmpdir = tempfile::tempdir()?;

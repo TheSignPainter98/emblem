@@ -9,12 +9,14 @@ pub mod args;
 pub mod ast;
 pub mod build;
 pub mod context;
+mod error;
 pub mod explain;
 mod extensions;
 pub mod lint;
 pub mod parser;
 mod path;
 mod repo;
+mod result;
 mod util;
 mod version;
 
@@ -32,33 +34,17 @@ pub use crate::{
         file_name::FileName,
         Context, ResourceLimit, SandboxLevel,
     },
+    error::Error,
     explain::Explainer,
     extensions::ExtensionState,
     lint::Linter,
     log::{Log, Verbosity},
+    result::{ErrorContext, Result},
     version::Version,
 };
-
-use derive_new::new;
 
 pub trait Action {
     type Response;
 
-    fn run(&self, ctx: &mut Context) -> EmblemResult<Self::Response>;
-
-    fn output(&self, _: Self::Response) -> EmblemResult<()> {
-        EmblemResult::new(vec![], ())
-    }
-}
-
-#[derive(new, Debug)]
-pub struct EmblemResult<R> {
-    pub logs: Vec<Log>,
-    pub response: R,
-}
-
-impl<T> EmblemResult<T> {
-    pub fn successful(&self, warnings_as_errors: bool) -> bool {
-        self.logs.iter().all(|l| l.successful(warnings_as_errors))
-    }
+    fn run(&self, ctx: &mut Context) -> Result<Self::Response>;
 }

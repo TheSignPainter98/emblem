@@ -1,7 +1,7 @@
-use crate::{context::SandboxLevel, extensions::preload_decls};
-use mlua::{Lua, Result as MLuaResult, Table};
+use crate::{context::SandboxLevel, extensions::preload_decls, Result};
+use mlua::{Lua, Table};
 
-pub(crate) fn restrict_preload(lua: &Lua, sandbox_level: SandboxLevel) -> MLuaResult<()> {
+pub(crate) fn restrict_preload(lua: &Lua, sandbox_level: SandboxLevel) -> Result<()> {
     let package_preload = lua
         .globals()
         .get::<_, Table>("package")?
@@ -17,10 +17,9 @@ pub(crate) fn restrict_preload(lua: &Lua, sandbox_level: SandboxLevel) -> MLuaRe
 mod test {
     use super::*;
     use mlua::chunk;
-    use std::error::Error;
 
     #[test]
-    fn preloads_expunged() -> Result<(), Box<dyn Error>> {
+    fn preloads_expunged() -> Result<()> {
         for sandbox_level in SandboxLevel::input_levels() {
             let lua = unsafe { Lua::unsafe_new() };
             restrict_preload(&lua, sandbox_level)?;

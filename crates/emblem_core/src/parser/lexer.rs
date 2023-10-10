@@ -602,7 +602,7 @@ fn indent_level(s: &str) -> u32 {
 
 pub type SpannedTok = (Point, Tok, Point);
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LexicalError {
     UnexpectedChar {
         loc: Location,

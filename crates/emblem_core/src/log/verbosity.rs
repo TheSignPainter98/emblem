@@ -1,7 +1,8 @@
 use annotate_snippets::snippet::AnnotationType;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Verbosity {
+    #[default]
     Terse,
     Verbose,
     Debug,
