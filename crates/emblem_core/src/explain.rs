@@ -1,9 +1,6 @@
 use crate::{
     context::Context,
-    log::{
-        messages::{self /* Message */},
-        LogId,
-    },
+    log::{messages, LogId},
     Action, Error, Result,
 };
 use derive_new::new;

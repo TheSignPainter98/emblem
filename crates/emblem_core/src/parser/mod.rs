@@ -109,7 +109,7 @@ pub mod test {
 
     fn assert_parse_error(name: &str, input: &str, expected: &str) {
         let ctx = Context::new();
-        let re = Regex::new(&("^".to_string() + &expected)).unwrap();
+        let re = Regex::new(&("^".to_string() + expected)).unwrap();
         let inputs = [
             (name, input),
             (&format!("{} with newline", name), &format!("{}\n", input)),
