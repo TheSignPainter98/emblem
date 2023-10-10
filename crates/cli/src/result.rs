@@ -25,3 +25,17 @@ impl<T> ErrorContext for Result<T> {
         self.map_err(|err| err.context(context))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn context() {
+        let err: Result<()> = Err(Error::manifest_invalid("lol")).context("could not foo");
+        assert_eq!(
+            err.unwrap_err().to_string(),
+            "could not foo: manifest invalid: lol"
+        )
+    }
+}

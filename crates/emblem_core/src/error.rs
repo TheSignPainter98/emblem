@@ -95,7 +95,40 @@ impl From<Error> for Log {
 
 #[cfg(test)]
 mod test {
-    // use super::*;
+    use crate::{parser::Point, Context};
 
-    // TODO(kcza): make tests!
+    use super::*;
+
+    #[test]
+    fn no_such_error_code() {
+        assert_eq!(
+            Error::no_such_error_code(LogId::Defined("E9999".into())).to_string(),
+            "no such error code: E9999"
+        );
+    }
+
+    #[test]
+    fn parse() {
+        let ctx = Context::test_new();
+        let file_name = ctx.alloc_file_name("file-name-here");
+        let file_content = ctx.alloc_file_content("hjkfdl fhdjk fdsaljkh");
+        let point = Point::at_start_of(file_name.clone(), file_content);
+        let err = Error::parse(file_name, ParseError::InvalidToken { location: point });
+        assert_eq!(
+            err.to_string(),
+            "cannot parse 'file-name-here': Invalid token at 1:1"
+        )
+    }
+
+    #[test]
+    fn string_conversion() {
+        let err = Error::string_conversion(OsString::from("wassup"));
+        assert_eq!(err.to_string(), "cannot convert string to utf8: wassup")
+    }
+
+    #[test]
+    fn uncallable_listener() {
+        let err = Error::uncallable_listener("string");
+        assert_eq!(err.to_string(), "string is not callable")
+    }
 }

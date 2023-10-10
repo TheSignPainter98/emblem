@@ -92,3 +92,38 @@ impl From<Error> for Log {
         unimplemented!()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn arg_invalid() {
+        assert_eq!(
+            Error::arg_invalid("foo".into(), ":kekw:").to_string(),
+            "argument 'foo' invalid: :kekw:"
+        )
+    }
+
+    #[test]
+    fn manifest_invalid() {
+        assert_eq!(
+            Error::manifest_invalid("lmao").to_string(),
+            "manifest invalid: lmao"
+        )
+    }
+
+    #[test]
+    fn unused_args() {
+        assert_eq!(
+            Error::unused_args(
+                ["hello", "world"]
+                    .into_iter()
+                    .map(ToOwned::to_owned)
+                    .collect()
+            )
+            .to_string(),
+            "unused arguments: hello, world"
+        );
+    }
+}
