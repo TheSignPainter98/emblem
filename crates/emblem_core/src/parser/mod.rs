@@ -968,7 +968,7 @@ pub mod test {
 
         #[test]
         fn stacked() {
-            let lines = vec![
+            let lines = [
                 "There once was a ship that put to sea",
                 "And the name of that ship was the Billy O’ Tea",
                 "The winds blew hard, her bow dipped down",

@@ -216,6 +216,7 @@ impl Iterator for Lexer {
                 }
                 $(else if let Some(mat) = self.try_consume(&$re) {
                     let mat: FileContentSlice = mat; // assert $to_tok input type
+                    #[allow(clippy::redundant_closure_call)]
                     let ret = $to_tok(mat).map(|t: Tok| self.span(t));
                     self.last_tok = ret.as_ref().ok().map(|s| s.1.clone());
                     Some(ret)

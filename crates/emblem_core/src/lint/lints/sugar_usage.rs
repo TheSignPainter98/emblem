@@ -86,7 +86,9 @@ impl Lint for SugarUsage {
                             )];
                         }
                         ([], [], None, [a]) => {
-                            let [p] = &a[..] else { return vec![]; };
+                            let [p] = &a[..] else {
+                                return vec![];
+                            };
                             if let [_] = &p.parts[..] {
                                 return vec![expected.suggest(
                                     name.to_str(),

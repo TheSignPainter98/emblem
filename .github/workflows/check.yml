@@ -22,7 +22,7 @@ jobs:
           - macos-latest
           - windows-latest
         rust:
-          - 1.70.0
+          - 1.72.0
       fail-fast: true
 
     steps:
@@ -95,7 +95,7 @@ jobs:
     strategy:
       matrix:
         rust:
-          - 1.70.0
+          - 1.72.0
 
     steps:
       - name: Checkout repo
