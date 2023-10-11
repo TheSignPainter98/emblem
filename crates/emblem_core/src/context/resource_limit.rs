@@ -7,7 +7,8 @@ pub enum ResourceLimit<T: Resource> {
 }
 
 impl<T: Resource> ResourceLimit<T> {
-    pub(crate) fn contains(&self, amount: T) -> bool {
+    /// Returns whether the resource limit is less than the given amount.
+    pub(crate) fn lt(&self, amount: T) -> bool {
         match self {
             Self::Unlimited => true,
             Self::Limited(l) => amount < *l,
@@ -45,12 +46,12 @@ mod test {
     #[test]
     fn contains() {
         let unlimited = ResourceLimit::Unlimited;
-        assert!(unlimited.contains(Step(0)));
+        assert!(unlimited.lt(Step(0)));
 
         let limited = ResourceLimit::Limited(Step(10));
-        assert!(limited.contains(Step(0)));
-        assert!(limited.contains(Step(9)));
-        assert!(!limited.contains(Step(10)));
-        assert!(!limited.contains(Step(100)));
+        assert!(limited.lt(Step(0)));
+        assert!(limited.lt(Step(9)));
+        assert!(!limited.lt(Step(10)));
+        assert!(!limited.lt(Step(100)));
     }
 }

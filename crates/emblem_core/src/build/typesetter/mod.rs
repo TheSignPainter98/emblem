@@ -47,7 +47,7 @@ impl<'ctx> Typesetter<'ctx> {
     }
 
     fn will_reiter(&self, ext_state: &ExtensionState) -> bool {
-        ext_state.reiter_requested() && self.max_iters.contains(self.curr_iter)
+        ext_state.reiter_requested() && self.max_iters.lt(self.curr_iter)
     }
 
     fn iter(&mut self, ext_state: &ExtensionState, _root: &mut Doc) -> Result<()> {
