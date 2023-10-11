@@ -1,6 +1,6 @@
 [package]
 name = "emblem"
-authors = [ "kcza" ]
+authors = ["kcza"]
 description = "A minimalist, format-agnostic typesetter"
 documentation = "https://kcza.net/emblem"
 license = "GPL-3.0-or-later"
@@ -12,11 +12,11 @@ repository = "https://github.com/TheSignPainter98/emblem"
 
 [workspace]
 members = [
-	"crates/cli",
-	"crates/arg_parser",
-	"crates/emblem_core",
-	"crates/yuescript",
-	"crates/rc_chunk_allocator",
+  "crates/cli",
+  "crates/arg_parser",
+  "crates/emblem_core",
+  "crates/yuescript",
+  "crates/rc_chunk_allocator",
 ]
 
 [profile.release]
@@ -26,4 +26,4 @@ lto = true
 panic = "abort"
 
 [lib]
-crate-type = [ "cdylib", "rlib" ]
+crate-type = ["cdylib", "rlib"]

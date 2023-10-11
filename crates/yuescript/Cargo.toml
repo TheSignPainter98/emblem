@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.24"
-mlua = { version = "0.8.8", features = [ "luajit52", "vendored", "macros" ] }
+mlua = { version = "0.8.8", features = ["luajit52", "vendored", "macros"] }
 thiserror = "1.0.40"
 
 [build-dependencies]

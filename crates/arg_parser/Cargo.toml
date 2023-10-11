@@ -1,7 +1,7 @@
 # TODO(kcza): change these fields!
 [package]
 name = "arg_parser"
-authors = [ "kcza" ]
+authors = ["kcza"]
 description = "A minimalist, format-agnostic typesetter"
 documentation = "https://kcza.net/emblem"
 license = "GPL-3.0-or-later"
