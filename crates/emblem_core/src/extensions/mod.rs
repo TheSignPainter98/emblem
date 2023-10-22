@@ -9,6 +9,7 @@ use crate::{
     Context, Error, Result,
 };
 use em::Em;
+use kinded::Kinded;
 use mlua::{Error as MLuaError, HookTriggers, Lua, MetaMethod, Table, TableExt, Value};
 use std::{cell::RefMut, fmt::Display};
 use yuescript::include_yuescript;
@@ -89,16 +90,16 @@ impl ExtensionState {
 
     fn setup_event_listeners(lua: &Lua) -> Result<()> {
         Ok(lua.set_named_registry_value(EVENT_LISTENERS_RKEY, {
-            let types = EventType::types();
+            let event_kinds = EventKind::all();
             let listeners = lua.create_table_with_capacity(
                 0,
-                types
+                event_kinds
                     .len()
                     .try_into()
                     .expect("internal error: too many event types"),
             )?;
-            for r#type in types {
-                listeners.set(r#type.name(), lua.create_table()?)?;
+            for kind in event_kinds {
+                listeners.set(kind.name(), lua.create_table()?)?;
             }
             listeners
         })?)
@@ -107,7 +108,7 @@ impl ExtensionState {
         &self.lua
     }
 
-    pub fn add_listener(&self, event_type: EventType, listener: Value) -> Result<()> {
+    pub fn add_listener(&self, event_type: EventKind, listener: Value) -> Result<()> {
         if !callable(&listener) {
             return Err(Error::uncallable_listener(listener.type_name()));
         }
@@ -121,7 +122,7 @@ impl ExtensionState {
 
     pub fn handle(&self, event: Event) -> Result<()> {
         let listeners: Table = self.lua.named_registry_value(EVENT_LISTENERS_RKEY)?;
-        let event_listeners = match listeners.get::<_, Option<Table>>(event.r#type().name())? {
+        let event_listeners = match listeners.get::<_, Option<Table>>(event.kind().name())? {
             Some(ls) => ls,
             None => panic!("internal error: {event} event has no listeners table"),
         };
@@ -250,54 +251,30 @@ impl ExtensionData {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Kinded)]
 pub enum Event {
     IterStart { iter: Iteration },
     IterEnd { iter: Iteration },
     Done { final_iter: Iteration },
 }
 
-impl Event {
-    pub fn r#type(&self) -> EventType {
+impl Display for Event {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::IterStart { .. } => EventType::IterStart,
-
-            Self::IterEnd { .. } => EventType::IterEnd,
-            Self::Done { .. } => EventType::Done,
+            Self::IterStart { iter } | Self::IterEnd { iter } | Self::Done { final_iter: iter } => {
+                write!(f, "{}({iter})", self.kind())
+            }
         }
     }
 }
 
-impl Display for Event {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.r#type().fmt(f)
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub enum EventType {
-    IterStart,
-    IterEnd,
-    Done,
-}
-
-impl EventType {
-    pub fn name(&self) -> &str {
+impl EventKind {
+    fn name(&self) -> &'static str {
         match self {
             Self::IterStart => "iter-start",
             Self::IterEnd => "iter-end",
             Self::Done => "done",
         }
-    }
-
-    pub(crate) fn types() -> &'static [EventType] {
-        &[Self::IterStart, Self::IterEnd, Self::Done]
-    }
-}
-
-impl Display for EventType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.name().fmt(f)
     }
 }
 
