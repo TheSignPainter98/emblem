@@ -19,6 +19,7 @@ derive-new = "0.5.9"
 derive_more = "0.99.17"
 git2 = { version = "0.16.1", optional = true }
 indoc = "2.0.1"
+kinded = "0.3.0"
 lalrpop = "0.19.8"
 lalrpop-util = "0.19.8"
 lazy_static = "1.4.0"
