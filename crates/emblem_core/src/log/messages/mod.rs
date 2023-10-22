@@ -8,6 +8,7 @@ mod newline_in_inline_arg;
 mod no_such_error_code;
 mod too_many_qualifiers;
 mod unclosed_comments;
+mod unclosed_verbatim;
 mod unexpected_char;
 mod unexpected_eof;
 mod unexpected_heading;
@@ -23,6 +24,7 @@ pub use newline_in_inline_arg::NewlineInInlineArg;
 pub use no_such_error_code::NoSuchErrorCode;
 pub use too_many_qualifiers::TooManyQualifiers;
 pub use unclosed_comments::UnclosedComments;
+pub use unclosed_verbatim::UnclosedVerbatim;
 pub use unexpected_char::UnexpectedChar;
 pub use unexpected_eof::UnexpectedEOF;
 pub use unexpected_heading::UnexpectedHeading;
@@ -106,6 +108,7 @@ pub fn messages() -> Vec<MessageInfo> {
         NoSuchErrorCode,
         TooManyQualifiers,
         UnclosedComments,
+        UnclosedVerbatim,
         UnexpectedChar,
         UnexpectedEOF,
         UnexpectedHeading,

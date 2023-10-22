@@ -24,7 +24,7 @@ impl Lint for SpiltGlue {
             | Content::Whitespace { .. }
             | Content::Dash { .. }
             | Content::Glue { .. }
-            | Content::Verbatim { .. }
+            | Content::InlineVerbatim { .. }
             | Content::Comment { .. }
             | Content::MultiLineComment { .. } => vec![],
         }

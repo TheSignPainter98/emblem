@@ -108,7 +108,7 @@ impl Lint for NumArgs {
             | Content::Dash { .. }
             | Content::Glue { .. }
             | Content::SpiltGlue { .. }
-            | Content::Verbatim { .. }
+            | Content::InlineVerbatim { .. }
             | Content::Comment { .. }
             | Content::MultiLineComment { .. } => vec![],
         }

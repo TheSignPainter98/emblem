@@ -2,7 +2,7 @@ use crate::context::file_content::FileSlice;
 use crate::log::messages::{
     DelimiterMismatch, EmptyQualifier, ExtraCommentClose, HeadingTooDeep, NewlineInAttrs,
     NewlineInEmphDelimiter, NewlineInInlineArg, TooManyQualifiers, UnclosedComments,
-    UnexpectedChar, UnexpectedEOF, UnexpectedHeading,
+    UnclosedVerbatim, UnexpectedChar, UnexpectedEOF, UnexpectedHeading,
 };
 use crate::log::Log;
 use crate::parser::Location;
@@ -30,6 +30,7 @@ pub struct Lexer {
     next_toks: VecDeque<SpannedTok>,
     multi_line_comment_starts: Vec<Location>,
     last_tok: Option<Tok>,
+    verbatim_close_index: Option<usize>,
     attr_open: Option<Location>,
     opening_delimiters: bool,
     open_delimiters: Vec<(FileContentSlice, Location)>,
@@ -50,6 +51,7 @@ impl Lexer {
             multi_line_comment_starts: Vec::new(),
             last_tok: None,
             attr_open: None,
+            verbatim_close_index: None,
             opening_delimiters: true,
             open_delimiters: Vec::new(),
         }
@@ -57,16 +59,29 @@ impl Lexer {
 
     fn try_consume(&mut self, re: &Regex) -> Option<FileContentSlice> {
         if let Some(mat) = re.find(self.input.to_str()) {
-            let curr_point = self.curr_point.clone();
-            self.prev_point = curr_point.clone();
-            self.curr_point = curr_point.shift(mat.as_str());
-
-            let ret = self.input.slice(mat.range());
-            self.input = self.input.slice(mat.end()..);
-            Some(ret)
+            Some(self.shift_by(mat.len()))
         } else {
             None
         }
+    }
+
+    fn try_consume_until(&mut self, re: &Regex, max_index: usize) -> Option<FileContentSlice> {
+        let to_search = &self.input.to_str()[..max_index - self.curr_point.index()];
+        if let Some(mat) = re.find(to_search) {
+            Some(self.shift_by(mat.len()))
+        } else {
+            None
+        }
+    }
+
+    fn shift_by(&mut self, len: usize) -> FileContentSlice {
+        let curr_point = self.curr_point.clone();
+        self.prev_point = curr_point.clone();
+        self.curr_point = curr_point.shift(&self.input.to_str()[..len]);
+
+        let ret = self.input.slice(..len);
+        self.input = self.input.slice(len..);
+        ret
     }
 
     fn span(&self, tok: Tok) -> SpannedTok {
@@ -157,7 +172,6 @@ impl Iterator for Lexer {
                 }
             }
         }
-
         token_patterns! {
             let SHEBANG = r"#![^\r\n]*";
 
@@ -168,7 +182,6 @@ impl Iterator for Lexer {
             let COLON          = r":[ \t]*";
             let DOUBLE_COLON   = r"::";
             let INITIAL_INDENT = r"[ \t]*";
-            let VERBATIM       = r"![^!\r\n]+!";
             let BRACE_LEFT     = r"\{";
             let BRACE_RIGHT    = r"\}";
             let COMMENT        = r"//[^\r\n]*";
@@ -181,6 +194,9 @@ impl Iterator for Lexer {
             let HEADING        = r"#+\+*";
             let MARK           = r#"@[^ \t\r\n#+.,?!'"(){}\[\]]+"#;
             let REFERENCE      = r#"#[^ \t\r\n#+.,?!'"(){}\[\]]+"#;
+
+            let VERBATIM_DELIMITER = r"`#*`";
+            let VERBATIM_PART      = r"[^\r\n]*";
 
             let QUALIFIED_COMMAND = r"(\.+[^ \t{}\[\]\r\n:+.]*){2,}[^ \t{}\[\]\r\n:+.]\+*";
             let COMMAND           = r"\.[^ \t{}\[\]\r\n:+.]+\+*";
@@ -349,6 +365,31 @@ impl Iterator for Lexer {
             return Some(Ok(ret));
         }
 
+        if let Some(verbatim_end_index) = self.verbatim_close_index {
+            let curr_index = self.curr_point.index();
+            if curr_index == verbatim_end_index {
+                self.verbatim_close_index = None;
+                self.try_consume(&VERBATIM_DELIMITER)
+                    .expect("internal error: no verbatim found at end of verbatim block");
+                return Some(Ok(self.span(Tok::VerbatimClose)));
+            }
+            if curr_index < verbatim_end_index {
+                let part = self
+                    .try_consume_until(&VERBATIM_PART, verbatim_end_index)
+                    .expect("internal error: cannot consume verbatim part");
+                return Some(Ok(self.span(Tok::VerbatimContent(part))));
+            }
+        }
+        if let Some(delimiter) = self.try_consume(&VERBATIM_DELIMITER) {
+            let Some(delim_close_index) = self.input.find(delimiter.to_str()) else {
+                return Some(Err(Box::new(LexicalError::UnclosedVerbatim {
+                    loc: self.location(),
+                })));
+            };
+            self.verbatim_close_index = Some(delim_close_index);
+            return Some(Ok(self.span(Tok::VerbatimOpen(delimiter))));
+        }
+
         // Avoid clash with heading '#'
         if let Some(reference) = &self.try_consume(&REFERENCE) {
             return Some(Ok(self.span(Tok::Reference(reference.slice(1..)))));
@@ -474,10 +515,6 @@ impl Iterator for Lexer {
             BACKTICKS   => |s: FileContentSlice| self.emph(s),
             HEADING     => |_| Err(Box::new(LexicalError::UnexpectedHeading{ loc: self.location() })),
             MARK        => |s: FileContentSlice| Ok(Tok::Mark(s.slice(1..))),
-            VERBATIM    => |s: FileContentSlice| {
-                self.opening_delimiters = false;
-                Ok(Tok::Verbatim(s.slice(1..s.len()-1)))
-            },
             WORD => |s: FileContentSlice| {
                 self.opening_delimiters = false;
                 Ok(Tok::Word(s))
@@ -523,6 +560,9 @@ pub enum Tok {
     MonospaceClose,
     SmallcapsClose,
     AlternateFaceClose,
+    VerbatimOpen(FileContentSlice),
+    VerbatimClose,
+    VerbatimContent(FileContentSlice),
     Reference(FileContentSlice),
     Mark(FileContentSlice),
     ParBreak,
@@ -531,7 +571,6 @@ pub enum Tok {
     Dash(FileContentSlice),
     Glue(FileContentSlice),
     SpiltGlue(FileContentSlice),
-    Verbatim(FileContentSlice),
     NestedCommentOpen,
     NestedCommentClose,
     Comment(FileContentSlice),
@@ -560,6 +599,9 @@ impl Display for Tok {
             Tok::ItalicClose => "italic-close",
             Tok::BoldOpen(_) => "bold-open",
             Tok::BoldClose => "bold-close",
+            Tok::VerbatimOpen(_) => "verbatim-open",
+            Tok::VerbatimClose => "verbatim-close",
+            Tok::VerbatimContent(_) => "verbatim-content",
             Tok::MonospaceOpen => "monospace-open",
             Tok::MonospaceClose => "monospace-close",
             Tok::SmallcapsOpen => "smallcaps-open",
@@ -575,7 +617,6 @@ impl Display for Tok {
             Tok::Dash(_) => "dash",
             Tok::Glue(_) => "glue",
             Tok::SpiltGlue(_) => "spilt-glue",
-            Tok::Verbatim(_) => "verbatim",
             Tok::NestedCommentOpen => "/*",
             Tok::NestedCommentClose => "*/",
             Tok::Newline { .. } => "newline",
@@ -652,6 +693,9 @@ pub enum LexicalError {
         loc: Location,
         qualifier_loc: Location,
     },
+    UnclosedVerbatim {
+        loc: Location,
+    },
 }
 
 impl Message for LexicalError {
@@ -688,6 +732,7 @@ impl Message for LexicalError {
             Self::EmptyQualifier { loc, qualifier_loc } => {
                 EmptyQualifier::new(loc, qualifier_loc).log()
             }
+            Self::UnclosedVerbatim { loc } => UnclosedVerbatim::new(loc).log(),
         }
     }
 }
@@ -761,6 +806,7 @@ impl Display for LexicalError {
                     "empty qualifier found at {qualifier_loc} in command name at {loc}",
                 )
             }
+            Self::UnclosedVerbatim { loc } => write!(f, "unclosed verbatim block at {loc}"),
         }
     }
 }

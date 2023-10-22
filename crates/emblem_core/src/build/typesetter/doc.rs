@@ -34,6 +34,10 @@ pub enum DocElem {
         result: Option<Box<DocElem>>,
         loc: Location,
     },
+    Verbatim {
+        content: VerbatimContent,
+        loc: Location,
+    },
     Content(Vec<DocElem>),
 }
 
@@ -156,6 +160,22 @@ impl From<ParsedFile> for Doc {
             .into_doc(DocStackState::new())
             .unwrap_or_default()
             .simplify()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VerbatimContent {
+    Inline(FileContentSlice),
+    Block(Vec<FileContentSlice>),
+}
+
+#[cfg(test)]
+impl AstDebug for VerbatimContent {
+    fn test_fmt(&self, buf: &mut Vec<String>) {
+        match self {
+            Self::Inline(c) => c.test_fmt(buf),
+            Self::Block(lines) => lines.test_fmt(buf),
+        }
     }
 }
 
@@ -293,8 +313,8 @@ impl IntoDoc for Content {
             Self::Word { word, loc } => Some(DocElem::Word { word, loc }),
             Self::Dash { dash, loc } => Some(DocElem::Dash { dash, loc }),
             Self::Glue { glue, loc } => Some(DocElem::Glue { glue, loc }),
-            Self::Verbatim { verbatim, loc } => Some(DocElem::Word {
-                word: verbatim,
+            Self::InlineVerbatim { content, loc, .. } => Some(DocElem::Verbatim {
+                content: VerbatimContent::Inline(content),
                 loc,
             }),
             Self::Shebang { .. }
@@ -393,7 +413,7 @@ mod test {
                 this is how to be a heart breaker
                 _boys, they_ **like** `a` =little= ==danger==
 
-                we'll get him !falling! for a stranger, a player
+                we'll get him ``falling`` for a stranger, a player
                 singing---I lo-lo-love--you
                 at~least~~I ~ think ~~ I ~do~~
             "#,

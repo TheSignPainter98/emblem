@@ -8,6 +8,8 @@ pub use debug::AstDebug;
 pub use repr_loc::ReprLoc;
 pub use text::Text;
 
+use crate::{parser::Location, FileContentSlice};
+
 #[derive(Debug)]
 pub struct File<T> {
     pub pars: Vec<Par<T>>,
@@ -46,6 +48,11 @@ impl<T> Par<ParPart<T>> {
 pub enum ParPart<T> {
     Line(Vec<T>),
     Command(T),
+    VerbatimBlock {
+        delimiter: FileContentSlice,
+        content: Vec<FileContentSlice>,
+        loc: Location,
+    },
 }
 
 impl<T> ParPart<T> {
@@ -53,6 +60,7 @@ impl<T> ParPart<T> {
         match self {
             Self::Line(l) => l.is_empty(),
             Self::Command(_) => false,
+            Self::VerbatimBlock { content, .. } => content.is_empty(),
         }
     }
 }
@@ -62,15 +70,23 @@ impl<T> ParPart<T> {
     fn line(&self) -> Option<&[T]> {
         match self {
             Self::Line(l) => Some(l),
-            Self::Command(_) => None,
+            _ => None,
         }
     }
 
     #[allow(unused)]
     fn command(&self) -> Option<&T> {
         match self {
-            Self::Line(_) => None,
             Self::Command(c) => Some(c),
+            _ => None,
+        }
+    }
+
+    #[allow(unused)]
+    fn verbatim_block(&self) -> Option<&[FileContentSlice]> {
+        match self {
+            Self::VerbatimBlock { content, .. } => Some(content),
+            _ => None,
         }
     }
 }

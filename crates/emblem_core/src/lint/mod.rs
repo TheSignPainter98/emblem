@@ -126,7 +126,7 @@ impl Lintable for Content {
             | Self::Dash { .. }
             | Self::Glue { .. }
             | Self::SpiltGlue { .. }
-            | Self::Verbatim { .. }
+            | Self::InlineVerbatim { .. }
             | Self::Comment { .. }
             | Self::MultiLineComment { .. } => {}
         }

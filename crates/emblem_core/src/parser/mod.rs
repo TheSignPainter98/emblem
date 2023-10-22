@@ -2,6 +2,7 @@ pub mod error;
 pub mod lexer;
 pub mod location;
 mod point;
+mod verbatim_block_content;
 
 pub use lexer::LexicalError;
 pub use location::Location;
@@ -852,46 +853,44 @@ pub mod test {
         use super::*;
 
         #[test]
-        fn word() {
-            assert_structure("ignore empty", "!!", "File[Par[[Word(!!)]]]");
-            assert_structure(
-                "ignore unmatched at start",
-                "spanish inquisition!",
-                "File[Par[[Word(spanish)|< >|Word(inquisition!)]]]",
-            );
-            assert_structure(
-                "ignore unmatched at end",
-                "!spanish inquisition",
-                "File[Par[[Word(!spanish)|< >|Word(inquisition)]]]",
-            );
-        }
-
-        #[test]
         fn short() {
-            assert_structure("text", "!verb!", "File[Par[[!verb!]]]");
-            assert_structure("comment", "!//!", "File[Par[[!//!]]]");
-            assert_structure("multi line comment start", "!/*!", "File[Par[[!/*!]]]");
-            assert_structure("multi line comment end", "!*/!", "File[Par[[!*/!]]]");
+            assert_structure("ignore empty", "````", "File[Par[[````]]]");
+            assert_structure("text", "``verb``", "File[Par[[``verb``]]]");
+            assert_structure("discriminated text", "`#````#`", "File[Par[[`1````1`]]]");
+            assert_structure("comment", "``//``", "File[Par[[``//``]]]");
+            assert_structure("multi line comment start", "``/*``", "File[Par[[``/*``]]]");
+            assert_structure("multi line comment end", "``*/``", "File[Par[[``*/``]]]");
             assert_structure(
                 "with spaces",
-                "!hello } world :: !",
-                "File[Par[[!hello } world :: !]]]",
+                "``hello } world :: ``",
+                "File[Par[[``hello } world :: ``]]]",
             );
-            assert_structure("ignored in comment", "//!asdf!", "File[Par[[//!asdf!]]]");
+            assert_structure(
+                "ignored in comment",
+                "//``asdf``",
+                "File[Par[[//``asdf``]]]",
+            );
         }
 
         #[test]
         fn multiple() {
             assert_structure(
                 "multiple-single-line",
-                "!verb1! !verb2!",
-                "File[Par[[!verb1!|< >|!verb2!]]]",
+                "``verb1`` ``verb2``",
+                "File[Par[[``verb1``|< >|``verb2``]]]",
             );
             assert_structure(
                 "multiple-single-line",
-                "!verb1!\n!verb2!",
-                "File[Par[[!verb1!]|[!verb2!]]]",
+                "``verb1``\n``verb2``",
+                "File[Par[[``verb1``]|[``verb2``]]]",
             );
+        }
+
+        #[test]
+        fn multi_line() {
+            todo!();
+            // TODO(kcza): multiple multi-line verbatims, two which share the same line
+            // TODO(kcza): reject different closing indentation
         }
     }
 
