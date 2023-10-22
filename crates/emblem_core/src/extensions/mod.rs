@@ -108,14 +108,14 @@ impl ExtensionState {
         &self.lua
     }
 
-    pub fn add_listener(&self, event_type: EventKind, listener: Value) -> Result<()> {
+    pub fn add_listener(&self, event_kind: EventKind, listener: Value) -> Result<()> {
         if !callable(&listener) {
             return Err(Error::uncallable_listener(listener.type_name()));
         }
 
         let listeners: Table = self.lua.named_registry_value(EVENT_LISTENERS_RKEY)?;
-        let Some(event_listeners) = listeners.get::<_, Option<Table>>(event_type.name())? else {
-            panic!("internal error: {event_type} event has no listener table")
+        let Some(event_listeners) = listeners.get::<_, Option<Table>>(event_kind.name())? else {
+            panic!("internal error: {event_kind} event has no listener table")
         };
         Ok(event_listeners.push(listener)?)
     }
