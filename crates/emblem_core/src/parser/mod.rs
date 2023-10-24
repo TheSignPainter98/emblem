@@ -64,9 +64,100 @@ pub fn parse(file_name: FileName, content: FileContent) -> Result<ParsedFile> {
 
 #[cfg(test)]
 pub mod test {
+    use std::borrow::Cow;
+
     use super::*;
     use crate::ast::AstDebug;
     use regex::Regex;
+
+    pub struct ParserTest {
+        name: Cow<'static, str>,
+        input: Option<Cow<'static, str>>,
+    }
+
+    impl ParserTest {
+        pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
+            let name = name.into();
+            Self { name, input: None }
+        }
+
+        pub fn input(&mut self, input: impl Into<Cow<'static, str>>) {
+            self.input = Some(input.into());
+        }
+
+        fn produces(self, structure_repr: impl AsRef<str>) {
+            self.assert_valid();
+
+            let input = self.input.as_ref().unwrap();
+            self.test_input_produces(&self.name, &input, structure_repr.as_ref());
+            self.test_input_produces(
+                &format!("{} with newline", self.name),
+                &format!("{}\n", input),
+                structure_repr.as_ref(),
+            );
+        }
+
+        fn assert_valid(&self) {
+            assert!(self.input.is_some(), "{}: test has no input!", self.name);
+        }
+
+        fn test_input_produces(&self, name: &str, input: &str, structure_repr: &str) {
+            let ctx = Context::new();
+            let parse_result = self.parse(&ctx, name, input);
+            assert!(
+                parse_result.is_ok(),
+                "{}: expected Ok parse result when parsing {input:?}, got: {:?}",
+                self.name,
+                parse_result.unwrap_err()
+            );
+            let repr = parse_result.unwrap().repr();
+            assert_eq!(repr, structure_repr, "{}: unexpected structure", self.name);
+        }
+
+        fn expect(self, matches: impl AsRef<str>) {
+            self.assert_valid();
+
+            let input = self.input.as_ref().unwrap();
+            let matches = Regex::new(&("^".to_string() + matches.as_ref())).unwrap();
+            self.test_input_errors(&self.name, &input, &matches);
+            self.test_input_errors(
+                &format!("{} with newline", self.name),
+                &format!("{}\n", input),
+                &matches,
+            );
+        }
+
+        fn test_input_errors(&self, name: &str, input: &str, matches: &Regex) {
+            let ctx = Context::new();
+            let parse_result = self.parse(&ctx, &self.name, input);
+            assert!(parse_result.is_err(), "{}: unexpected success", name);
+            let msg = parse_result.unwrap_err().to_string();
+            assert!(
+                msg.contains(name),
+                "expected file name {name:?} in error messages {msg:?}"
+            );
+
+            let sanitised_msg = {
+                let sanitised_msg = msg.replace("Unrecognized", "Unrecognised");
+                // Remove file name
+                let colon_idx = sanitised_msg.find(':').expect("no colon after file name");
+                sanitised_msg[2 + colon_idx..].to_string()
+            };
+            assert!(
+                matches.is_match(&sanitised_msg),
+                "{}: unexpected error:\n{}\n\nexpected message to start with:\n{}",
+                name,
+                sanitised_msg,
+                matches.as_str(),
+            );
+        }
+
+        fn parse(&self, ctx: &Context, input: &str, structure_repr: &str) -> Result<ParsedFile> {
+            let name = ctx.alloc_file_name(&self.name);
+            let input = ctx.alloc_file_content(input);
+            super::parse(name, input)
+        }
+    }
 
     pub fn assert_structure(name: &str, input: &str, expected: &str) {
         let ctx = Context::new();
