@@ -2,7 +2,7 @@ use crate::{
     ast::parsed::ParsedFile,
     build::typesetter::doc::Doc,
     context::Iteration,
-    extensions::{Event, EventType, ExtensionState},
+    extensions::{Event, EventKind, ExtensionState},
     Context, ErrorContext, ResourceLimit, Result,
 };
 
@@ -41,7 +41,7 @@ impl<'ctx> Typesetter<'ctx> {
             .handle(Event::Done {
                 final_iter: self.curr_iter,
             })
-            .with_context(|| format!("failed to handle {} event", EventType::Done))?;
+            .with_context(|| format!("failed to handle {} event", EventKind::Done))?;
 
         Ok(())
     }
@@ -60,13 +60,13 @@ impl<'ctx> Typesetter<'ctx> {
             .handle(Event::IterStart {
                 iter: self.curr_iter,
             })
-            .with_context(|| format!("failed to handle {} event", EventType::IterStart))?;
+            .with_context(|| format!("failed to handle {} event", EventKind::IterStart))?;
         // TODO(kzca): Evaluate the root.
         ext_state
             .handle(Event::IterEnd {
                 iter: self.curr_iter,
             })
-            .with_context(|| format!("failed to handle {} event", EventType::IterEnd))?;
+            .with_context(|| format!("failed to handle {} event", EventKind::IterEnd))?;
 
         Ok(())
     }
@@ -76,7 +76,7 @@ impl<'ctx> Typesetter<'ctx> {
 mod test {
     use super::*;
     use crate::{
-        extensions::{EventType, ExtensionData},
+        extensions::{EventKind, ExtensionData},
         parser,
     };
     use mlua::{Integer, MetaMethod, Table, ToLua, UserData, Value};
@@ -99,7 +99,7 @@ mod test {
         };
         let ext_state = ctx.extension_state()?;
         ext_state.add_listener(
-            EventType::IterStart,
+            EventKind::IterStart,
             Value::Function(ext_state.lua().create_function(move |_, event: Table| {
                 let n: Integer = event.get("iter")?;
                 iter_start_indices_clone.try_borrow_mut().unwrap().push(n);
@@ -107,7 +107,7 @@ mod test {
             })?),
         )?;
         ext_state.add_listener(
-            EventType::IterEnd,
+            EventKind::IterEnd,
             Value::Function(ext_state.lua().create_function(move |lua, event: Table| {
                 let n: Integer = event.get("iter")?;
                 iter_end_indices_clone.try_borrow_mut().unwrap().push(n);
@@ -120,7 +120,7 @@ mod test {
             })?),
         )?;
         ext_state.add_listener(
-            EventType::Done,
+            EventKind::Done,
             Value::Function(ext_state.lua().create_function(move |_, event: Table| {
                 let n: Integer = event.get("iter")?;
                 done_triggered_clone.try_borrow_mut().unwrap().push(n);
@@ -156,7 +156,7 @@ mod test {
         let ctx = Context::test_new();
         let ext_state = ctx.extension_state()?;
         ext_state.add_listener(
-            EventType::IterStart,
+            EventKind::IterStart,
             Value::Function(ext_state.lua().create_function(move |_, event: Table| {
                 let n: Integer = event.get("iter")?;
                 iter_start_indices_clone.try_borrow_mut().unwrap().push(n);
@@ -164,7 +164,7 @@ mod test {
             })?),
         )?;
         ext_state.add_listener(
-            EventType::IterEnd,
+            EventKind::IterEnd,
             Value::Function(ext_state.lua().create_function(move |lua, event: Table| {
                 let n: Integer = event.get("iter")?;
                 iter_end_indices_clone.try_borrow_mut().unwrap().push(n);
@@ -179,7 +179,7 @@ mod test {
             })?),
         )?;
         ext_state.add_listener(
-            EventType::Done,
+            EventKind::Done,
             Value::Function(ext_state.lua().create_function(move |_, event: Table| {
                 let n: Integer = event.get("iter")?;
                 done_triggered_clone.try_borrow_mut().unwrap().push(n);
@@ -234,14 +234,14 @@ mod test {
             let iter_start_table_called_clone = iter_start_table_called.clone();
 
             ext_state.add_listener(
-                EventType::IterStart,
+                EventKind::IterStart,
                 Value::Function(ext_state.lua().create_function(move |_, ()| {
                     *iter_start_func_called_clone.try_borrow_mut().unwrap() = true;
                     Ok(Value::Nil)
                 })?),
             )?;
             ext_state.add_listener(
-                EventType::IterStart,
+                EventKind::IterStart,
                 Value::Table({
                     let table = ext_state.lua().create_table()?;
                     table.set_metatable(Some({
@@ -261,7 +261,7 @@ mod test {
                 }),
             )?;
             ext_state.add_listener(
-                EventType::IterStart,
+                EventKind::IterStart,
                 Callable {
                     called: iter_start_userdata_called.clone(),
                 }
@@ -277,14 +277,14 @@ mod test {
             let iter_end_table_called_clone = iter_end_table_called.clone();
 
             ext_state.add_listener(
-                EventType::IterEnd,
+                EventKind::IterEnd,
                 Value::Function(ext_state.lua().create_function(move |_, ()| {
                     *iter_end_func_called_clone.try_borrow_mut().unwrap() = true;
                     Ok(Value::Nil)
                 })?),
             )?;
             ext_state.add_listener(
-                EventType::IterEnd,
+                EventKind::IterEnd,
                 Value::Table({
                     let table = ext_state.lua().create_table()?;
                     table.set_metatable(Some({
@@ -304,7 +304,7 @@ mod test {
                 }),
             )?;
             ext_state.add_listener(
-                EventType::IterEnd,
+                EventKind::IterEnd,
                 Callable {
                     called: iter_end_userdata_called.clone(),
                 }
@@ -320,14 +320,14 @@ mod test {
             let done_table_called_clone = done_table_called.clone();
 
             ext_state.add_listener(
-                EventType::IterEnd,
+                EventKind::IterEnd,
                 Value::Function(ext_state.lua().create_function(move |_, ()| {
                     *done_func_called_clone.try_borrow_mut().unwrap() = true;
                     Ok(Value::Nil)
                 })?),
             )?;
             ext_state.add_listener(
-                EventType::IterEnd,
+                EventKind::IterEnd,
                 Value::Table({
                     let table = ext_state.lua().create_table()?;
                     table.set_metatable(Some({
@@ -347,7 +347,7 @@ mod test {
                 }),
             )?;
             ext_state.add_listener(
-                EventType::IterEnd,
+                EventKind::IterEnd,
                 Callable {
                     called: done_userdata_called.clone(),
                 }
@@ -384,11 +384,11 @@ mod test {
 
         let ctx = Context::test_new();
         let ext_state = ctx.extension_state()?;
-        for event_type in EventType::types() {
+        for event_kind in EventKind::all() {
             assert_eq!(
                 format!("integer is not callable"),
                 ext_state
-                    .add_listener(*event_type, Value::Integer(100))
+                    .add_listener(*event_kind, Value::Integer(100))
                     .unwrap_err()
                     .to_string()
             );
@@ -396,7 +396,7 @@ mod test {
             assert_eq!(
                 format!("table is not callable"),
                 ext_state
-                    .add_listener(*event_type, Value::Table(ext_state.lua().create_table()?))
+                    .add_listener(*event_kind, Value::Table(ext_state.lua().create_table()?))
                     .unwrap_err()
                     .to_string()
             );
@@ -404,7 +404,7 @@ mod test {
             assert_eq!(
                 format!("userdata is not callable"),
                 ext_state
-                    .add_listener(*event_type, NonCallable {}.to_lua(ext_state.lua())?)
+                    .add_listener(*event_kind, NonCallable {}.to_lua(ext_state.lua())?)
                     .unwrap_err()
                     .to_string()
             );
@@ -415,7 +415,7 @@ mod test {
 
     #[test]
     fn invalidated_event_listeners() -> Result<()> {
-        for event_type in EventType::types() {
+        for event_kind in EventKind::all() {
             let ctx = Context::test_new();
             let ext_state = ctx.extension_state()?;
             let handler_called = Rc::new(RefCell::new(false));
@@ -440,7 +440,7 @@ mod test {
                     table
                 };
                 assert!(ext_state
-                    .add_listener(*event_type, Value::Table(table.clone()))
+                    .add_listener(*event_kind, Value::Table(table.clone()))
                     .is_ok());
 
                 table.set_metatable(None);

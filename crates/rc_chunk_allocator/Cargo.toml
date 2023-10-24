@@ -1,6 +1,6 @@
 [package]
 name = "rc_chunk_allocator"
-authors = [ "kcza" ]
+authors = ["kcza"]
 description = "An allocator for reference counted objects grouped into small arenas"
 license = "GPL-3.0-or-later"
 version = "0.1.0"

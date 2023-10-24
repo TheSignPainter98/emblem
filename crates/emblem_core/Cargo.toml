@@ -1,6 +1,6 @@
 [package]
 name = "emblem_core"
-authors = [ "kcza" ]
+authors = ["kcza"]
 description = "A minimalist, format-agnostic typesetter"
 documentation = "https://kcza.net/emblem"
 license = "GPL-3.0-or-later"
@@ -19,14 +19,15 @@ derive-new = "0.5.9"
 derive_more = "0.99.17"
 git2 = { version = "0.16.1", optional = true }
 indoc = "2.0.1"
+kinded = "0.3.0"
 lalrpop = "0.19.8"
 lalrpop-util = "0.19.8"
 lazy_static = "1.4.0"
-mlua = { version = "0.8.8", features = [ "luajit52", "vendored" ] }
+mlua = { version = "0.8.8", features = ["luajit52", "vendored"] }
 num = "0.4.0"
 once_cell = "1.18.0"
 parking_lot = "0.12.1"
-phf = { version = "0.11.1", features = [ "macros" ] }
+phf = { version = "0.11.1", features = ["macros"] }
 regex = "1"
 sealed = "0.5.0"
 thiserror = "1.0.48"
