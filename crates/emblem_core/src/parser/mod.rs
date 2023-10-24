@@ -81,8 +81,9 @@ pub mod test {
             Self { name, input: None }
         }
 
-        pub fn input(&mut self, input: impl Into<Cow<'static, str>>) {
+        pub fn input(mut self, input: impl Into<Cow<'static, str>>) -> Self {
             self.input = Some(input.into());
+            self
         }
 
         fn produces(self, structure_repr: impl AsRef<str>) {
@@ -129,7 +130,7 @@ pub mod test {
 
         fn test_input_errors(&self, name: &str, input: &str, matches: &Regex) {
             let ctx = Context::new();
-            let parse_result = self.parse(&ctx, &self.name, input);
+            let parse_result = self.parse(&ctx, name, input);
             assert!(parse_result.is_err(), "{}: unexpected success", name);
             let msg = parse_result.unwrap_err().to_string();
             assert!(
@@ -152,8 +153,8 @@ pub mod test {
             );
         }
 
-        fn parse(&self, ctx: &Context, input: &str, structure_repr: &str) -> Result<ParsedFile> {
-            let name = ctx.alloc_file_name(&self.name);
+        fn parse(&self, ctx: &Context, name: &str, input: &str) -> Result<ParsedFile> {
+            let name = ctx.alloc_file_name(name);
             let input = ctx.alloc_file_content(input);
             super::parse(name, input)
         }
