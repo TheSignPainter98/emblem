@@ -194,7 +194,7 @@ mod test {
                 .to_str()
                 .expect("tmpdir contained non-ascii characters"),
         );
-        test_files(&tmpdir, &MAIN_CONTENTS[1..], &expected_manifest_contents)
+        test_files(&tmpdir, &MAIN_CONTENTS[1..], expected_manifest_contents)
     }
 
     #[test]

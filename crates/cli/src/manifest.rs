@@ -160,7 +160,7 @@ mod test {
                 emblem = "1.0"
             "#,
         );
-        let manifest = DocManifest::try_from(&raw[..]).unwrap();
+        let manifest = DocManifest::try_from(raw).unwrap();
 
         assert_eq!("foo", manifest.metadata.name);
         assert_eq!(Version::V1_0, manifest.metadata.emblem_version);
@@ -200,7 +200,7 @@ mod test {
                 hash = "0123456789abcdef"
             "#,
         );
-        let manifest = DocManifest::try_from(&raw[..]).unwrap();
+        let manifest = DocManifest::try_from(raw).unwrap();
 
         assert_eq!("foo", manifest.metadata.name);
         assert_eq!(
@@ -248,7 +248,7 @@ mod test {
                 name = "foo"
             "#,
         );
-        let missing_err = DocManifest::try_from(&missing[..]).unwrap_err();
+        let missing_err = DocManifest::try_from(missing).unwrap_err();
         let re = Regex::new("missing field `emblem`").unwrap();
         let msg = &missing_err.to_string();
         assert!(
@@ -263,7 +263,7 @@ mod test {
                 emblem = "UNKNOWN"
             "#,
         );
-        let unknown_err = DocManifest::try_from(&unknown[..]).unwrap_err();
+        let unknown_err = DocManifest::try_from(unknown).unwrap_err();
         let re = Regex::new("unknown variant `UNKNOWN`, expected").unwrap();
         let msg = &unknown_err.to_string();
         assert!(
@@ -284,7 +284,7 @@ mod test {
                 args = { asdf = "fdas" }
             "#,
         );
-        let err = DocManifest::try_from(&raw[..]).unwrap_err();
+        let err = DocManifest::try_from(raw).unwrap_err();
         let re = Regex::new("expected `tag` or `hash` field").unwrap();
         let msg = &err.to_string();
         assert!(
@@ -304,7 +304,7 @@ mod test {
                 [INTERLOPER]
             "#
         );
-        let err = DocManifest::try_from(&raw[..]).unwrap_err();
+        let err = DocManifest::try_from(raw).unwrap_err();
         let re = Regex::new("unknown field `INTERLOPER`").unwrap();
         let msg = &err.to_string();
         assert!(
@@ -323,7 +323,7 @@ mod test {
                 emblem = "1.0"
             "#,
         );
-        let err = DocManifest::try_from(&extra_metadata[..]).unwrap_err();
+        let err = DocManifest::try_from(extra_metadata).unwrap_err();
         let re = Regex::new("unknown field `INTERLOPER`").unwrap();
         let msg = &err.to_string();
         assert!(
@@ -342,7 +342,7 @@ mod test {
                 INTERLOPER = true
             "#,
         );
-        let err = DocManifest::try_from(&extra_dependency_field[..]).unwrap_err();
+        let err = DocManifest::try_from(extra_dependency_field).unwrap_err();
         let re = Regex::new("unknown field `INTERLOPER`").unwrap();
         let msg = &err.to_string();
         assert!(
