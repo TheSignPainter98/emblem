@@ -83,8 +83,8 @@ enum ErrorImpl {
         cause: Error,
     },
 
-    #[error("yaml conversion error: {0}")]
-    Yaml(#[from] serde_yaml::Error),
+    #[error("toml deserialisation error: {0}")]
+    TomlDeserialisation(#[from] toml_edit::de::Error),
 }
 
 impl From<Error> for Log {

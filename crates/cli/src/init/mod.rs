@@ -67,19 +67,16 @@ impl<T: AsRef<Path>> Initialiser<T> {
             })
             .unwrap_or("emblem-document");
 
-        let manifest = format!(
+        Ok(indoc::formatdoc!(
             r#"
-                name: {name}
-                authors: []
-                keywords: []
-                emblem: v1.0
+                [document]
+                name = "{}"
+                emblem = "1.0"
 
                 # Use `em add <package>` to make <package> available to this document
-                requires: {{}}
-            "#
-        )
-        .replace("                ", "");
-        Ok(manifest)
+            "#,
+            name.replace('"', r#"\""#),
+        ))
     }
 
     /// Try to create a new file with given contents. Optionally skip if file is already present.
@@ -182,24 +179,20 @@ mod test {
         let result = do_init(&mut ctx, &tmpdir);
         assert!(result.is_ok(), "unexpected error: {}", result.unwrap_err());
 
-        let expected_manifest_contents = textwrap::dedent(
-            &format!(
-                r#"
-                    name: {}
-                    authors: []
-                    keywords: []
-                    emblem: v1.0
+        let expected_manifest_contents = &indoc::formatdoc!(
+            r#"
+                [document]
+                name = "{}"
+                emblem = "1.0"
 
-                    # Use `em add <package>` to make <package> available to this document
-                    requires: {{}}
-                "#,
-                tmpdir
-                    .path()
-                    .file_name()
-                    .expect("tmpdir has no file name")
-                    .to_str()
-                    .expect("tmpdir contained non-ascii characters"),
-            )[1..],
+                # Use `em add <package>` to make <package> available to this document
+            "#,
+            tmpdir
+                .path()
+                .file_name()
+                .expect("tmpdir has no file name")
+                .to_str()
+                .expect("tmpdir contained non-ascii characters"),
         );
         test_files(&tmpdir, &MAIN_CONTENTS[1..], &expected_manifest_contents)
     }
@@ -213,7 +206,13 @@ mod test {
         fs::write(main_file_path, main_file_content)?;
 
         let manifest_file_path = tmpdir.path().join("emblem.yml");
-        let manifest_file_content = "name: asdf\nemblem: v1.0";
+        let manifest_file_content = indoc::indoc!(
+            r#"
+                [document]
+                name = "asdf"
+                emblem = "1.0"
+            "#
+        );
         fs::write(manifest_file_path, manifest_file_content)?;
 
         {

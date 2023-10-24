@@ -1,6 +1,6 @@
 [package]
 name = "cli"
-authors = [ "kcza" ]
+authors = ["kcza"]
 description = "A minimalist, format-agnostic typesetter"
 documentation = "https://kcza.net/emblem"
 license = "GPL-3.0-or-later"
@@ -17,11 +17,12 @@ arg_parser = { path = "../arg_parser" }
 derive-new = "0.5.9"
 emblem_core = { path = "../emblem_core" }
 git2 = "0.16.1"
+indoc = "2.0.4"
 itertools = "0.10.5"
 sealed = "0.5.0"
-serde = { version = "1.0.154", features = [ "derive" ] }
-serde_yaml = "0.9.19"
+serde = { version = "1.0.154", features = ["derive"] }
 thiserror = "1.0.49"
+toml_edit = { version = "0.20.2", features = ["serde"] }
 
 [build-dependencies]
 arg_parser = { path = "../arg_parser" }

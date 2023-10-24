@@ -9,19 +9,17 @@ use std::collections::HashMap;
 #[derive(Debug, Deserialise)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct DocManifest {
-    pub name: String,
-    #[serde(rename = "emblem")]
-    pub emblem_version: Version,
-    pub authors: Option<Vec<String>>,
-    pub keywords: Option<Vec<String>>,
-    pub requires: Option<HashMap<String, Module>>,
+    #[serde(rename = "document")]
+    pub(crate) metadata: DocMetadata,
+    #[serde(rename = "requires")]
+    pub(crate) dependencies: Option<HashMap<String, Module>>,
 }
 
 impl TryFrom<&str> for DocManifest {
     type Error = Error;
 
     fn try_from(src: &str) -> Result<Self> {
-        let parsed: DocManifest = serde_yaml::from_str(src)?;
+        let parsed: DocManifest = toml_edit::de::from_str(src)?;
         parsed.validate()?;
         Ok(parsed)
     }
@@ -29,8 +27,8 @@ impl TryFrom<&str> for DocManifest {
 
 impl DocManifest {
     fn validate(&self) -> Result<()> {
-        if let Some(requires) = &self.requires {
-            for (name, ext) in requires {
+        if let Some(dependencies) = &self.dependencies {
+            for (name, ext) in dependencies {
                 ext.validate(name)?;
             }
         }
@@ -38,9 +36,19 @@ impl DocManifest {
     }
 }
 
+#[derive(Debug, Deserialise)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct DocMetadata {
+    pub(crate) name: String,
+    #[serde(rename = "emblem")]
+    pub(crate) emblem_version: Version,
+    pub(crate) authors: Option<Vec<String>>,
+    pub(crate) keywords: Option<Vec<String>>,
+}
+
 #[derive(Clone, Copy, Debug, Deserialise, Eq, PartialEq)]
 pub(crate) enum Version {
-    #[serde(rename = "v1.0")]
+    #[serde(rename = "1.0")]
     V1_0,
 }
 
@@ -48,7 +56,7 @@ impl Version {
     #[allow(unused)]
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::V1_0 => "v1.0",
+            Self::V1_0 => "1.0",
         }
     }
 }
@@ -145,66 +153,70 @@ mod test {
 
     #[test]
     fn ok_minimal() {
-        let raw = textwrap::dedent(
+        let raw = indoc::indoc!(
             r#"
-                name: foo
-                emblem: v1.0
+                [document]
+                name = "foo"
+                emblem = "1.0"
             "#,
         );
         let manifest = DocManifest::try_from(&raw[..]).unwrap();
 
-        assert_eq!("foo", manifest.name);
-        assert_eq!(Version::V1_0, manifest.emblem_version);
-        assert_eq!(None, manifest.authors);
-        assert_eq!(None, manifest.requires);
+        assert_eq!("foo", manifest.metadata.name);
+        assert_eq!(Version::V1_0, manifest.metadata.emblem_version);
+        assert_eq!(None, manifest.metadata.authors);
+        assert_eq!(None, manifest.dependencies);
     }
 
     #[test]
     fn ok_maximal() {
-        let raw = textwrap::dedent(
+        let raw = indoc::indoc!(
             r#"
-                name: foo
-                emblem: v1.0
-                authors:
-                - Gordon
-                - Eli
-                - Isaac
-                - Walter
-                keywords:
-                - DARGH!
-                - NO!
-                - STAHP!
-                - HUEAG!
-                requires:
-                  foo-tagged:
-                    tag: edge
-                    rename-as: qux
-                    args:
-                      key1: value1
-                      key2: value2
-                  bar-branched:
-                    branch: dev
-                  baz-hashed:
-                    hash: 0123456789abcdef
+                [document]
+                name = "foo"
+                emblem = "1.0"
+                authors = [
+                    "Gordon",
+                    "Eli",
+                    "Isaac",
+                    "Walter",
+                ]
+                keywords = [
+                    "DARGH!",
+                    "NO!",
+                    "STAHP!",
+                    "HUEAG!",
+                ]
+
+                [requires.foo-tagged]
+                tag = "edge"
+                rename-as = "qux"
+                args = { key1 = "value1", key2 = "value2" }
+
+                [requires.bar-branched]
+                branch = "dev"
+
+                [requires.baz-hashed]
+                hash = "0123456789abcdef"
             "#,
         );
         let manifest = DocManifest::try_from(&raw[..]).unwrap();
 
-        assert_eq!("foo", manifest.name);
+        assert_eq!("foo", manifest.metadata.name);
         assert_eq!(
             &["Gordon", "Eli", "Isaac", "Walter"],
-            manifest.authors.unwrap().as_slice()
+            manifest.metadata.authors.unwrap().as_slice()
         );
         assert_eq!(
             &["DARGH!", "NO!", "STAHP!", "HUEAG!"],
-            manifest.keywords.unwrap().as_slice()
+            manifest.metadata.keywords.unwrap().as_slice()
         );
-        assert_eq!(Version::V1_0, manifest.emblem_version);
+        assert_eq!(Version::V1_0, manifest.metadata.emblem_version);
 
         {
-            let requires = manifest.requires.unwrap();
+            let dependencies = manifest.dependencies.unwrap();
             {
-                let foo_tagged = requires.get("foo-tagged").unwrap();
+                let foo_tagged = dependencies.get("foo-tagged").unwrap();
                 assert_eq!("qux", foo_tagged.rename_as().unwrap());
                 assert_eq!(ModuleVersion::Tag("edge"), foo_tagged.version());
                 assert_eq!(&"value1", foo_tagged.args().unwrap().get("key1").unwrap());
@@ -212,14 +224,14 @@ mod test {
             }
 
             {
-                let bar_branched = requires.get("bar-branched").unwrap();
+                let bar_branched = dependencies.get("bar-branched").unwrap();
                 assert_eq!(None, bar_branched.rename_as());
                 assert_eq!(ModuleVersion::Branch("dev"), bar_branched.version());
                 assert_eq!(None, bar_branched.args());
             }
 
             {
-                let baz_hashed = requires.get("baz-hashed").unwrap();
+                let baz_hashed = dependencies.get("baz-hashed").unwrap();
                 assert_eq!(
                     ModuleVersion::Hash("0123456789abcdef"),
                     baz_hashed.version()
@@ -230,28 +242,29 @@ mod test {
 
     #[test]
     fn incorrect_emblem_version() {
-        let missing = textwrap::dedent(
+        let missing = indoc::indoc!(
             r#"
-                name: foo
-                emblem: null
+                [document]
+                name = "foo"
             "#,
         );
         let missing_err = DocManifest::try_from(&missing[..]).unwrap_err();
-        let re = Regex::new("emblem: unknown variant `null`, expected").unwrap();
+        let re = Regex::new("missing field `emblem`").unwrap();
         let msg = &missing_err.to_string();
         assert!(
             re.is_match(msg),
             "Unknown message doesn't match regex '{re:?}': got {msg}"
         );
 
-        let unknown = textwrap::dedent(
+        let unknown = indoc::indoc!(
             r#"
-                name: foo
-                emblem: UNKNOWN
+                [document]
+                name = "foo"
+                emblem = "UNKNOWN"
             "#,
         );
         let unknown_err = DocManifest::try_from(&unknown[..]).unwrap_err();
-        let re = Regex::new("emblem: unknown variant `UNKNOWN`, expected").unwrap();
+        let re = Regex::new("unknown variant `UNKNOWN`, expected").unwrap();
         let msg = &unknown_err.to_string();
         assert!(
             re.is_match(msg),
@@ -261,14 +274,14 @@ mod test {
 
     #[test]
     fn missing_dependency_version() {
-        let raw = textwrap::dedent(
+        let raw = indoc::indoc!(
             r#"
-                name: foo
-                emblem: v1.0
-                requires:
-                  bar:
-                    args:
-                      asdf: fdas
+                [document]
+                name = "foo"
+                emblem = "1.0"
+
+                [requires.bar]
+                args = { asdf = "fdas" }
             "#,
         );
         let err = DocManifest::try_from(&raw[..]).unwrap_err();
@@ -281,14 +294,55 @@ mod test {
     }
 
     #[test]
-    fn extra_fields() {
-        let raw = textwrap::dedent(
+    fn extra_top_level_table() {
+        let raw = indoc::indoc!(
             r#"
-                INTERLOPER: true
-                name: foo
-            "#,
+                [document]
+                name = "foo"
+                emblem = "1.0"
+
+                [INTERLOPER]
+            "#
         );
         let err = DocManifest::try_from(&raw[..]).unwrap_err();
+        let re = Regex::new("unknown field `INTERLOPER`").unwrap();
+        let msg = &err.to_string();
+        assert!(
+            re.is_match(msg),
+            "Unknown messages doesn't match regex: '{re:?}': got {msg}"
+        );
+    }
+
+    #[test]
+    fn extra_fields() {
+        let extra_metadata = indoc::indoc!(
+            r#"
+                [document]
+                INTERLOPER = true
+                name = "foo"
+                emblem = "1.0"
+            "#,
+        );
+        let err = DocManifest::try_from(&extra_metadata[..]).unwrap_err();
+        let re = Regex::new("unknown field `INTERLOPER`").unwrap();
+        let msg = &err.to_string();
+        assert!(
+            re.is_match(msg),
+            "Unknown message doesn't match regex '{re:?}': got {msg}"
+        );
+
+        let extra_dependency_field = indoc::indoc!(
+            r#"
+                [document]
+                name = "foo"
+                emblem = "1.0"
+
+                [requires.foo]
+                tag = "1.0"
+                INTERLOPER = true
+            "#,
+        );
+        let err = DocManifest::try_from(&extra_dependency_field[..]).unwrap_err();
         let re = Regex::new("unknown field `INTERLOPER`").unwrap();
         let msg = &err.to_string();
         assert!(
@@ -299,22 +353,23 @@ mod test {
 
     #[test]
     fn multiple_version_specifiers() {
-        let specifiers = ["tag: asdf", "branch: asdf", "hash: asdf"];
+        let specifiers = [r#"tag = "asdf""#, r#"branch = "asdf""#, r#"hash = "asdf""#];
         for (specifier_1, specifier_2) in specifiers
             .iter()
             .cartesian_product(specifiers.iter())
             .filter(|(s, t)| s != t)
         {
-            let raw = textwrap::dedent(&format!(
+            let raw = indoc::formatdoc!(
                 r#"
-                    name: foo
-                    emblem: v1.0
-                    requires:
-                      bar:
-                        {specifier_1}
-                        {specifier_2}
+                    [document]
+                    name = "foo"
+                    emblem = "1.0"
+
+                    [requires.bar]
+                    {specifier_1}
+                    {specifier_2}
                 "#
-            ));
+            );
             let err = DocManifest::try_from(&raw[..]).unwrap_err();
             let re = Regex::new("multiple version specifiers found for bar").unwrap();
             let msg = &err.to_string();
@@ -325,30 +380,3 @@ mod test {
         }
     }
 }
-
-// #[derive(Debug, Deserialise)]
-// #[serde(rename_all = "kebab-case", deny_unknown_fields)]
-// struct PackageManifest<'m> {
-//     name: &'m str,
-//     authors: Vec<&'m str>,
-//     keywords: Option<Vec<&'m str>>,
-//     requires: Option<HashMap<ModuleName<'m>, ModuleDependency<'m>>>,
-//     provides_outputs: Vec<&'m str>,
-//     args: PackageArgSpec<'m>,
-// }
-
-// #[derive(Debug, Deserialise)]
-// #[serde(rename_all = "kebab-case", deny_unknown_fields)]
-// struct ModuleDependency<'m> {
-//     branch: Option<&'m str>,
-//     tag: Option<&'m str>,
-//     commit: Option<&'m str>,
-//     rename_as: Option<&'m str>,
-// }
-
-// #[derive(Debug, Deserialise)]
-// #[serde(deny_unknown_fields, bound(deserialize = "'de: 'm"))]
-// struct ModuleArgSpec<'m> {
-//     mandatory: Vec<&'m str>,
-//     optional: Vec<&'m str>,
-// }

@@ -64,14 +64,14 @@ fn load_manifest(ctx: &mut Context, src: &str, args: &Args) -> Result<()> {
     let manifest = DocManifest::try_from(src)?;
 
     let doc_info = ctx.doc_params_mut();
-    doc_info.set_name(manifest.name);
-    doc_info.set_emblem_version(manifest.emblem_version.into());
+    doc_info.set_name(manifest.metadata.name);
+    doc_info.set_emblem_version(manifest.metadata.emblem_version.into());
 
-    if let Some(authors) = manifest.authors {
+    if let Some(authors) = manifest.metadata.authors {
         doc_info.set_authors(authors);
     }
 
-    if let Some(keywords) = manifest.keywords {
+    if let Some(keywords) = manifest.metadata.keywords {
         doc_info.set_keywords(keywords);
     }
 
@@ -111,7 +111,7 @@ fn load_manifest(ctx: &mut Context, src: &str, args: &Args) -> Result<()> {
     }
 
     let modules = manifest
-        .requires
+        .dependencies
         .unwrap_or_default()
         .into_iter()
         .map(|(name, module)| {
