@@ -31,7 +31,7 @@ impl Lint for EmphDelimiters {
             | Content::Dash { .. }
             | Content::Glue { .. }
             | Content::SpiltGlue { .. }
-            | Content::Verbatim { .. }
+            | Content::InlineVerbatim { .. }
             | Content::Comment { .. }
             | Content::MultiLineComment { .. } => vec![],
         }

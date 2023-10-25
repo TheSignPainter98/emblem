@@ -3,6 +3,7 @@ use crate::parser::{
 	Location,
 	lexer::Tok,
 	point::Point,
+	verbatim_block_content::VerbatimBlockContent,
 };
 use crate::ast::{
     parsed::{
@@ -52,6 +53,23 @@ ParPart: ParPart<Content> = {
 			invocation_loc: name.3,
 		})
 	},
+
+	<l:@L> <delimiter:verbatim_open> "\n" <content:Indent<VerbatimBlock>> verbatim_close <r:@R> => ParPart::VerbatimBlock {
+		delimiter,
+		content,
+		loc: Location::new(&l, &r),
+	}
+}
+
+VerbatimBlock: Vec<FileContentSlice> = VerbatimBlockContent => <>.flatten();
+
+VerbatimBlockContent: VerbatimBlockContent = {
+
+}
+
+VerbatimBlockPart: VerbatimBlockContent = {
+	<line:verbatim_content> "\n" => VerbatimBlockContent::Line(line),
+	<Indented<VerbatimBlock>> "\n"
 }
 
 MaybeLineContent: Vec<Content> = {
@@ -109,19 +127,19 @@ CommandName: (Option<FileContentSlice>, FileContentSlice, usize, Location) = {
 }
 
 LineElement: Content = {
-	<l:@L> <comment:comment>       <r:@R> => Content::Comment{ comment, loc: Location::new(&l, &r) },
-	<l:@L> <content:NestedComment> <r:@R> => Content::MultiLineComment{ content, loc: Location::new(&l, &r) },
-	<l:@L> <whitespace:whitespace> <r:@R> => Content::Whitespace{ whitespace, loc: Location::new(&l, &r) },
-	<l:@L> <word:word>             <r:@R> => Content::Word{ word: word.into(), loc: Location::new(&l, &r) },
-	<l:@L> <dash:dash>             <r:@R> => Content::Dash{ dash: dash.into(), loc: Location::new(&l, &r) },
-	<l:@L> <glue:glue>             <r:@R> => Content::Glue{ glue: glue.into(), loc: Location::new(&l, &r) },
-	<l:@L> <raw:spilt_glue>        <r:@R> => Content::SpiltGlue{ raw, loc: Location::new(&l, &r) },
-	<l:@L> <verbatim:verbatim>     <r:@R> => Content::Verbatim{ verbatim, loc: Location::new(&l, &r) },
+	<l:@L> <comment:comment>                <r:@R> => Content::Comment{ comment, loc: Location::new(&l, &r) },
+	<l:@L> <content:NestedComment>          <r:@R> => Content::MultiLineComment{ content, loc: Location::new(&l, &r) },
+	<l:@L> <whitespace:whitespace>          <r:@R> => Content::Whitespace{ whitespace, loc: Location::new(&l, &r) },
+	<l:@L> <word:word>                      <r:@R> => Content::Word{ word: word.into(), loc: Location::new(&l, &r) },
+	<l:@L> <dash:dash>                      <r:@R> => Content::Dash{ dash: dash.into(), loc: Location::new(&l, &r) },
+	<l:@L> <glue:glue>                      <r:@R> => Content::Glue{ glue: glue.into(), loc: Location::new(&l, &r) },
+	<l:@L> <raw:spilt_glue>                 <r:@R> => Content::SpiltGlue{ raw, loc: Location::new(&l, &r) },
 
-	<l:@L> <mark:mark>             <r:@R> => Content::Sugar(Sugar::Mark{ mark, loc: Location::new(&l, &r) }),
-	<l:@L> <reference:reference>   <r:@R> => Content::Sugar(Sugar::Reference{ reference, loc: Location::new(&l, &r) }),
+	<l:@L> <mark:mark>           <r:@R> => Content::Sugar(Sugar::Mark{ mark, loc: Location::new(&l, &r) }),
+	<l:@L> <reference:reference> <r:@R> => Content::Sugar(Sugar::Reference{ reference, loc: Location::new(&l, &r) }),
 
 	EmphSugar,
+	VerbatimInline,
 
 	<l:@L> <name:CommandName> <attrs:Attrs?> <inline_args:("{" <MaybeLineContent> "}")*> <r:@R> => Content::Command {
 		qualifier: name.0,
@@ -135,6 +153,14 @@ LineElement: Content = {
 		invocation_loc: name.3,
 	},
 }
+
+VerbatimInline: Content = {
+	<l:@L> <delimiter:verbatim_open> <content:verbatim_content> verbatim_close <r:@R> => Content::InlineVerbatim {
+		content,
+		delimiter,
+		loc: Location::new(&l, &r),
+	}
+};
 
 EmphSugar: Content = {
 	<l:@L> <delimiter:italic_open> <arg:LineElement+> italic_close <r:@R> => Content::Sugar(
@@ -212,13 +238,13 @@ MaybeSepList<T, Sep>: Vec<T> = {
 	},
 }
 
-Indented<T>: T = {
-	indent <MaybeIndented<T>> dedent,
-}
+Indented<T>: T = Indent<MaybeIndented<T>>;
+
+Indent<T>: T = indent <T> dedent;
 
 MaybeIndented<T>: T = {
 	T,
-	indent <MaybeIndented<T>> dedent,
+	Indented<T>,
 }
 
 extern {
@@ -248,6 +274,9 @@ extern {
 		monospace_close      => Tok::MonospaceClose,
 		smallcaps_close      => Tok::SmallcapsClose,
 		alternate_face_close => Tok::AlternateFaceClose,
+		verbatim_open        => Tok::VerbatimOpen(<FileContentSlice>),
+		verbatim_close       => Tok::VerbatimClose,
+		verbatim_content     => Tok::VerbatimContent(<FileContentSlice>),
 		heading              => Tok::Heading {
 									level: <usize>,
 									pluses: <usize>
@@ -259,7 +288,6 @@ extern {
 		dash                 => Tok::Dash(<FileContentSlice>),
 		glue                 => Tok::Glue(<FileContentSlice>),
 		spilt_glue           => Tok::SpiltGlue(<FileContentSlice>),
-		verbatim             => Tok::Verbatim(<FileContentSlice>),
 		whitespace           => Tok::Whitespace(<FileContentSlice>),
 		"["                  => Tok::LBracket,
 		"]"                  => Tok::RBracket,

@@ -110,7 +110,7 @@ impl Lint for NumAttrs {
             | Content::Dash { .. }
             | Content::Glue { .. }
             | Content::SpiltGlue { .. }
-            | Content::Verbatim { .. }
+            | Content::InlineVerbatim { .. }
             | Content::Comment { .. }
             | Content::MultiLineComment { .. } => vec![],
         }

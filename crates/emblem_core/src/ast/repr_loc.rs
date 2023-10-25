@@ -54,7 +54,7 @@ impl ReprLoc for Content {
             | Self::Dash { loc, .. }
             | Self::Glue { loc, .. }
             | Self::SpiltGlue { loc, .. }
-            | Self::Verbatim { loc, .. }
+            | Self::InlineVerbatim { loc, .. }
             | Self::Comment { loc, .. }
             | Self::MultiLineComment { loc, .. } => loc.clone(),
             Self::Sugar(sugar) => sugar.repr_loc(),

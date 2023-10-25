@@ -47,8 +47,9 @@ pub enum Content {
         raw: FileContentSlice,
         loc: Location,
     },
-    Verbatim {
-        verbatim: FileContentSlice,
+    InlineVerbatim {
+        content: FileContentSlice,
+        delimiter: FileContentSlice,
         loc: Location,
     },
     Comment {
@@ -106,7 +107,17 @@ impl AstDebug for Content {
             Self::Dash { dash, .. } => dash.test_fmt(buf),
             Self::Glue { glue, .. } => glue.test_fmt(buf),
             Self::SpiltGlue { raw, .. } => raw.surround(buf, "SpiltGlue(", ")"),
-            Self::Verbatim { verbatim, .. } => verbatim.surround(buf, "!", "!"),
+            Self::InlineVerbatim {
+                content, delimiter, ..
+            } => {
+                let descriminator_len = delimiter.len() - 2;
+                if descriminator_len == 0 {
+                    content.surround(buf, "``", "``");
+                } else {
+                    let delim_fmt = &format!("`{descriminator_len}`");
+                    content.surround(buf, delim_fmt, delim_fmt);
+                }
+            }
             Self::Comment { comment, .. } => {
                 buf.push("//".into());
                 comment.test_fmt(buf);
