@@ -64,21 +64,26 @@ pub fn parse(file_name: FileName, content: FileContent) -> Result<ParsedFile> {
 
 #[cfg(test)]
 pub mod test {
-    use std::borrow::Cow;
+    use std::{borrow::Cow, ops::Deref};
 
     use super::*;
-    use crate::ast::AstDebug;
+    use crate::{ast::AstDebug, Doc};
     use regex::Regex;
 
     pub struct ParserTest {
         name: Cow<'static, str>,
         input: Option<Cow<'static, str>>,
+        test_performed: bool,
     }
 
     impl ParserTest {
         pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
             let name = name.into();
-            Self { name, input: None }
+            Self {
+                name,
+                input: None,
+                test_performed: false,
+            }
         }
 
         pub fn input(mut self, input: impl Into<Cow<'static, str>>) -> Self {
@@ -87,32 +92,53 @@ pub mod test {
         }
 
         fn produces_ast(mut self, structure_repr: impl AsRef<str>) {
+            self.test_performed = true;
+
             self.assert_valid();
 
             let input = self.input.as_ref().unwrap();
-            self.test_input_produces(&self.name, &input, structure_repr.as_ref());
-            self.test_input_produces(
+            let expected_repr = StructureRepr::Ast(structure_repr.as_ref());
+            self.assert_input_produces(&self.name, &input, &expected_repr);
+            self.assert_input_produces(
                 &format!("{} with newline", self.name),
                 &format!("{}\n", input),
-                structure_repr.as_ref(),
+                &expected_repr,
             );
+        }
+
+        pub fn produces_doc(mut self, structure_repr: impl AsRef<str>) {
+            self.test_performed = true;
+
+            self.assert_valid();
+
+            let input = self.input.as_ref().unwrap();
+            let expected = StructureRepr::Doc(structure_repr.as_ref());
+            self.assert_input_produces(&self.name, input, &expected)
         }
 
         fn assert_valid(&self) {
             assert!(self.input.is_some(), "{}: test has no input!", self.name);
         }
 
-        fn test_input_produces(&self, name: &str, input: &str, structure_repr: &str) {
+        fn assert_input_produces(&self, name: &str, input: &str, expected: &StructureRepr<'_>) {
             let ctx = Context::new();
             let parse_result = self.parse(&ctx, name, input);
-            assert!(
-                parse_result.is_ok(),
-                "{}: expected Ok parse result when parsing {input:?}, got: {:?}",
-                self.name,
-                parse_result.unwrap_err()
-            );
-            let repr = parse_result.unwrap().repr();
-            assert_eq!(repr, structure_repr, "{}: unexpected structure", self.name);
+            let Ok(ast) = parse_result else {
+                panic!(
+                    "{}: expected Ok parse result when parsing {input:?}, got: {:?}",
+                    self.name,
+                    parse_result.unwrap_err()
+                );
+            };
+            let (parsed_repr, expected_repr) = match expected {
+                StructureRepr::Ast(repr) => (ast.repr(), *repr),
+                StructureRepr::Doc(repr) => (Doc::from(ast).repr(), *repr),
+            };
+            assert_eq!(
+                parsed_repr, expected_repr,
+                "{}: unexpected structure",
+                self.name
+            )
         }
 
         fn expect(self, matches: impl AsRef<str>) {
@@ -120,15 +146,15 @@ pub mod test {
 
             let input = self.input.as_ref().unwrap();
             let matches = Regex::new(&("^".to_string() + matches.as_ref())).unwrap();
-            self.test_input_errors(&self.name, &input, &matches);
-            self.test_input_errors(
+            self.assert_input_errors(&self.name, &input, &matches);
+            self.assert_input_errors(
                 &format!("{} with newline", self.name),
                 &format!("{}\n", input),
                 &matches,
             );
         }
 
-        fn test_input_errors(&self, name: &str, input: &str, matches: &Regex) {
+        fn assert_input_errors(&self, name: &str, input: &str, matches: &Regex) {
             let ctx = Context::new();
             let parse_result = self.parse(&ctx, name, input);
             assert!(parse_result.is_err(), "{}: unexpected success", name);
@@ -160,44 +186,16 @@ pub mod test {
         }
     }
 
-    #[deprecated]
-    pub fn assert_structure(name: &str, input: &str, expected: &str) {
-        let ctx = Context::new();
-        let name = ctx.alloc_file_name(name);
-        assert_eq!(
-            {
-                let input = ctx.alloc_file_content(input);
-                let parse_result = parse(name.clone(), input.clone());
-                assert!(
-                    parse_result.is_ok(),
-                    "{}: expected Ok parse result when parsing {:?}, got: {:?}",
-                    name,
-                    input,
-                    parse_result.unwrap_err(),
-                );
-                parse_result.unwrap().repr()
-            },
-            expected,
-            "{}",
-            name
-        );
+    impl Drop for ParserTest {
+        fn drop(&mut self) {
+            assert_eq!(self.test_performed, "test {} never examined!", self.name);
+        }
+    }
 
-        assert_eq!(
-            expected,
-            {
-                let input = ctx.alloc_file_content(format!("{}\n", input));
-                let parse_result = parse(name.clone(), input.clone());
-                assert!(
-                    parse_result.is_ok(),
-                    "{}: expected Ok parse result when parsing {:?}",
-                    name,
-                    input
-                );
-                parse_result.unwrap().repr()
-            },
-            "{}",
-            name
-        );
+    #[derive(Debug)]
+    enum StructureRepr<'r> {
+        Ast(&'r str),
+        Doc(&'r str),
     }
 
     #[deprecated]
