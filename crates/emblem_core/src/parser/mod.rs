@@ -87,16 +87,15 @@ pub mod test {
         }
 
         pub fn input(mut self, input: impl Into<Cow<'static, str>>) -> Self {
-            let input = {
+            self.input = Some({
                 let mut input = input.into();
-                if input.ends_with("\n") {
+                if input.ends_with('\n') {
                     input = input[..input.len() - 1].to_string().into();
                 }
-                assert!(!input.ends_with("\n")); // Trailing newlines are added
+                assert!(!input.ends_with('\n')); // Trailing newlines are added
                                                  // elsewhere
                 input
-            };
-            self.input = Some(input.into());
+            });
             self
         }
 
@@ -105,7 +104,7 @@ pub mod test {
 
             let input = self.input.as_ref().unwrap();
             let expected_repr = StructureRepr::Ast(structure_repr.as_ref());
-            self.assert_input_produces(&self.name, &input, &expected_repr);
+            self.assert_input_produces(&self.name, input, &expected_repr);
             self.assert_input_produces(
                 &format!("{} with newline", self.name),
                 &format!("{}\n", input),
@@ -151,7 +150,7 @@ pub mod test {
 
             let input = self.input.as_ref().unwrap();
             let matches = Regex::new(&("^".to_string() + matches.as_ref())).unwrap();
-            self.assert_input_errors(&self.name, &input, &matches);
+            self.assert_input_errors(&self.name, input, &matches);
             self.assert_input_errors(
                 &format!("{} with newline", self.name),
                 &format!("{}\n", input),
