@@ -135,8 +135,8 @@ pub mod test {
                 );
             };
             let (parsed_repr, expected_repr) = match expected {
-                StructureRepr::Ast(repr) => (ast.repr(), *repr),
-                StructureRepr::Doc(repr) => (Doc::from(ast).repr(), *repr),
+                StructureRepr::Ast(expected_repr) => (ast.repr(), *expected_repr),
+                StructureRepr::Doc(expected_repr) => (Doc::from(ast).repr(), *expected_repr),
             };
             assert_eq!(
                 parsed_repr, expected_repr,
