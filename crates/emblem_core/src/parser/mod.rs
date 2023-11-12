@@ -73,7 +73,7 @@ pub mod test {
     pub struct ParserTest {
         name: Cow<'static, str>,
         input: Option<Cow<'static, str>>,
-        test_performed: bool,
+        test_attempted: bool,
     }
 
     impl ParserTest {
@@ -82,7 +82,7 @@ pub mod test {
             Self {
                 name,
                 input: None,
-                test_performed: false,
+                test_attempted: false,
             }
         }
 
@@ -92,9 +92,7 @@ pub mod test {
         }
 
         fn produces_ast(mut self, structure_repr: impl AsRef<str>) {
-            self.test_performed = true;
-
-            self.assert_valid();
+            self.setup();
 
             let input = self.input.as_ref().unwrap();
             let expected_repr = StructureRepr::Ast(structure_repr.as_ref());
@@ -107,9 +105,7 @@ pub mod test {
         }
 
         pub fn produces_doc(mut self, structure_repr: impl AsRef<str>) {
-            self.test_performed = true;
-
-            self.assert_valid();
+            self.setup();
 
             let input = self.input.as_ref().unwrap();
             let expected = StructureRepr::Doc(structure_repr.as_ref());
@@ -141,8 +137,8 @@ pub mod test {
             )
         }
 
-        fn expect(self, matches: impl AsRef<str>) {
-            self.assert_valid();
+        fn expect(mut self, matches: impl AsRef<str>) {
+            self.setup();
 
             let input = self.input.as_ref().unwrap();
             let matches = Regex::new(&("^".to_string() + matches.as_ref())).unwrap();
@@ -184,11 +180,19 @@ pub mod test {
             let input = ctx.alloc_file_content(input);
             super::parse(name, input)
         }
+
+        fn setup(&mut self) {
+            println!("testing {}...", self.name);
+
+            self.test_attempted = true;
+
+            self.assert_valid();
+        }
     }
 
     impl Drop for ParserTest {
         fn drop(&mut self) {
-            assert_eq!(self.test_performed, "test {} never examined!", self.name);
+            assert!(self.test_attempted, "test {} never examined!", self.name);
         }
     }
 
