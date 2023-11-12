@@ -370,25 +370,15 @@ impl IntoDoc for Sugar {
 
 #[cfg(test)]
 mod test {
-    use crate::{parser, Context};
-
-    use super::*;
-
-    fn assert_structure(name: &str, input: &str, expected: &str) {
-        let ctx = Context::new();
-        let src = textwrap::dedent(input);
-        let doc: Doc = parser::parse(ctx.alloc_file_name(name), ctx.alloc_file_content(src))
-            .unwrap()
-            .into();
-        assert_eq!(expected, doc.repr(), "{name}");
-    }
+    use crate::parser::test::ParserTest;
 
     #[test]
     fn into_doc() {
-        assert_structure("empty", "", "[]");
-        assert_structure("short", "foo", ".p{Word(foo)}");
-        assert_structure(
-            "long",
+        ParserTest::new("empty").input("").produces_doc("[]");
+        ParserTest::new("short")
+            .input("foo")
+            .produces_doc(".p{Word(foo)}");
+        ParserTest::new("long").input(indoc::indoc!(
             r#"
                 this is how to be a heart breaker
                 _boys, they_ **like** `a` =little= ==danger==
@@ -396,124 +386,126 @@ mod test {
                 we'll get him !falling! for a stranger, a player
                 singing---I lo-lo-love--you
                 at~least~~I ~ think ~~ I ~do~~
-            "#,
-            "[.p{[Word(this)|Word(is)|Word(how)|Word(to)|Word(be)|Word(a)|Word(heart)|Word(breaker)|.it{[Word(boys,)|Word(they)]}|.bf{Word(like)}|.tt{Word(a)}|.sc{Word(little)}|.af{Word(danger)}]}|.p{[Word(we'll)|Word(get)|Word(him)|Word(falling)|Word(for)|Word(a)|Word(stranger,)|Word(a)|Word(player)|Word(singing)|---|Word(I)|Word(lo)|-|Word(lo)|-|Word(love)|--|Word(you)|Word(at)|~|Word(least)|~~|Word(I)|Word(think)|Word(I)|Word(do)]}]",
-        );
+            "#))
+            .produces_doc("[.p{[Word(this)|Word(is)|Word(how)|Word(to)|Word(be)|Word(a)|Word(heart)|Word(breaker)|.it{[Word(boys,)|Word(they)]}|.bf{Word(like)}|.tt{Word(a)}|.sc{Word(little)}|.af{Word(danger)}]}|.p{[Word(we'll)|Word(get)|Word(him)|Word(falling)|Word(for)|Word(a)|Word(stranger,)|Word(a)|Word(player)|Word(singing)|---|Word(I)|Word(lo)|-|Word(lo)|-|Word(love)|--|Word(you)|Word(at)|~|Word(least)|~~|Word(I)|Word(think)|Word(I)|Word(do)]}]");
     }
 
     #[test]
     fn into_doc_headings() {
-        assert_structure(
-            "headings",
-            "
-                # h1\n
-                ## h2\n
-                ### h3\n
-                #### h4\n
-                ##### h5\n
-                ###### h6\n
-                #+ h1\n
-                ##+ h2\n
-                ###+ h3\n
-                ####+ h4\n
-                #####+ h5\n
-                ######+ h6\n
-            ",
-            "[.h1{Word(h1)}|.h2{Word(h2)}|.h3{Word(h3)}|.h4{Word(h4)}|.h5{Word(h5)}|.h6{Word(h6)}|.h1+{Word(h1)}|.h2+{Word(h2)}|.h3+{Word(h3)}|.h4+{Word(h4)}|.h5+{Word(h5)}|.h6+{Word(h6)}]",
-        );
+        ParserTest::new("headings")
+            .input(indoc::indoc!(
+                "
+                    # h1
+
+                    ## h2
+
+                    ### h3
+
+                    #### h4
+
+                    ##### h5
+
+                    ###### h6
+
+                    #+ h1
+
+                    ##+ h2
+
+                    ###+ h3
+
+                    ####+ h4
+
+                    #####+ h5
+
+                    ######+ h6
+                "
+            ))
+            .produces_doc("[.h1{Word(h1)}|.h2{Word(h2)}|.h3{Word(h3)}|.h4{Word(h4)}|.h5{Word(h5)}|.h6{Word(h6)}|.h1+{Word(h1)}|.h2+{Word(h2)}|.h3+{Word(h3)}|.h4+{Word(h4)}|.h5+{Word(h5)}|.h6+{Word(h6)}]");
     }
 
     #[test]
     fn into_doc_commands() {
-        assert_structure(
-            "inline-single",
-            ".get{ready here we come}",
-            ".get{[Word(ready)|Word(here)|Word(we)|Word(come)]}",
-        );
-        assert_structure(
-            "inline-multi",
-            ".its{time}{to have}: some fun",
-            ".its{Word(time)}{[Word(to)|Word(have)]}{[Word(some)|Word(fun)]}",
-        );
-        assert_structure(
-            "remainder-single",
-            ".you: know the world is ours",
-            ".you{[Word(know)|Word(the)|Word(world)|Word(is)|Word(ours)]}",
-        );
-        assert_structure(
-            "trailer-single",
-            "
-                .so:
-                    now you're going down
-            ",
-            ".so{[Word(now)|Word(you're)|Word(going)|Word(down)]}",
-        );
-        assert_structure(
-            "multi-trailer-single",
-            "
-                .so:
-                    now you're going down
-            ",
-            ".so{[Word(now)|Word(you're)|Word(going)|Word(down)]}",
-        );
-        assert_structure(
-            "trailer-multi",
-            "
-                .cos{that is}:
-                    what
-                ::
-                    we say
-            ",
-            ".cos{[Word(that)|Word(is)]}{Word(what)}{[Word(we)|Word(say)]}",
-        );
-        assert_structure(
-            "p-single-pars",
-            "
-                .p:
-                    we are
+        ParserTest::new("inline-single")
+            .input(".get{ready here we come}")
+            .produces_doc(".get{[Word(ready)|Word(here)|Word(we)|Word(come)]}");
+        ParserTest::new("inline-multi")
+            .input(".its{time}{to have}: some fun")
+            .produces_doc(".its{Word(time)}{[Word(to)|Word(have)]}{[Word(some)|Word(fun)]}");
+        ParserTest::new("remainder-single")
+            .input(".you: know the world is ours")
+            .produces_doc(".you{[Word(know)|Word(the)|Word(world)|Word(is)|Word(ours)]}");
+        ParserTest::new("trailer-single")
+            .input(indoc::indoc!(
+                "
+                    .so:
+                        now you're going down
+                "
+            ))
+            .produces_doc(".so{[Word(now)|Word(you're)|Word(going)|Word(down)]}");
+        ParserTest::new("multi-trailer-single")
+            .input(indoc::indoc!(
+                "
+                    .so:
+                        now you're going down
+                "
+            ))
+            .produces_doc(".so{[Word(now)|Word(you're)|Word(going)|Word(down)]}");
+        ParserTest::new("trailer-multi")
+            .input(indoc::indoc!(
+                "
+                    .cos{that is}:
+                        what
+                    ::
+                        we say
+                ",
+            ))
+            .produces_doc(".cos{[Word(that)|Word(is)]}{Word(what)}{[Word(we)|Word(say)]}");
+        ParserTest::new("p-single-pars")
+            .input(indoc::indoc!(
+                "
+                    .p:
+                        we are
 
-                .p:
-                    operation doomsday
-            ",
-            "[.p{[Word(we)|Word(are)]}|.p{[Word(operation)|Word(doomsday)]}]",
-        );
-        assert_structure(
-            "p-multi-in-par",
-            "
-                .p:
-                    we are
-                .p:
-                    operation doomsday
-            ",
-            ".p{[.p{[Word(we)|Word(are)]}|.p{[Word(operation)|Word(doomsday)]}]}",
-        );
-        assert_structure(
-            "empty-preserved",
-            "
-                .we{}{are}{}{operation}{}{doomsday}{}
-            ",
-            ".we{[]}{Word(are)}{[]}{Word(operation)}{[]}{Word(doomsday)}{[]}",
-        );
+                    .p:
+                        operation doomsday
+                "
+            ))
+            .produces_doc("[.p{[Word(we)|Word(are)]}|.p{[Word(operation)|Word(doomsday)]}]");
+        ParserTest::new("p-multi-in-par")
+            .input(indoc::indoc!(
+                "
+                    .p:
+                        we are
+                    .p:
+                        operation doomsday
+                "
+            ))
+            .produces_doc(".p{[.p{[Word(we)|Word(are)]}|.p{[Word(operation)|Word(doomsday)]}]}");
+        ParserTest::new("empty-preserved")
+            .input(indoc::indoc!(
+                "
+                    .we{}{are}{}{operation}{}{doomsday}{}
+                "
+            ))
+            .produces_doc(".we{[]}{Word(are)}{[]}{Word(operation)}{[]}{Word(doomsday)}{[]}");
     }
 
     #[test]
     fn into_doc_comments() {
-        assert_structure("line-comment", "// on this final night", "[]");
-        assert_structure(
-            "line-comment-in-arg",
-            ".it: // on this final night",
-            ".it{[]}",
-        );
-        assert_structure(
-            "line-comment-inline",
-            "before you // disappear",
-            ".p{[Word(before)|Word(you)]}",
-        );
-        assert_structure("nested-comment", "/* forget all your worries */", "[]");
-        assert_structure(
-            "nested-comment-inline",
-            "and let go of /* all */ your fears",
-            ".p{[Word(and)|Word(let)|Word(go)|Word(of)|Word(your)|Word(fears)]}",
-        );
+        ParserTest::new("line-comment")
+            .input("// on this final night")
+            .produces_doc("[]");
+        ParserTest::new("line-comment-in-arg")
+            .input(".it: // on this final night")
+            .produces_doc(".it{[]}");
+        ParserTest::new("line-comment-inline")
+            .input("before you // disappear")
+            .produces_doc(".p{[Word(before)|Word(you)]}");
+        ParserTest::new("nested-comment")
+            .input("/* forget all your worries */")
+            .produces_doc("[]");
+        ParserTest::new("nested-comment-inline")
+            .input("and let go of /* all */ your fears")
+            .produces_doc(".p{[Word(and)|Word(let)|Word(go)|Word(of)|Word(your)|Word(fears)]}");
     }
 }

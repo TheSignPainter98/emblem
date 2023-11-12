@@ -470,7 +470,6 @@ dependencies = [
  "regex",
  "sealed",
  "tempfile",
- "textwrap",
  "thiserror",
  "typed-arena",
  "uniquote",

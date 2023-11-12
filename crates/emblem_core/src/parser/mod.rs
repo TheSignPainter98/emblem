@@ -64,65 +64,110 @@ pub fn parse(file_name: FileName, content: FileContent) -> Result<ParsedFile> {
 
 #[cfg(test)]
 pub mod test {
+    use std::borrow::Cow;
+
     use super::*;
-    use crate::ast::AstDebug;
+    use crate::{ast::AstDebug, Doc};
     use regex::Regex;
 
-    pub fn assert_structure(name: &str, input: &str, expected: &str) {
-        let ctx = Context::new();
-        let name = ctx.alloc_file_name(name);
-        assert_eq!(
-            {
-                let input = ctx.alloc_file_content(input);
-                let parse_result = parse(name.clone(), input.clone());
-                assert!(
-                    parse_result.is_ok(),
-                    "{}: expected Ok parse result when parsing {:?}, got: {:?}",
-                    name,
-                    input,
-                    parse_result.unwrap_err(),
-                );
-                parse_result.unwrap().repr()
-            },
-            expected,
-            "{}",
-            name
-        );
-
-        assert_eq!(
-            expected,
-            {
-                let input = ctx.alloc_file_content(format!("{}\n", input));
-                let parse_result = parse(name.clone(), input.clone());
-                assert!(
-                    parse_result.is_ok(),
-                    "{}: expected Ok parse result when parsing {:?}",
-                    name,
-                    input
-                );
-                parse_result.unwrap().repr()
-            },
-            "{}",
-            name
-        );
+    pub struct ParserTest {
+        name: Cow<'static, str>,
+        input: Option<Cow<'static, str>>,
+        test_attempted: bool,
     }
 
-    fn assert_parse_error(name: &str, input: &str, expected: &str) {
-        let ctx = Context::new();
-        let re = Regex::new(&("^".to_string() + expected)).unwrap();
-        let inputs = [
-            (name, input),
-            (&format!("{} with newline", name), &format!("{}\n", input)),
-        ];
-        for (name, input) in inputs {
-            let result = parse(ctx.alloc_file_name(name), ctx.alloc_file_content(input));
-            assert!(result.is_err(), "{}: unexpected success", name);
+    impl ParserTest {
+        pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
+            let name = name.into();
+            Self {
+                name,
+                input: None,
+                test_attempted: false,
+            }
+        }
 
-            let msg = result.unwrap_err().to_string();
+        pub fn input(mut self, input: impl Into<Cow<'static, str>>) -> Self {
+            self.input = Some({
+                let mut input = input.into();
+                if input.ends_with('\n') {
+                    input = input[..input.len() - 1].to_string().into();
+                }
+                assert!(!input.ends_with('\n')); // Trailing newlines are added
+                                                 // elsewhere
+                input
+            });
+            self
+        }
+
+        fn produces_ast(mut self, structure_repr: impl AsRef<str>) {
+            self.setup();
+
+            let input = self.input.as_ref().unwrap();
+            let expected_repr = StructureRepr::Ast(structure_repr.as_ref());
+            self.assert_input_produces(&self.name, input, &expected_repr);
+            self.assert_input_produces(
+                &format!("{} with newline", self.name),
+                &format!("{}\n", input),
+                &expected_repr,
+            );
+        }
+
+        pub fn produces_doc(mut self, structure_repr: impl AsRef<str>) {
+            self.setup();
+
+            let input = self.input.as_ref().unwrap();
+            let expected = StructureRepr::Doc(structure_repr.as_ref());
+            self.assert_input_produces(&self.name, input, &expected)
+        }
+
+        fn assert_valid(&self) {
+            assert!(self.input.is_some(), "{}: test has no input!", self.name);
+        }
+
+        fn assert_input_produces(&self, name: &str, input: &str, expected: &StructureRepr<'_>) {
+            let ctx = Context::new();
+            let parse_result = self.parse(&ctx, name, input);
+            let Ok(ast) = parse_result else {
+                panic!(
+                    "{}: expected Ok parse result when parsing {input:?}, got: {:?}",
+                    self.name,
+                    parse_result.unwrap_err()
+                );
+            };
+            let (parsed_repr, expected_repr) = match expected {
+                StructureRepr::Ast(expected_repr) => (ast.repr(), *expected_repr),
+                StructureRepr::Doc(expected_repr) => (Doc::from(ast).repr(), *expected_repr),
+            };
+            assert_eq!(
+                parsed_repr, expected_repr,
+                "{}: unexpected structure",
+                self.name
+            )
+        }
+
+        fn expect(mut self, matches: impl AsRef<str>) {
+            self.setup();
+
+            let input = self.input.as_ref().unwrap();
+            let matches = Regex::new(&("^".to_string() + matches.as_ref())).unwrap();
+            self.assert_input_errors(&self.name, input, &matches);
+            self.assert_input_errors(
+                &format!("{} with newline", self.name),
+                &format!("{}\n", input),
+                &matches,
+            );
+        }
+
+        fn assert_input_errors(&self, name: &str, input: &str, matches: &Regex) {
+            let ctx = Context::new();
+            let parse_result = self.parse(&ctx, name, input);
+            assert!(parse_result.is_err(), "{}: unexpected success", name);
+            let msg = parse_result.unwrap_err().to_string();
             assert!(
                 msg.contains(name),
                 "expected file name {name:?} in error messages {msg:?}"
             );
+
             let sanitised_msg = {
                 let sanitised_msg = msg.replace("Unrecognized", "Unrecognised");
                 // Remove file name
@@ -130,13 +175,39 @@ pub mod test {
                 sanitised_msg[2 + colon_idx..].to_string()
             };
             assert!(
-                !expected.is_empty() && re.is_match(&sanitised_msg),
+                matches.is_match(&sanitised_msg),
                 "{}: unexpected error:\n{}\n\nexpected message to start with:\n{}",
                 name,
                 sanitised_msg,
-                expected,
+                matches.as_str(),
             );
         }
+
+        fn parse(&self, ctx: &Context, name: &str, input: &str) -> Result<ParsedFile> {
+            let name = ctx.alloc_file_name(name);
+            let input = ctx.alloc_file_content(input);
+            super::parse(name, input)
+        }
+
+        fn setup(&mut self) {
+            println!("testing {}...", self.name);
+
+            self.test_attempted = true;
+
+            self.assert_valid();
+        }
+    }
+
+    impl Drop for ParserTest {
+        fn drop(&mut self) {
+            assert!(self.test_attempted, "test {} never examined!", self.name);
+        }
+    }
+
+    #[derive(Debug)]
+    enum StructureRepr<'r> {
+        Ast(&'r str),
+        Doc(&'r str),
     }
 
     mod shebang {
@@ -144,23 +215,29 @@ pub mod test {
 
         #[test]
         fn general() {
-            assert_structure("empty", "#!", "File[Par[[Shebang()]]]");
-            assert_structure("sole", "#!em build", "File[Par[[Shebang(em build)]]]");
+            ParserTest::new("empty")
+                .input("#!")
+                .produces_ast("File[Par[[Shebang()]]]");
+            ParserTest::new("sole")
+                .input("#!em build")
+                .produces_ast("File[Par[[Shebang(em build)]]]");
         }
 
         #[test]
         fn whitespace_preserved() {
-            assert_structure("space", "#! em build", r"File[Par[[Shebang( em build)]]]");
-            assert_structure("tab", "#!\tem build", r"File[Par[[Shebang(\tem build)]]]");
+            ParserTest::new("space")
+                .input("#! em build")
+                .produces_ast(r"File[Par[[Shebang( em build)]]]");
+            ParserTest::new("tab")
+                .input("#!\tem build")
+                .produces_ast(r"File[Par[[Shebang(\tem build)]]]");
         }
 
         #[test]
         fn only_at_start() {
-            assert_parse_error(
-                "at-end",
-                "#!foo\nbar\n#!baz",
-                "Unrecognised token `word` found at 3:2:3:6",
-            );
+            ParserTest::new("at-end")
+                .input("#!foo\nbar\n#!baz")
+                .expect("Unrecognised token `word` found at 3:2:3:6")
         }
     }
 
@@ -175,7 +252,6 @@ pub mod test {
                 ("colon", ":"),
                 ("double-colon", "::"),
             ];
-
             for (name, tok) in tests {
                 let expected = if tok == "{" || tok == "}" {
                     format!(
@@ -191,27 +267,21 @@ pub mod test {
                     )
                 };
 
-                assert_parse_error(name, tok, &expected);
+                ParserTest::new(name).input(tok).expect(expected);
             }
         }
 
         #[test]
         fn multi_line_comments() {
-            assert_parse_error(
-                "multi-line comment open",
-                "/*",
-                r#"unclosed comment found at \["multi-line comment open[^\n]*:1:1-2"\]"#,
-            );
-            assert_parse_error(
-                "multi-line comment open",
-                "/*/*",
-                r#"unclosed comment found at \["multi-line comment open[^\n]*:1:1-2", "multi-line comment open[^\n]*:1:3-4"\]"#,
-            );
-            assert_parse_error(
-                "multi-line comment close",
-                "*/",
-                r"no comment to close found at[^\n]*1:1-2",
-            );
+            ParserTest::new("multi-line comment open")
+                .input("/*")
+                .expect(r#"unclosed comment found at \["multi-line comment open[^\n]*:1:1-2"\]"#);
+            ParserTest::new( "multi-line comment open")
+                .input("/*/*")
+                .expect(r#"unclosed comment found at \["multi-line comment open[^\n]*:1:1-2", "multi-line comment open[^\n]*:1:3-4"\]"#);
+            ParserTest::new("multi-line comment close")
+                .input("*/")
+                .expect(r"no comment to close found at[^\n]*1:1-2");
         }
     }
 
@@ -220,45 +290,52 @@ pub mod test {
 
         #[test]
         fn empty() {
-            assert_structure("empty", "", "File[Par[[]]]");
+            ParserTest::new("empty")
+                .input("")
+                .produces_ast("File[Par[[]]]");
         }
 
         #[test]
         fn single_line() {
-            assert_structure(
-                "single line",
-                "hello, world!",
-                "File[Par[[Word(hello,)|< >|Word(world!)]]]",
-            );
+            ParserTest::new("single line")
+                .input("hello, world!")
+                .produces_ast("File[Par[[Word(hello,)|< >|Word(world!)]]]");
+            ParserTest::new("single line with tabs")
+                .input("hello,\tworld!")
+                .produces_ast(r"File[Par[[Word(hello,)|<\t>|Word(world!)]]]");
+            ParserTest::new("single line for many pars")
+                .input(indoc::indoc!("
+                    Spiderpig, Spiderpig,
 
-            assert_structure(
-                "single line with tabs",
-                "hello,\tworld!",
-                r"File[Par[[Word(hello,)|<\t>|Word(world!)]]]",
-            );
+                    Does whatever a Spiderpig does.
 
-            assert_structure(
-                "single line for many pars",
-                "Spiderpig, Spiderpig,\n\nDoes whatever a Spiderpig does.\n\nCan he swing from a web?\n\nNo, he can't, he's a pig,\n\nLook out, he is a Spiderpig!",
-                "File[Par[[Word(Spiderpig,)|< >|Word(Spiderpig,)]]|Par[[Word(Does)|< >|Word(whatever)|< >|Word(a)|< >|Word(Spiderpig)|< >|Word(does.)]]|Par[[Word(Can)|< >|Word(he)|< >|Word(swing)|< >|Word(from)|< >|Word(a)|< >|Word(web?)]]|Par[[Word(No,)|< >|Word(he)|< >|Word(can't,)|< >|Word(he's)|< >|Word(a)|< >|Word(pig,)]]|Par[[Word(Look)|< >|Word(out,)|< >|Word(he)|< >|Word(is)|< >|Word(a)|< >|Word(Spiderpig!)]]]",
-            );
+                    Can he swing from a web?
+
+                    No, he can't, he's a pig,
+
+                    Look out, he is a Spiderpig!
+                "))
+                .produces_ast("File[Par[[Word(Spiderpig,)|< >|Word(Spiderpig,)]]|Par[[Word(Does)|< >|Word(whatever)|< >|Word(a)|< >|Word(Spiderpig)|< >|Word(does.)]]|Par[[Word(Can)|< >|Word(he)|< >|Word(swing)|< >|Word(from)|< >|Word(a)|< >|Word(web?)]]|Par[[Word(No,)|< >|Word(he)|< >|Word(can't,)|< >|Word(he's)|< >|Word(a)|< >|Word(pig,)]]|Par[[Word(Look)|< >|Word(out,)|< >|Word(he)|< >|Word(is)|< >|Word(a)|< >|Word(Spiderpig!)]]]");
         }
 
         #[test]
         fn multiple_lines() {
-            assert_structure("multiple lines",
-                "According to all known laws of aviation, there is no way that a bee should be able to fly.\nIts wings are too small to get its fat little body off the ground.\n\nThe bee, of course, flies anyway because bees don't care what humans think is impossible.",
-                "File[Par[[Word(According)|< >|Word(to)|< >|Word(all)|< >|Word(known)|< >|Word(laws)|< >|Word(of)|< >|Word(aviation,)|< >|Word(there)|< >|Word(is)|< >|Word(no)|< >|Word(way)|< >|Word(that)|< >|Word(a)|< >|Word(bee)|< >|Word(should)|< >|Word(be)|< >|Word(able)|< >|Word(to)|< >|Word(fly.)]|[Word(Its)|< >|Word(wings)|< >|Word(are)|< >|Word(too)|< >|Word(small)|< >|Word(to)|< >|Word(get)|< >|Word(its)|< >|Word(fat)|< >|Word(little)|< >|Word(body)|< >|Word(off)|< >|Word(the)|< >|Word(ground.)]]|Par[[Word(The)|< >|Word(bee,)|< >|Word(of)|< >|Word(course,)|< >|Word(flies)|< >|Word(anyway)|< >|Word(because)|< >|Word(bees)|< >|Word(don't)|< >|Word(care)|< >|Word(what)|< >|Word(humans)|< >|Word(think)|< >|Word(is)|< >|Word(impossible.)]]]",
+            ParserTest::new("multiple lines")
+                .input(indoc::indoc!("
+                    According to all known laws of aviation, there is no way that a bee should be able to fly.
+                    Its wings are too small to get its fat little body off the ground.
+
+                    The bee, of course, flies anyway because bees don't care what humans think is impossible.
+                "))
+                .produces_ast("File[Par[[Word(According)|< >|Word(to)|< >|Word(all)|< >|Word(known)|< >|Word(laws)|< >|Word(of)|< >|Word(aviation,)|< >|Word(there)|< >|Word(is)|< >|Word(no)|< >|Word(way)|< >|Word(that)|< >|Word(a)|< >|Word(bee)|< >|Word(should)|< >|Word(be)|< >|Word(able)|< >|Word(to)|< >|Word(fly.)]|[Word(Its)|< >|Word(wings)|< >|Word(are)|< >|Word(too)|< >|Word(small)|< >|Word(to)|< >|Word(get)|< >|Word(its)|< >|Word(fat)|< >|Word(little)|< >|Word(body)|< >|Word(off)|< >|Word(the)|< >|Word(ground.)]]|Par[[Word(The)|< >|Word(bee,)|< >|Word(of)|< >|Word(course,)|< >|Word(flies)|< >|Word(anyway)|< >|Word(because)|< >|Word(bees)|< >|Word(don't)|< >|Word(care)|< >|Word(what)|< >|Word(humans)|< >|Word(think)|< >|Word(is)|< >|Word(impossible.)]]]"
             );
         }
 
         #[test]
         fn utf8() {
-            assert_structure(
-                "cyrillic",
-                "孫子 兵法",
-                r"File[Par[[Word(孫子)|< >|Word(兵法)]]]",
-            )
+            ParserTest::new("cyrillic")
+                .input("孫子 兵法")
+                .produces_ast(r"File[Par[[Word(孫子)|< >|Word(兵法)]]]");
         }
     }
 
@@ -279,31 +356,23 @@ pub mod test {
             for num_pluses in 0..=3 {
                 let pluses = "+".repeat(num_pluses);
                 let ast_pluses = ast_debug_pluses(num_pluses);
-                assert_structure(
-                    "command",
-                    &format!(".order-66{pluses}"),
-                    &format!("File[Par[[.order-66{ast_pluses}]]]"),
-                );
-                assert_structure(
-                    "with-qualifier",
-                    &format!(".order.66{pluses}"),
-                    &format!("File[Par[[.(order).66{ast_pluses}]]]"),
-                );
-                assert_structure(
-                    "trailing-dot",
-                    &format!(".order.66{pluses}."),
-                    &format!("File[Par[[.(order).66{ast_pluses}|Word(.)]]]"),
-                );
-                assert_parse_error(
-                    "many-qualifiers",
-                    &format!(".it.belongs.in.a.museum{pluses}"),
-                    &format!("extra dots found at many-qualifiers[^:]*:1:12-12, many-qualifiers[^:]*:1:15-15, many-qualifiers[^:]*:1:17-17 in command name at many-qualifiers[^:]*:1:1-{}", 23 + num_pluses),
-                );
-                assert_parse_error(
-                    "empty-qualifier",
-                    &format!("..what{pluses}"),
-                    &format!("empty qualifier found at empty-qualifier[^:]*:1:1-2 in command name at empty-qualifier[^:]*:1:1-{}", 6 + num_pluses),
-                );
+
+                ParserTest::new("command")
+                    .input(format!(".order-66{pluses}"))
+                    .produces_ast(format!("File[Par[[.order-66{ast_pluses}]]]"));
+                ParserTest::new("with-qualifier")
+                    .input(format!(".order.66{pluses}"))
+                    .produces_ast(format!("File[Par[[.(order).66{ast_pluses}]]]"));
+                ParserTest::new("trailing-dot")
+                    .input(format!(".order.66{pluses}."))
+                    .produces_ast(format!("File[Par[[.(order).66{ast_pluses}|Word(.)]]]"));
+
+                ParserTest::new("many-qualifiers")
+                    .input(format!(".it.belongs.in.a.museum{pluses}"))
+                    .expect(format!("extra dots found at many-qualifiers[^:]*:1:12-12, many-qualifiers[^:]*:1:15-15, many-qualifiers[^:]*:1:17-17 in command name at many-qualifiers[^:]*:1:1-{}", 23 + num_pluses));
+                ParserTest::new("empty-qualifier")
+                    .input(format!("..what{pluses}"))
+                    .expect(format!("empty qualifier found at empty-qualifier[^:]*:1:1-2 in command name at empty-qualifier[^:]*:1:1-{}", 6 + num_pluses));
             }
         }
 
@@ -312,74 +381,59 @@ pub mod test {
             for num_pluses in 0..=3 {
                 let pluses = "+".repeat(num_pluses);
                 let ast_pluses = ast_debug_pluses(num_pluses);
-                assert_structure(
-                    "sole",
-                    &format!(".exec{}{{order66}}", pluses),
-                    &format!("File[Par[[.exec{}{{[Word(order66)]}}]]]", ast_pluses),
-                );
-                assert_structure(
-                    "sole-with-qualifier",
-                    &format!(".ex.ec{}{{order66}}", pluses),
-                    &format!("File[Par[[.(ex).ec{}{{[Word(order66)]}}]]]", ast_pluses),
-                );
-                assert_structure(
-                    "start of line",
-                    &format!(".old-man-say{}{{leave her Johnny, leave her}} tomorrow ye will get your pay", pluses),
-                    &format!("File[Par[[.old-man-say{}{{[Word(leave)|< >|Word(her)|< >|Word(Johnny,)|< >|Word(leave)|< >|Word(her)]}}|< >|Word(tomorrow)|< >|Word(ye)|< >|Word(will)|< >|Word(get)|< >|Word(your)|< >|Word(pay)]]]", ast_pluses)
-                );
-                assert_structure(
-                    "end of line",
-                    &format!("I hate to .sail.on{}{{this rotten tub}}", pluses),
-                    &format!("File[Par[[Word(I)|< >|Word(hate)|< >|Word(to)|< >|.(sail).on{}{{[Word(this)|< >|Word(rotten)|< >|Word(tub)]}}]]]", ast_pluses),
-                );
-                assert_structure(
-                    "middle of line",
-                    &format!("For the .voyage-is{}{{foul}} and the winds don't blow", pluses),
-                    &format!("File[Par[[Word(For)|< >|Word(the)|< >|.voyage-is{}{{[Word(foul)]}}|< >|Word(and)|< >|Word(the)|< >|Word(winds)|< >|Word(don't)|< >|Word(blow)]]]", ast_pluses),
-                );
-                assert_structure(
-                    "nested",
-                    &format!(".no{}{{grog .allowed{}{{and}} rotten grub}}", pluses, pluses),
-                    &format!("File[Par[[.no{}{{[Word(grog)|< >|.allowed{}{{[Word(and)]}}|< >|Word(rotten)|< >|Word(grub)]}}]]]", ast_pluses, ast_pluses),
-                );
 
-                assert_parse_error(
-                    "newline in brace-arg",
-                    &format!(".order66{}{{\n}}", pluses),
-                    &format!(
+                ParserTest::new("sole")
+                    .input(format!(".exec{}{{order66}}", pluses))
+                    .produces_ast(format!(
+                        "File[Par[[.exec{}{{[Word(order66)]}}]]]",
+                        ast_pluses
+                    ));
+                ParserTest::new("sole-with-qualifier")
+                    .input(format!(".ex.ec{}{{order66}}", pluses))
+                    .produces_ast(format!(
+                        "File[Par[[.(ex).ec{}{{[Word(order66)]}}]]]",
+                        ast_pluses
+                    ));
+                ParserTest::new("start of line")
+                    .input(format!(".old-man-say{}{{leave her Johnny, leave her}} tomorrow ye will get your pay", pluses))
+                    .produces_ast(format!("File[Par[[.old-man-say{}{{[Word(leave)|< >|Word(her)|< >|Word(Johnny,)|< >|Word(leave)|< >|Word(her)]}}|< >|Word(tomorrow)|< >|Word(ye)|< >|Word(will)|< >|Word(get)|< >|Word(your)|< >|Word(pay)]]]", ast_pluses));
+                ParserTest::new("end of line")
+                    .input(format!("I hate to .sail.on{}{{this rotten tub}}", pluses))
+                    .produces_ast(format!("File[Par[[Word(I)|< >|Word(hate)|< >|Word(to)|< >|.(sail).on{}{{[Word(this)|< >|Word(rotten)|< >|Word(tub)]}}]]]", ast_pluses));
+                ParserTest::new("middle of line")
+                    .input(format!("For the .voyage-is{}{{foul}} and the winds don't blow", pluses))
+                    .produces_ast(format!("File[Par[[Word(For)|< >|Word(the)|< >|.voyage-is{}{{[Word(foul)]}}|< >|Word(and)|< >|Word(the)|< >|Word(winds)|< >|Word(don't)|< >|Word(blow)]]]", ast_pluses));
+                ParserTest::new("nested")
+                    .input(format!(".no{}{{grog .allowed{}{{and}} rotten grub}}", pluses, pluses))
+                    .produces_ast(format!("File[Par[[.no{}{{[Word(grog)|< >|.allowed{}{{[Word(and)]}}|< >|Word(rotten)|< >|Word(grub)]}}]]]", ast_pluses, ast_pluses));
+
+                ParserTest::new("newline in brace-arg")
+                    .input(format!(".order66{}{{\n}}", pluses))
+                    .expect(format!(
                         "newline in braced args found at newline in brace-arg[^:]*:1:{}",
                         9 + num_pluses
-                    ),
-                );
-                assert_parse_error(
-                    "newline in brace-arg",
-                    &format!(".order66{}{{general\nkenobi}}", pluses),
-                    &format!(
+                    ));
+                ParserTest::new("newline in brace-arg")
+                    .input(format!(".order66{}{{general\nkenobi}}", pluses))
+                    .expect(format!(
                         "newline in braced args found at newline in brace-arg[^:]*:1:{}",
                         9 + num_pluses
-                    ),
-                );
-                assert_parse_error(
-                    "par-break in brace-arg",
-                    &format!(".order66{}{{\n\n}}", pluses),
-                    &format!(
+                    ));
+                ParserTest::new("par-break in brace-arg")
+                    .input(format!(".order66{}{{\n\n}}", pluses))
+                    .expect(format!(
                         "newline in braced args found at par-break in brace-arg[^:]*:1:{}",
                         9 + num_pluses
-                    ),
-                );
-                assert_parse_error(
-                    "par-break in brace-arg",
-                    &format!(".order66{}{{general\n\nkenobi}}", pluses),
-                    &format!(
+                    ));
+                ParserTest::new("par-break in brace-arg")
+                    .input(format!(".order66{}{{general\n\nkenobi}}", pluses))
+                    .expect(format!(
                         "newline in braced args found at par-break in brace-arg[^:]*:1:{}",
                         9 + num_pluses
-                    ),
-                );
-                assert_parse_error(
-                    "many-qualifiers",
-                    &format!(".order.6.6{}{{general\n\nkenobi}}", pluses),
-                    &format!("extra dots found at many-qualifiers[^:]*:1:9-9 in command name at many-qualifiers[^:]*:1:1-{}", 10 + num_pluses),
-                );
+                    ));
+                ParserTest::new("many-qualifiers")
+                    .input(format!(".order.6.6{}{{general\n\nkenobi}}", pluses))
+                    .expect(format!("extra dots found at many-qualifiers[^:]*:1:9-9 in command name at many-qualifiers[^:]*:1:1-{}", 10 + num_pluses));
             }
         }
 
@@ -388,52 +442,35 @@ pub mod test {
             for num_pluses in 0..=3 {
                 let pluses = "+".repeat(num_pluses);
                 let ast_pluses = ast_debug_pluses(num_pluses);
-                assert_structure(
-                    "many-qualifiers",
-                    &format!(".qual.ifier{pluses}"),
-                    &format!("File[Par[[.(qual).ifier{ast_pluses}]]]"),
-                );
-                assert_structure(
-                    "start of line",
-                    &format!(".now{}{{we are ready}}: to sail for the horn", pluses),
-                    &format!("File[Par[[.now{}{{[Word(we)|< >|Word(are)|< >|Word(ready)]}}:[Word(to)|< >|Word(sail)|< >|Word(for)|< >|Word(the)|< >|Word(horn)]]]]", ast_pluses),
-                );
-                assert_structure(
-                    "middle of line",
-                    &format!("our boots .and{}{{our clothes boys}}, are all in the pawn", pluses),
-                    &format!("File[Par[[Word(our)|< >|Word(boots)|< >|.and{}{{[Word(our)|< >|Word(clothes)|< >|Word(boys)]}}|Word(,)|< >|Word(are)|< >|Word(all)|< >|Word(in)|< >|Word(the)|< >|Word(pawn)]]]", ast_pluses),
-                );
-                assert_structure(
-                    "nested",
-                    &format!("the anchor's on board .and{}{{the cable's}}: .all: stored", pluses),
-                    &format!("File[Par[[Word(the)|< >|Word(anchor's)|< >|Word(on)|< >|Word(board)|< >|.and{}{{[Word(the)|< >|Word(cable's)]}}:[.all:[Word(stored)]]]]]", ast_pluses),
-                );
-                assert_structure(
-                    "nested in braces",
-                    &format!("Heave away, bullies, .you{}{{parish-rigged bums, .take: your hands from your pockets and don’t}}: suck your thumbs", pluses),
-                    &format!("File[Par[[Word(Heave)|< >|Word(away,)|< >|Word(bullies,)|< >|.you{}{{[Word(parish)|-|Word(rigged)|< >|Word(bums,)|< >|.take:[Word(your)|< >|Word(hands)|< >|Word(from)|< >|Word(your)|< >|Word(pockets)|< >|Word(and)|< >|Word(don’t)]]}}:[Word(suck)|< >|Word(your)|< >|Word(thumbs)]]]]", ast_pluses),
-                );
-                assert_structure(
-                    "stacked",
-                    &format!(".heave{}{{a pawl}}:, o heave away\n.way{}{{hay}}: roll 'an go!", pluses, pluses),
-                    &format!("File[Par[[.heave{}{{[Word(a)|< >|Word(pawl)]}}:[Word(,)|< >|Word(o)|< >|Word(heave)|< >|Word(away)]]|[.way{}{{[Word(hay)]}}:[Word(roll)|< >|Word('an)|< >|Word(go!)]]]]", ast_pluses, ast_pluses),
-                );
 
-                assert_parse_error(
-                    "sole at end of line",
-                    ".randy-dandy-o:",
-                    "Unrecognised EOF found at (1:16|2:1)",
-                );
-                assert_parse_error(
-                    "end of line",
-                    "randy .dandy-o:",
-                    "Unrecognised token `newline` found at 1:1[56]",
-                );
-                assert_parse_error(
-                    "many-qualifiers",
-                    ".randy.dandy.o",
-                    "extra dots found at many-qualifiers[^:]*:1:13-13 in command name at many-qualifiers[^:]*:1:1-14",
-                );
+                ParserTest::new("many-qualifiers")
+                    .input(format!(".qual.ifier{pluses}"))
+                    .produces_ast(format!("File[Par[[.(qual).ifier{ast_pluses}]]]"));
+                ParserTest::new("start of line")
+                    .input(format!(".now{}{{we are ready}}: to sail for the horn", pluses))
+                    .produces_ast(format!("File[Par[[.now{}{{[Word(we)|< >|Word(are)|< >|Word(ready)]}}:[Word(to)|< >|Word(sail)|< >|Word(for)|< >|Word(the)|< >|Word(horn)]]]]", ast_pluses));
+                ParserTest::new("middle of line")
+                    .input(format!("our boots .and{}{{our clothes boys}}, are all in the pawn", pluses))
+                    .produces_ast(format!("File[Par[[Word(our)|< >|Word(boots)|< >|.and{}{{[Word(our)|< >|Word(clothes)|< >|Word(boys)]}}|Word(,)|< >|Word(are)|< >|Word(all)|< >|Word(in)|< >|Word(the)|< >|Word(pawn)]]]", ast_pluses));
+                ParserTest::new("nested")
+                    .input(format!("the anchor's on board .and{}{{the cable's}}: .all: stored", pluses))
+                    .produces_ast(format!("File[Par[[Word(the)|< >|Word(anchor's)|< >|Word(on)|< >|Word(board)|< >|.and{}{{[Word(the)|< >|Word(cable's)]}}:[.all:[Word(stored)]]]]]", ast_pluses));
+                ParserTest::new("nested in braces")
+                    .input(format!("Heave away, bullies, .you{}{{parish-rigged bums, .take: your hands from your pockets and don’t}}: suck your thumbs", pluses))
+                    .produces_ast(format!("File[Par[[Word(Heave)|< >|Word(away,)|< >|Word(bullies,)|< >|.you{}{{[Word(parish)|-|Word(rigged)|< >|Word(bums,)|< >|.take:[Word(your)|< >|Word(hands)|< >|Word(from)|< >|Word(your)|< >|Word(pockets)|< >|Word(and)|< >|Word(don’t)]]}}:[Word(suck)|< >|Word(your)|< >|Word(thumbs)]]]]", ast_pluses));
+                ParserTest::new("stacked")
+                    .input(format!(".heave{}{{a pawl}}:, o heave away\n.way{}{{hay}}: roll 'an go!", pluses, pluses))
+                    .produces_ast(format!("File[Par[[.heave{}{{[Word(a)|< >|Word(pawl)]}}:[Word(,)|< >|Word(o)|< >|Word(heave)|< >|Word(away)]]|[.way{}{{[Word(hay)]}}:[Word(roll)|< >|Word('an)|< >|Word(go!)]]]]", ast_pluses, ast_pluses));
+
+                ParserTest::new("sole at end of line")
+                    .input(".randy-dandy-o:")
+                    .expect("Unrecognised EOF found at (1:16|2:1)");
+                ParserTest::new("end of line")
+                    .input("randy .dandy-o:")
+                    .expect("Unrecognised token `newline` found at 1:1[56]");
+                ParserTest::new("many-qualifiers")
+                    .input(".randy.dandy.o")
+                    .expect("extra dots found at many-qualifiers[^:]*:1:13-13 in command name at many-qualifiers[^:]*:1:1-14");
             }
         }
 
@@ -539,7 +576,9 @@ pub mod test {
                 for test in &tests {
                     let name_with_tabs = format!("{} (with tabs)", test.name);
                     let data_with_tabs = test.data.join("\n");
-                    assert_structure(&name_with_tabs, &data_with_tabs, test.expected_structure);
+                    ParserTest::new(name_with_tabs)
+                        .input(data_with_tabs)
+                        .produces_ast(test.expected_structure);
 
                     let name_with_spaces = format!("{} (with spaces)", test.name);
                     let data_with_spaces = test
@@ -548,208 +587,125 @@ pub mod test {
                         .map(|l| l.replace('\t', "    "))
                         .collect::<Vec<_>>()
                         .join("\n");
-                    assert_structure(
-                        &name_with_spaces,
-                        &data_with_spaces,
-                        test.expected_structure,
-                    );
+                    ParserTest::new(name_with_spaces)
+                        .input(data_with_spaces)
+                        .produces_ast(test.expected_structure);
                 }
 
-                assert_parse_error(
-                    "end of populated line",
-                    &[
-                        "william taylor was a .brisk{young sailor}:",
-                        "\tfull of heart and full of play",
-                    ]
-                    .join("\n"),
-                    "Unrecognised token `newline` found at 1:43:2:1",
-                );
-                assert_parse_error(
-                    "missing indent",
-                    &[".until{did his mind uncover}:", "to a youthful lady gay"].join("\n"),
-                    "Unrecognised token `word` found at 2:1:2:3",
-                );
-                assert_parse_error(
-                    "missing second trailer",
-                    &[
-                        ".until{did his mind uncover}:",
-                        "\tto a youthful lady gay",
-                        "::",
-                        "\tfour and twenty british sailors",
-                        "::",
-                    ]
-                    .join("\n"),
-                    "Unrecognised EOF found at (5:3|6:1)",
-                );
-                assert_parse_error(
-                    "many-qualifiers",
-                    &[
-                        ".met.him.on.the{king's highway}:",
-                        "\tas he went for to be married",
-                        "::",
-                        "\tpressed he was and sent away"
-                    ].join("\n"),
-                    "extra dots found at many-qualifiers[^:]*:1:9-9, many-qualifiers[^:]*:1:12-12 in command name at many-qualifiers[^:]*:1:1-15",
-                );
+                ParserTest::new("end of populated line")
+                    .input(indoc::indoc!(
+                        "
+                            william taylor was a .brisk{young sailor}:
+                            \tfull of heart and full of play
+                        "
+                    ))
+                    .expect("Unrecognised token `newline` found at 1:43:2:1");
+                ParserTest::new("missing indent")
+                    .input(indoc::indoc!(
+                        "
+                            .until{did his mind uncover}:
+                            to a youthful lady gay
+                        "
+                    ))
+                    .expect("Unrecognised token `word` found at 2:1:2:3");
+                ParserTest::new("missing second trailer")
+                    .input(indoc::indoc!(
+                        "
+                            .until{did his mind uncover}:
+                            \tto a youthful lady gay
+                            ::
+                            \tfour and twenty british sailors
+                            ::
+                        "
+                    ))
+                    .expect("Unrecognised EOF found at (5:3|6:1)");
+                ParserTest::new("many-qualifiers")
+                    .input(indoc::indoc!(
+                        "
+                            .met.him.on.the{king's highway}:
+                            \tas he went for to be married
+                            ::
+                            \tpressed he was and sent away
+                        "
+                    ))
+                    .expect("extra dots found at many-qualifiers[^:]*:1:9-9, many-qualifiers[^:]*:1:12-12 in command name at many-qualifiers[^:]*:1:1-15");
             }
         }
 
         #[test]
         fn attrs() {
-            assert_structure(
-                "empty",
-                "we are .outward-bound[]",
-                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[]]]]",
-            );
-            assert_structure(
-                "unnamed-only",
-                "we are .outward-bound[for,kingston,town]",
-                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]",
-            );
-            assert_structure(
-                "unnamed-only-with-spaces",
-                "we are .outward-bound[ for , kingston , town ]",
-                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]",
-            );
-            assert_structure(
-                "unnamed-only-with-tabs",
-                "we are .outward-bound[\tfor\t,\tkingston\t,\ttown\t]",
-                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]",
-            );
+            ParserTest::new("empty")
+                .input("we are .outward-bound[]")
+                .produces_ast("File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[]]]]");
+            ParserTest::new("unnamed-only")
+                .input("we are .outward-bound[for,kingston,town]")
+                .produces_ast("File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]");
+            ParserTest::new("unnamed-only-with-spaces")
+                .input("we are .outward-bound[ for , kingston , town ]")
+                .produces_ast("File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]");
+            ParserTest::new("unnamed-only-with-tabs")
+                .input("we are .outward-bound[\tfor\t,\tkingston\t,\ttown\t]")
+                .produces_ast(r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)|(kingston)|(town)]]]]");
 
-            assert_structure(
-                "named",
-                "we are .outward-bound[for=kingston,town]",
-                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]",
-            );
-            assert_structure(
-                "named-with-spaces",
-                "we are .outward-bound[   for   =   kingston   ,   town   ]",
-                "File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]",
-            );
-            assert_structure(
-                "named-with-spaces",
-                "we are .outward-bound[\tfor\t=\tkingston\t,\ttown\t]",
-                r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]",
-            );
+            ParserTest::new("named")
+                .input("we are .outward-bound[for=kingston,town]")
+                .produces_ast("File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]");
+            ParserTest::new("named-with-spaces")
+                .input("we are .outward-bound[   for   =   kingston   ,   town   ]")
+                .produces_ast("File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]");
+            ParserTest::new("named-with-spaces")
+                .input("we are .outward-bound[\tfor\t=\tkingston\t,\ttown\t]")
+                .produces_ast(r"File[Par[[Word(we)|< >|Word(are)|< >|.outward-bound[(for)=(kingston)|(town)]]]]");
 
-            assert_structure(
-                "with-inline-args",
-                "and we'll .heave[the,old=wheel,round]{and}{round}",
-                r"File[Par[[Word(and)|< >|Word(we'll)|< >|.heave[(the)|(old)=(wheel)|(round)]{[Word(and)]}{[Word(round)]}]]]",
-            );
-            assert_structure(
-                "with-trailer-args",
-                "and we'll .heave[the,old=wheel,round]: and round",
-                r"File[Par[[Word(and)|< >|Word(we'll)|< >|.heave[(the)|(old)=(wheel)|(round)]:[Word(and)|< >|Word(round)]]]]",
-            );
-            assert_structure(
-                "with-remainder-args",
-                ".heave[the,old=wheel,round]:\n\tand\n::\n\tround",
-                r"File[Par[.heave[(the)|(old)=(wheel)|(round)]::[Par[[Word(and)]]]::[Par[[Word(round)]]]]]",
-            );
+            ParserTest::new("with-inline-args")
+                .input("and we'll .heave[the,old=wheel,round]{and}{round}")
+                .produces_ast(r"File[Par[[Word(and)|< >|Word(we'll)|< >|.heave[(the)|(old)=(wheel)|(round)]{[Word(and)]}{[Word(round)]}]]]");
+            ParserTest::new("with-trailer-args")
+                .input("and we'll .heave[the,old=wheel,round]: and round")
+                .produces_ast(r"File[Par[[Word(and)|< >|Word(we'll)|< >|.heave[(the)|(old)=(wheel)|(round)]:[Word(and)|< >|Word(round)]]]]");
+            ParserTest::new("with-remainder-args")
+                .input(".heave[the,old=wheel,round]:\n\tand\n::\n\tround")
+                .produces_ast(r"File[Par[.heave[(the)|(old)=(wheel)|(round)]::[Par[[Word(and)]]]::[Par[[Word(round)]]]]]");
 
-            assert_parse_error("unclosed", ".heave[", "(unexpected EOF found at 1:8|newline in attributes found at unclosed with newline:1:7-7)");
-            assert_parse_error(
-                "unexpected open bracket",
-                ".heave[[",
-                r"(unexpected EOF found at 1:9|unexpected character '\[' found at unexpected open bracket[^:]*:1:8-8)",
-            );
+            ParserTest::new("unclosed")
+                .input(".heave[")
+                .expect("(unexpected EOF found at 1:8|newline in attributes found at unclosed with newline:1:7-7)");
+            ParserTest::new("unexpected open bracket")
+                .input(".heave[[")
+                .expect(r"(unexpected EOF found at 1:9|unexpected character '\[' found at unexpected open bracket[^:]*:1:8-8)");
         }
     }
 
     mod interword {
+        use std::fmt::Display;
+
         use super::*;
 
-        struct InterwordTest {
-            input: String,
-            expected: String,
-        }
-
-        impl InterwordTest {
-            fn run(&self, name: &str) {
-                assert_structure(name, &self.input, &self.expected);
-            }
-        }
-
-        fn test_dash(name: &str, dash: &str, repr: &str) {
-            let tests = vec![
-                InterwordTest {
-                    input: dash.into(),
-                    expected: format!("File[Par[[{}]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a{}b", dash),
-                    expected: format!("File[Par[[Word(a)|{}|Word(b)]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a {}b", dash),
-                    expected: format!("File[Par[[Word(a)|< >|{}|Word(b)]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a{} b", dash),
-                    expected: format!("File[Par[[Word(a)|{}|< >|Word(b)]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a {} b", dash),
-                    expected: format!("File[Par[[Word(a)|< >|{}|< >|Word(b)]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a\n{}b", dash),
-                    expected: format!("File[Par[[Word(a)]|[{}|Word(b)]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a{}\nb", dash),
-                    expected: format!("File[Par[[Word(a)|{}]|[Word(b)]]]", repr),
-                },
-            ];
-            for test in tests {
-                test.run(name);
-            }
-        }
-
-        fn test_glue(name: &str, glue: &str, repr: &str) {
-            let tests = vec![
-                InterwordTest {
-                    input: glue.into(),
-                    expected: format!("File[Par[[SpiltGlue({})]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a{}b", glue),
-                    expected: format!("File[Par[[Word(a)|{}|Word(b)]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a {}b", glue),
-                    expected: format!("File[Par[[Word(a)|SpiltGlue( {})|Word(b)]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a{} b", glue),
-                    expected: format!("File[Par[[Word(a)|SpiltGlue({} )|Word(b)]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a {} b", glue),
-                    expected: format!("File[Par[[Word(a)|SpiltGlue( {} )|Word(b)]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a\n{}b", glue),
-                    expected: format!("File[Par[[Word(a)]|[SpiltGlue({})|Word(b)]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a{}\nb", glue),
-                    expected: format!("File[Par[[Word(a)|SpiltGlue({})]|[Word(b)]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("a{}", glue),
-                    expected: format!("File[Par[[Word(a)|SpiltGlue({})]]]", repr),
-                },
-                InterwordTest {
-                    input: format!("{}b", glue),
-                    expected: format!("File[Par[[SpiltGlue({})|Word(b)]]]", repr),
-                },
-            ];
-            for test in tests {
-                test.run(name);
-            }
+        fn test_dash<T>(name: T, dash: &'static str, repr: &'static str)
+        where
+            T: Into<Cow<'static, str>> + Clone,
+        {
+            ParserTest::new(name.clone())
+                .input(dash)
+                .produces_ast(format!("File[Par[[{}]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a{}b", dash))
+                .produces_ast(format!("File[Par[[Word(a)|{}|Word(b)]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a {}b", dash))
+                .produces_ast(format!("File[Par[[Word(a)|< >|{}|Word(b)]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a{} b", dash))
+                .produces_ast(format!("File[Par[[Word(a)|{}|< >|Word(b)]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a {} b", dash))
+                .produces_ast(format!("File[Par[[Word(a)|< >|{}|< >|Word(b)]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a\n{}b", dash))
+                .produces_ast(format!("File[Par[[Word(a)]|[{}|Word(b)]]]", repr));
+            ParserTest::new(name)
+                .input(format!("a{}\nb", dash))
+                .produces_ast(format!("File[Par[[Word(a)|{}]|[Word(b)]]]", repr));
         }
 
         #[test]
@@ -767,14 +723,56 @@ pub mod test {
             test_dash("em", "---", "---");
         }
 
+        fn test_glue<T>(name: T, glue: &'static str, repr: &'static str)
+        where
+            T: Into<Cow<'static, str>> + Clone,
+        {
+            ParserTest::new(name.clone())
+                .input(glue)
+                .produces_ast(format!("File[Par[[SpiltGlue({})]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a{}b", glue))
+                .produces_ast(format!("File[Par[[Word(a)|{}|Word(b)]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a {}b", glue))
+                .produces_ast(format!("File[Par[[Word(a)|SpiltGlue( {})|Word(b)]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a{} b", glue))
+                .produces_ast(format!("File[Par[[Word(a)|SpiltGlue({} )|Word(b)]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a {} b", glue))
+                .produces_ast(format!(
+                    "File[Par[[Word(a)|SpiltGlue( {} )|Word(b)]]]",
+                    repr
+                ));
+            ParserTest::new(name.clone())
+                .input(format!("a\n{}b", glue))
+                .produces_ast(format!(
+                    "File[Par[[Word(a)]|[SpiltGlue({})|Word(b)]]]",
+                    repr
+                ));
+            ParserTest::new(name.clone())
+                .input(format!("a{}\nb", glue))
+                .produces_ast(format!(
+                    "File[Par[[Word(a)|SpiltGlue({})]|[Word(b)]]]",
+                    repr
+                ));
+            ParserTest::new(name.clone())
+                .input(format!("a{}", glue))
+                .produces_ast(format!("File[Par[[Word(a)|SpiltGlue({})]]]", repr));
+            ParserTest::new(name)
+                .input(format!("{}b", glue))
+                .produces_ast(format!("File[Par[[SpiltGlue({})|Word(b)]]]", repr));
+        }
+
         #[test]
         fn glue() {
-            test_glue("em", "~", "~");
+            test_glue("glue", "~", "~");
         }
 
         #[test]
         fn nbsp() {
-            test_glue("em", "~~", "~~");
+            test_glue("nbsp", "~~", "~~");
         }
 
         #[test]
@@ -783,12 +781,15 @@ pub mod test {
             test_dash("em-en", "-----", "---|--");
             test_dash("em-em", "------", "---|---");
 
-            fn test_mix(name: &str, to_test: &str, repr: &str) {
-                assert_structure(
-                    name,
-                    &format!("a{to_test}b"),
-                    &format!("File[Par[[Word(a)|{repr}|Word(b)]]]"),
-                );
+            fn test_mix<S, T, R>(name: S, to_test: T, repr: R)
+            where
+                S: Into<Cow<'static, str>> + Clone,
+                T: Into<Cow<'static, str>> + Clone + Display,
+                R: Into<Cow<'static, str>> + Clone + Display,
+            {
+                ParserTest::new(name)
+                    .input(format!("a{to_test}b"))
+                    .produces_ast(format!("File[Par[[Word(a)|{repr}|Word(b)]]]"));
             }
 
             let glues = [
@@ -801,48 +802,48 @@ pub mod test {
             for (raw, repr) in glues {
                 test_mix(
                     "glue-mixed-1-dash-1",
-                    &format!("{raw}-",),
-                    &format!("{repr}|-"),
+                    format!("{raw}-",),
+                    format!("{repr}|-"),
                 );
                 test_mix(
                     "glue-mixed-1-dash-2",
-                    &format!("-{raw}",),
-                    &format!("-|{repr}"),
+                    format!("-{raw}",),
+                    format!("-|{repr}"),
                 );
                 test_mix(
                     "glue-mixed-2-dashes-1",
-                    &format!("{raw}--",),
-                    &format!("{repr}|--"),
+                    format!("{raw}--",),
+                    format!("{repr}|--"),
                 );
                 test_mix(
                     "glue-mixed-2-dashes-2",
-                    &format!("-{raw}-",),
-                    &format!("-|{repr}|-"),
+                    format!("-{raw}-",),
+                    format!("-|{repr}|-"),
                 );
                 test_mix(
                     "glue-mixed-2-dashes-3",
-                    &format!("--{raw}",),
-                    &format!("--|{repr}"),
+                    format!("--{raw}",),
+                    format!("--|{repr}"),
                 );
                 test_mix(
                     "glue-mixed-3-dashes-1",
-                    &format!("{raw}---",),
-                    &format!("{repr}|---"),
+                    format!("{raw}---",),
+                    format!("{repr}|---"),
                 );
                 test_mix(
                     "glue-mixed-3-dashes-2",
-                    &format!("-{raw}--",),
-                    &format!("-|{repr}|--"),
+                    format!("-{raw}--",),
+                    format!("-|{repr}|--"),
                 );
                 test_mix(
                     "glue-mixed-3-dashes-3",
-                    &format!("--{raw}-",),
-                    &format!("--|{repr}|-"),
+                    format!("--{raw}-",),
+                    format!("--|{repr}|-"),
                 );
                 test_mix(
                     "glue-mixed-3-dashes-4",
-                    &format!("---{raw}",),
-                    &format!("---|{repr}"),
+                    format!("---{raw}",),
+                    format!("---|{repr}"),
                 );
             }
         }
@@ -853,45 +854,47 @@ pub mod test {
 
         #[test]
         fn word() {
-            assert_structure("ignore empty", "!!", "File[Par[[Word(!!)]]]");
-            assert_structure(
-                "ignore unmatched at start",
-                "spanish inquisition!",
-                "File[Par[[Word(spanish)|< >|Word(inquisition!)]]]",
-            );
-            assert_structure(
-                "ignore unmatched at end",
-                "!spanish inquisition",
-                "File[Par[[Word(!spanish)|< >|Word(inquisition)]]]",
-            );
+            ParserTest::new("ignore empty")
+                .input("!!")
+                .produces_ast("File[Par[[Word(!!)]]]");
+            ParserTest::new("ignore unmatched at start")
+                .input("spanish inquisition!")
+                .produces_ast("File[Par[[Word(spanish)|< >|Word(inquisition!)]]]");
+            ParserTest::new("ignore unmatched at end")
+                .input("!spanish inquisition")
+                .produces_ast("File[Par[[Word(!spanish)|< >|Word(inquisition)]]]");
         }
 
         #[test]
         fn short() {
-            assert_structure("text", "!verb!", "File[Par[[!verb!]]]");
-            assert_structure("comment", "!//!", "File[Par[[!//!]]]");
-            assert_structure("multi line comment start", "!/*!", "File[Par[[!/*!]]]");
-            assert_structure("multi line comment end", "!*/!", "File[Par[[!*/!]]]");
-            assert_structure(
-                "with spaces",
-                "!hello } world :: !",
-                "File[Par[[!hello } world :: !]]]",
-            );
-            assert_structure("ignored in comment", "//!asdf!", "File[Par[[//!asdf!]]]");
+            ParserTest::new("text")
+                .input("!verb!")
+                .produces_ast("File[Par[[!verb!]]]");
+            ParserTest::new("comment")
+                .input("!//!")
+                .produces_ast("File[Par[[!//!]]]");
+            ParserTest::new("multi line comment start")
+                .input("!/*!")
+                .produces_ast("File[Par[[!/*!]]]");
+            ParserTest::new("multi line comment end")
+                .input("!*/!")
+                .produces_ast("File[Par[[!*/!]]]");
+            ParserTest::new("with spaces")
+                .input("!hello } world :: !")
+                .produces_ast("File[Par[[!hello } world :: !]]]");
+            ParserTest::new("ignored in comment")
+                .input("//!asdf!")
+                .produces_ast("File[Par[[//!asdf!]]]");
         }
 
         #[test]
         fn multiple() {
-            assert_structure(
-                "multiple-single-line",
-                "!verb1! !verb2!",
-                "File[Par[[!verb1!|< >|!verb2!]]]",
-            );
-            assert_structure(
-                "multiple-single-line",
-                "!verb1!\n!verb2!",
-                "File[Par[[!verb1!]|[!verb2!]]]",
-            );
+            ParserTest::new("multiple-single-line")
+                .input("!verb1! !verb2!")
+                .produces_ast("File[Par[[!verb1!|< >|!verb2!]]]");
+            ParserTest::new("multiple-single-line")
+                .input("!verb1!\n!verb2!")
+                .produces_ast("File[Par[[!verb1!]|[!verb2!]]]");
         }
     }
 
@@ -900,70 +903,49 @@ pub mod test {
 
         #[test]
         fn whole_line() {
-            assert_structure(
-                "no gap",
-                "//hello, world!\n",
-                "File[Par[[//hello, world!]]]",
-            );
-            assert_structure(
-                "leading space",
-                "// hello, world!\n",
-                "File[Par[[// hello, world!]]]",
-            );
-            assert_structure(
-                "leading tab",
-                "//\thello, world!\n",
-                r"File[Par[[//\thello, world!]]]",
-            );
+            ParserTest::new("sole")
+                .input("//")
+                .produces_ast("File[Par[[//]]]");
+            ParserTest::new("no gap")
+                .input("//hello, world!\n")
+                .produces_ast("File[Par[[//hello, world!]]]");
+            ParserTest::new("leading space")
+                .input("// hello, world!\n")
+                .produces_ast("File[Par[[// hello, world!]]]");
+            ParserTest::new("leading tab")
+                .input("//\thello, world!\n")
+                .produces_ast(r"File[Par[[//\thello, world!]]]");
         }
 
         #[test]
         fn partial() {
-            assert_structure(
-                "no gap",
-                "to me!//to you!\n",
-                r"File[Par[[Word(to)|< >|Word(me!)|//to you!]]]",
-            );
-            assert_structure(
-                "space-after-comment",
-                "to me!// to you!\n",
-                r"File[Par[[Word(to)|< >|Word(me!)|// to you!]]]",
-            );
-            assert_structure(
-                "space-after-comment",
-                "to me!//\tto you!\n",
-                r"File[Par[[Word(to)|< >|Word(me!)|//\tto you!]]]",
-            );
-            assert_structure(
-                "space-before-comment",
-                "to me! //to you!\n",
-                "File[Par[[Word(to)|< >|Word(me!)|< >|//to you!]]]",
-            );
-            assert_structure(
-                "tab-before-comment",
-                "to me!\t//to you!\n",
-                r"File[Par[[Word(to)|< >|Word(me!)|<\t>|//to you!]]]",
-            );
-            assert_structure(
-                "surrounding-spaces",
-                "to me! // to you!\n",
-                r"File[Par[[Word(to)|< >|Word(me!)|< >|// to you!]]]",
-            );
-            assert_structure(
-                "surrounding-tabs",
-                "to me!\t//\tto you!\n",
-                r"File[Par[[Word(to)|< >|Word(me!)|<\t>|//\tto you!]]]",
-            );
-            assert_structure(
-                "surrounding-mix-1",
-                "to me! //\tto you!\n",
-                r"File[Par[[Word(to)|< >|Word(me!)|< >|//\tto you!]]]",
-            );
-            assert_structure(
-                "surrounding-mix-2",
-                "to me!\t// to you!\n",
-                r"File[Par[[Word(to)|< >|Word(me!)|<\t>|// to you!]]]",
-            );
+            ParserTest::new("no gap")
+                .input("to me!//to you!\n")
+                .produces_ast(r"File[Par[[Word(to)|< >|Word(me!)|//to you!]]]");
+            ParserTest::new("space-after-comment")
+                .input("to me!// to you!\n")
+                .produces_ast(r"File[Par[[Word(to)|< >|Word(me!)|// to you!]]]");
+            ParserTest::new("space-after-comment")
+                .input("to me!//\tto you!\n")
+                .produces_ast(r"File[Par[[Word(to)|< >|Word(me!)|//\tto you!]]]");
+            ParserTest::new("space-before-comment")
+                .input("to me! //to you!\n")
+                .produces_ast("File[Par[[Word(to)|< >|Word(me!)|< >|//to you!]]]");
+            ParserTest::new("tab-before-comment")
+                .input("to me!\t//to you!\n")
+                .produces_ast(r"File[Par[[Word(to)|< >|Word(me!)|<\t>|//to you!]]]");
+            ParserTest::new("surrounding-spaces")
+                .input("to me! // to you!\n")
+                .produces_ast(r"File[Par[[Word(to)|< >|Word(me!)|< >|// to you!]]]");
+            ParserTest::new("surrounding-tabs")
+                .input("to me!\t//\tto you!\n")
+                .produces_ast(r"File[Par[[Word(to)|< >|Word(me!)|<\t>|//\tto you!]]]");
+            ParserTest::new("surrounding-mix-1")
+                .input("to me! //\tto you!\n")
+                .produces_ast(r"File[Par[[Word(to)|< >|Word(me!)|< >|//\tto you!]]]");
+            ParserTest::new("surrounding-mix-2")
+                .input("to me!\t// to you!\n")
+                .produces_ast(r"File[Par[[Word(to)|< >|Word(me!)|<\t>|// to you!]]]");
         }
 
         #[test]
@@ -974,27 +956,23 @@ pub mod test {
                 "The winds blew hard, her bow dipped down",
                 "Blow, me bully boys, blow",
             ];
-            assert_structure(
-                "multiple-comments",
-                &format!("//{}\n", lines.join("\n//")),
-                &format!(
+            ParserTest::new("multiple-comments")
+                .input(format!("//{}\n", lines.join("\n//")))
+                .produces_ast(format!(
                     "File[Par[[{}]]]",
                     lines
                         .iter()
                         .map(|l| format!("//{}", l))
                         .collect::<Vec<_>>()
                         .join("]|[")
-                ),
-            );
+                ));
         }
 
         #[test]
         fn as_trailer_arg() {
-            assert_structure(
-                "comment as sole arg",
-                ".spaghetti:\n\t//and meatballs",
-                "File[Par[.spaghetti::[Par[[//and meatballs]]]]]",
-            );
+            ParserTest::new("comment as sole arg")
+                .input(".spaghetti:\n\t//and meatballs")
+                .produces_ast("File[Par[.spaghetti::[Par[[//and meatballs]]]]]");
         }
     }
 
@@ -1003,143 +981,122 @@ pub mod test {
 
         #[test]
         fn empty() {
-            assert_structure("single", "/**/", r"File[Par[[/*[]*/]]]");
-            assert_structure("multiple", "/**//**/", r"File[Par[[/*[]*/|/*[]*/]]]");
-            assert_structure(
-                "multiple with space gap",
-                "/**/ /**/",
-                r"File[Par[[/*[]*/|< >|/*[]*/]]]",
-            );
-            assert_structure(
-                "multiple with tab gap",
-                "/**/\t/**/",
-                r"File[Par[[/*[]*/|<\t>|/*[]*/]]]",
-            );
-            assert_structure("stacked", "/**/\n/**/", r"File[Par[[/*[]*/]|[/*[]*/]]]");
-            assert_structure(
-                "pars with stacked",
-                "/**/\n\n/**/\n/**/",
-                r"File[Par[[/*[]*/]]|Par[[/*[]*/]|[/*[]*/]]]",
-            );
+            ParserTest::new("single")
+                .input("/**/")
+                .produces_ast(r"File[Par[[/*[]*/]]]");
+            ParserTest::new("multiple")
+                .input("/**//**/")
+                .produces_ast(r"File[Par[[/*[]*/|/*[]*/]]]");
+            ParserTest::new("multiple with space gap")
+                .input("/**/ /**/")
+                .produces_ast(r"File[Par[[/*[]*/|< >|/*[]*/]]]");
+            ParserTest::new("multiple with tab gap")
+                .input("/**/\t/**/")
+                .produces_ast(r"File[Par[[/*[]*/|<\t>|/*[]*/]]]");
+            ParserTest::new("stacked")
+                .input(indoc::indoc!(
+                    r"
+                        /**/
+                        /**/
+                    "
+                ))
+                .produces_ast(r"File[Par[[/*[]*/]|[/*[]*/]]]");
+            ParserTest::new("pars with stacked")
+                .input("/**/\n\n/**/\n/**/")
+                .produces_ast(r"File[Par[[/*[]*/]]|Par[[/*[]*/]|[/*[]*/]]]");
         }
 
         #[test]
         fn whitespace_contents() {
-            assert_structure("space only", "/* */", r"File[Par[[/*[ ]*/]]]");
-            assert_structure("tab only", "/*\t*/", r"File[Par[[/*[\t]*/]]]");
+            ParserTest::new("space only")
+                .input("/* */")
+                .produces_ast(r"File[Par[[/*[ ]*/]]]");
+            ParserTest::new("tab only")
+                .input("/*\t*/")
+                .produces_ast(r"File[Par[[/*[\t]*/]]]");
         }
 
         #[test]
         fn with_text() {
-            assert_structure(
-                "text",
-                "/*spaghetti and meatballs*/",
-                r"File[Par[[/*[spaghetti and meatballs]*/]]]",
-            );
-            assert_structure(
-                "text with surrounding space",
-                "/* spaghetti and meatballs */",
-                r"File[Par[[/*[ spaghetti and meatballs ]*/]]]",
-            );
-            assert_structure(
-                "text with newline",
-                "/*spaghetti and\nmeatballs*/",
-                r"File[Par[[/*[spaghetti and|\n|meatballs]*/]]]",
-            );
-            assert_structure(
-                "multiple comments",
-                "/*spaghetti*/\n/*and*/\n\n/*meatballs*/",
-                r"File[Par[[/*[spaghetti]*/]|[/*[and]*/]]|Par[[/*[meatballs]*/]]]",
-            );
+            ParserTest::new("text")
+                .input("/*spaghetti and meatballs*/")
+                .produces_ast(r"File[Par[[/*[spaghetti and meatballs]*/]]]");
+            ParserTest::new("text with surrounding space")
+                .input("/* spaghetti and meatballs */")
+                .produces_ast(r"File[Par[[/*[ spaghetti and meatballs ]*/]]]");
+            ParserTest::new("text with newline")
+                .input("/*spaghetti and\nmeatballs*/")
+                .produces_ast(r"File[Par[[/*[spaghetti and|\n|meatballs]*/]]]");
+            ParserTest::new("multiple comments")
+                .input("/*spaghetti*/\n/*and*/\n\n/*meatballs*/")
+                .produces_ast(r"File[Par[[/*[spaghetti]*/]|[/*[and]*/]]|Par[[/*[meatballs]*/]]]");
         }
 
         #[test]
         fn nested() {
-            assert_structure(
-                "nested comment",
-                "/*spaghetti/*and*/meatballs*/",
-                r"File[Par[[/*[spaghetti|Nested[and]|meatballs]*/]]]",
-            );
-            assert_structure(
-                "nested and indented comment",
-                "/*spaghetti\n\t/*\n\t\tand\n\t*/\nmeatballs*/",
-                r"File[Par[[/*[spaghetti|\n|\t|Nested[\n|\t\tand|\n|\t]|\n|meatballs]*/]]]",
-            );
-            assert_structure(
-                "nested unindented comment",
-                "/*spaghetti\n\t/*\nand\n\t*/\nmeatballs*/",
-                r"File[Par[[/*[spaghetti|\n|\t|Nested[\n|and|\n|\t]|\n|meatballs]*/]]]",
-            );
+            ParserTest::new("nested comment")
+                .input("/*spaghetti/*and*/meatballs*/")
+                .produces_ast(r"File[Par[[/*[spaghetti|Nested[and]|meatballs]*/]]]");
+            ParserTest::new("nested and indented comment")
+                .input("/*spaghetti\n\t/*\n\t\tand\n\t*/\nmeatballs*/")
+                .produces_ast(
+                    r"File[Par[[/*[spaghetti|\n|\t|Nested[\n|\t\tand|\n|\t]|\n|meatballs]*/]]]",
+                );
+            ParserTest::new("nested unindented comment")
+                .input("/*spaghetti\n\t/*\nand\n\t*/\nmeatballs*/")
+                .produces_ast(
+                    r"File[Par[[/*[spaghetti|\n|\t|Nested[\n|and|\n|\t]|\n|meatballs]*/]]]",
+                );
         }
 
         #[test]
         fn unmatched() {
-            assert_parse_error(
-                "open",
-                "/*spaghetti/*and*/meatballs",
-                r#"unclosed comment found at \["open[^:]*:1:1-2"\]"#,
-            );
-            assert_parse_error(
-                "open",
-                "/*spaghetti/*and meatballs",
-                r#"unclosed comment found at \["open[^:]*:1:1-2", "open[^:]*:1:12-13"\]"#,
-            );
-            assert_parse_error(
-                "close",
-                "spaghetti/*and*/meatballs */",
-                "no comment to close found at close[^:]*:1:27-28",
-            );
+            ParserTest::new("open")
+                .input("/*spaghetti/*and*/meatballs")
+                .expect(r#"unclosed comment found at \["open[^:]*:1:1-2"\]"#);
+            ParserTest::new("open")
+                .input("/*spaghetti/*and meatballs")
+                .expect(r#"unclosed comment found at \["open[^:]*:1:1-2", "open[^:]*:1:12-13"\]"#);
+            ParserTest::new("close")
+                .input("spaghetti/*and*/meatballs */")
+                .expect("no comment to close found at close[^:]*:1:27-28");
         }
 
         #[test]
         fn as_trailer_arg() {
-            assert_structure(
-                "comment as sole arg",
-                ".spaghetti:\n\t/*and meatballs*/",
-                "File[Par[.spaghetti::[Par[[/*[and meatballs]*/]]]]]",
-            );
+            ParserTest::new("comment as sole arg")
+                .input(".spaghetti:\n\t/*and meatballs*/")
+                .produces_ast("File[Par[.spaghetti::[Par[[/*[and meatballs]*/]]]]]");
         }
 
         #[test]
         fn final_indentation() {
-            assert_structure(
-                "final tab indent",
-                "/*spaghetti\n\t*/",
-                r"File[Par[[/*[spaghetti|\n|\t]*/]]]",
-            );
-            assert_structure(
-                "final spaces indent",
-                "/*spaghetti\n    */",
-                r"File[Par[[/*[spaghetti|\n|    ]*/]]]",
-            );
-            assert_structure(
-                "long, prettified comment block",
-                "/* spaghetti\n *and\n *meatballs\n */",
-                r"File[Par[[/*[ spaghetti|\n| *and|\n| *meatballs|\n| ]*/]]]",
-            );
+            ParserTest::new("final tab indent")
+                .input("/*spaghetti\n\t*/")
+                .produces_ast(r"File[Par[[/*[spaghetti|\n|\t]*/]]]");
+            ParserTest::new("final spaces indent")
+                .input("/*spaghetti\n    */")
+                .produces_ast(r"File[Par[[/*[spaghetti|\n|    ]*/]]]");
+            ParserTest::new("long, prettified comment block")
+                .input("/* spaghetti\n *and\n *meatballs\n */")
+                .produces_ast(r"File[Par[[/*[ spaghetti|\n| *and|\n| *meatballs|\n| ]*/]]]");
         }
 
         #[test]
         fn before_remainder_args() {
-            assert_structure(
-                "single-line",
-                "/*spaghetti*/.and: meatballs",
-                "File[Par[[/*[spaghetti]*/|.and:[Word(meatballs)]]]]",
-            );
-            assert_structure(
-                "multi-line",
-                "/*spaghetti\n\t\t*/.and: meatballs",
-                r"File[Par[[/*[spaghetti|\n|\t\t]*/|.and:[Word(meatballs)]]]]",
-            );
+            ParserTest::new("single-line")
+                .input("/*spaghetti*/.and: meatballs")
+                .produces_ast("File[Par[[/*[spaghetti]*/|.and:[Word(meatballs)]]]]");
+            ParserTest::new("multi-line")
+                .input("/*spaghetti\n\t\t*/.and: meatballs")
+                .produces_ast(r"File[Par[[/*[spaghetti|\n|\t\t]*/|.and:[Word(meatballs)]]]]");
         }
 
         #[test]
         fn before_trailer_args() {
-            assert_parse_error(
-                "trailer-args",
-                "/*spaghetti*/.and:\n\tmeatballs",
-                "Unrecognised token `newline` found at 1:19",
-            );
+            ParserTest::new("trailer-args")
+                .input("/*spaghetti*/.and:\n\tmeatballs")
+                .expect("Unrecognised token `newline` found at 1:19");
         }
     }
 
@@ -1148,45 +1105,45 @@ pub mod test {
 
         #[test]
         fn mark() {
-            assert_structure("sole", "@foo", "File[Par[[$mark[foo]]]]");
-            assert_structure(
-                "mid-line",
-                "hello @sup world",
-                r"File[Par[[Word(hello)|< >|$mark[sup]|< >|Word(world)]]]",
-            );
-            assert_structure("in-heading", "# @asdf", r"File[Par[[$h1{[$mark[asdf]]}]]]");
+            ParserTest::new("sole")
+                .input("@foo")
+                .produces_ast("File[Par[[$mark[foo]]]]");
+            ParserTest::new("mid-line")
+                .input("hello @sup world")
+                .produces_ast(r"File[Par[[Word(hello)|< >|$mark[sup]|< >|Word(world)]]]");
+            ParserTest::new("in-heading")
+                .input("# @asdf")
+                .produces_ast(r"File[Par[[$h1{[$mark[asdf]]}]]]");
             for c in ['!', '?', '\'', '"', '(', ')'] {
                 let repr = match c {
                     '"' | '(' | ')' => format!(r"\{c}"),
                     c => c.into(),
                 };
-                assert_structure(
-                    &format!("with-terminator-{c}"),
-                    &format!("#foo{c}"),
-                    &format!("File[Par[[$ref[foo]|Word({repr})]]]"),
-                );
+                ParserTest::new(format!("with-terminator-{c}"))
+                    .input(format!("#foo{c}"))
+                    .produces_ast(format!("File[Par[[$ref[foo]|Word({repr})]]]"));
             }
         }
 
         #[test]
         fn reference() {
-            assert_structure("sole", "#foo", "File[Par[[$ref[foo]]]]");
-            assert_structure(
-                "mid-line",
-                "hello #world!",
-                "File[Par[[Word(hello)|< >|$ref[world]|Word(!)]]]",
-            );
-            assert_structure("in-heading", "# #foo", "File[Par[[$h1{[$ref[foo]]}]]]");
+            ParserTest::new("sole")
+                .input("#foo")
+                .produces_ast("File[Par[[$ref[foo]]]]");
+            ParserTest::new("mid-line")
+                .input("hello #world!")
+                .produces_ast("File[Par[[Word(hello)|< >|$ref[world]|Word(!)]]]");
+            ParserTest::new("in-heading")
+                .input("# #foo")
+                .produces_ast("File[Par[[$h1{[$ref[foo]]}]]]");
             for c in ['!', '?', '\'', '"', '(', ')'] {
                 let repr = match c {
                     '"' | '(' | ')' => format!(r"\{c}"),
                     c => c.into(),
                 };
-                assert_structure(
-                    &format!("with-terminator-{c}"),
-                    &format!("#foo{c}"),
-                    &format!("File[Par[[$ref[foo]|Word({repr})]]]"),
-                );
+                ParserTest::new(format!("with-terminator-{c}"))
+                    .input(format!("#foo{c}"))
+                    .produces_ast(format!("File[Par[[$ref[foo]|Word({repr})]]]"));
             }
         }
 
@@ -1215,13 +1172,9 @@ pub mod test {
                     };
 
                     for (inner, inner_repr) in &DELIMS {
-                        let sanitised_inner = inner.replace('*', r"\*");
-
-                        assert_structure(
-                            &format!("normal nesting {outer} and {inner}"),
-                            &format!("{outer}spaghetti {inner}and{inner} meatballs{outer}"),
-                            &format!("File[Par[[{outer_repr}{{[Word(spaghetti)|< >|{inner_repr}{{[Word(and)]}}|< >|Word(meatballs)]}}]]]"),
-                        );
+                        ParserTest::new(format!("normal nesting {outer} and {inner}"))
+                            .input(format!("{outer}spaghetti {inner}and{inner} meatballs{outer}"))
+                            .produces_ast(format!("File[Par[[{outer_repr}{{[Word(spaghetti)|< >|{inner_repr}{{[Word(and)]}}|< >|Word(meatballs)]}}]]]"));
 
                         let inner_chars = {
                             let mut inner_chars: Vec<_> = inner.chars().collect();
@@ -1236,24 +1189,15 @@ pub mod test {
                             && outer_chars != ['`']
                         {
                             // Check for troublesome nesting
-                            assert_parse_error(
-                                &format!("clash-nesting {inner} and {outer}"),
-                                &format!("{outer}spaghetti {inner}and meatballs{inner}{outer}"),
-                                &format!(
-                                    r"delimiter mismatch for {sanitised_inner} found at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{} \(failed to match at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{}\)",
-                                    24 + outer.len() + inner.len(),
-                                    24 + outer.len() + 2 * inner.len(),
-                                    11 + outer.len(),
-                                    10 + outer.len() + inner.len()
-                                ),
-                            );
+                            let sanitised_inner = inner.replace('*', r"\*");
+                            ParserTest::new(format!("clash-nesting {inner} and {outer}"))
+                                .input(format!("{outer}spaghetti {inner}and meatballs{inner}{outer}"))
+                                .expect(format!(r"delimiter mismatch for {sanitised_inner} found at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{} \(failed to match at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{}\)", 24 + outer.len() + inner.len(), 24 + outer.len() + 2 * inner.len(), 11 + outer.len(), 10 + outer.len() + inner.len()));
                         } else {
                             // Check nesting is okay
-                            assert_structure(
-                                &format!("chash-nesting nesting {outer} and meatballs{inner}"),
-                                &format!("{outer}spaghetti {inner}and meatballs{inner}{outer}"),
-                                &format!("File[Par[[{outer_repr}{{[Word(spaghetti)|< >|{inner_repr}{{[Word(and)|< >|Word(meatballs)]}}]}}]]]"),
-                            );
+                            ParserTest::new(format!("chash-nesting nesting {outer} and meatballs{inner}"))
+                                .input(format!("{outer}spaghetti {inner}and meatballs{inner}{outer}"))
+                                .produces_ast(format!("File[Par[[{outer_repr}{{[Word(spaghetti)|< >|{inner_repr}{{[Word(and)|< >|Word(meatballs)]}}]}}]]]"));
                         }
                     }
                 }
@@ -1263,14 +1207,9 @@ pub mod test {
             fn multi_line() {
                 for (delim, _) in &DELIMS {
                     let sanitised = delim.replace('*', r"\*");
-                    assert_parse_error(
-                        &format!("multi-line {delim}"),
-                        &format!("{delim}foo\nbar{delim}"),
-                        &format!(
-                            r#"newline in "{sanitised}" emphasis found at multi-line {sanitised}[^:]*:1:{}-2:1"#,
-                            4 + delim.len()
-                        ),
-                    );
+                    ParserTest::new(format!("multi-line {delim}"))
+                        .input(format!("{delim}foo\nbar{delim}"))
+                        .expect(format!(r#"newline in "{sanitised}" emphasis found at multi-line {sanitised}[^:]*:1:{}-2:1"#, 4 + delim.len()));
                 }
             }
 
@@ -1284,17 +1223,9 @@ pub mod test {
 
                         let sanitised_left = left.replace('*', r"\*");
                         let sanitised_right = right.replace('*', r"\*");
-
-                        assert_parse_error(
-                            &format!("mismatch({left},{right})"),
-                            &format!("{left}foo{right}"),
-                            &format!(
-                                r"delimiter mismatch for {sanitised_left} found at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:{}-{} \(failed to match at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:1-{}\)",
-                                4 + left.len(),
-                                3 + left.len() + right.len(),
-                                left.len(),
-                            ),
-                        );
+                        ParserTest::new(format!("mismatch({left},{right})"))
+                            .input(format!("{left}foo{right}"))
+                            .expect(format!(r"delimiter mismatch for {sanitised_left} found at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:{}-{} \(failed to match at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:1-{}\)", 4 + left.len(), 3 + left.len() + right.len(), left.len(),));
                     }
                 }
             }
@@ -1307,75 +1238,55 @@ pub mod test {
             fn start_of_line() {
                 for level in 1..=6 {
                     for pluses in 0..=2 {
-                        assert_structure(
-                            &format!("level:{level}, pluses:{pluses}"),
-                            &format!("{}{} foo", "#".repeat(level), "+".repeat(pluses)),
-                            &format!(
+                        ParserTest::new(format!("level:{level}, pluses:{pluses}"))
+                            .input(format!("{}{} foo", "#".repeat(level), "+".repeat(pluses)))
+                            .produces_ast(format!(
                                 "File[Par[[$h{level}{}{{[Word(foo)]}}]]]",
                                 if pluses > 0 {
                                     format!("({})", "+".repeat(pluses))
                                 } else {
                                     "".into()
                                 }
-                            ),
-                        );
+                            ));
                     }
                 }
 
-                assert_structure(
-                    "nested inline args",
-                    "## .bar{baz}",
-                    "File[Par[[$h2{[.bar{[Word(baz)]}]}]]]",
-                );
-                assert_structure(
-                    "nested remainder args",
-                    "## .bar: baz",
-                    "File[Par[[$h2{[.bar:[Word(baz)]]}]]]",
-                );
-                assert_parse_error(
-                    "nested trailer args",
-                    "## .foo:\n\tbar",
-                    "Unrecognised token `newline` found at 1:9:2:1",
-                );
+                ParserTest::new("nested inline args")
+                    .input("## .bar{baz}")
+                    .produces_ast("File[Par[[$h2{[.bar{[Word(baz)]}]}]]]");
+                ParserTest::new("nested remainder args")
+                    .input("## .bar: baz")
+                    .produces_ast("File[Par[[$h2{[.bar:[Word(baz)]]}]]]");
+                ParserTest::new("nested trailer args")
+                    .input("## .foo:\n\tbar")
+                    .expect("Unrecognised token `newline` found at 1:9:2:1");
 
-                assert_parse_error(
-                    "nested headings",
-                    "## ## foo",
-                    "unexpected heading at nested headings[^:]*:1:4-5",
-                );
-                assert_parse_error(
-                    "no argument",
-                    "##",
-                    "Unrecognised token `newline` found at (1:1:1:3|1:3:2:1)",
-                );
+                ParserTest::new("nested headings")
+                    .input("## ## foo")
+                    .expect("unexpected heading at nested headings[^:]*:1:4-5");
+                ParserTest::new("no argument")
+                    .input("##")
+                    .expect("Unrecognised token `newline` found at (1:1:1:3|1:3:2:1)");
             }
 
             #[test]
             fn midline() {
-                assert_parse_error(
-                    "inline",
-                    "foo ###+ bar",
-                    "unexpected heading at inline[^:]*:1:5-8",
-                );
-                assert_parse_error(
-                    "inline-complex",
-                    "foo .bar: ###+ baz",
-                    "unexpected heading at inline[^:]*:1:11-14",
-                );
+                ParserTest::new("inline")
+                    .input("foo ###+ bar")
+                    .expect("unexpected heading at inline[^:]*:1:5-8");
+                ParserTest::new("inline-complex")
+                    .input("foo .bar: ###+ baz")
+                    .expect("unexpected heading at inline[^:]*:1:11-14");
             }
 
             #[test]
             fn too_deep() {
-                assert_parse_error(
-                    "plain",
-                    "#######",
-                    r"heading too deep at plain[^:]*:1:1-7 \(7 levels\)",
-                );
-                assert_parse_error(
-                    "with-plus",
-                    "#######+",
-                    r"heading too deep at with-plus[^:]*:1:1-8 \(7 levels\)",
-                );
+                ParserTest::new("plain")
+                    .input("#######")
+                    .expect(r"heading too deep at plain[^:]*:1:1-7 \(7 levels\)");
+                ParserTest::new("with-plus")
+                    .input("#######+")
+                    .expect(r"heading too deep at with-plus[^:]*:1:1-8 \(7 levels\)");
             }
         }
     }
