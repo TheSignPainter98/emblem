@@ -64,7 +64,7 @@ pub fn parse(file_name: FileName, content: FileContent) -> Result<ParsedFile> {
 
 #[cfg(test)]
 pub mod test {
-    use std::{borrow::Cow, ops::Deref};
+    use std::borrow::Cow;
 
     use super::*;
     use crate::{ast::AstDebug, Doc};
@@ -87,6 +87,15 @@ pub mod test {
         }
 
         pub fn input(mut self, input: impl Into<Cow<'static, str>>) -> Self {
+            let input = {
+                let mut input = input.into();
+                if input.ends_with("\n") {
+                    input = input[..input.len() - 1].to_string().into();
+                }
+                assert!(!input.ends_with("\n")); // Trailing newlines are added
+                                                 // elsewhere
+                input
+            };
             self.input = Some(input.into());
             self
         }
@@ -202,39 +211,6 @@ pub mod test {
         Doc(&'r str),
     }
 
-    #[deprecated]
-    fn assert_parse_error(name: &str, input: &str, expected: &str) {
-        let ctx = Context::new();
-        let re = Regex::new(&("^".to_string() + expected)).unwrap();
-        let inputs = [
-            (name, input),
-            (&format!("{} with newline", name), &format!("{}\n", input)),
-        ];
-        for (name, input) in inputs {
-            let result = parse(ctx.alloc_file_name(name), ctx.alloc_file_content(input));
-            assert!(result.is_err(), "{}: unexpected success", name);
-
-            let msg = result.unwrap_err().to_string();
-            assert!(
-                msg.contains(name),
-                "expected file name {name:?} in error messages {msg:?}"
-            );
-            let sanitised_msg = {
-                let sanitised_msg = msg.replace("Unrecognized", "Unrecognised");
-                // Remove file name
-                let colon_idx = sanitised_msg.find(':').expect("no colon after file name");
-                sanitised_msg[2 + colon_idx..].to_string()
-            };
-            assert!(
-                !expected.is_empty() && re.is_match(&sanitised_msg),
-                "{}: unexpected error:\n{}\n\nexpected message to start with:\n{}",
-                name,
-                sanitised_msg,
-                expected,
-            );
-        }
-    }
-
     mod shebang {
         use super::*;
 
@@ -328,7 +304,7 @@ pub mod test {
             ParserTest::new("single line with tabs")
                 .input("hello,\tworld!")
                 .produces_ast(r"File[Par[[Word(hello,)|<\t>|Word(world!)]]]");
-            ParserTest::new( "single line for many pars")
+            ParserTest::new("single line for many pars")
                 .input(indoc::indoc!("
                     Spiderpig, Spiderpig,
 
@@ -381,6 +357,7 @@ pub mod test {
             for num_pluses in 0..=3 {
                 let pluses = "+".repeat(num_pluses);
                 let ast_pluses = ast_debug_pluses(num_pluses);
+
                 ParserTest::new("command")
                     .input(format!(".order-66{pluses}"))
                     .produces_ast(format!("File[Par[[.order-66{ast_pluses}]]]"));
@@ -390,12 +367,13 @@ pub mod test {
                 ParserTest::new("trailing-dot")
                     .input(format!(".order.66{pluses}."))
                     .produces_ast(format!("File[Par[[.(order).66{ast_pluses}|Word(.)]]]"));
+
                 ParserTest::new("many-qualifiers")
                     .input(format!(".it.belongs.in.a.museum{pluses}"))
-                    .produces_ast(format!("extra dots found at many-qualifiers[^:]*:1:12-12, many-qualifiers[^:]*:1:15-15, many-qualifiers[^:]*:1:17-17 in command name at many-qualifiers[^:]*:1:1-{}", 23 + num_pluses));
+                    .expect(format!("extra dots found at many-qualifiers[^:]*:1:12-12, many-qualifiers[^:]*:1:15-15, many-qualifiers[^:]*:1:17-17 in command name at many-qualifiers[^:]*:1:1-{}", 23 + num_pluses));
                 ParserTest::new("empty-qualifier")
                     .input(format!("..what{pluses}"))
-                    .produces_ast(format!("empty qualifier found at empty-qualifier[^:]*:1:1-2 in command name at empty-qualifier[^:]*:1:1-{}", 6 + num_pluses));
+                    .expect(format!("empty qualifier found at empty-qualifier[^:]*:1:1-2 in command name at empty-qualifier[^:]*:1:1-{}", 6 + num_pluses));
             }
         }
 
@@ -404,6 +382,7 @@ pub mod test {
             for num_pluses in 0..=3 {
                 let pluses = "+".repeat(num_pluses);
                 let ast_pluses = ast_debug_pluses(num_pluses);
+
                 ParserTest::new("sole")
                     .input(format!(".exec{}{{order66}}", pluses))
                     .produces_ast(format!(
@@ -431,31 +410,31 @@ pub mod test {
 
                 ParserTest::new("newline in brace-arg")
                     .input(format!(".order66{}{{\n}}", pluses))
-                    .produces_ast(format!(
+                    .expect(format!(
                         "newline in braced args found at newline in brace-arg[^:]*:1:{}",
                         9 + num_pluses
                     ));
                 ParserTest::new("newline in brace-arg")
                     .input(format!(".order66{}{{general\nkenobi}}", pluses))
-                    .produces_ast(format!(
+                    .expect(format!(
                         "newline in braced args found at newline in brace-arg[^:]*:1:{}",
                         9 + num_pluses
                     ));
                 ParserTest::new("par-break in brace-arg")
                     .input(format!(".order66{}{{\n\n}}", pluses))
-                    .produces_ast(format!(
+                    .expect(format!(
                         "newline in braced args found at par-break in brace-arg[^:]*:1:{}",
                         9 + num_pluses
                     ));
                 ParserTest::new("par-break in brace-arg")
                     .input(format!(".order66{}{{general\n\nkenobi}}", pluses))
-                    .produces_ast(format!(
+                    .expect(format!(
                         "newline in braced args found at par-break in brace-arg[^:]*:1:{}",
                         9 + num_pluses
                     ));
                 ParserTest::new("many-qualifiers")
                     .input(format!(".order.6.6{}{{general\n\nkenobi}}", pluses))
-                    .produces_ast(format!("extra dots found at many-qualifiers[^:]*:1:9-9 in command name at many-qualifiers[^:]*:1:1-{}", 10 + num_pluses));
+                    .expect(format!("extra dots found at many-qualifiers[^:]*:1:9-9 in command name at many-qualifiers[^:]*:1:1-{}", 10 + num_pluses));
             }
         }
 
@@ -464,6 +443,7 @@ pub mod test {
             for num_pluses in 0..=3 {
                 let pluses = "+".repeat(num_pluses);
                 let ast_pluses = ast_debug_pluses(num_pluses);
+
                 ParserTest::new("many-qualifiers")
                     .input(format!(".qual.ifier{pluses}"))
                     .produces_ast(format!("File[Par[[.(qual).ifier{ast_pluses}]]]"));
@@ -485,13 +465,13 @@ pub mod test {
 
                 ParserTest::new("sole at end of line")
                     .input(".randy-dandy-o:")
-                    .produces_ast("Unrecognised EOF found at (1:16|2:1)");
+                    .expect("Unrecognised EOF found at (1:16|2:1)");
                 ParserTest::new("end of line")
                     .input("randy .dandy-o:")
-                    .produces_ast("Unrecognised token `newline` found at 1:1[56]");
+                    .expect("Unrecognised token `newline` found at 1:1[56]");
                 ParserTest::new("many-qualifiers")
                     .input(".randy.dandy.o")
-                    .produces_ast("extra dots found at many-qualifiers[^:]*:1:13-13 in command name at many-qualifiers[^:]*:1:1-14");
+                    .expect("extra dots found at many-qualifiers[^:]*:1:13-13 in command name at many-qualifiers[^:]*:1:1-14");
             }
         }
 
@@ -613,42 +593,43 @@ pub mod test {
                         .produces_ast(test.expected_structure);
                 }
 
-                assert_parse_error(
-                    "end of populated line",
-                    &[
-                        "william taylor was a .brisk{young sailor}:",
-                        "\tfull of heart and full of play",
-                    ]
-                    .join("\n"),
-                    "Unrecognised token `newline` found at 1:43:2:1",
-                );
-                assert_parse_error(
-                    "missing indent",
-                    &[".until{did his mind uncover}:", "to a youthful lady gay"].join("\n"),
-                    "Unrecognised token `word` found at 2:1:2:3",
-                );
-                assert_parse_error(
-                    "missing second trailer",
-                    &[
-                        ".until{did his mind uncover}:",
-                        "\tto a youthful lady gay",
-                        "::",
-                        "\tfour and twenty british sailors",
-                        "::",
-                    ]
-                    .join("\n"),
-                    "Unrecognised EOF found at (5:3|6:1)",
-                );
-                assert_parse_error(
-                    "many-qualifiers",
-                    &[
-                        ".met.him.on.the{king's highway}:",
-                        "\tas he went for to be married",
-                        "::",
-                        "\tpressed he was and sent away"
-                    ].join("\n"),
-                    "extra dots found at many-qualifiers[^:]*:1:9-9, many-qualifiers[^:]*:1:12-12 in command name at many-qualifiers[^:]*:1:1-15",
-                );
+                ParserTest::new("end of populated line")
+                    .input(indoc::indoc!(
+                        "
+                            william taylor was a .brisk{young sailor}:
+                            \tfull of heart and full of play
+                        "
+                    ))
+                    .expect("Unrecognised token `newline` found at 1:43:2:1");
+                ParserTest::new("missing indent")
+                    .input(indoc::indoc!(
+                        "
+                            .until{did his mind uncover}:
+                            to a youthful lady gay
+                        "
+                    ))
+                    .expect("Unrecognised token `word` found at 2:1:2:3");
+                ParserTest::new("missing second trailer")
+                    .input(indoc::indoc!(
+                        "
+                            .until{did his mind uncover}:
+                            \tto a youthful lady gay
+                            ::
+                            \tfour and twenty british sailors
+                            ::
+                        "
+                    ))
+                    .expect("Unrecognised EOF found at (5:3|6:1)");
+                ParserTest::new("many-qualifiers")
+                    .input(indoc::indoc!(
+                        "
+                            .met.him.on.the{king's highway}:
+                            \tas he went for to be married
+                            ::
+                            \tpressed he was and sent away
+                        "
+                    ))
+                    .expect("extra dots found at many-qualifiers[^:]*:1:9-9, many-qualifiers[^:]*:1:12-12 in command name at many-qualifiers[^:]*:1:1-15");
             }
         }
 
@@ -687,79 +668,45 @@ pub mod test {
                 .input(".heave[the,old=wheel,round]:\n\tand\n::\n\tround")
                 .produces_ast(r"File[Par[.heave[(the)|(old)=(wheel)|(round)]::[Par[[Word(and)]]]::[Par[[Word(round)]]]]]");
 
-            assert_parse_error("unclosed", ".heave[", "(unexpected EOF found at 1:8|newline in attributes found at unclosed with newline:1:7-7)");
-            assert_parse_error(
-                "unexpected open bracket",
-                ".heave[[",
-                r"(unexpected EOF found at 1:9|unexpected character '\[' found at unexpected open bracket[^:]*:1:8-8)",
-            );
+            ParserTest::new("unclosed")
+                .input(".heave[")
+                .expect("(unexpected EOF found at 1:8|newline in attributes found at unclosed with newline:1:7-7)");
+            ParserTest::new("unexpected open bracket")
+                .input(".heave[[")
+                .expect(r"(unexpected EOF found at 1:9|unexpected character '\[' found at unexpected open bracket[^:]*:1:8-8)");
         }
     }
 
     mod interword {
+        use std::fmt::Display;
+
         use super::*;
 
-        fn test_dash(name: &str, dash: &str, repr: &str) {
-            ParserTest::new(name)
+        fn test_dash<T>(name: T, dash: &'static str, repr: &'static str)
+        where
+            T: Into<Cow<'static, str>> + Clone,
+        {
+            ParserTest::new(name.clone())
                 .input(dash)
                 .produces_ast(format!("File[Par[[{}]]]", repr));
-            ParserTest::new(name)
+            ParserTest::new(name.clone())
                 .input(format!("a{}b", dash))
                 .produces_ast(format!("File[Par[[Word(a)|{}|Word(b)]]]", repr));
-            ParserTest::new(name)
+            ParserTest::new(name.clone())
                 .input(format!("a {}b", dash))
                 .produces_ast(format!("File[Par[[Word(a)|< >|{}|Word(b)]]]", repr));
-            ParserTest::new(name)
+            ParserTest::new(name.clone())
                 .input(format!("a{} b", dash))
                 .produces_ast(format!("File[Par[[Word(a)|{}|< >|Word(b)]]]", repr));
-            ParserTest::new(name)
+            ParserTest::new(name.clone())
                 .input(format!("a {} b", dash))
                 .produces_ast(format!("File[Par[[Word(a)|< >|{}|< >|Word(b)]]]", repr));
-            ParserTest::new(name)
+            ParserTest::new(name.clone())
                 .input(format!("a\n{}b", dash))
                 .produces_ast(format!("File[Par[[Word(a)]|[{}|Word(b)]]]", repr));
             ParserTest::new(name)
                 .input(format!("a{}\nb", dash))
                 .produces_ast(format!("File[Par[[Word(a)|{}]|[Word(b)]]]", repr));
-        }
-
-        fn test_glue(name: &str, glue: &str, repr: &str) {
-            ParserTest::new(name)
-                .input(glue)
-                .produces_ast(format!("File[Par[[SpiltGlue({})]]]", repr));
-            ParserTest::new(name)
-                .input(format!("a{}b", glue))
-                .produces_ast(format!("File[Par[[Word(a)|{}|Word(b)]]]", repr));
-            ParserTest::new(name)
-                .input(format!("a {}b", glue))
-                .produces_ast(format!("File[Par[[Word(a)|SpiltGlue( {})|Word(b)]]]", repr));
-            ParserTest::new(name)
-                .input(format!("a{} b", glue))
-                .produces_ast(format!("File[Par[[Word(a)|SpiltGlue({} )|Word(b)]]]", repr));
-            ParserTest::new(name)
-                .input(format!("a {} b", glue))
-                .produces_ast(format!(
-                    "File[Par[[Word(a)|SpiltGlue( {} )|Word(b)]]]",
-                    repr
-                ));
-            ParserTest::new(name)
-                .input(format!("a\n{}b", glue))
-                .produces_ast(format!(
-                    "File[Par[[Word(a)]|[SpiltGlue({})|Word(b)]]]",
-                    repr
-                ));
-            ParserTest::new(name)
-                .input(format!("a{}\nb", glue))
-                .produces_ast(format!(
-                    "File[Par[[Word(a)|SpiltGlue({})]|[Word(b)]]]",
-                    repr
-                ));
-            ParserTest::new(name)
-                .input(format!("a{}", glue))
-                .produces_ast(format!("File[Par[[Word(a)|SpiltGlue({})]]]", repr));
-            ParserTest::new(name)
-                .input(format!("{}b", glue))
-                .produces_ast(format!("File[Par[[SpiltGlue({})|Word(b)]]]", repr));
         }
 
         #[test]
@@ -777,14 +724,56 @@ pub mod test {
             test_dash("em", "---", "---");
         }
 
+        fn test_glue<T>(name: T, glue: &'static str, repr: &'static str)
+        where
+            T: Into<Cow<'static, str>> + Clone,
+        {
+            ParserTest::new(name.clone())
+                .input(glue)
+                .produces_ast(format!("File[Par[[SpiltGlue({})]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a{}b", glue))
+                .produces_ast(format!("File[Par[[Word(a)|{}|Word(b)]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a {}b", glue))
+                .produces_ast(format!("File[Par[[Word(a)|SpiltGlue( {})|Word(b)]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a{} b", glue))
+                .produces_ast(format!("File[Par[[Word(a)|SpiltGlue({} )|Word(b)]]]", repr));
+            ParserTest::new(name.clone())
+                .input(format!("a {} b", glue))
+                .produces_ast(format!(
+                    "File[Par[[Word(a)|SpiltGlue( {} )|Word(b)]]]",
+                    repr
+                ));
+            ParserTest::new(name.clone())
+                .input(format!("a\n{}b", glue))
+                .produces_ast(format!(
+                    "File[Par[[Word(a)]|[SpiltGlue({})|Word(b)]]]",
+                    repr
+                ));
+            ParserTest::new(name.clone())
+                .input(format!("a{}\nb", glue))
+                .produces_ast(format!(
+                    "File[Par[[Word(a)|SpiltGlue({})]|[Word(b)]]]",
+                    repr
+                ));
+            ParserTest::new(name.clone())
+                .input(format!("a{}", glue))
+                .produces_ast(format!("File[Par[[Word(a)|SpiltGlue({})]]]", repr));
+            ParserTest::new(name)
+                .input(format!("{}b", glue))
+                .produces_ast(format!("File[Par[[SpiltGlue({})|Word(b)]]]", repr));
+        }
+
         #[test]
         fn glue() {
-            test_glue("em", "~", "~");
+            test_glue("glue", "~", "~");
         }
 
         #[test]
         fn nbsp() {
-            test_glue("em", "~~", "~~");
+            test_glue("nbsp", "~~", "~~");
         }
 
         #[test]
@@ -793,7 +782,12 @@ pub mod test {
             test_dash("em-en", "-----", "---|--");
             test_dash("em-em", "------", "---|---");
 
-            fn test_mix(name: &str, to_test: &str, repr: &str) {
+            fn test_mix<S, T, R>(name: S, to_test: T, repr: R)
+            where
+                S: Into<Cow<'static, str>> + Clone,
+                T: Into<Cow<'static, str>> + Clone + Display,
+                R: Into<Cow<'static, str>> + Clone + Display,
+            {
                 ParserTest::new(name)
                     .input(format!("a{to_test}b"))
                     .produces_ast(format!("File[Par[[Word(a)|{repr}|Word(b)]]]"));
@@ -809,48 +803,48 @@ pub mod test {
             for (raw, repr) in glues {
                 test_mix(
                     "glue-mixed-1-dash-1",
-                    &format!("{raw}-",),
-                    &format!("{repr}|-"),
+                    format!("{raw}-",),
+                    format!("{repr}|-"),
                 );
                 test_mix(
                     "glue-mixed-1-dash-2",
-                    &format!("-{raw}",),
-                    &format!("-|{repr}"),
+                    format!("-{raw}",),
+                    format!("-|{repr}"),
                 );
                 test_mix(
                     "glue-mixed-2-dashes-1",
-                    &format!("{raw}--",),
-                    &format!("{repr}|--"),
+                    format!("{raw}--",),
+                    format!("{repr}|--"),
                 );
                 test_mix(
                     "glue-mixed-2-dashes-2",
-                    &format!("-{raw}-",),
-                    &format!("-|{repr}|-"),
+                    format!("-{raw}-",),
+                    format!("-|{repr}|-"),
                 );
                 test_mix(
                     "glue-mixed-2-dashes-3",
-                    &format!("--{raw}",),
-                    &format!("--|{repr}"),
+                    format!("--{raw}",),
+                    format!("--|{repr}"),
                 );
                 test_mix(
                     "glue-mixed-3-dashes-1",
-                    &format!("{raw}---",),
-                    &format!("{repr}|---"),
+                    format!("{raw}---",),
+                    format!("{repr}|---"),
                 );
                 test_mix(
                     "glue-mixed-3-dashes-2",
-                    &format!("-{raw}--",),
-                    &format!("-|{repr}|--"),
+                    format!("-{raw}--",),
+                    format!("-|{repr}|--"),
                 );
                 test_mix(
                     "glue-mixed-3-dashes-3",
-                    &format!("--{raw}-",),
-                    &format!("--|{repr}|-"),
+                    format!("--{raw}-",),
+                    format!("--|{repr}|-"),
                 );
                 test_mix(
                     "glue-mixed-3-dashes-4",
-                    &format!("---{raw}",),
-                    &format!("---|{repr}"),
+                    format!("---{raw}",),
+                    format!("---|{repr}"),
                 );
             }
         }
@@ -1060,15 +1054,13 @@ pub mod test {
         fn unmatched() {
             ParserTest::new("open")
                 .input("/*spaghetti/*and*/meatballs")
-                .produces_ast(r#"unclosed comment found at \["open[^:]*:1:1-2"\]"#);
+                .expect(r#"unclosed comment found at \["open[^:]*:1:1-2"\]"#);
             ParserTest::new("open")
                 .input("/*spaghetti/*and meatballs")
-                .produces_ast(
-                    r#"unclosed comment found at \["open[^:]*:1:1-2", "open[^:]*:1:12-13"\]"#,
-                );
+                .expect(r#"unclosed comment found at \["open[^:]*:1:1-2", "open[^:]*:1:12-13"\]"#);
             ParserTest::new("close")
                 .input("spaghetti/*and*/meatballs */")
-                .produces_ast("no comment to close found at close[^:]*:1:27-28");
+                .expect("no comment to close found at close[^:]*:1:27-28");
         }
 
         #[test]
@@ -1105,7 +1097,7 @@ pub mod test {
         fn before_trailer_args() {
             ParserTest::new("trailer-args")
                 .input("/*spaghetti*/.and:\n\tmeatballs")
-                .produces_ast("Unrecognised token `newline` found at 1:19");
+                .expect("Unrecognised token `newline` found at 1:19");
         }
     }
 
@@ -1201,7 +1193,7 @@ pub mod test {
                             let sanitised_inner = inner.replace('*', r"\*");
                             ParserTest::new(format!("clash-nesting {inner} and {outer}"))
                                 .input(format!("{outer}spaghetti {inner}and meatballs{inner}{outer}"))
-                                .produces_ast(format!( r"delimiter mismatch for {sanitised_inner} found at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{} \(failed to match at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{}\)", 24 + outer.len() + inner.len(), 24 + outer.len() + 2 * inner.len(), 11 + outer.len(), 10 + outer.len() + inner.len()));
+                                .expect(format!(r"delimiter mismatch for {sanitised_inner} found at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{} \(failed to match at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{}\)", 24 + outer.len() + inner.len(), 24 + outer.len() + 2 * inner.len(), 11 + outer.len(), 10 + outer.len() + inner.len()));
                         } else {
                             // Check nesting is okay
                             ParserTest::new(format!("chash-nesting nesting {outer} and meatballs{inner}"))
@@ -1218,7 +1210,7 @@ pub mod test {
                     let sanitised = delim.replace('*', r"\*");
                     ParserTest::new(format!("multi-line {delim}"))
                         .input(format!("{delim}foo\nbar{delim}"))
-                        .produces_ast(format!( r#"newline in "{sanitised}" emphasis found at multi-line {sanitised}[^:]*:1:{}-2:1"#, 4 + delim.len()));
+                        .expect(format!(r#"newline in "{sanitised}" emphasis found at multi-line {sanitised}[^:]*:1:{}-2:1"#, 4 + delim.len()));
                 }
             }
 
@@ -1234,7 +1226,7 @@ pub mod test {
                         let sanitised_right = right.replace('*', r"\*");
                         ParserTest::new(format!("mismatch({left},{right})"))
                             .input(format!("{left}foo{right}"))
-                            .produces_ast(format!(r"delimiter mismatch for {sanitised_left} found at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:{}-{} \(failed to match at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:1-{}\)", 4 + left.len(), 3 + left.len() + right.len(), left.len(),));
+                            .expect(format!(r"delimiter mismatch for {sanitised_left} found at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:{}-{} \(failed to match at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:1-{}\)", 4 + left.len(), 3 + left.len() + right.len(), left.len(),));
                     }
                 }
             }
@@ -1268,34 +1260,34 @@ pub mod test {
                     .produces_ast("File[Par[[$h2{[.bar:[Word(baz)]]}]]]");
                 ParserTest::new("nested trailer args")
                     .input("## .foo:\n\tbar")
-                    .produces_ast("Unrecognised token `newline` found at 1:9:2:1");
+                    .expect("Unrecognised token `newline` found at 1:9:2:1");
 
                 ParserTest::new("nested headings")
                     .input("## ## foo")
-                    .produces_ast("unexpected heading at nested headings[^:]*:1:4-5");
+                    .expect("unexpected heading at nested headings[^:]*:1:4-5");
                 ParserTest::new("no argument")
                     .input("##")
-                    .produces_ast("Unrecognised token `newline` found at (1:1:1:3|1:3:2:1)");
+                    .expect("Unrecognised token `newline` found at (1:1:1:3|1:3:2:1)");
             }
 
             #[test]
             fn midline() {
                 ParserTest::new("inline")
                     .input("foo ###+ bar")
-                    .produces_ast("unexpected heading at inline[^:]*:1:5-8");
+                    .expect("unexpected heading at inline[^:]*:1:5-8");
                 ParserTest::new("inline-complex")
                     .input("foo .bar: ###+ baz")
-                    .produces_ast("unexpected heading at inline[^:]*:1:11-14");
+                    .expect("unexpected heading at inline[^:]*:1:11-14");
             }
 
             #[test]
             fn too_deep() {
                 ParserTest::new("plain")
                     .input("#######")
-                    .produces_ast(r"heading too deep at plain[^:]*:1:1-7 \(7 levels\)");
+                    .expect(r"heading too deep at plain[^:]*:1:1-7 \(7 levels\)");
                 ParserTest::new("with-plus")
                     .input("#######+")
-                    .produces_ast(r"heading too deep at with-plus[^:]*:1:1-8 \(7 levels\)");
+                    .expect(r"heading too deep at with-plus[^:]*:1:1-8 \(7 levels\)");
             }
         }
     }
