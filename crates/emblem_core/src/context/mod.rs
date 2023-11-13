@@ -110,7 +110,7 @@ impl Context {
     pub fn test_new() -> Self {
         Self {
             name: Some("On the Origin of Burnt Toast".into()),
-            version: Some(Version::current()),
+            version: Some(Version::latest()),
             doc_params: DocumentParameters::test_new(),
             lua_params: LuaParameters::test_new(),
             typesetter_params: TypesetterParameters::test_new(),

@@ -51,7 +51,7 @@ mod test {
             static ref VALID_ID: Regex = Regex::new(r"^[a-z-]+$").unwrap();
         }
 
-        let lints = lints_for(Version::current());
+        let lints = lints_for(Version::latest());
         let ids = lints.iter().map(|l| l.id()).collect::<Vec<_>>();
 
         for id in &ids {
@@ -64,7 +64,7 @@ mod test {
     #[test]
     fn unique_ids() {
         let mut ids = HashSet::new();
-        for lint in lints_for(Version::current()) {
+        for lint in lints_for(Version::latest()) {
             assert!(ids.insert(lint.id()), "id {:?} is not unique", lint.id());
         }
     }
