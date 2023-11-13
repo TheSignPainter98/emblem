@@ -91,7 +91,7 @@ mod test {
 
     #[test]
     fn par() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let file = parse(&ctx, "par", "have\nfun");
         assert_eq!(
             "par:1:1-2:4",
@@ -101,7 +101,7 @@ mod test {
 
     #[test]
     fn par_part_command() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let remainder_file = parse(
             &ctx,
             "par-part-command",
@@ -146,7 +146,7 @@ mod test {
         ];
 
         for (name, loc, idx, src) in tests {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let repr_loc = parse(&ctx, name, src).pars[0].parts[0].line().unwrap()[idx]
                 .repr_loc()
                 .to_string();
@@ -182,7 +182,7 @@ mod test {
         ];
 
         for (name, loc, src) in tests {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             assert_eq!(
                 format!("{name}:{loc}"),
                 parse(&ctx, name, src)

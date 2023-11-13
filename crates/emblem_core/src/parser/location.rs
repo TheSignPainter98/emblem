@@ -134,7 +134,7 @@ mod test {
         use super::*;
         #[test]
         fn mid_line() {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let text = "my name\nis methos";
             let start = Point::at_start_of(
                 ctx.alloc_file_name("fname.em"),
@@ -150,7 +150,7 @@ mod test {
 
         #[test]
         fn end_of_line() {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let text = "my name is methos\n";
             let start = Point::at_start_of(
                 ctx.alloc_file_name("fname.em"),
@@ -167,7 +167,7 @@ mod test {
 
     #[test]
     fn start() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let text = "my name is methos\n";
         let start = Point::at_start_of(
             ctx.alloc_file_name("fname.em"),
@@ -180,7 +180,7 @@ mod test {
 
     #[test]
     fn end() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let text = "my name is methos\n";
         let start = Point::at_start_of(
             ctx.alloc_file_name("fname.em"),
@@ -193,7 +193,7 @@ mod test {
 
     #[test]
     fn span_to() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let text = "my name is methos\n";
         let p1 = Point::at_start_of(
             ctx.alloc_file_name("fname.em"),
@@ -233,7 +233,7 @@ mod test {
 
         #[test]
         fn single_line() {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let text = "oh! santiana gained a day";
             let text_start = Point::at_start_of(
                 ctx.alloc_file_name("fname.em"),
@@ -255,7 +255,7 @@ mod test {
 
         #[test]
         fn multi_line() {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let lines = [
                 "oh! santiana gained a day",
                 "away santiana!",

@@ -378,7 +378,7 @@ mod test {
 
         #[test]
         fn args() {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let p1 = Point::at_start_of(
                 ctx.alloc_file_name("fname.em"),
                 ctx.alloc_file_content("helloworld"),
@@ -408,7 +408,7 @@ mod test {
 
         #[test]
         fn unnamed() {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let raw = " \tfoo\t ";
             let p1 =
                 Point::at_start_of(ctx.alloc_file_name("fname.em"), ctx.alloc_file_content(raw));
@@ -422,7 +422,7 @@ mod test {
 
         #[test]
         fn named() {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let raw = " \tfoo\t =\t bar \t";
             let p1 =
                 Point::at_start_of(ctx.alloc_file_name("fname.em"), ctx.alloc_file_content(raw));
@@ -441,7 +441,7 @@ mod test {
 
         #[test]
         fn call_name() {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let text = "hello, world!";
             let p1 =
                 Point::at_start_of(ctx.alloc_file_name("main.em"), ctx.alloc_file_content(text));

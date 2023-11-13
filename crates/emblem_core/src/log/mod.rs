@@ -241,7 +241,6 @@ impl Logger {
     }
 }
 
-#[cfg(test)]
 impl Logger {
     pub fn test_new() -> Self {
         Self::new(Verbosity::Verbose, false, false)
@@ -592,7 +591,7 @@ mod test {
 
     #[test]
     fn srcs() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let content = ctx.alloc_file_content("hello, world");
         let srcs = [
             Point::at_start_of(ctx.alloc_file_name("main.em"), content.clone()),

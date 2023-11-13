@@ -149,7 +149,7 @@ mod test {
             let found_content = &fs::read_to_string(&main_file)?;
 
             assert_eq!(expected_main_content, found_content);
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             assert!(parser::parse(
                 ctx.alloc_file_name(main_file.as_path().to_str().unwrap()),
                 ctx.alloc_file_content(expected_main_content)
@@ -175,7 +175,7 @@ mod test {
     fn empty_dir() -> Result<()> {
         let tmpdir = tempfile::tempdir()?;
 
-        let mut ctx = Context::new();
+        let mut ctx = Context::test_new();
         let result = do_init(&mut ctx, &tmpdir);
         assert!(result.is_ok(), "unexpected error: {}", result.unwrap_err());
 
@@ -216,14 +216,14 @@ mod test {
         fs::write(manifest_file_path, manifest_file_content)?;
 
         {
-            let mut ctx = Context::new();
+            let mut ctx = Context::test_new();
             let result = do_init(&mut ctx, &tmpdir);
             assert!(result.is_ok(), "unexpected error: {}", result.unwrap_err());
             test_files(&tmpdir, main_file_content, manifest_file_content)?;
         }
 
         {
-            let mut ctx = Context::new();
+            let mut ctx = Context::test_new();
             let result = do_init(&mut ctx, &tmpdir);
             assert!(result.is_ok(), "unexpected error: {}", result.unwrap_err());
             test_files(&tmpdir, main_file_content, manifest_file_content)

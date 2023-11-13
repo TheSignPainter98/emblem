@@ -125,7 +125,7 @@ pub mod test {
         }
 
         fn assert_input_produces(&self, name: &str, input: &str, expected: &StructureRepr<'_>) {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let parse_result = self.parse(&ctx, name, input);
             let Ok(ast) = parse_result else {
                 panic!(
@@ -159,7 +159,7 @@ pub mod test {
         }
 
         fn assert_input_errors(&self, name: &str, input: &str, matches: &Regex) {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let parse_result = self.parse(&ctx, name, input);
             assert!(parse_result.is_err(), "{}: unexpected success", name);
             let msg = parse_result.unwrap_err().to_string();
