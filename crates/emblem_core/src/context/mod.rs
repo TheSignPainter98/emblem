@@ -18,6 +18,8 @@ use std::fmt::Debug;
 
 #[derive(Default)]
 pub struct Context {
+    name: Option<String>,
+    version: Option<Version>,
     doc_params: DocumentParameters,
     lua_params: LuaParameters,
     typesetter_params: TypesetterParameters,
@@ -35,6 +37,22 @@ impl Context {
             logger: RefCell::new(logger),
             ..Self::default()
         }
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    pub fn set_name(&mut self, name: impl Into<String>) {
+        self.name = Some(name.into());
+    }
+
+    pub fn version(&self) -> Option<Version> {
+        self.version
+    }
+
+    pub fn set_version(&mut self, version: Version) {
+        self.version = Some(version);
     }
 
     pub fn alloc_file_name(&self, name: impl AsRef<str>) -> FileName {
@@ -91,6 +109,8 @@ impl Context {
 impl Context {
     pub fn test_new() -> Self {
         Self {
+            name: Some("On the Origin of Burnt Toast".into()),
+            version: Some(Version::current()),
             doc_params: DocumentParameters::test_new(),
             lua_params: LuaParameters::test_new(),
             typesetter_params: TypesetterParameters::test_new(),
@@ -103,29 +123,11 @@ impl Context {
 #[derive(Debug, Default)]
 pub struct DocumentParameters {
     // TODO(kcza): use a nice Rc<str>-like representation
-    name: Option<String>,
-    emblem_version: Option<Version>,
     authors: Option<Vec<String>>,
     keywords: Option<Vec<String>>,
 }
 
 impl DocumentParameters {
-    pub fn set_name(&mut self, name: impl Into<String>) {
-        self.name = Some(name.into());
-    }
-
-    pub fn name(&self) -> Option<&str> {
-        self.name.as_deref()
-    }
-
-    pub fn set_emblem_version(&mut self, emblem_version: Version) {
-        self.emblem_version = Some(emblem_version);
-    }
-
-    pub fn emblem_version(&self) -> &Option<Version> {
-        &self.emblem_version
-    }
-
     pub fn set_authors(&mut self, authors: Vec<String>) {
         self.authors = Some(authors);
     }
@@ -147,8 +149,6 @@ impl DocumentParameters {
 impl DocumentParameters {
     pub fn test_new() -> Self {
         Self {
-            name: Some("On the Origin of Burnt Toast".into()),
-            emblem_version: Some(Version::V1_0),
             authors: Some(vec!["kcza".into()]),
             keywords: Some(
                 ["toast", "burnt", "backstory"]

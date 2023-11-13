@@ -14,7 +14,13 @@ impl Version {
         }
     }
 
-    pub fn current() -> Self {
+    pub(crate) fn current() -> Self {
         Self::V1_0
+    }
+}
+
+impl Default for Version {
+    fn default() -> Self {
+        Self::current()
     }
 }
