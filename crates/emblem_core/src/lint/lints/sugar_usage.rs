@@ -1,3 +1,4 @@
+use crate::Version;
 use std::collections::HashMap;
 
 use crate::ast::parsed::Content;
@@ -56,6 +57,10 @@ lazy_static! {
 }
 
 impl Lint for SugarUsage {
+    fn min_version(&self) -> Version {
+        Version::V1_0
+    }
+
     fn id(&self) -> LintId {
         "sugar-usage".into()
     }

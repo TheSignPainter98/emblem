@@ -6,12 +6,17 @@ use crate::context::file_content::FileSlice;
 use crate::lint::Lint;
 use crate::lint::LintId;
 use crate::log::{Log, Note, Src};
+use crate::Version;
 use derive_new::new;
 
 #[derive(new)]
 pub struct DuplicateAttrs {}
 
 impl Lint for DuplicateAttrs {
+    fn min_version(&self) -> Version {
+        Version::V1_0
+    }
+
     fn id(&self) -> LintId {
         "duplicate-attrs".into()
     }

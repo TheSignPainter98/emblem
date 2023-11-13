@@ -19,6 +19,7 @@ derive-new = "0.5.9"
 derive_more = "0.99.17"
 git2 = { version = "0.16.1", optional = true }
 indoc = "2.0.1"
+itertools = "0.11.0"
 kinded = "0.3.0"
 lalrpop = "0.19.8"
 lalrpop-util = "0.19.8"
@@ -30,6 +31,8 @@ parking_lot = "0.12.1"
 phf = { version = "0.11.1", features = ["macros"] }
 regex = "1"
 sealed = "0.5.0"
+strum = { version = "0.25.0", features = ["derive"] }
+strum_macros = "0.25.3"
 thiserror = "1.0.48"
 typed-arena = "2.0.1"
 uniquote = "3.3.0"

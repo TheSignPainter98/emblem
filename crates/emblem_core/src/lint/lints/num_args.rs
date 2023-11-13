@@ -7,6 +7,7 @@ use crate::context::file_content::FileSlice;
 use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
 use crate::util;
+use crate::Version;
 use derive_new::new;
 
 #[derive(new)]
@@ -38,6 +39,10 @@ lazy_static! {
 }
 
 impl Lint for NumArgs {
+    fn min_version(&self) -> Version {
+        Version::V1_0
+    }
+
     fn id(&self) -> LintId {
         "num-args".into()
     }
