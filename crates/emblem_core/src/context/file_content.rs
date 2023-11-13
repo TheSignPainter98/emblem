@@ -329,7 +329,7 @@ mod test {
             );
         }
 
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         range_test(
             "range",
             &ctx,
@@ -393,7 +393,7 @@ mod test {
             );
         }
 
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         range_test(
             "range",
             &ctx,

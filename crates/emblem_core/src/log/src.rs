@@ -63,7 +63,7 @@ mod test {
 
     #[test]
     fn loc() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let p = Point::at_start_of(
             ctx.alloc_file_name("main.em"),
             ctx.alloc_file_content("1111111111111"),
@@ -76,7 +76,7 @@ mod test {
 
     #[test]
     fn annotations() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let start = Point::at_start_of(
             ctx.alloc_file_name("main.em"),
             ctx.alloc_file_content("111111222222"),

@@ -72,7 +72,7 @@ mod test {
     };
 
     fn placeholder_loc() -> Location {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let p = Point::at_start_of(
             ctx.alloc_file_name("main.em"),
             ctx.alloc_file_content("hello, world!"),

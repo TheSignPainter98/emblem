@@ -86,7 +86,7 @@ mod test {
         L: Lint + 'static,
     {
         pub fn run(self) {
-            let ctx = Context::new();
+            let ctx = Context::test_new();
             let id = self.lint.id();
             let file = parse(
                 ctx.alloc_file_name("lint-test.em"),

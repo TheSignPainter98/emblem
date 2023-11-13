@@ -85,7 +85,7 @@ mod test {
     use super::*;
     #[test]
     fn new() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let src = "content";
         let loc = Point::at_start_of(ctx.alloc_file_name("fname"), ctx.alloc_file_content(src));
 
@@ -98,7 +98,7 @@ mod test {
 
     #[test]
     fn shift_single_line() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let src = "my name is methos";
         let start = Point::at_start_of(ctx.alloc_file_name("fname"), ctx.alloc_file_content(src));
         let mid = start.shift("my name is ");
@@ -119,7 +119,7 @@ mod test {
 
     #[test]
     fn tabs() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let src = "\thello,\tworld";
         let start = Point::at_start_of(ctx.alloc_file_name("fname"), ctx.alloc_file_content(src));
         let end = start.shift(src);
@@ -130,7 +130,7 @@ mod test {
 
     #[test]
     fn shift_multi_line() {
-        let ctx = Context::new();
+        let ctx = Context::test_new();
         let raw_src = "Welcome! Welcome to City 17! You have chosen, or been chosen, to relocate to one of our finest remaining urban centres";
         let src = raw_src.replace(' ', "\n");
         let start = Point::at_start_of(

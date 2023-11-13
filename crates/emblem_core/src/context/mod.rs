@@ -87,7 +87,6 @@ impl Context {
     }
 }
 
-#[cfg(test)]
 impl Context {
     pub fn test_new() -> Self {
         Self {
@@ -143,7 +142,6 @@ impl DocumentParameters {
     }
 }
 
-#[cfg(test)]
 impl DocumentParameters {
     pub fn test_new() -> Self {
         Self {
@@ -211,7 +209,6 @@ impl LuaParameters {
     }
 }
 
-#[cfg(test)]
 impl LuaParameters {
     pub fn test_new() -> Self {
         Self {
@@ -264,7 +261,6 @@ impl TypesetterParameters {
     }
 }
 
-#[cfg(test)]
 impl TypesetterParameters {
     pub fn test_new() -> Self {
         Self {
