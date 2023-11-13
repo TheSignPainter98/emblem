@@ -7,9 +7,9 @@ use crate::ast::parsed::{Content, Sugar};
 use crate::ast::{File, Par, ParPart};
 use crate::context::Context;
 use crate::path::SearchResult;
-use crate::Action;
 use crate::Log;
 use crate::{parser, Result};
+use crate::{Action, Version};
 use derive_more::From;
 use derive_new::new;
 
@@ -36,7 +36,8 @@ impl Action for Linter {
 impl Linter {
     fn lint_root(&self, ctx: &mut Context, file: SearchResult) -> Result<Vec<Log>> {
         let mut problems = Vec::new();
-        parser::parse_file(ctx, file)?.lint(&mut lints::lints(), &mut problems);
+        let mut lints = lints::lints_for(ctx.version().unwrap_or(Version::latest()));
+        parser::parse_file(ctx, file)?.lint(&mut lints, &mut problems);
         Ok(problems)
     }
 }
@@ -44,6 +45,8 @@ impl Linter {
 pub type Lints = Vec<Box<dyn Lint>>;
 
 pub trait Lint {
+    fn min_version(&self) -> Version;
+
     fn analyse(&mut self, content: &Content) -> Vec<Log>;
 
     fn done(&mut self) -> Vec<Log> {
@@ -165,7 +168,26 @@ impl<T: Lintable> Lintable for Vec<T> {
 
 #[cfg(test)]
 mod test {
+    use itertools::Itertools;
+    use strum::IntoEnumIterator;
+
+    use crate::lint::lints;
+    use crate::version::Version;
+
     use super::*;
+
+    #[test]
+    fn lints_strengthen() {
+        Version::iter()
+            .cartesian_product(Version::iter())
+            .for_each(|(v1, v2)| {
+                if v1 < v2 {
+                    let v1_lints = lints::lints_for(v1);
+                    let v2_lints = lints::lints_for(v2);
+                    assert!(v1_lints.len() <= v2_lints.len());
+                }
+            })
+    }
 
     #[test]
     fn lint_id() {

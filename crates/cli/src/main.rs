@@ -62,27 +62,23 @@ where
 
 fn load_manifest(ctx: &mut Context, src: &str, args: &Args) -> Result<()> {
     let manifest = DocManifest::try_from(src)?;
+    ctx.set_name(manifest.metadata.name);
+    ctx.set_version(manifest.metadata.version.into());
 
     let doc_info = ctx.doc_params_mut();
-    doc_info.set_name(manifest.metadata.name);
-    doc_info.set_emblem_version(manifest.metadata.emblem_version.into());
-
     if let Some(authors) = manifest.metadata.authors {
         doc_info.set_authors(authors);
     }
-
     if let Some(keywords) = manifest.metadata.keywords {
         doc_info.set_keywords(keywords);
     }
 
     let lua_info = ctx.lua_params_mut();
-
     let mut specific_args: HashMap<_, Vec<_>> = HashMap::new();
     if let Some(lua_args) = args.lua_args() {
         lua_info.set_sandbox_level(lua_args.sandbox_level.into());
         lua_info.set_max_mem(lua_args.max_mem.into());
         lua_info.set_max_steps(lua_args.max_steps.into());
-
         let mut general_args = Vec::with_capacity(lua_args.args.len());
         for arg in &lua_args.args {
             let name = arg.name();
@@ -109,7 +105,6 @@ fn load_manifest(ctx: &mut Context, src: &str, args: &Args) -> Result<()> {
 
         lua_info.set_general_args(general_args);
     }
-
     let modules = manifest
         .dependencies
         .unwrap_or_default()
@@ -125,13 +120,11 @@ fn load_manifest(ctx: &mut Context, src: &str, args: &Args) -> Result<()> {
             module
         })
         .collect();
-
     if !specific_args.is_empty() {
         return Err(Error::unused_args(
             specific_args.keys().map(ToString::to_string).collect(),
         ));
     }
-
     lua_info.set_modules(modules);
 
     Ok(())

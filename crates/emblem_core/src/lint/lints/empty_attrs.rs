@@ -1,12 +1,17 @@
 use crate::ast::parsed::Content;
 use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
+use crate::Version;
 use derive_new::new;
 
 #[derive(new)]
 pub struct EmptyAttrs {}
 
 impl Lint for EmptyAttrs {
+    fn min_version(&self) -> Version {
+        Version::V1_0
+    }
+
     fn id(&self) -> LintId {
         "empty-attrs".into()
     }

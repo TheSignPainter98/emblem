@@ -9,29 +9,27 @@ mod num_pluses;
 mod spilt_glue;
 mod sugar_usage;
 
-use super::Lints;
+use crate::lint::Lint;
+use crate::lint::Lints;
+use crate::Version;
 
-pub fn lints() -> Lints {
-    macro_rules! lints {
-        ($($lint:expr),* $(,)?) => {
-            vec![
-                $(Box::new($lint),)*
-            ]
-        }
-    }
-
-    lints![
-        attr_ordering::AttrOrdering::new(),
-        command_naming::CommandNaming::new(),
-        duplicate_attrs::DuplicateAttrs::new(),
-        emph_delimiters::EmphDelimiters::new(),
-        empty_attrs::EmptyAttrs::new(),
-        num_args::NumArgs::new(),
-        num_attrs::NumAttrs::new(),
-        num_pluses::NumPluses::new(),
-        spilt_glue::SpiltGlue::new(),
-        sugar_usage::SugarUsage::new(),
-    ]
+pub fn lints_for(version: Version) -> Lints {
+    let lints: [Box<dyn Lint>; 10] = [
+        Box::new(attr_ordering::AttrOrdering::new()),
+        Box::new(command_naming::CommandNaming::new()),
+        Box::new(duplicate_attrs::DuplicateAttrs::new()),
+        Box::new(emph_delimiters::EmphDelimiters::new()),
+        Box::new(empty_attrs::EmptyAttrs::new()),
+        Box::new(num_args::NumArgs::new()),
+        Box::new(num_attrs::NumAttrs::new()),
+        Box::new(num_pluses::NumPluses::new()),
+        Box::new(spilt_glue::SpiltGlue::new()),
+        Box::new(sugar_usage::SugarUsage::new()),
+    ];
+    lints
+        .into_iter()
+        .filter(|lint| lint.min_version() <= version)
+        .collect()
 }
 
 #[cfg(test)]
@@ -53,7 +51,7 @@ mod test {
             static ref VALID_ID: Regex = Regex::new(r"^[a-z-]+$").unwrap();
         }
 
-        let lints = lints();
+        let lints = lints_for(Version::latest());
         let ids = lints.iter().map(|l| l.id()).collect::<Vec<_>>();
 
         for id in &ids {
@@ -66,7 +64,7 @@ mod test {
     #[test]
     fn unique_ids() {
         let mut ids = HashSet::new();
-        for lint in lints() {
+        for lint in lints_for(Version::latest()) {
             assert!(ids.insert(lint.id()), "id {:?} is not unique", lint.id());
         }
     }

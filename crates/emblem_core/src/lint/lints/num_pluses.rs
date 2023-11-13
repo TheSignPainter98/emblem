@@ -2,12 +2,17 @@ use crate::ast::parsed::{Content, Sugar};
 use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
 use crate::parser::Location;
+use crate::Version;
 use derive_new::new;
 
 #[derive(new)]
 pub struct NumPluses {}
 
 impl Lint for NumPluses {
+    fn min_version(&self) -> Version {
+        Version::V1_0
+    }
+
     fn id(&self) -> LintId {
         "num-pluses".into()
     }

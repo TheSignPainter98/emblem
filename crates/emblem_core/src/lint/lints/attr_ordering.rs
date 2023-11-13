@@ -1,12 +1,17 @@
 use crate::ast::parsed::{Attr, Content};
 use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
+use crate::Version;
 use derive_new::new;
 
 #[derive(new)]
 pub struct AttrOrdering {}
 
 impl Lint for AttrOrdering {
+    fn min_version(&self) -> Version {
+        Version::V1_0
+    }
+
     fn id(&self) -> LintId {
         "attr-ordering".into()
     }

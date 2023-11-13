@@ -41,7 +41,7 @@ impl DocManifest {
 pub(crate) struct DocMetadata {
     pub(crate) name: String,
     #[serde(rename = "emblem")]
-    pub(crate) emblem_version: Version,
+    pub(crate) version: Version,
     pub(crate) authors: Option<Vec<String>>,
     pub(crate) keywords: Option<Vec<String>>,
 }
@@ -163,7 +163,7 @@ mod test {
         let manifest = DocManifest::try_from(raw).unwrap();
 
         assert_eq!("foo", manifest.metadata.name);
-        assert_eq!(Version::V1_0, manifest.metadata.emblem_version);
+        assert_eq!(Version::V1_0, manifest.metadata.version);
         assert_eq!(None, manifest.metadata.authors);
         assert_eq!(None, manifest.dependencies);
     }
@@ -211,7 +211,7 @@ mod test {
             &["DARGH!", "NO!", "STAHP!", "HUEAG!"],
             manifest.metadata.keywords.unwrap().as_slice()
         );
-        assert_eq!(Version::V1_0, manifest.metadata.emblem_version);
+        assert_eq!(Version::V1_0, manifest.metadata.version);
 
         {
             let dependencies = manifest.dependencies.unwrap();
@@ -241,7 +241,7 @@ mod test {
     }
 
     #[test]
-    fn incorrect_emblem_version() {
+    fn incorrect_version() {
         let missing = indoc::indoc!(
             r#"
                 [document]

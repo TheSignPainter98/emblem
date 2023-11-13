@@ -2,6 +2,7 @@ use crate::ast::parsed::Content;
 use crate::context::file_content::FileSlice;
 use crate::lint::{Lint, LintId};
 use crate::log::{Log, Note, Src};
+use crate::Version;
 use derive_new::new;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -14,6 +15,10 @@ lazy_static! {
 }
 
 impl Lint for CommandNaming {
+    fn min_version(&self) -> Version {
+        Version::V1_0
+    }
+
     fn id(&self) -> LintId {
         "command-naming".into()
     }
