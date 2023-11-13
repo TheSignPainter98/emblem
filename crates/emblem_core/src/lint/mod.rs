@@ -36,7 +36,7 @@ impl Action for Linter {
 impl Linter {
     fn lint_root(&self, ctx: &mut Context, file: SearchResult) -> Result<Vec<Log>> {
         let mut problems = Vec::new();
-        let mut lints = lints::lints_for(ctx.version().unwrap_or_default());
+        let mut lints = lints::lints_for(ctx.version().unwrap_or(Version::latest()));
         parser::parse_file(ctx, file)?.lint(&mut lints, &mut problems);
         Ok(problems)
     }

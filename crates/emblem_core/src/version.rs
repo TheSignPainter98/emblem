@@ -14,13 +14,7 @@ impl Version {
         }
     }
 
-    pub(crate) fn current() -> Self {
+    pub(crate) fn latest() -> Self {
         Self::V1_0
-    }
-}
-
-impl Default for Version {
-    fn default() -> Self {
-        Self::current()
     }
 }
