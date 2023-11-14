@@ -8,7 +8,7 @@ use derive_new::new;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-#[derive(new)]
+#[derive(Clone, new)]
 pub struct NumAttrs {}
 
 lazy_static! {
@@ -160,69 +160,68 @@ mod test {
             let end = max + 1;
 
             for pluses in 0..=2 {
-                LintTest {
-                    lint: NumAttrs::new(),
-                    num_problems: !valid.contains(&0) as usize,
-                    matches: vec!["x"],
-                    src: &test_command(command, pluses, None),
-                }
-                .run();
+                LintTest::new("bare", NumAttrs::new())
+                    .input(test_command(command, pluses, None))
+                    .causes(!valid.contains(&0) as u32, &["x"]);
 
                 for num_ordered in start..=end {
                     for num_unordered in start..=end {
                         let tot = num_ordered + num_unordered;
 
-                        LintTest {
-                            lint: NumAttrs::new(),
-                            num_problems: !valid.contains(&(num_ordered + num_unordered)) as usize,
-                            matches: vec![
-                                &if tot < *min {
-                                    format!(r"too few attributes passed to \.{}", command)
-                                } else {
-                                    format!(r"too many attributes passed to \.{}", command)
-                                },
-                                &{
-                                    let start_col = 2 + command.len() + pluses;
-                                    let end_col = start_col
-                                        + 4 * num_ordered
-                                        + 8 * num_unordered
-                                        + (tot == 0) as usize;
-
-                                    if *max == 0 {
-                                        format!(
-                                            r":1:{}-{}: expected no attributes",
-                                            start_col, end_col,
-                                        )
-                                    } else if *max == *min {
-                                        format!(
-                                            r":1:{}-{}: expected {} {}",
-                                            start_col,
-                                            end_col,
-                                            *min,
-                                            util::plural(*min, "attribute", "attributes"),
-                                        )
-                                    } else if tot < *min {
-                                        format!(
-                                            r":1:{}-{}: expected at least {} {}",
-                                            start_col,
-                                            end_col,
-                                            *min,
-                                            util::plural(*min, "attribute", "attributes"),
-                                        )
+                        LintTest::new("with-attrs", NumAttrs::new())
+                            .input(test_command(
+                                command,
+                                pluses,
+                                Some((num_ordered, num_unordered)),
+                            ))
+                            .causes(
+                                !valid.contains(&(num_ordered + num_unordered)) as u32,
+                                &[
+                                    &if tot < *min {
+                                        format!(r"too few attributes passed to \.{}", command)
                                     } else {
-                                        format!(
-                                            r":1:{}-{}: expected at most {} {}",
-                                            start_col,
-                                            end_col,
-                                            *max,
-                                            util::plural(*min, "attribute", "attributes"),
-                                        )
-                                    }
-                                },
-                            ],
-                            src: &test_command(command, pluses, Some((num_ordered, num_unordered))),
-                        }
-                        .run();
+                                        format!(r"too many attributes passed to \.{}", command)
+                                    },
+                                    &{
+                                        let start_col = 2 + command.len() + pluses;
+                                        let end_col = start_col
+                                            + 4 * num_ordered
+                                            + 8 * num_unordered
+                                            + (tot == 0) as usize;
+
+                                        if *max == 0 {
+                                            format!(
+                                                r":1:{}-{}: expected no attributes",
+                                                start_col, end_col,
+                                            )
+                                        } else if *max == *min {
+                                            format!(
+                                                r":1:{}-{}: expected {} {}",
+                                                start_col,
+                                                end_col,
+                                                *min,
+                                                util::plural(*min, "attribute", "attributes"),
+                                            )
+                                        } else if tot < *min {
+                                            format!(
+                                                r":1:{}-{}: expected at least {} {}",
+                                                start_col,
+                                                end_col,
+                                                *min,
+                                                util::plural(*min, "attribute", "attributes"),
+                                            )
+                                        } else {
+                                            format!(
+                                                r":1:{}-{}: expected at most {} {}",
+                                                start_col,
+                                                end_col,
+                                                *max,
+                                                util::plural(*min, "attribute", "attributes"),
+                                            )
+                                        }
+                                    },
+                                ],
+                            );
                     }
                 }
             }
@@ -231,35 +230,25 @@ mod test {
 
     #[test]
     fn no_problems_by_default() {
-        LintTest {
-            lint: NumAttrs::new(),
-            num_problems: 0,
-            matches: vec![],
-            src: "",
-        }
-        .run();
+        LintTest::new("default", NumAttrs::new()).input("").passes()
     }
 
     #[test]
     fn unaffected_ignored() {
         for pluses in 0..=2 {
-            LintTest {
-                lint: NumAttrs::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: &test_command("foo", pluses, None),
-            }
-            .run();
+            LintTest::new("bare", NumAttrs::new())
+                .input(test_command("foo", pluses, None))
+                .passes();
 
             for num_ordered in 0..=2 {
                 for num_unordered in 0..=3 {
-                    LintTest {
-                        lint: NumAttrs::new(),
-                        num_problems: 0,
-                        matches: vec![],
-                        src: &test_command("foo", pluses, Some((num_ordered, num_unordered))),
-                    }
-                    .run();
+                    LintTest::new("with-attrs", NumAttrs::new())
+                        .input(test_command(
+                            "foo",
+                            pluses,
+                            Some((num_ordered, num_unordered)),
+                        ))
+                        .passes();
                 }
             }
         }

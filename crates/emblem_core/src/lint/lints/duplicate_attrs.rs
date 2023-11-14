@@ -9,7 +9,7 @@ use crate::log::{Log, Note, Src};
 use crate::Version;
 use derive_new::new;
 
-#[derive(new)]
+#[derive(Clone, new)]
 pub struct DuplicateAttrs {}
 
 impl Lint for DuplicateAttrs {
@@ -86,65 +86,50 @@ mod test {
 
     #[test]
     fn lint() {
-        let tests = [
-            LintTest {
-                lint: DuplicateAttrs::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: "",
-            },
-            LintTest {
-                lint: DuplicateAttrs::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: ".foo",
-            },
-            LintTest {
-                lint: DuplicateAttrs::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: ".foo[]",
-            },
-            LintTest {
-                lint: DuplicateAttrs::new(),
-                num_problems: 1,
-                matches: vec![
+        LintTest::new("empty", DuplicateAttrs::new())
+            .input("")
+            .passes();
+        LintTest::new("no-attrs", DuplicateAttrs::new())
+            .input(".foo")
+            .passes();
+        LintTest::new("empty-attrs", DuplicateAttrs::new())
+            .input(".foo[]")
+            .passes();
+        LintTest::new("duplicate-unnamed-attrs", DuplicateAttrs::new())
+            .input(".foo[bar,bar]")
+            .causes(
+                1,
+                &[
                     ":10-12: found duplicate ‘bar’",
                     ":6-8: ‘bar’ first defined here",
                 ],
-                src: ".foo[bar,bar]",
-            },
-            LintTest {
-                lint: DuplicateAttrs::new(),
-                num_problems: 1,
-                matches: vec![
+            );
+        LintTest::new("duplicate-named", DuplicateAttrs::new())
+            .input(".foo[bar=baz,bar=baz]")
+            .causes(
+                1,
+                &[
                     ":14-20: found duplicate ‘bar’",
                     ":6-12: ‘bar’ first defined here",
                 ],
-                src: ".foo[bar=baz,bar=baz]",
-            },
-            LintTest {
-                lint: DuplicateAttrs::new(),
-                num_problems: 1,
-                matches: vec![
+            );
+        LintTest::new("duplicate-key", DuplicateAttrs::new())
+            .input(".foo[bar,bar=baz]")
+            .causes(
+                1,
+                &[
                     ":10-16: found duplicate ‘bar’",
                     ":6-8: ‘bar’ first defined here",
                 ],
-                src: ".foo[bar,bar=baz]",
-            },
-            LintTest {
-                lint: DuplicateAttrs::new(),
-                num_problems: 2,
-                matches: vec![
+            );
+        LintTest::new("duplicate-unnamed", DuplicateAttrs::new())
+            .input(".foo[bar,bar,bar]")
+            .causes(
+                2,
+                &[
                     ":(10-12|14-16): found duplicate ‘bar’",
                     ":6-8: ‘bar’ first defined here",
                 ],
-                src: ".foo[bar,bar,bar]",
-            },
-        ];
-
-        for test in tests {
-            test.run();
-        }
+            );
     }
 }

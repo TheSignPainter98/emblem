@@ -4,7 +4,7 @@ use crate::log::{Log, Note, Src};
 use crate::Version;
 use derive_new::new;
 
-#[derive(new)]
+#[derive(Clone, new)]
 pub struct EmphDelimiters {}
 
 impl Lint for EmphDelimiters {
@@ -50,53 +50,35 @@ mod test {
 
     #[test]
     fn lint() {
-        LintTest {
-            lint: EmphDelimiters::new(),
-            num_problems: 0,
-            matches: Vec::<&str>::new(),
-            src: "",
-        }
-        .run();
-        LintTest {
-            lint: EmphDelimiters::new(),
-            num_problems: 0,
-            matches: Vec::<&str>::new(),
-            src: "foo",
-        }
-        .run();
-        LintTest {
-            lint: EmphDelimiters::new(),
-            num_problems: 0,
-            matches: Vec::<&str>::new(),
-            src: "_foo_",
-        }
-        .run();
-        LintTest {
-            lint: EmphDelimiters::new(),
-            num_problems: 0,
-            matches: Vec::<&str>::new(),
-            src: "**foo**",
-        }
-        .run();
-        LintTest {
-            lint: EmphDelimiters::new(),
-            num_problems: 1,
-            matches: vec![
-                "underscores used to delimit bold text",
-                ":1:1-7: use asterisks instead",
-            ],
-            src: "__foo__",
-        }
-        .run();
-        LintTest {
-            lint: EmphDelimiters::new(),
-            num_problems: 1,
-            matches: vec![
-                "asterisks used to delimit italic text",
-                ":1:1-5: use underscores instead",
-            ],
-            src: "*foo*",
-        }
-        .run();
+        LintTest::new("empty", EmphDelimiters::new())
+            .input("")
+            .passes();
+        LintTest::new("no-delimiters", EmphDelimiters::new())
+            .input("foo")
+            .passes();
+        LintTest::new("good-italic-delimiters", EmphDelimiters::new())
+            .input("_foo_")
+            .passes();
+        LintTest::new("good-bold-delimiters", EmphDelimiters::new())
+            .input("**foo**")
+            .passes();
+        LintTest::new("bad-italic-delimiters", EmphDelimiters::new())
+            .input("*foo*")
+            .causes(
+                1,
+                &[
+                    "asterisks used to delimit italic text",
+                    ":1:1-5: use underscores instead",
+                ],
+            );
+        LintTest::new("bad-bold-delimiters", EmphDelimiters::new())
+            .input("__foo__")
+            .causes(
+                1,
+                &[
+                    "underscores used to delimit bold text",
+                    ":1:1-7: use asterisks instead",
+                ],
+            );
     }
 }

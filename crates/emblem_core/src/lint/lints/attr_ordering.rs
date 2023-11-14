@@ -4,7 +4,7 @@ use crate::log::{Log, Note, Src};
 use crate::Version;
 use derive_new::new;
 
-#[derive(new)]
+#[derive(Clone, new)]
 pub struct AttrOrdering {}
 
 impl Lint for AttrOrdering {
@@ -71,74 +71,50 @@ mod test {
 
     #[test]
     fn lint() {
-        let tests = [
-            LintTest {
-                lint: AttrOrdering::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: "",
-            },
-            LintTest {
-                lint: AttrOrdering::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: ".foo",
-            },
-            LintTest {
-                lint: AttrOrdering::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: ".foo[bar]",
-            },
-            LintTest {
-                lint: AttrOrdering::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: ".foo[bar,baz]",
-            },
-            LintTest {
-                lint: AttrOrdering::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: ".foo[bar,baz=baz]",
-            },
-            LintTest {
-                lint: AttrOrdering::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: ".foo[bar=bar,baz=baz]",
-            },
-            LintTest {
-                lint: AttrOrdering::new(),
-                num_problems: 1,
-                matches: vec![
+        LintTest::new("empty", AttrOrdering::new())
+            .input("")
+            .passes();
+        LintTest::new("no-attrs", AttrOrdering::new())
+            .input(".foo")
+            .passes();
+        LintTest::new("single-unnamed", AttrOrdering::new())
+            .input(".foo[bar]")
+            .passes();
+        LintTest::new("many-unnamed", AttrOrdering::new())
+            .input(".foo[bar,baz]")
+            .passes();
+        LintTest::new("mixed", AttrOrdering::new())
+            .input(".foo[bar,baz=baz]")
+            .passes();
+        LintTest::new("many-named", AttrOrdering::new())
+            .input(".foo[bar=bar,baz=baz]")
+            .passes();
+        LintTest::new("named-before-unnamed", AttrOrdering::new())
+            .input(".foo[bar=bar,baz]")
+            .causes(
+                1,
+                &[
                     "unnamed attribute after named attribute",
                     ":1:14-16: found here",
                 ],
-                src: ".foo[bar=bar,baz]",
-            },
-            LintTest {
-                lint: AttrOrdering::new(),
-                num_problems: 2,
-                matches: vec![
+            );
+        LintTest::new("named-before-many-unnamed", AttrOrdering::new())
+            .input(".foo[bar=bar,baz,quux]")
+            .causes(
+                2,
+                &[
                     "unnamed attribute after named attribute",
                     ":1:(14-16|18-21): found here",
                 ],
-                src: ".foo[bar=bar,baz,quux]",
-            },
-            LintTest {
-                lint: AttrOrdering::new(),
-                num_problems: 2,
-                matches: vec![
+            );
+        LintTest::new("many-incorrectly-mixed", AttrOrdering::new())
+            .input(".foo[bar=bar,baz,quux=quux,corge]")
+            .causes(
+                2,
+                &[
                     "unnamed attribute after named attribute",
                     ":1:(14-16|28-32): found here",
                 ],
-                src: ".foo[bar=bar,baz,quux=quux,corge]",
-            },
-        ];
-
-        for test in tests {
-            test.run();
-        }
+            );
     }
 }
