@@ -145,7 +145,7 @@ pub mod test {
             )
         }
 
-        fn expect(mut self, matches: impl AsRef<str>) {
+        fn causes(mut self, matches: impl AsRef<str>) {
             self.setup();
 
             let input = self.input.as_ref().unwrap();
@@ -237,7 +237,7 @@ pub mod test {
         fn only_at_start() {
             ParserTest::new("at-end")
                 .input("#!foo\nbar\n#!baz")
-                .expect("Unrecognised token `word` found at 3:2:3:6")
+                .causes("Unrecognised token `word` found at 3:2:3:6")
         }
     }
 
@@ -267,7 +267,7 @@ pub mod test {
                     )
                 };
 
-                ParserTest::new(name).input(tok).expect(expected);
+                ParserTest::new(name).input(tok).causes(expected);
             }
         }
 
@@ -275,13 +275,13 @@ pub mod test {
         fn multi_line_comments() {
             ParserTest::new("multi-line comment open")
                 .input("/*")
-                .expect(r#"unclosed comment found at \["multi-line comment open[^\n]*:1:1-2"\]"#);
+                .causes(r#"unclosed comment found at \["multi-line comment open[^\n]*:1:1-2"\]"#);
             ParserTest::new( "multi-line comment open")
                 .input("/*/*")
-                .expect(r#"unclosed comment found at \["multi-line comment open[^\n]*:1:1-2", "multi-line comment open[^\n]*:1:3-4"\]"#);
+                .causes(r#"unclosed comment found at \["multi-line comment open[^\n]*:1:1-2", "multi-line comment open[^\n]*:1:3-4"\]"#);
             ParserTest::new("multi-line comment close")
                 .input("*/")
-                .expect(r"no comment to close found at[^\n]*1:1-2");
+                .causes(r"no comment to close found at[^\n]*1:1-2");
         }
     }
 
@@ -369,10 +369,10 @@ pub mod test {
 
                 ParserTest::new("many-qualifiers")
                     .input(format!(".it.belongs.in.a.museum{pluses}"))
-                    .expect(format!("extra dots found at many-qualifiers[^:]*:1:12-12, many-qualifiers[^:]*:1:15-15, many-qualifiers[^:]*:1:17-17 in command name at many-qualifiers[^:]*:1:1-{}", 23 + num_pluses));
+                    .causes(format!("extra dots found at many-qualifiers[^:]*:1:12-12, many-qualifiers[^:]*:1:15-15, many-qualifiers[^:]*:1:17-17 in command name at many-qualifiers[^:]*:1:1-{}", 23 + num_pluses));
                 ParserTest::new("empty-qualifier")
                     .input(format!("..what{pluses}"))
-                    .expect(format!("empty qualifier found at empty-qualifier[^:]*:1:1-2 in command name at empty-qualifier[^:]*:1:1-{}", 6 + num_pluses));
+                    .causes(format!("empty qualifier found at empty-qualifier[^:]*:1:1-2 in command name at empty-qualifier[^:]*:1:1-{}", 6 + num_pluses));
             }
         }
 
@@ -409,31 +409,31 @@ pub mod test {
 
                 ParserTest::new("newline in brace-arg")
                     .input(format!(".order66{}{{\n}}", pluses))
-                    .expect(format!(
+                    .causes(format!(
                         "newline in braced args found at newline in brace-arg[^:]*:1:{}",
                         9 + num_pluses
                     ));
                 ParserTest::new("newline in brace-arg")
                     .input(format!(".order66{}{{general\nkenobi}}", pluses))
-                    .expect(format!(
+                    .causes(format!(
                         "newline in braced args found at newline in brace-arg[^:]*:1:{}",
                         9 + num_pluses
                     ));
                 ParserTest::new("par-break in brace-arg")
                     .input(format!(".order66{}{{\n\n}}", pluses))
-                    .expect(format!(
+                    .causes(format!(
                         "newline in braced args found at par-break in brace-arg[^:]*:1:{}",
                         9 + num_pluses
                     ));
                 ParserTest::new("par-break in brace-arg")
                     .input(format!(".order66{}{{general\n\nkenobi}}", pluses))
-                    .expect(format!(
+                    .causes(format!(
                         "newline in braced args found at par-break in brace-arg[^:]*:1:{}",
                         9 + num_pluses
                     ));
                 ParserTest::new("many-qualifiers")
                     .input(format!(".order.6.6{}{{general\n\nkenobi}}", pluses))
-                    .expect(format!("extra dots found at many-qualifiers[^:]*:1:9-9 in command name at many-qualifiers[^:]*:1:1-{}", 10 + num_pluses));
+                    .causes(format!("extra dots found at many-qualifiers[^:]*:1:9-9 in command name at many-qualifiers[^:]*:1:1-{}", 10 + num_pluses));
             }
         }
 
@@ -464,13 +464,13 @@ pub mod test {
 
                 ParserTest::new("sole at end of line")
                     .input(".randy-dandy-o:")
-                    .expect("Unrecognised EOF found at (1:16|2:1)");
+                    .causes("Unrecognised EOF found at (1:16|2:1)");
                 ParserTest::new("end of line")
                     .input("randy .dandy-o:")
-                    .expect("Unrecognised token `newline` found at 1:1[56]");
+                    .causes("Unrecognised token `newline` found at 1:1[56]");
                 ParserTest::new("many-qualifiers")
                     .input(".randy.dandy.o")
-                    .expect("extra dots found at many-qualifiers[^:]*:1:13-13 in command name at many-qualifiers[^:]*:1:1-14");
+                    .causes("extra dots found at many-qualifiers[^:]*:1:13-13 in command name at many-qualifiers[^:]*:1:1-14");
             }
         }
 
@@ -599,7 +599,7 @@ pub mod test {
                             \tfull of heart and full of play
                         "
                     ))
-                    .expect("Unrecognised token `newline` found at 1:43:2:1");
+                    .causes("Unrecognised token `newline` found at 1:43:2:1");
                 ParserTest::new("missing indent")
                     .input(indoc::indoc!(
                         "
@@ -607,7 +607,7 @@ pub mod test {
                             to a youthful lady gay
                         "
                     ))
-                    .expect("Unrecognised token `word` found at 2:1:2:3");
+                    .causes("Unrecognised token `word` found at 2:1:2:3");
                 ParserTest::new("missing second trailer")
                     .input(indoc::indoc!(
                         "
@@ -618,7 +618,7 @@ pub mod test {
                             ::
                         "
                     ))
-                    .expect("Unrecognised EOF found at (5:3|6:1)");
+                    .causes("Unrecognised EOF found at (5:3|6:1)");
                 ParserTest::new("many-qualifiers")
                     .input(indoc::indoc!(
                         "
@@ -628,7 +628,7 @@ pub mod test {
                             \tpressed he was and sent away
                         "
                     ))
-                    .expect("extra dots found at many-qualifiers[^:]*:1:9-9, many-qualifiers[^:]*:1:12-12 in command name at many-qualifiers[^:]*:1:1-15");
+                    .causes("extra dots found at many-qualifiers[^:]*:1:9-9, many-qualifiers[^:]*:1:12-12 in command name at many-qualifiers[^:]*:1:1-15");
             }
         }
 
@@ -669,10 +669,10 @@ pub mod test {
 
             ParserTest::new("unclosed")
                 .input(".heave[")
-                .expect("(unexpected EOF found at 1:8|newline in attributes found at unclosed with newline:1:7-7)");
+                .causes("(unexpected EOF found at 1:8|newline in attributes found at unclosed with newline:1:7-7)");
             ParserTest::new("unexpected open bracket")
                 .input(".heave[[")
-                .expect(r"(unexpected EOF found at 1:9|unexpected character '\[' found at unexpected open bracket[^:]*:1:8-8)");
+                .causes(r"(unexpected EOF found at 1:9|unexpected character '\[' found at unexpected open bracket[^:]*:1:8-8)");
         }
     }
 
@@ -1053,13 +1053,13 @@ pub mod test {
         fn unmatched() {
             ParserTest::new("open")
                 .input("/*spaghetti/*and*/meatballs")
-                .expect(r#"unclosed comment found at \["open[^:]*:1:1-2"\]"#);
+                .causes(r#"unclosed comment found at \["open[^:]*:1:1-2"\]"#);
             ParserTest::new("open")
                 .input("/*spaghetti/*and meatballs")
-                .expect(r#"unclosed comment found at \["open[^:]*:1:1-2", "open[^:]*:1:12-13"\]"#);
+                .causes(r#"unclosed comment found at \["open[^:]*:1:1-2", "open[^:]*:1:12-13"\]"#);
             ParserTest::new("close")
                 .input("spaghetti/*and*/meatballs */")
-                .expect("no comment to close found at close[^:]*:1:27-28");
+                .causes("no comment to close found at close[^:]*:1:27-28");
         }
 
         #[test]
@@ -1096,7 +1096,7 @@ pub mod test {
         fn before_trailer_args() {
             ParserTest::new("trailer-args")
                 .input("/*spaghetti*/.and:\n\tmeatballs")
-                .expect("Unrecognised token `newline` found at 1:19");
+                .causes("Unrecognised token `newline` found at 1:19");
         }
     }
 
@@ -1192,7 +1192,7 @@ pub mod test {
                             let sanitised_inner = inner.replace('*', r"\*");
                             ParserTest::new(format!("clash-nesting {inner} and {outer}"))
                                 .input(format!("{outer}spaghetti {inner}and meatballs{inner}{outer}"))
-                                .expect(format!(r"delimiter mismatch for {sanitised_inner} found at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{} \(failed to match at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{}\)", 24 + outer.len() + inner.len(), 24 + outer.len() + 2 * inner.len(), 11 + outer.len(), 10 + outer.len() + inner.len()));
+                                .causes(format!(r"delimiter mismatch for {sanitised_inner} found at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{} \(failed to match at clash-nesting {sanitised_inner} and {sanitised_outer}[^:]*:1:{}-{}\)", 24 + outer.len() + inner.len(), 24 + outer.len() + 2 * inner.len(), 11 + outer.len(), 10 + outer.len() + inner.len()));
                         } else {
                             // Check nesting is okay
                             ParserTest::new(format!("chash-nesting nesting {outer} and meatballs{inner}"))
@@ -1209,7 +1209,7 @@ pub mod test {
                     let sanitised = delim.replace('*', r"\*");
                     ParserTest::new(format!("multi-line {delim}"))
                         .input(format!("{delim}foo\nbar{delim}"))
-                        .expect(format!(r#"newline in "{sanitised}" emphasis found at multi-line {sanitised}[^:]*:1:{}-2:1"#, 4 + delim.len()));
+                        .causes(format!(r#"newline in "{sanitised}" emphasis found at multi-line {sanitised}[^:]*:1:{}-2:1"#, 4 + delim.len()));
                 }
             }
 
@@ -1225,7 +1225,7 @@ pub mod test {
                         let sanitised_right = right.replace('*', r"\*");
                         ParserTest::new(format!("mismatch({left},{right})"))
                             .input(format!("{left}foo{right}"))
-                            .expect(format!(r"delimiter mismatch for {sanitised_left} found at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:{}-{} \(failed to match at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:1-{}\)", 4 + left.len(), 3 + left.len() + right.len(), left.len(),));
+                            .causes(format!(r"delimiter mismatch for {sanitised_left} found at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:{}-{} \(failed to match at mismatch\({sanitised_left},{sanitised_right}\)[^:]*:1:1-{}\)", 4 + left.len(), 3 + left.len() + right.len(), left.len(),));
                     }
                 }
             }
@@ -1259,34 +1259,34 @@ pub mod test {
                     .produces_ast("File[Par[[$h2{[.bar:[Word(baz)]]}]]]");
                 ParserTest::new("nested trailer args")
                     .input("## .foo:\n\tbar")
-                    .expect("Unrecognised token `newline` found at 1:9:2:1");
+                    .causes("Unrecognised token `newline` found at 1:9:2:1");
 
                 ParserTest::new("nested headings")
                     .input("## ## foo")
-                    .expect("unexpected heading at nested headings[^:]*:1:4-5");
+                    .causes("unexpected heading at nested headings[^:]*:1:4-5");
                 ParserTest::new("no argument")
                     .input("##")
-                    .expect("Unrecognised token `newline` found at (1:1:1:3|1:3:2:1)");
+                    .causes("Unrecognised token `newline` found at (1:1:1:3|1:3:2:1)");
             }
 
             #[test]
             fn midline() {
                 ParserTest::new("inline")
                     .input("foo ###+ bar")
-                    .expect("unexpected heading at inline[^:]*:1:5-8");
+                    .causes("unexpected heading at inline[^:]*:1:5-8");
                 ParserTest::new("inline-complex")
                     .input("foo .bar: ###+ baz")
-                    .expect("unexpected heading at inline[^:]*:1:11-14");
+                    .causes("unexpected heading at inline[^:]*:1:11-14");
             }
 
             #[test]
             fn too_deep() {
                 ParserTest::new("plain")
                     .input("#######")
-                    .expect(r"heading too deep at plain[^:]*:1:1-7 \(7 levels\)");
+                    .causes(r"heading too deep at plain[^:]*:1:1-7 \(7 levels\)");
                 ParserTest::new("with-plus")
                     .input("#######+")
-                    .expect(r"heading too deep at with-plus[^:]*:1:1-8 \(7 levels\)");
+                    .causes(r"heading too deep at with-plus[^:]*:1:1-8 \(7 levels\)");
             }
         }
     }
