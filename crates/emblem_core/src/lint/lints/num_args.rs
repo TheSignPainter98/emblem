@@ -10,7 +10,7 @@ use crate::util;
 use crate::Version;
 use derive_new::new;
 
-#[derive(new)]
+#[derive(Clone, new)]
 pub struct NumArgs {}
 
 lazy_static! {
@@ -177,10 +177,14 @@ mod test {
             ] {
                 for pluses in 0..=2 {
                     for num_args in min_args_to_test..=max_args_to_test {
-                        LintTest {
-                            lint: NumArgs::new(),
-                            num_problems: !valid.contains(&num_args) as usize,
-                            matches: vec![
+                        LintTest::new(
+                            format!("{num_args} args with {pluses} pluses"),
+                            NumArgs::new(),
+                        )
+                        .input(test_command(command, pluses, num_args, &arg_type))
+                        .causes(
+                            !valid.contains(&num_args) as u32,
+                            &[
                                 &if num_args < *min {
                                     format!(r"too few arguments passed to \.{}", command)
                                 } else {
@@ -214,9 +218,7 @@ mod test {
                                     )
                                 },
                             ],
-                            src: &test_command(command, pluses, num_args, &arg_type),
-                        }
-                        .run();
+                        );
                     }
                 }
             }
@@ -225,13 +227,7 @@ mod test {
 
     #[test]
     fn no_problems_by_default() {
-        LintTest {
-            lint: NumArgs::new(),
-            num_problems: 0,
-            matches: vec![],
-            src: "",
-        }
-        .run();
+        LintTest::new("empty", NumArgs::new()).input("").passes();
     }
 
     #[test]
@@ -247,13 +243,9 @@ mod test {
         ] {
             for pluses in 0..=2 {
                 for num_args in 0..=3 {
-                    LintTest {
-                        lint: NumArgs::new(),
-                        num_problems: 0,
-                        matches: vec![],
-                        src: &test_command("foo", pluses, num_args, &arg_type),
-                    }
-                    .run();
+                    LintTest::new("with-args", NumArgs::new())
+                        .input(test_command("foo", pluses, num_args, &arg_type))
+                        .passes();
                 }
             }
         }

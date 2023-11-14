@@ -73,7 +73,7 @@ pub mod test {
     pub struct ParserTest {
         name: Cow<'static, str>,
         input: Option<Cow<'static, str>>,
-        test_attempted: bool,
+        attempted: bool,
     }
 
     impl ParserTest {
@@ -82,7 +82,7 @@ pub mod test {
             Self {
                 name,
                 input: None,
-                test_attempted: false,
+                attempted: false,
             }
         }
 
@@ -118,10 +118,6 @@ pub mod test {
             let input = self.input.as_ref().unwrap();
             let expected = StructureRepr::Doc(structure_repr.as_ref());
             self.assert_input_produces(&self.name, input, &expected)
-        }
-
-        fn assert_valid(&self) {
-            assert!(self.input.is_some(), "{}: test has no input!", self.name);
         }
 
         fn assert_input_produces(&self, name: &str, input: &str, expected: &StructureRepr<'_>) {
@@ -192,15 +188,15 @@ pub mod test {
         fn setup(&mut self) {
             println!("testing {}...", self.name);
 
-            self.test_attempted = true;
+            self.attempted = true;
 
-            self.assert_valid();
+            assert!(self.input.is_some(), "{}: test has no input!", self.name);
         }
     }
 
     impl Drop for ParserTest {
         fn drop(&mut self) {
-            assert!(self.test_attempted, "test {} never examined!", self.name);
+            assert!(self.attempted, "test {} never attempted!", self.name);
         }
     }
 

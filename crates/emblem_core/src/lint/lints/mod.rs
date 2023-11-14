@@ -43,7 +43,7 @@ mod test {
     };
     use lazy_static::lazy_static;
     use regex::Regex;
-    use std::collections::HashSet;
+    use std::{borrow::Cow, collections::HashSet};
 
     #[test]
     fn ids() {
@@ -69,48 +69,69 @@ mod test {
         }
     }
 
-    pub struct LintTest<'i, L>
+    pub struct LintTest<T>
     where
-        L: Lint + 'static,
+        T: Lint,
     {
-        pub lint: L,
-        pub num_problems: usize,
-        pub matches: Vec<&'i str>,
-        pub src: &'i str,
+        name: Cow<'static, str>,
+        lint: T,
+        input: Option<Cow<'static, str>>,
+        attempted: bool,
     }
 
-    impl<'i, L> LintTest<'i, L>
+    impl<T> LintTest<T>
     where
-        L: Lint + 'static,
+        T: Lint + Clone + 'static,
     {
-        pub fn run(self) {
+        pub fn new(name: impl Into<Cow<'static, str>>, lint: T) -> Self {
+            let name = name.into();
+            Self {
+                name,
+                lint,
+                input: None,
+                attempted: false,
+            }
+        }
+
+        pub fn input(mut self, input: impl Into<Cow<'static, str>>) -> Self {
+            self.input = Some(input.into());
+            self
+        }
+
+        pub fn passes(self) {
+            self.causes(0, &[]);
+        }
+
+        pub fn causes(mut self, expected_problems: u32, matches: &[&str]) {
+            self.setup();
+
             let ctx = Context::test_new();
             let id = self.lint.id();
             let file = parse(
                 ctx.alloc_file_name("lint-test.em"),
-                ctx.alloc_file_content(self.src),
+                ctx.alloc_file_content(self.input.as_ref().unwrap_or(&"".into())),
             )
             .expect("failed to parser output");
 
             let problems = {
                 let mut problems = Vec::new();
-                file.lint(&mut vec![Box::new(self.lint)], &mut problems);
+                file.lint(&mut vec![Box::new(self.lint.clone())], &mut problems);
                 problems
             };
             assert_eq!(
-                self.num_problems,
+                expected_problems as usize,
                 problems.len(),
-                "{} problems testing {} (expected {})",
+                "{}: produced {} problems, expected {}",
+                self.name,
                 problems.len(),
-                &self.src,
-                self.num_problems
+                expected_problems
             );
             for problem in problems {
                 problem.assert_compliant();
                 assert_eq!(problem.id(), &LogId::from(id), "Incorrect ID");
 
                 let text = problem.annotation_text().join("\n\t");
-                for r#match in &self.matches {
+                for r#match in matches {
                     let re = Regex::new(r#match).unwrap();
                     assert!(
                         re.is_match(&text),
@@ -120,6 +141,23 @@ mod test {
                     );
                 }
             }
+        }
+
+        fn setup(&mut self) {
+            println!("testing {}...", self.name);
+
+            self.attempted = true;
+
+            assert!(self.input.is_some(), "{}: test has no input!", self.name);
+        }
+    }
+
+    impl<T> Drop for LintTest<T>
+    where
+        T: Lint,
+    {
+        fn drop(&mut self) {
+            assert!(self.attempted, "test {} never attempted!", self.name);
         }
     }
 }

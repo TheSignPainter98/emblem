@@ -4,7 +4,7 @@ use crate::log::{Log, Note, Src};
 use crate::Version;
 use derive_new::new;
 
-#[derive(new)]
+#[derive(Clone, new)]
 pub struct EmptyAttrs {}
 
 impl Lint for EmptyAttrs {
@@ -52,29 +52,12 @@ mod test {
 
     #[test]
     fn lint() {
-        let tests = [
-            LintTest {
-                lint: EmptyAttrs::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: "",
-            },
-            LintTest {
-                lint: EmptyAttrs::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: ".foo",
-            },
-            LintTest {
-                lint: EmptyAttrs::new(),
-                num_problems: 1,
-                matches: vec![":1:5-6: found here"],
-                src: ".foo[]",
-            },
-        ];
-
-        for test in tests {
-            test.run();
-        }
+        LintTest::new("empty", EmptyAttrs::new()).input("").passes();
+        LintTest::new("no-attrs", EmptyAttrs::new())
+            .input(".foo")
+            .passes();
+        LintTest::new("empty-attrs", EmptyAttrs::new())
+            .input(".foo[]")
+            .causes(1, &[":1:5-6: found here"]);
     }
 }

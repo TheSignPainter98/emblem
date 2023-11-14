@@ -4,7 +4,7 @@ use crate::log::{Log, Note, Src};
 use crate::Version;
 use derive_new::new;
 
-#[derive(new)]
+#[derive(Clone, new)]
 pub struct SpiltGlue {}
 
 impl Lint for SpiltGlue {
@@ -43,53 +43,39 @@ mod test {
 
     #[test]
     fn lint() {
-        let tests = [
-            LintTest {
-                lint: SpiltGlue::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: "",
-            },
-            LintTest {
-                lint: SpiltGlue::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: "a~b",
-            },
-            LintTest {
-                lint: SpiltGlue::new(),
-                num_problems: 1,
-                matches: vec!["glue does not connect text fragments", ":1:2-3: found here"],
-                src: "a ~b",
-            },
-            LintTest {
-                lint: SpiltGlue::new(),
-                num_problems: 1,
-                matches: vec!["glue does not connect text fragments", ":1:2-3: found here"],
-                src: "a~ b",
-            },
-            LintTest {
-                lint: SpiltGlue::new(),
-                num_problems: 1,
-                matches: vec!["glue does not connect text fragments", ":1:2-4: found here"],
-                src: "a ~ b",
-            },
-            LintTest {
-                lint: SpiltGlue::new(),
-                num_problems: 1,
-                matches: vec!["glue does not connect text fragments", ":1:2-2: found here"],
-                src: "a~",
-            },
-            LintTest {
-                lint: SpiltGlue::new(),
-                num_problems: 1,
-                matches: vec!["glue does not connect text fragments", ":1:1-1: found here"],
-                src: "~b",
-            },
-        ];
-
-        for test in tests {
-            test.run();
-        }
+        LintTest::new("empty", SpiltGlue::new()).input("").passes();
+        LintTest::new("valid-glue", SpiltGlue::new())
+            .input("a~b")
+            .passes();
+        LintTest::new("spilt-left", SpiltGlue::new())
+            .input("a ~b")
+            .causes(
+                1,
+                &["glue does not connect text fragments", ":1:2-3: found here"],
+            );
+        LintTest::new("spilt-right", SpiltGlue::new())
+            .input("a~ b")
+            .causes(
+                1,
+                &["glue does not connect text fragments", ":1:2-3: found here"],
+            );
+        LintTest::new("double-spilt", SpiltGlue::new())
+            .input("a ~ b")
+            .causes(
+                1,
+                &["glue does not connect text fragments", ":1:2-4: found here"],
+            );
+        LintTest::new("unbonded-right", SpiltGlue::new())
+            .input("a~")
+            .causes(
+                1,
+                &["glue does not connect text fragments", ":1:2-2: found here"],
+            );
+        LintTest::new("unbonded-left", SpiltGlue::new())
+            .input("~b")
+            .causes(
+                1,
+                &["glue does not connect text fragments", ":1:1-1: found here"],
+            );
     }
 }

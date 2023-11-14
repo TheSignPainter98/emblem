@@ -5,7 +5,7 @@ use crate::parser::Location;
 use crate::Version;
 use derive_new::new;
 
-#[derive(new)]
+#[derive(Clone, new)]
 pub struct NumPluses {}
 
 impl Lint for NumPluses {
@@ -73,73 +73,46 @@ mod test {
 
     #[test]
     fn empty() {
-        LintTest {
-            lint: NumPluses::new(),
-            num_problems: 0,
-            matches: vec![],
-            src: "",
-        }
-        .run();
+        LintTest::new("empty", NumPluses::new()).input("").passes();
     }
 
     #[test]
     fn command() {
-        LintTest {
-            lint: NumPluses::new(),
-            num_problems: 0,
-            matches: vec![],
-            src: ".foo",
-        }
-        .run();
-        LintTest {
-            lint: NumPluses::new(),
-            num_problems: 0,
-            matches: vec![],
-            src: ".foo+",
-        }
-        .run();
-        LintTest {
-            lint: NumPluses::new(),
-            num_problems: 1,
-            matches: vec![
-                "extra plus modifiers ignored",
-                ":1:1-6: remove all but one plus symbol",
-            ],
-            src: ".foo++",
-        }
-        .run();
+        LintTest::new("no-plus", NumPluses::new())
+            .input(".foo")
+            .passes();
+        LintTest::new("single-plus", NumPluses::new())
+            .input(".foo+")
+            .passes();
+        LintTest::new("double-plus", NumPluses::new())
+            .input(".foo++")
+            .causes(
+                1,
+                &[
+                    "extra plus modifiers ignored",
+                    ":1:1-6: remove all but one plus symbol",
+                ],
+            );
     }
 
     #[test]
     fn heading_sugar() {
         for level in 1..=6 {
-            LintTest {
-                lint: NumPluses::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: &format!("{} foo", "#".repeat(level)),
-            }
-            .run();
-            LintTest {
-                lint: NumPluses::new(),
-                num_problems: 0,
-                matches: vec![
-                    "extra plus modifiers ignored",
-                    ":1:1-6: remove all but one plus symbol",
-                ],
-                src: &format!("{}+ foo", "#".repeat(level)),
-            }
-            .run();
-            LintTest {
-                lint: NumPluses::new(),
-                num_problems: 1,
-                matches: vec![
-                    "extra plus modifiers ignored",
-                    &format!(":1:1-{}: remove all but one plus symbol", level + 2),
-                ],
-                src: &format!("{}++ foo", "#".repeat(level)),
-            }
-            .run();
+            LintTest::new("no-plus", NumPluses::new())
+                .input(format!("{} foo", "#".repeat(level)))
+                .passes();
+            LintTest::new("single-plus", NumPluses::new())
+                .input(format!("{}+ foo", "#".repeat(level)))
+                .passes();
+            LintTest::new("double-plus", NumPluses::new())
+                .input(format!("{}++ foo", "#".repeat(level)))
+                .causes(
+                    1,
+                    &[
+                        "extra plus modifiers ignored",
+                        &format!(":1:1-{}: remove all but one plus symbol", level + 2),
+                    ],
+                );
         }
     }
 }

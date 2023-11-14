@@ -9,7 +9,7 @@ use crate::parser::Location;
 use derive_new::new;
 use lazy_static::lazy_static;
 
-#[derive(new)]
+#[derive(Clone, new)]
 pub struct SugarUsage {}
 
 #[derive(Clone)]
@@ -129,123 +129,86 @@ mod test {
 
     #[test]
     fn lint() {
-        LintTest {
-            lint: SugarUsage::new(),
-            num_problems: 0,
-            matches: vec![],
-            src: "",
-        }
-        .run();
-        LintTest {
-            lint: SugarUsage::new(),
-            num_problems: 0,
-            matches: vec![],
-            src: "foo",
-        }
-        .run();
-        LintTest {
-            lint: SugarUsage::new(),
-            num_problems: 0,
-            matches: vec![],
-            src: ".foo",
-        }
-        .run();
+        LintTest::new("empty", SugarUsage::new()).input("").passes();
+        LintTest::new("word", SugarUsage::new())
+            .input("foo")
+            .passes();
+        LintTest::new("command", SugarUsage::new())
+            .input(".foo")
+            .passes();
         for (call, sugar) in CALLS_TO_SUGARS.iter() {
-            LintTest {
-                lint: SugarUsage::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: &format!(".{call}"),
-            }
-            .run();
-            LintTest {
-                lint: SugarUsage::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: &format!(".{call}[]"),
-            }
-            .run();
-            LintTest {
-                lint: SugarUsage::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: &format!(".{call}[foo,bar]"),
-            }
-            .run();
-            LintTest {
-                lint: SugarUsage::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: &format!(".{call}{{foo}}{{bar}}"),
-            }
-            .run();
+            LintTest::new("missing-sugar", SugarUsage::new())
+                .input(format!(".{call}"))
+                .passes();
+            LintTest::new("sugarable-with-empty-attrs", SugarUsage::new())
+                .input(format!(".{call}[]"))
+                .passes();
+            LintTest::new("sugarable-with-many-attrs", SugarUsage::new())
+                .input(format!(".{call}[foo,bar]"))
+                .passes();
+            LintTest::new("sugarable-with-many-args", SugarUsage::new())
+                .input(format!(".{call}{{foo}}{{bar}}"))
+                .passes();
             match sugar {
                 SugarType::Prefix(pre, alternative_pre) => {
-                    LintTest {
-                        lint: SugarUsage::new(),
-                        num_problems: 1,
-                        matches: vec![
-                            &format!(r"syntactic sugar exists for \.{call}"),
-                            &format!(":1:1-{}: found here", 1 + call.len()),
-                            &format!("try using ‘{}’ instead", pre.replace('*', r"\*")),
-                        ],
-                        src: &format!(".{call}{{foo}}"),
-                    }
-                    .run();
+                    LintTest::new("sugarable-call", SugarUsage::new())
+                        .input(format!(".{call}{{foo}}"))
+                        .causes(
+                            1,
+                            &[
+                                &format!(r"syntactic sugar exists for \.{call}"),
+                                &format!(":1:1-{}: found here", 1 + call.len()),
+                                &format!("try using ‘{}’ instead", pre.replace('*', r"\*")),
+                            ],
+                        );
                     if let Some(alternative_pre) = alternative_pre {
-                        LintTest {
-                            lint: SugarUsage::new(),
-                            num_problems: 1,
-                            matches: vec![
+                        LintTest::new("sugarable-with-plus", SugarUsage::new())
+                            .input(format!(".{call}+{{foo}}"))
+                            .causes(
+                                1,
+                                &[
+                                    &format!(r"syntactic sugar exists for \.{call}+"),
+                                    &format!(":1:1-{}: found here", 2 + call.len()),
+                                    &format!(
+                                        "try using ‘{}’ instead",
+                                        alternative_pre.replace('*', r"\*").replace('+', r"\+")
+                                    ),
+                                ],
+                            );
+                    }
+                    LintTest::new("sugarable-with-attr", SugarUsage::new())
+                        .input(format!(".{call}[foo]"))
+                        .causes(
+                            1,
+                            &[
                                 &format!(r"syntactic sugar exists for \.{call}+"),
-                                &format!(":1:1-{}: found here", 2 + call.len()),
+                                &format!(":1:1-{}: found here", 1 + call.len()),
                                 &format!(
                                     "try using ‘{}’ instead",
-                                    alternative_pre.replace('*', r"\*").replace('+', r"\+")
+                                    pre.replace('*', r"\*").replace('+', r"\+")
                                 ),
                             ],
-                            src: &format!(".{call}+{{foo}}"),
-                        }
-                        .run();
-                    }
-                    LintTest {
-                        lint: SugarUsage::new(),
-                        num_problems: 1,
-                        matches: vec![
-                            &format!(r"syntactic sugar exists for \.{call}+"),
-                            &format!(":1:1-{}: found here", 1 + call.len()),
-                            &format!(
-                                "try using ‘{}’ instead",
-                                pre.replace('*', r"\*").replace('+', r"\+")
-                            ),
-                        ],
-                        src: &format!(".{call}[foo]"),
-                    }
-                    .run();
+                        );
                 }
-                SugarType::Delimiters(delim) => LintTest {
-                    lint: SugarUsage::new(),
-                    num_problems: 1,
-                    matches: vec![
-                        &format!(r"syntactic sugar exists for \.{call}"),
-                        &format!(":1:1-{}: found here", 1 + call.len()),
-                        &format!(
-                            "try surrounding argument in ‘{}’ instead",
-                            delim.replace('*', r"\*")
-                        ),
-                    ],
-                    src: &format!(".{call}{{foo}}"),
-                }
-                .run(),
-                // SugarType::Surround { left, right } => {
-                //     LintTest {
-                //         lint: SugarUsage::new(),
-                //         num_problems: 1,
-                //         matches: vec!["x"],
-                //         src: &format!(".{call}{{foo}}"),
-                //     }
-                //     .run();
-                // }
+                SugarType::Delimiters(delim) => {
+                    LintTest::new("sugarable-with-arg", SugarUsage::new())
+                        .input(format!(".{call}{{foo}}"))
+                        .causes(
+                            1,
+                            &[
+                                &format!(r"syntactic sugar exists for \.{call}"),
+                                &format!(":1:1-{}: found here", 1 + call.len()),
+                                &format!(
+                                    "try surrounding argument in ‘{}’ instead",
+                                    delim.replace('*', r"\*")
+                                ),
+                            ],
+                        );
+                } // SugarType::Surround { left, right } => {
+                  //     LintTest::new("sugarable-with-arg", SugarUsage::new())
+                  //         .input(format!(".{call}{{foo}}"))
+                  //         .causes(1, &["x"]);
+                  // }
             }
         }
     }

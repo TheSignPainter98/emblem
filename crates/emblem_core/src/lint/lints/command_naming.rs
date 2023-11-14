@@ -7,7 +7,7 @@ use derive_new::new;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-#[derive(new)]
+#[derive(Clone, new)]
 pub struct CommandNaming {}
 
 lazy_static! {
@@ -70,50 +70,41 @@ mod test {
 
     #[test]
     fn lint() {
-        let tests = [
-            LintTest {
-                lint: CommandNaming::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: "",
-            },
-            LintTest {
-                lint: CommandNaming::new(),
-                num_problems: 0,
-                matches: vec![],
-                src: ".foo-bar",
-            },
-            LintTest {
-                lint: CommandNaming::new(),
-                num_problems: 1,
-                matches: vec![
+        LintTest::new("empty", CommandNaming::new())
+            .input("")
+            .passes();
+        LintTest::new("ok", CommandNaming::new())
+            .input(".foo")
+            .passes();
+        LintTest::new("with-dashes", CommandNaming::new())
+            .input(".foo-bar")
+            .passes();
+        LintTest::new("with-underscores", CommandNaming::new())
+            .input(".foo_bar")
+            .causes(
+                1,
+                &[
                     r"commands should be lowercase with dashes: got ‘.foo_bar’",
                     r":1:1-8: try changing this to ‘.foo-bar’",
                 ],
-                src: ".foo_bar",
-            },
-            LintTest {
-                lint: CommandNaming::new(),
-                num_problems: 1,
-                matches: vec![
+            );
+        LintTest::new("uppercase", CommandNaming::new())
+            .input(".FOO")
+            .causes(
+                1,
+                &[
                     r"commands should be lowercase with dashes: got ‘.FOO’",
                     r":1:1-4: try changing this to ‘.foo’",
                 ],
-                src: ".FOO",
-            },
-            LintTest {
-                lint: CommandNaming::new(),
-                num_problems: 1,
-                matches: vec![
+            );
+        LintTest::new("uppercase-unicode", CommandNaming::new())
+            .input(".Φoo")
+            .causes(
+                1,
+                &[
                     r"commands should be lowercase with dashes: got ‘.Φoo’",
                     r":1:1-4: try changing this to ‘.φoo’",
                 ],
-                src: ".Φoo",
-            },
-        ];
-
-        for test in tests {
-            test.run();
-        }
+            );
     }
 }
