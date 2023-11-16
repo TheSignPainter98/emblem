@@ -5,12 +5,14 @@ extern crate pretty_assertions;
 mod error;
 mod init;
 mod manifest;
+mod pretty_logger;
 mod result;
 
 pub use crate::error::Error;
 pub use crate::result::Result;
 
 use crate::init::Initialiser;
+use crate::pretty_logger::PrettyLogger;
 use arg_parser::{Args, Command};
 use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Linter};
 use manifest::DocManifest;
@@ -18,14 +20,13 @@ use std::{collections::HashMap, fs, process::ExitCode};
 
 fn main() -> ExitCode {
     let args = Args::parse();
-    let logger = Logger::new(
-        args.log.verbosity.into(),
-        args.log.colour,
-        args.log.warnings_as_errors,
-    );
-    let mut ctx = Context::new_with_logger(logger);
-    let mut raw_manifest = String::new();
-    let r = execute(&mut raw_manifest, &mut ctx, &args);
+    let logger = PrettyLogger::new(args.log.verbosity.into(), args.log.colour);
+    let mut ctx = Context::new(logger);
+    if args.log.warnings_as_errors {
+        ctx.convert_warnings_to_errors();
+    }
+
+    let r = execute(&mut ctx, &args);
     let success = r.is_ok();
     if let Err(e) = r {
         ctx.print(e).ok();
@@ -41,15 +42,12 @@ fn main() -> ExitCode {
     }
 }
 
-fn execute<'a, 'b>(raw_manifest: &'a mut String, ctx: &'b mut Context, args: &Args) -> Result<()>
-where
-    'a: 'b,
-{
+fn execute<L: Logger>(ctx: &mut Context<L>, args: &Args) -> Result<()> {
     match &args.command {
         Command::Add(add_args) => todo!("{:?}", add_args), // integrate_manifest!() here
         Command::Build(build_args) => {
-            *raw_manifest = fs::read_to_string("emblem.yml")?;
-            load_manifest(ctx, raw_manifest, args)?;
+            load_manifest(ctx, "emblem.toml", args)?; // TODO(kcza): search parents for the
+                                                      // manifest; find lock file in same location
             Ok(Builder::from(build_args).run(ctx).map(|_| ())?)
         }
         Command::Explain(explain_args) => Ok(Explainer::from(explain_args).run(ctx)?),
@@ -60,8 +58,9 @@ where
     }
 }
 
-fn load_manifest(ctx: &mut Context, src: &str, args: &Args) -> Result<()> {
-    let manifest = DocManifest::try_from(src)?;
+fn load_manifest<L: Logger>(ctx: &mut Context<L>, src: &str, args: &Args) -> Result<()> {
+    // TODO(kcza): improve error log here!
+    let manifest = DocManifest::try_from(fs::read_to_string(src)?.as_ref())?;
     ctx.set_name(manifest.metadata.name);
     ctx.set_version(manifest.metadata.version.into());
 

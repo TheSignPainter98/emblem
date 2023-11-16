@@ -1,6 +1,7 @@
 use annotate_snippets::snippet::AnnotationType;
+use strum::EnumIter;
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
 pub enum Verbosity {
     #[default]
     Terse,

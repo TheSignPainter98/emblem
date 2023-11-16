@@ -1,6 +1,7 @@
 use crate::{Context, Result};
 use arg_parser::InitCmd;
 use derive_new::new;
+use emblem_core::log::Logger;
 use git2::{Repository, RepositoryInitOptions};
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
@@ -23,7 +24,7 @@ pub struct Initialiser<T: AsRef<Path>> {
 }
 
 impl<T: AsRef<Path>> Initialiser<T> {
-    pub fn run(&self, _: &mut Context) -> Result<()> {
+    pub fn run<L: Logger>(&self, _: &mut Context<L>) -> Result<()> {
         let p;
         let dir = {
             if !self.dir.as_ref().is_absolute() && !self.dir.as_ref().starts_with("./") {
@@ -109,7 +110,7 @@ mod test {
     };
     use tempfile::TempDir;
 
-    fn do_init(ctx: &mut Context, tmpdir: &TempDir) -> Result<()> {
+    fn do_init<L: Logger>(ctx: &mut Context<L>, tmpdir: &TempDir) -> Result<()> {
         Initialiser::new(tmpdir).run(ctx)
     }
 

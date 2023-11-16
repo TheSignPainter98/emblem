@@ -20,6 +20,8 @@ mod result;
 mod util;
 mod version;
 
+use log::Logger;
+
 pub use crate::{
     args::ArgPath,
     build::{
@@ -46,5 +48,5 @@ pub use crate::{
 pub trait Action {
     type Response;
 
-    fn run(&self, ctx: &mut Context) -> Result<Self::Response>;
+    fn run<L: Logger>(&self, ctx: &mut Context<L>) -> Result<Self::Response>;
 }

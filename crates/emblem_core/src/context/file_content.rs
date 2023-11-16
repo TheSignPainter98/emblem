@@ -308,7 +308,7 @@ impl AstDebug for FileContentSlice {
 
 #[cfg(test)]
 mod test {
-    use crate::Context;
+    use crate::{log::BatchLogger, Context};
 
     use super::*;
 
@@ -316,7 +316,7 @@ mod test {
     fn slice() {
         fn range_test(
             name: &str,
-            ctx: &Context,
+            ctx: &Context<BatchLogger>,
             raw: &str,
             range: impl RangeBounds<usize>,
             expect: &str,
@@ -378,7 +378,7 @@ mod test {
     fn slice_of_slice() {
         fn range_test(
             name: &str,
-            ctx: &Context,
+            ctx: &Context<BatchLogger>,
             raw: &str,
             range: impl RangeBounds<usize>,
             expect: &str,

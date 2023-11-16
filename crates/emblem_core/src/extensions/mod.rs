@@ -6,6 +6,7 @@ mod preload_sandboxing;
 
 use crate::{
     context::{Iteration, LuaParameters, Memory, ResourceLimit, SandboxLevel, Step},
+    log::Logger,
     Context, Error, Result,
 };
 use em::Em;
@@ -31,7 +32,7 @@ pub struct ExtensionState {
 }
 
 impl ExtensionState {
-    pub fn new(ctx: &Context) -> Result<Self> {
+    pub fn new<L: Logger>(ctx: &Context<L>) -> Result<Self> {
         let params = ctx.lua_params();
         let sandbox_level = params.sandbox_level();
 

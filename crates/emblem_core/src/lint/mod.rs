@@ -6,6 +6,7 @@ use crate::args::ArgPath;
 use crate::ast::parsed::{Content, Sugar};
 use crate::ast::{File, Par, ParPart};
 use crate::context::Context;
+use crate::log::Logger;
 use crate::path::SearchResult;
 use crate::Log;
 use crate::{parser, Result};
@@ -24,7 +25,7 @@ pub struct Linter {
 impl Action for Linter {
     type Response = ();
 
-    fn run(&self, ctx: &mut Context) -> Result<Self::Response> {
+    fn run<L: Logger>(&self, ctx: &mut Context<L>) -> Result<Self::Response> {
         let src = SearchResult::try_from(self.input.as_ref())?;
         self.lint_root(ctx, src)?
             .into_iter()
@@ -34,7 +35,7 @@ impl Action for Linter {
 }
 
 impl Linter {
-    fn lint_root(&self, ctx: &mut Context, file: SearchResult) -> Result<Vec<Log>> {
+    fn lint_root<L: Logger>(&self, ctx: &mut Context<L>, file: SearchResult) -> Result<Vec<Log>> {
         let mut problems = Vec::new();
         let mut lints = lints::lints_for(ctx.version().unwrap_or(Version::latest()));
         parser::parse_file(ctx, file)?.lint(&mut lints, &mut problems);

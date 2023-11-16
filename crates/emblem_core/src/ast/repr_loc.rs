@@ -83,9 +83,9 @@ impl ReprLoc for Sugar {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{ast::parsed::ParsedFile, parser, Context};
+    use crate::{ast::parsed::ParsedFile, log::BatchLogger, parser, Context};
 
-    fn parse(ctx: &Context, name: &str, src: &str) -> ParsedFile {
+    fn parse(ctx: &Context<BatchLogger>, name: &str, src: &str) -> ParsedFile {
         parser::parse(ctx.alloc_file_name(name), ctx.alloc_file_content(src)).unwrap()
     }
 
