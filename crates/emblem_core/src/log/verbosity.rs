@@ -1,5 +1,6 @@
-use annotate_snippets::snippet::AnnotationType;
 use strum::EnumIter;
+
+use crate::log::MessageType;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
 pub enum Verbosity {
@@ -10,9 +11,9 @@ pub enum Verbosity {
 }
 
 impl Verbosity {
-    pub fn permits_printing(&self, msg_type: AnnotationType) -> bool {
+    pub fn permits_printing(&self, msg_type: MessageType) -> bool {
         match (self, msg_type) {
-            (Self::Terse, AnnotationType::Error) | (Self::Terse, AnnotationType::Warning) => true,
+            (Self::Terse, MessageType::Error) | (Self::Terse, MessageType::Warning) => true,
             (Self::Terse, _) => false,
             _ => true,
         }

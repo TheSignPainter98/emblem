@@ -1,15 +1,15 @@
+use crate::log::MessageType;
 use crate::parser::Location;
-use annotate_snippets::snippet::AnnotationType;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Note {
     loc: Location,
     msg: String,
-    msg_type: AnnotationType,
+    msg_type: MessageType,
 }
 
 impl Note {
-    fn new(msg_type: AnnotationType, loc: &Location, msg: impl Into<String>) -> Self {
+    fn new(msg_type: MessageType, loc: &Location, msg: impl Into<String>) -> Self {
         Self {
             loc: loc.clone(),
             msg: msg.into(),
@@ -18,21 +18,21 @@ impl Note {
     }
 
     pub fn error(loc: &Location, msg: impl Into<String>) -> Self {
-        Self::new(AnnotationType::Error, loc, msg)
+        Self::new(MessageType::Error, loc, msg)
     }
 
     #[allow(dead_code)]
     pub fn warn(loc: &Location, msg: impl Into<String>) -> Self {
-        Self::new(AnnotationType::Warning, loc, msg)
+        Self::new(MessageType::Warning, loc, msg)
     }
 
     pub fn info(loc: &Location, msg: impl Into<String>) -> Self {
-        Self::new(AnnotationType::Info, loc, msg)
+        Self::new(MessageType::Info, loc, msg)
     }
 
     #[allow(dead_code)]
     pub fn help(loc: &Location, msg: impl Into<String>) -> Self {
-        Self::new(AnnotationType::Help, loc, msg)
+        Self::new(MessageType::Help, loc, msg)
     }
 
     pub fn loc(&self) -> &Location {
@@ -43,7 +43,7 @@ impl Note {
         &self.msg
     }
 
-    pub fn msg_type(&self) -> AnnotationType {
+    pub fn msg_type(&self) -> MessageType {
         self.msg_type
     }
 }
@@ -58,7 +58,7 @@ impl Note {
         vec![format!("{}: {}", self.loc, self.msg)]
     }
 
-    pub fn log_levels(&self) -> Vec<AnnotationType> {
+    pub fn message_types(&self) -> Vec<MessageType> {
         vec![self.msg_type]
     }
 }
@@ -67,6 +67,7 @@ impl Note {
 mod test {
     use super::*;
     use crate::{
+        log::MessageType,
         parser::{Location, Point},
         Context,
     };
@@ -99,19 +100,19 @@ mod test {
     #[test]
     pub fn msg_type() {
         assert_eq!(
-            AnnotationType::Error,
+            MessageType::Error,
             Note::error(&placeholder_loc(), "foo").msg_type()
         );
         assert_eq!(
-            AnnotationType::Warning,
+            MessageType::Warning,
             Note::warn(&placeholder_loc(), "foo").msg_type()
         );
         assert_eq!(
-            AnnotationType::Info,
+            MessageType::Info,
             Note::info(&placeholder_loc(), "foo").msg_type()
         );
         assert_eq!(
-            AnnotationType::Help,
+            MessageType::Help,
             Note::help(&placeholder_loc(), "foo").msg_type()
         );
     }

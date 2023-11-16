@@ -5,7 +5,7 @@ mod resource_limit;
 mod resources;
 
 use crate::{
-    log::{AnnotationType, BatchLogger, Log, Logger},
+    log::{MessageType, BatchLogger, Log, Logger},
     ExtensionState, FileContent, FileName, Result, Typesetter, Verbosity, Version,
 };
 use derive_new::new;
@@ -109,8 +109,8 @@ impl<L: Logger> Context<L> {
     pub fn print(&self, log: impl Into<Log>) -> Result<()> {
         let log = {
             let mut log = log.into();
-            if log.msg_type == AnnotationType::Warning && self.warnings_as_errors {
-                log.msg_type = AnnotationType::Error;
+            if log.msg_type == MessageType::Warning && self.warnings_as_errors {
+                log.msg_type = MessageType::Error;
             }
             log
         };

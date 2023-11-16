@@ -6,8 +6,6 @@ mod verbosity;
 
 use std::{borrow::Cow, fmt::Display};
 
-pub use annotate_snippets::snippet::AnnotationType;
-
 use crate::{lint::LintId, Result};
 
 pub use self::batch_logger::BatchLogger;
@@ -45,10 +43,19 @@ log_filter!(alert, Verbosity::Terse);
 log_filter!(inform, Verbosity::Verbose);
 log_filter!(debug, Verbosity::Debug);
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum MessageType {
+    Error,
+    Warning,
+    Info,
+    Note,
+    Help,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Log {
     pub(crate) msg: String,
-    pub(crate) msg_type: AnnotationType,
+    pub(crate) msg_type: MessageType,
     pub(crate) id: LogId,
     pub(crate) help: Option<String>,
     pub(crate) note: Option<String>,
@@ -58,7 +65,7 @@ pub struct Log {
 }
 
 impl Log {
-    fn new(msg_type: AnnotationType, msg: impl Into<String>) -> Self {
+    fn new(msg_type: MessageType, msg: impl Into<String>) -> Self {
         Self {
             msg: msg.into(),
             id: LogId::Undefined,
@@ -72,23 +79,23 @@ impl Log {
     }
 
     pub fn error(msg: impl Into<String>) -> Self {
-        Self::new(AnnotationType::Error, msg)
+        Self::new(MessageType::Error, msg)
     }
 
     pub fn warn(msg: impl Into<String>) -> Self {
-        Self::new(AnnotationType::Warning, msg)
+        Self::new(MessageType::Warning, msg)
     }
 
     #[allow(dead_code)]
     pub fn info(msg: impl Into<String>) -> Self {
-        Self::new(AnnotationType::Info, msg)
+        Self::new(MessageType::Info, msg)
     }
 
     pub fn msg(&self) -> &str {
         &self.msg
     }
 
-    pub fn msg_type(&self) -> AnnotationType {
+    pub fn msg_type(&self) -> MessageType {
         self.msg_type
     }
 
@@ -154,8 +161,8 @@ impl Log {
 
     pub fn successful(&self, warnings_as_errors: bool) -> bool {
         match self.msg_type {
-            AnnotationType::Error => false,
-            AnnotationType::Warning => !warnings_as_errors,
+            MessageType::Error => false,
+            MessageType::Warning => !warnings_as_errors,
             _ => true,
         }
     }
@@ -191,11 +198,11 @@ impl Log {
         ret
     }
 
-    pub fn log_levels(&self) -> Vec<AnnotationType> {
+    pub fn message_types(&self) -> Vec<MessageType> {
         let mut ret = vec![self.msg_type];
 
         for src in &self.srcs {
-            ret.extend(src.log_levels());
+            ret.extend(src.message_types());
         }
 
         ret
@@ -246,24 +253,20 @@ impl Log {
             );
         }
 
-        for log_level in self.log_levels() {
+        for msg_type in self.message_types() {
             let ok = match self.msg_type {
-                AnnotationType::Error => true,
-                AnnotationType::Warning => log_level != AnnotationType::Error,
-                AnnotationType::Info => {
-                    [AnnotationType::Error, AnnotationType::Warning].contains(&log_level)
+                MessageType::Error => true,
+                MessageType::Warning => msg_type != MessageType::Error,
+                MessageType::Info => [MessageType::Error, MessageType::Warning].contains(&msg_type),
+                MessageType::Note | MessageType::Help => {
+                    [MessageType::Error, MessageType::Warning, MessageType::Info]
+                        .contains(&msg_type)
                 }
-                AnnotationType::Note | AnnotationType::Help => [
-                    AnnotationType::Error,
-                    AnnotationType::Warning,
-                    AnnotationType::Info,
-                ]
-                .contains(&log_level),
             };
             assert!(
                 ok,
                 "Log level of sub-message ({:?}) exceeds parent ({:?})",
-                log_level, self.msg_type
+                msg_type, self.msg_type
             );
         }
     }
@@ -343,7 +346,7 @@ mod test {
     fn msg() {
         assert_eq!(
             "hello, world!",
-            Log::new(AnnotationType::Error, "hello, world!").msg(),
+            Log::new(MessageType::Error, "hello, world!").msg(),
         );
     }
 
@@ -355,9 +358,9 @@ mod test {
 
     #[test]
     fn msg_type() {
-        assert_eq!(AnnotationType::Error, Log::error("foo").msg_type());
-        assert_eq!(AnnotationType::Warning, Log::warn("foo").msg_type());
-        assert_eq!(AnnotationType::Info, Log::info("foo").msg_type());
+        assert_eq!(MessageType::Error, Log::error("foo").msg_type());
+        assert_eq!(MessageType::Warning, Log::warn("foo").msg_type());
+        assert_eq!(MessageType::Info, Log::info("foo").msg_type());
     }
 
     #[test]

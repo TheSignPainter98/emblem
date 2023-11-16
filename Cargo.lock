@@ -443,7 +443,6 @@ version = "0.0.0"
 name = "emblem_core"
 version = "0.0.0"
 dependencies = [
- "annotate-snippets",
  "derive-new",
  "derive_more",
  "git2",

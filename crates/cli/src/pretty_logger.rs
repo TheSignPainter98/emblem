@@ -3,11 +3,11 @@ use annotate_snippets::{
         DisplayAnnotationType, DisplayLine, DisplayList, DisplayRawLine, DisplayTextFragment,
         DisplayTextStyle, FormatOptions,
     },
-    snippet::{Annotation, Slice, Snippet, SourceAnnotation},
+    snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
 use emblem_core::{
     context::file_content::FileSlice,
-    log::{AnnotationType, Logger},
+    log::{Logger, MessageType},
     Log, Result, Verbosity,
 };
 use typed_arena::Arena;
@@ -92,7 +92,7 @@ impl Logger for PrettyLogger {
             title: Some(Annotation {
                 id: log.id().defined(),
                 label: Some(log.msg()),
-                annotation_type: log.msg_type(),
+                annotation_type: convert_message_type(log.msg_type()),
             }),
             slices: log
                 .srcs()
@@ -108,7 +108,7 @@ impl Logger for PrettyLogger {
                             .annotations()
                             .iter()
                             .map(|a| SourceAnnotation {
-                                annotation_type: a.msg_type(),
+                                annotation_type: convert_message_type(a.msg_type()),
                                 label: a.msg(),
                                 range: a.loc().indices_in(context),
                             })
@@ -124,8 +124,8 @@ impl Logger for PrettyLogger {
         };
 
         match log.msg_type() {
-            AnnotationType::Error => self.tot_errors += 1,
-            AnnotationType::Warning => self.tot_warnings += 1,
+            MessageType::Error => self.tot_errors += 1,
+            MessageType::Warning => self.tot_warnings += 1,
             _ => {}
         }
 
@@ -191,6 +191,16 @@ impl Logger for PrettyLogger {
             "`{exe}` failed due to {} error{plural}",
             tot_errors
         )))
+    }
+}
+
+fn convert_message_type(msg_type: MessageType) -> AnnotationType {
+    match msg_type {
+        MessageType::Error => AnnotationType::Error,
+        MessageType::Warning => AnnotationType::Warning,
+        MessageType::Info => AnnotationType::Info,
+        MessageType::Note => AnnotationType::Note,
+        MessageType::Help => AnnotationType::Help,
     }
 }
 

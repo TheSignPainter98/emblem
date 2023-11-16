@@ -39,7 +39,7 @@ impl Logger for BatchLogger {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::log::AnnotationType;
+    use crate::log::MessageType;
     use strum::IntoEnumIterator;
 
     #[test]
@@ -49,8 +49,8 @@ mod test {
             assert_eq!(verbosity, logger.verbosity());
 
             let logs = [
-                Log::new(AnnotationType::Error, "hello"),
-                Log::new(AnnotationType::Warning, "world"),
+                Log::new(MessageType::Error, "hello"),
+                Log::new(MessageType::Warning, "world"),
             ];
             for log in logs.iter() {
                 logger.print(log.clone()).unwrap();
