@@ -43,15 +43,6 @@ log_filter!(alert, Verbosity::Terse);
 log_filter!(inform, Verbosity::Verbose);
 log_filter!(debug, Verbosity::Debug);
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum MessageType {
-    Error,
-    Warning,
-    Info,
-    Note,
-    Help,
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct Log {
     pub(crate) msg: String,
@@ -276,6 +267,15 @@ impl Message for Log {
     fn log(self) -> Log {
         self
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum MessageType {
+    Error,
+    Warning,
+    Info,
+    Note,
+    Help,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Default)]
