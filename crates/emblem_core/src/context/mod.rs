@@ -5,7 +5,7 @@ mod resource_limit;
 mod resources;
 
 use crate::{
-    log::{MessageType, BatchLogger, Log, Logger},
+    log::{BatchLogger, Log, Logger, MessageType},
     ExtensionState, FileContent, FileName, Result, Typesetter, Verbosity, Version,
 };
 use derive_new::new;
