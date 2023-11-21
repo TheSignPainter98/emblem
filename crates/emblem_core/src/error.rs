@@ -30,6 +30,10 @@ impl Error {
         Self::new(ErrorImpl::StringConversion { culprit })
     }
 
+    pub fn too_many_errors(tot_errors: i32) -> Self {
+        Self::new(ErrorImpl::TooManyErrors { tot_errors })
+    }
+
     pub fn uncallable_listener(type_name: &'static str) -> Self {
         Self::new(ErrorImpl::UncallableListener { type_name })
     }
@@ -76,6 +80,9 @@ enum ErrorImpl {
 
     #[error("cannot convert string to utf8: {}", culprit.to_string_lossy())]
     StringConversion { culprit: OsString },
+
+    #[error("run aborted after {tot_errors}")]
+    TooManyErrors { tot_errors: i32 },
 
     #[error("{type_name} is not callable")]
     UncallableListener { type_name: &'static str },

@@ -8,22 +8,24 @@ use annotate_snippets::{
 use emblem_core::{
     context::file_content::FileSlice,
     log::{Logger, MessageType},
-    Log, Result, Verbosity,
+    Error as EmblemError, Log, Result as EmblemResult, Verbosity,
 };
 use typed_arena::Arena;
 
 pub struct PrettyLogger {
     verbosity: Verbosity,
     colourise: bool,
+    max_errors: Option<i32>,
     tot_errors: i32,
     tot_warnings: i32,
 }
 
 impl PrettyLogger {
-    pub fn new(verbosity: Verbosity, colourise: bool) -> Self {
+    pub fn new(verbosity: Verbosity, max_errors: Option<i32>, colourise: bool) -> Self {
         Self {
             verbosity,
             colourise,
+            max_errors,
             tot_errors: 0,
             tot_warnings: 0,
         }
@@ -35,8 +37,10 @@ impl Logger for PrettyLogger {
         self.verbosity
     }
 
-    fn print(&mut self, log: Log) -> Result<()> {
-        if !self.verbosity.permits_printing(log.msg_type()) {
+    fn print(&mut self, log: Log) -> EmblemResult<()> {
+        let msg_type = log.msg_type();
+
+        if !self.verbosity.permits_printing(msg_type) {
             return Ok(());
         }
 
@@ -92,7 +96,7 @@ impl Logger for PrettyLogger {
             title: Some(Annotation {
                 id: log.id().defined(),
                 label: Some(log.msg()),
-                annotation_type: convert_message_type(log.msg_type()),
+                annotation_type: convert_message_type(msg_type),
             }),
             slices: log
                 .srcs()
@@ -123,12 +127,6 @@ impl Logger for PrettyLogger {
             },
         };
 
-        match log.msg_type() {
-            MessageType::Error => self.tot_errors += 1,
-            MessageType::Warning => self.tot_warnings += 1,
-            _ => {}
-        }
-
         if log.is_explainable() {
             if !log.id().is_defined() {
                 panic!("internal error: explainable message has no id")
@@ -158,10 +156,22 @@ impl Logger for PrettyLogger {
             eprintln!("{}", DisplayList::from(snippet));
         }
 
+        match msg_type {
+            MessageType::Error => self.tot_errors += 1,
+            MessageType::Warning => self.tot_warnings += 1,
+            _ => {}
+        }
+
+        if let Some(max_errors) = self.max_errors {
+            if self.tot_errors >= max_errors {
+                return Err(EmblemError::too_many_errors(self.tot_errors));
+            }
+        }
+
         Ok(())
     }
 
-    fn report(mut self) -> Result<()> {
+    fn report(mut self) -> EmblemResult<()> {
         if self.verbosity() < Verbosity::Terse {
             return Ok(());
         }
@@ -222,7 +232,7 @@ mod test {
 
                 let expected_errors = 3;
                 let expected_warnings = 3;
-                let mut logger = PrettyLogger::new(verbosity, colourise);
+                let mut logger = PrettyLogger::new(verbosity, None, colourise);
                 for _ in 0..expected_errors {
                     logger.print(error.clone()).unwrap();
                 }
@@ -234,6 +244,35 @@ mod test {
                 assert_eq!(expected_warnings, logger.tot_warnings);
 
                 logger.report().unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn max_errors() {
+        for verbosity in Verbosity::iter() {
+            const CAP: i32 = 10;
+            let mut capped = PrettyLogger::new(verbosity, Some(CAP), false);
+            for i in 1..(1 + CAP * 2) {
+                capped.print(Log::info("this is fine")).unwrap();
+                capped.print(Log::warn("this is concerning")).unwrap();
+
+                let error_print_result = capped.print(Log::error("oh no!"));
+                if i < CAP {
+                    println!("{i}, {CAP}");
+                    error_print_result.unwrap();
+                } else {
+                    assert_eq!(
+                        indoc::formatdoc!("run aborted after {CAP}"),
+                        error_print_result.unwrap_err().to_string()
+                    );
+                    break;
+                }
+            }
+
+            let mut uncapped = PrettyLogger::new(verbosity, None, false);
+            for _ in 0..1000 {
+                uncapped.print(Log::error("anyway...")).unwrap();
             }
         }
     }

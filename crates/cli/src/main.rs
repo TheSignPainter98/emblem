@@ -20,7 +20,11 @@ use std::{collections::HashMap, fs, process::ExitCode};
 
 fn main() -> ExitCode {
     let args = Args::parse();
-    let logger = PrettyLogger::new(args.log.verbosity.into(), args.log.colour);
+    let logger = PrettyLogger::new(
+        args.log.verbosity.into(),
+        Some(args.log.max_errors),
+        args.log.colour,
+    );
     let mut ctx = Context::new(logger);
     if args.log.warnings_as_errors {
         ctx.convert_warnings_to_errors();

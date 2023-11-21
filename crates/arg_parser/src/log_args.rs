@@ -13,6 +13,9 @@ pub struct LogArgs {
     /// Make warnings into errors
     pub warnings_as_errors: bool,
 
+    /// Maximum errors to be reported before the run is aborted.
+    pub max_errors: i32,
+
     /// Output verbosity
     pub verbosity: Verbosity,
 }
@@ -23,11 +26,13 @@ impl TryFrom<RawLogArgs> for LogArgs {
     fn try_from(raw: RawLogArgs) -> Result<Self, Self::Error> {
         let RawLogArgs {
             colour,
+            max_errors,
             warnings_as_errors,
             verbosity,
         } = raw;
         Ok(Self {
             colour: colour.into(),
+            max_errors,
             warnings_as_errors,
             verbosity: verbosity.try_into()?,
         })
@@ -43,6 +48,10 @@ pub struct RawLogArgs {
     /// Make warnings into errors
     #[arg(short = 'E', default_value_t = false, global = true)]
     warnings_as_errors: bool,
+
+    /// Set maximum errors to print before aborting.
+    #[arg(long, default_value_t = 100, value_name = "number", global = true)]
+    max_errors: i32,
 
     /// Set output verbosity
     #[arg(short, action=Count, default_value_t=0, value_name = "level", global=true)]
