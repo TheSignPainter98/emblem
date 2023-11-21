@@ -251,28 +251,29 @@ mod test {
     #[test]
     fn max_errors() {
         for verbosity in Verbosity::iter() {
-            const CAP: i32 = 10;
-            let mut capped = PrettyLogger::new(verbosity, Some(CAP), false);
-            for i in 1..(1 + CAP * 2) {
-                capped.print(Log::info("this is fine")).unwrap();
-                capped.print(Log::warn("this is concerning")).unwrap();
+            const ERROR_CAP: i32 = 10;
+            let mut capped_logger = PrettyLogger::new(verbosity, Some(ERROR_CAP), false);
+            for i in 1..(1 + ERROR_CAP * 2) {
+                capped_logger.print(Log::info("this is fine")).unwrap();
+                capped_logger
+                    .print(Log::warn("this is concerning"))
+                    .unwrap();
 
-                let error_print_result = capped.print(Log::error("oh no!"));
-                if i < CAP {
-                    println!("{i}, {CAP}");
+                let error_print_result = capped_logger.print(Log::error("oh no!"));
+                if i < ERROR_CAP {
                     error_print_result.unwrap();
                 } else {
                     assert_eq!(
-                        indoc::formatdoc!("run aborted after {CAP}"),
+                        indoc::formatdoc!("run aborted after {ERROR_CAP}"),
                         error_print_result.unwrap_err().to_string()
                     );
                     break;
                 }
             }
 
-            let mut uncapped = PrettyLogger::new(verbosity, None, false);
+            let mut uncapped_logger = PrettyLogger::new(verbosity, None, false);
             for _ in 0..1000 {
-                uncapped.print(Log::error("anyway...")).unwrap();
+                uncapped_logger.print(Log::error("anyway...")).unwrap();
             }
         }
     }
