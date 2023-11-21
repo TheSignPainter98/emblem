@@ -20,7 +20,12 @@ use std::{collections::HashMap, fs, process::ExitCode};
 
 fn main() -> ExitCode {
     let args = Args::parse();
-    let logger = PrettyLogger::new(args.log.verbosity.into(), args.log.colour);
+
+    let logger = PrettyLogger::builder()
+        .verbosity(args.log.verbosity)
+        .colourise(args.log.colour)
+        .build()
+        .expect("internal error: failed to build pretty logger");
     let mut ctx = Context::new(logger);
     if args.log.warnings_as_errors {
         ctx.convert_warnings_to_errors();

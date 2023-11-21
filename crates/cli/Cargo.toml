@@ -16,6 +16,7 @@ path = "src/main.rs"
 annotate-snippets = { version = "0.9.1", features = ["color"] }
 arg_parser = { path = "../arg_parser" }
 derive-new = "0.5.9"
+derive_builder = "0.12.0"
 emblem_core = { path = "../emblem_core" }
 git2 = "0.16.1"
 indoc = "2.0.4"
