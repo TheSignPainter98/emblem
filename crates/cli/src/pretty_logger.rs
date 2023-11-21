@@ -5,6 +5,7 @@ use annotate_snippets::{
     },
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
+use derive_builder::Builder;
 use emblem_core::{
     context::file_content::FileSlice,
     log::{Logger, MessageType},
@@ -12,21 +13,23 @@ use emblem_core::{
 };
 use typed_arena::Arena;
 
+#[derive(Default, Builder)]
 pub struct PrettyLogger {
+    #[builder(setter(into))]
     verbosity: Verbosity,
+
     colourise: bool,
+
+    #[builder(setter(skip))]
     tot_errors: i32,
+
+    #[builder(setter(skip))]
     tot_warnings: i32,
 }
 
 impl PrettyLogger {
-    pub fn new(verbosity: Verbosity, colourise: bool) -> Self {
-        Self {
-            verbosity,
-            colourise,
-            tot_errors: 0,
-            tot_warnings: 0,
-        }
+    pub fn builder() -> PrettyLoggerBuilder {
+        PrettyLoggerBuilder::default()
     }
 }
 
@@ -222,7 +225,11 @@ mod test {
 
                 let expected_errors = 3;
                 let expected_warnings = 3;
-                let mut logger = PrettyLogger::new(verbosity, colourise);
+                let mut logger = PrettyLoggerBuilder::default()
+                    .verbosity(verbosity)
+                    .colourise(colourise)
+                    .build()
+                    .unwrap();
                 for _ in 0..expected_errors {
                     logger.print(error.clone()).unwrap();
                 }
