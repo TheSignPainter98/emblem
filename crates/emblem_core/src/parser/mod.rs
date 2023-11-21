@@ -8,6 +8,7 @@ pub use location::Location;
 pub use point::Point;
 
 use crate::context::Context;
+use crate::log::Logger;
 use crate::path::SearchResult;
 use crate::{ast, Error, FileContent, FileName, Result};
 use ast::parsed::ParsedFile;
@@ -22,7 +23,7 @@ lalrpop_mod!(
 );
 
 /// Parse an emblem source file at the given location.
-pub fn parse_file(ctx: &Context, mut to_parse: SearchResult) -> Result<ParsedFile> {
+pub fn parse_file<L: Logger>(ctx: &Context<L>, mut to_parse: SearchResult) -> Result<ParsedFile> {
     let file = {
         let raw = to_parse.path().as_os_str();
         let mut path: &str = to_parse
@@ -179,7 +180,12 @@ pub mod test {
             );
         }
 
-        fn parse(&self, ctx: &Context, name: &str, input: &str) -> Result<ParsedFile> {
+        fn parse<L: Logger>(
+            &self,
+            ctx: &Context<L>,
+            name: &str,
+            input: &str,
+        ) -> Result<ParsedFile> {
             let name = ctx.alloc_file_name(name);
             let input = ctx.alloc_file_content(input);
             super::parse(name, input)

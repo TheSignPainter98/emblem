@@ -1,6 +1,6 @@
 use crate::{
     context::Context,
-    log::{messages, LogId},
+    log::{messages, LogId, Logger},
     Action, Error, Result,
 };
 use derive_new::new;
@@ -13,7 +13,7 @@ pub struct Explainer {
 impl Action for Explainer {
     type Response = ();
 
-    fn run(&self, _: &mut Context) -> Result<Self::Response> {
+    fn run<L: Logger>(&self, _: &mut Context<L>) -> Result<Self::Response> {
         if let Some(e) = self.get_explanation() {
             print!("{e}");
             Ok(())

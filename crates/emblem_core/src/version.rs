@@ -1,4 +1,4 @@
-use strum_macros::EnumIter;
+use strum::EnumIter;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter)]
 pub enum Version {

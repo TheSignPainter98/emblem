@@ -2,7 +2,7 @@ use crate::log::Note;
 use crate::parser::Location;
 
 #[cfg(test)]
-use annotate_snippets::snippet::AnnotationType;
+use crate::log::MessageType;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Src {
@@ -45,10 +45,10 @@ impl Src {
             .collect()
     }
 
-    pub fn log_levels(&self) -> Vec<AnnotationType> {
+    pub fn message_types(&self) -> Vec<MessageType> {
         self.annotations
             .iter()
-            .flat_map(|a| a.log_levels())
+            .flat_map(|a| a.message_types())
             .collect()
     }
 }

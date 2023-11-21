@@ -1,12 +1,12 @@
-pub(crate) mod file_content;
+pub mod file_content;
 pub(crate) mod file_name;
 mod module;
 mod resource_limit;
 mod resources;
 
 use crate::{
-    log::{Log, Logger},
-    ExtensionState, FileContent, FileName, Result, Typesetter, Version,
+    log::{BatchLogger, Log, Logger, MessageType},
+    ExtensionState, FileContent, FileName, Result, Typesetter, Verbosity, Version,
 };
 use derive_new::new;
 pub use module::{Module, ModuleVersion};
@@ -16,26 +16,28 @@ pub use resources::{Iteration, Memory, Resource, Step};
 use std::cell::RefCell;
 use std::fmt::Debug;
 
-#[derive(Default)]
-pub struct Context {
+pub struct Context<L: Logger> {
     name: Option<String>,
     version: Option<Version>,
+    warnings_as_errors: bool,
     doc_params: DocumentParameters,
     lua_params: LuaParameters,
     typesetter_params: TypesetterParameters,
     extension_state: OnceCell<ExtensionState>,
-    logger: RefCell<Logger>,
+    logger: RefCell<L>,
 }
 
-impl Context {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn new_with_logger(logger: Logger) -> Self {
+impl<L: Logger> Context<L> {
+    pub fn new(logger: L) -> Self {
         Self {
+            name: None,
+            version: None,
+            warnings_as_errors: false,
+            doc_params: Default::default(),
+            lua_params: Default::default(),
+            typesetter_params: Default::default(),
+            extension_state: Default::default(),
             logger: RefCell::new(logger),
-            ..Self::default()
         }
     }
 
@@ -53,6 +55,10 @@ impl Context {
 
     pub fn set_version(&mut self, version: Version) {
         self.version = Some(version);
+    }
+
+    pub fn convert_warnings_to_errors(&mut self) {
+        self.warnings_as_errors = true;
     }
 
     pub fn alloc_file_name(&self, name: impl AsRef<str>) -> FileName {
@@ -92,29 +98,41 @@ impl Context {
             .get_or_try_init(|| ExtensionState::new(self))
     }
 
-    pub fn typesetter(&self) -> Typesetter {
+    pub fn typesetter(&self) -> Typesetter<L> {
         Typesetter::new(self)
     }
 
+    pub fn verbosity(&self) -> Verbosity {
+        self.logger.borrow().verbosity()
+    }
+
     pub fn print(&self, log: impl Into<Log>) -> Result<()> {
+        let log = {
+            let mut log = log.into();
+            if log.msg_type == MessageType::Warning && self.warnings_as_errors {
+                log.msg_type = MessageType::Error;
+            }
+            log
+        };
         self.logger.borrow_mut().print(log)
     }
 
     pub fn report(self) -> Result<()> {
-        self.logger.into_inner().report()
+        RefCell::into_inner(self.logger).report()
     }
 }
 
-impl Context {
+impl Context<BatchLogger> {
     pub fn test_new() -> Self {
         Self {
             name: Some("On the Origin of Burnt Toast".into()),
             version: Some(Version::latest()),
+            warnings_as_errors: false,
             doc_params: DocumentParameters::test_new(),
             lua_params: LuaParameters::test_new(),
             typesetter_params: TypesetterParameters::test_new(),
             extension_state: OnceCell::new(),
-            logger: RefCell::new(Logger::test_new()),
+            logger: RefCell::new(BatchLogger::new(Verbosity::Debug)),
         }
     }
 }

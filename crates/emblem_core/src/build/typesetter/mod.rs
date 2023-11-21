@@ -3,6 +3,7 @@ use crate::{
     build::typesetter::doc::Doc,
     context::Iteration,
     extensions::{Event, EventKind, ExtensionState},
+    log::Logger,
     Context, ErrorContext, ResourceLimit, Result,
 };
 
@@ -10,14 +11,14 @@ pub(crate) mod doc;
 
 // TODO(kcza): typesettable file -> [fragment]
 
-pub struct Typesetter<'ctx> {
-    ctx: &'ctx Context,
+pub struct Typesetter<'ctx, L: Logger> {
+    ctx: &'ctx Context<L>,
     curr_iter: Iteration,
     max_iters: ResourceLimit<Iteration>,
 }
 
-impl<'ctx> Typesetter<'ctx> {
-    pub(crate) fn new(ctx: &'ctx Context) -> Self {
+impl<'ctx, L: Logger> Typesetter<'ctx, L> {
+    pub(crate) fn new(ctx: &'ctx Context<L>) -> Self {
         Self {
             ctx,
             curr_iter: Iteration(0),

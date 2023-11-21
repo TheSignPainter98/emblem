@@ -1,3 +1,4 @@
+mod batch_logger;
 pub mod messages;
 mod note;
 mod src;
@@ -5,32 +6,18 @@ mod verbosity;
 
 use std::{borrow::Cow, fmt::Display};
 
-use crate::{context::file_content::FileSlice, lint::LintId, Result};
+use crate::{lint::LintId, Result};
 
+pub use self::batch_logger::BatchLogger;
 pub use self::messages::Message;
-pub use note::Note;
-pub use src::Src;
-use typed_arena::Arena;
-pub use verbosity::Verbosity;
+pub use self::note::Note;
+pub use self::src::Src;
+pub use self::verbosity::Verbosity;
 
-use annotate_snippets::{
-    display_list::{
-        DisplayAnnotationType, DisplayLine, DisplayList, DisplayRawLine, DisplayTextFragment,
-        DisplayTextStyle, FormatOptions,
-    },
-    snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
-};
-
-#[derive(Debug)]
-pub struct LogArgs {
-    /// Colourise log messages
-    pub colour: bool,
-
-    /// Make warnings into errors
-    pub warnings_as_errors: bool,
-
-    /// Output verbosity
-    pub verbosity: Verbosity,
+pub trait Logger: Sized {
+    fn verbosity(&self) -> Verbosity;
+    fn print(&mut self, log: Log) -> Result<()>;
+    fn report(self) -> Result<()>;
 }
 
 macro_rules! log_filter {
@@ -39,10 +26,11 @@ macro_rules! log_filter {
         #[macro_export]
         macro_rules! $name {
             ($logger:expr, $msg:expr) => {
-                if $logger.verbosity >= $verbosity {
+                let logger = $logger;
+                if logger.verbosity() >= $verbosity {
                     #[allow(unused_imports)]
                     use crate::log::messages::Message;
-                    $logger.print($msg.log())
+                    logger.print($msg.log())
                 } else {
                     Ok(())
                 }
@@ -55,202 +43,10 @@ log_filter!(alert, Verbosity::Terse);
 log_filter!(inform, Verbosity::Verbose);
 log_filter!(debug, Verbosity::Debug);
 
-#[derive(Default)]
-pub struct Logger {
-    verbosity: Verbosity,
-    colourise: bool,
-    warnings_as_errors: bool,
-    tot_errors: i32,
-    tot_warnings: i32,
-}
-
-impl Logger {
-    pub fn new(verbosity: Verbosity, colourise: bool, warnings_as_errors: bool) -> Self {
-        Self {
-            verbosity,
-            colourise,
-            warnings_as_errors,
-            tot_errors: 0,
-            tot_warnings: 0,
-        }
-    }
-
-    pub fn print(&mut self, log: impl Into<Log>) -> Result<()> {
-        let log = log.into();
-        if !self.verbosity.permits_printing(log.msg_type) {
-            return Ok(());
-        }
-
-        let expected_string;
-        let footer = {
-            let mut footer = vec![];
-
-            if let Some(ref help) = log.help {
-                footer.push(Annotation {
-                    id: None,
-                    label: Some(help),
-                    annotation_type: AnnotationType::Help,
-                });
-            }
-
-            if let Some(ref note) = log.note {
-                footer.push(Annotation {
-                    id: None,
-                    label: Some(note),
-                    annotation_type: AnnotationType::Note,
-                });
-            }
-
-            if let Some(ref expected) = log.expected {
-                let len = expected.len();
-
-                expected_string = if len == 1 {
-                    format!("expected {}", expected[0])
-                } else {
-                    let mut pretty_expected = Vec::new();
-                    for (i, e) in expected.iter().enumerate() {
-                        if i > 0 {
-                            pretty_expected.push(if i < len - 1 { ", " } else { " or " })
-                        }
-                        pretty_expected.push(e);
-                    }
-
-                    format!("expected one of {}", pretty_expected.concat())
-                };
-
-                footer.push(Annotation {
-                    id: None,
-                    label: Some(&expected_string),
-                    annotation_type: AnnotationType::Note,
-                })
-            }
-
-            footer
-        };
-
-        let contexts = Arena::new();
-        let snippet = Snippet {
-            title: Some(Annotation {
-                id: log.id.defined(),
-                label: Some(&log.msg),
-                annotation_type: match (self.warnings_as_errors, log.msg_type) {
-                    (true, AnnotationType::Warning) => AnnotationType::Error,
-                    _ => log.msg_type,
-                },
-            }),
-            slices: log
-                .srcs
-                .iter()
-                .map(|s| {
-                    let context = contexts.alloc(s.loc().context());
-                    Slice {
-                        source: context.raw(),
-                        line_start: s.loc().lines().0,
-                        origin: Some(s.loc().file_name().as_ref()),
-                        fold: true,
-                        annotations: s
-                            .annotations()
-                            .iter()
-                            .map(|a| SourceAnnotation {
-                                annotation_type: a.msg_type(),
-                                label: a.msg(),
-                                range: a.loc().indices_in(context),
-                            })
-                            .collect(),
-                    }
-                })
-                .collect(),
-            footer,
-            opt: FormatOptions {
-                color: self.colourise,
-                ..Default::default()
-            },
-        };
-
-        if let Some(title) = &snippet.title {
-            match title.annotation_type {
-                AnnotationType::Error => self.tot_errors += 1,
-                AnnotationType::Warning => self.tot_warnings += 1,
-                _ => {}
-            }
-        }
-
-        if log.explainable {
-            if !log.id.is_defined() {
-                panic!("internal error: explainable message has no id")
-            }
-
-            let info_instruction = &format!(
-                "For more information about this error, try `em explain {}`",
-                log.id
-            );
-            let mut display_list = DisplayList::from(snippet);
-            display_list
-                .body
-                .push(DisplayLine::Raw(DisplayRawLine::Annotation {
-                    annotation: annotate_snippets::display_list::Annotation {
-                        annotation_type: DisplayAnnotationType::None,
-                        id: None,
-                        label: vec![DisplayTextFragment {
-                            content: info_instruction,
-                            style: DisplayTextStyle::Emphasis,
-                        }],
-                    },
-                    source_aligned: false,
-                    continuation: false,
-                }));
-            eprintln!("{}", display_list);
-        } else {
-            eprintln!("{}", DisplayList::from(snippet));
-        }
-
-        Ok(())
-    }
-
-    pub fn report(mut self) -> Result<()> {
-        let tot_warnings = self.tot_warnings;
-        let tot_errors = self.tot_errors;
-
-        if tot_warnings > 0 {
-            let plural = if tot_warnings > 1 { "s" } else { "" };
-            alert!(
-                &mut self,
-                Log::warn(format!("generated {} warning{plural}", tot_warnings))
-            )?;
-        }
-
-        if tot_errors == 0 {
-            return Ok(());
-        }
-
-        let plural = if tot_errors > 1 { "s" } else { "" };
-        let exe = std::env::current_exe().unwrap();
-        let exe = exe
-            .file_name()
-            .unwrap()
-            .to_os_string()
-            .into_string()
-            .unwrap();
-        alert!(
-            &mut self,
-            Log::error(format!(
-                "`{exe}` failed due to {} error{plural}",
-                tot_errors
-            ))
-        )
-    }
-}
-
-impl Logger {
-    pub fn test_new() -> Self {
-        Self::new(Verbosity::Verbose, false, false)
-    }
-}
-
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Log {
     pub(crate) msg: String,
-    pub(crate) msg_type: AnnotationType,
+    pub(crate) msg_type: MessageType,
     pub(crate) id: LogId,
     pub(crate) help: Option<String>,
     pub(crate) note: Option<String>,
@@ -260,7 +56,7 @@ pub struct Log {
 }
 
 impl Log {
-    fn new(msg_type: AnnotationType, msg: impl Into<String>) -> Self {
+    fn new(msg_type: MessageType, msg: impl Into<String>) -> Self {
         Self {
             msg: msg.into(),
             id: LogId::Undefined,
@@ -273,24 +69,24 @@ impl Log {
         }
     }
 
-    pub fn msg(&self) -> &str {
-        &self.msg
-    }
-
     pub fn error(msg: impl Into<String>) -> Self {
-        Self::new(AnnotationType::Error, msg)
+        Self::new(MessageType::Error, msg)
     }
 
     pub fn warn(msg: impl Into<String>) -> Self {
-        Self::new(AnnotationType::Warning, msg)
+        Self::new(MessageType::Warning, msg)
     }
 
     #[allow(dead_code)]
     pub fn info(msg: impl Into<String>) -> Self {
-        Self::new(AnnotationType::Info, msg)
+        Self::new(MessageType::Info, msg)
     }
 
-    pub fn msg_type(&self) -> AnnotationType {
+    pub fn msg(&self) -> &str {
+        &self.msg
+    }
+
+    pub fn msg_type(&self) -> MessageType {
         self.msg_type
     }
 
@@ -356,8 +152,8 @@ impl Log {
 
     pub fn successful(&self, warnings_as_errors: bool) -> bool {
         match self.msg_type {
-            AnnotationType::Error => false,
-            AnnotationType::Warning => !warnings_as_errors,
+            MessageType::Error => false,
+            MessageType::Warning => !warnings_as_errors,
             _ => true,
         }
     }
@@ -393,11 +189,11 @@ impl Log {
         ret
     }
 
-    pub fn log_levels(&self) -> Vec<AnnotationType> {
+    pub fn message_types(&self) -> Vec<MessageType> {
         let mut ret = vec![self.msg_type];
 
         for src in &self.srcs {
-            ret.extend(src.log_levels());
+            ret.extend(src.message_types());
         }
 
         ret
@@ -448,24 +244,20 @@ impl Log {
             );
         }
 
-        for log_level in self.log_levels() {
+        for msg_type in self.message_types() {
             let ok = match self.msg_type {
-                AnnotationType::Error => true,
-                AnnotationType::Warning => log_level != AnnotationType::Error,
-                AnnotationType::Info => {
-                    [AnnotationType::Error, AnnotationType::Warning].contains(&log_level)
+                MessageType::Error => true,
+                MessageType::Warning => msg_type != MessageType::Error,
+                MessageType::Info => [MessageType::Error, MessageType::Warning].contains(&msg_type),
+                MessageType::Note | MessageType::Help => {
+                    [MessageType::Error, MessageType::Warning, MessageType::Info]
+                        .contains(&msg_type)
                 }
-                AnnotationType::Note | AnnotationType::Help => [
-                    AnnotationType::Error,
-                    AnnotationType::Warning,
-                    AnnotationType::Info,
-                ]
-                .contains(&log_level),
             };
             assert!(
                 ok,
                 "Log level of sub-message ({:?}) exceeds parent ({:?})",
-                log_level, self.msg_type
+                msg_type, self.msg_type
             );
         }
     }
@@ -475,6 +267,15 @@ impl Message for Log {
     fn log(self) -> Log {
         self
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum MessageType {
+    Error,
+    Warning,
+    Info,
+    Note,
+    Help,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Default)]
@@ -545,7 +346,7 @@ mod test {
     fn msg() {
         assert_eq!(
             "hello, world!",
-            Log::new(AnnotationType::Error, "hello, world!").msg(),
+            Log::new(MessageType::Error, "hello, world!").msg(),
         );
     }
 
@@ -557,9 +358,9 @@ mod test {
 
     #[test]
     fn msg_type() {
-        assert_eq!(AnnotationType::Error, Log::error("foo").msg_type());
-        assert_eq!(AnnotationType::Warning, Log::warn("foo").msg_type());
-        assert_eq!(AnnotationType::Info, Log::info("foo").msg_type());
+        assert_eq!(MessageType::Error, Log::error("foo").msg_type());
+        assert_eq!(MessageType::Warning, Log::warn("foo").msg_type());
+        assert_eq!(MessageType::Info, Log::info("foo").msg_type());
     }
 
     #[test]

@@ -2,6 +2,7 @@ pub(crate) mod typesetter;
 
 use crate::args::ArgPath;
 use crate::context::Context;
+use crate::log::Logger;
 use crate::parser;
 use crate::path::SearchResult;
 use crate::Action;
@@ -22,7 +23,7 @@ pub struct Builder {
 impl Action for Builder {
     type Response = Option<Vec<(ArgPath, String)>>;
 
-    fn run(&self, ctx: &mut Context) -> Result<Self::Response> {
+    fn run<L: Logger>(&self, ctx: &mut Context<L>) -> Result<Self::Response> {
         let fname: SearchResult = self.input.as_ref().try_into()?;
         let root = parser::parse_file(ctx, fname)?;
         ctx.typesetter().typeset(root)?;
