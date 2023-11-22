@@ -57,8 +57,9 @@ impl<L: Logger> Context<L> {
         self.version = Some(version);
     }
 
-    pub fn convert_warnings_to_errors(&mut self) {
-        self.warnings_as_errors = true;
+    pub fn warnings_as_errors(mut self, do_conversion: bool) -> Self {
+        self.warnings_as_errors = do_conversion;
+        self
     }
 
     pub fn alloc_file_name(&self, name: impl AsRef<str>) -> FileName {
