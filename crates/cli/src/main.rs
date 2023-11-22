@@ -23,6 +23,7 @@ fn main() -> ExitCode {
 
     let logger = PrettyLogger::builder()
         .verbosity(args.log.verbosity)
+        .max_errors(args.log.max_errors)
         .colourise(args.log.colour)
         .build()
         .expect("internal error: failed to build pretty logger");

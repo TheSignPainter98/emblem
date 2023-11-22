@@ -9,7 +9,7 @@ use derive_builder::Builder;
 use emblem_core::{
     context::file_content::FileSlice,
     log::{Logger, MessageType},
-    Log, Result, Verbosity,
+    Error as EmblemError, Log, Result as EmblemResult, Verbosity,
 };
 use typed_arena::Arena;
 
@@ -18,7 +18,11 @@ pub struct PrettyLogger {
     #[builder(setter(into))]
     verbosity: Verbosity,
 
+    #[builder(default)]
     colourise: bool,
+
+    #[builder(setter(strip_option), default)]
+    max_errors: Option<i32>,
 
     #[builder(setter(skip))]
     tot_errors: i32,
@@ -38,8 +42,10 @@ impl Logger for PrettyLogger {
         self.verbosity
     }
 
-    fn print(&mut self, log: Log) -> Result<()> {
-        if !self.verbosity.permits_printing(log.msg_type()) {
+    fn print(&mut self, log: Log) -> EmblemResult<()> {
+        let msg_type = log.msg_type();
+
+        if !self.verbosity.permits_printing(msg_type) {
             return Ok(());
         }
 
@@ -95,7 +101,7 @@ impl Logger for PrettyLogger {
             title: Some(Annotation {
                 id: log.id().defined(),
                 label: Some(log.msg()),
-                annotation_type: convert_message_type(log.msg_type()),
+                annotation_type: convert_message_type(msg_type),
             }),
             slices: log
                 .srcs()
@@ -126,12 +132,6 @@ impl Logger for PrettyLogger {
             },
         };
 
-        match log.msg_type() {
-            MessageType::Error => self.tot_errors += 1,
-            MessageType::Warning => self.tot_warnings += 1,
-            _ => {}
-        }
-
         if log.is_explainable() {
             if !log.id().is_defined() {
                 panic!("internal error: explainable message has no id")
@@ -161,10 +161,22 @@ impl Logger for PrettyLogger {
             eprintln!("{}", DisplayList::from(snippet));
         }
 
+        match msg_type {
+            MessageType::Error => self.tot_errors += 1,
+            MessageType::Warning => self.tot_warnings += 1,
+            _ => {}
+        }
+
+        if let Some(max_errors) = self.max_errors {
+            if self.tot_errors >= max_errors {
+                return Err(EmblemError::too_many_errors(self.tot_errors));
+            }
+        }
+
         Ok(())
     }
 
-    fn report(mut self) -> Result<()> {
+    fn report(mut self) -> EmblemResult<()> {
         if self.verbosity() < Verbosity::Terse {
             return Ok(());
         }
@@ -241,6 +253,52 @@ mod test {
                 assert_eq!(expected_warnings, logger.tot_warnings);
 
                 logger.report().unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn max_errors() {
+        for verbosity in Verbosity::iter() {
+            const ERROR_CAP: i32 = 3;
+            let mut capped_logger = PrettyLogger::builder()
+                .verbosity(verbosity)
+                .max_errors(ERROR_CAP)
+                .build()
+                .unwrap();
+            for i in 1..(1 + ERROR_CAP * 2) {
+                let check_print_result = |msg_type: MessageType, result: EmblemResult<()>| {
+                    if i < ERROR_CAP || !verbosity.permits_printing(msg_type) {
+                        result.unwrap()
+                    } else {
+                        assert_eq!(
+                            indoc::formatdoc!("run aborted after {i}"),
+                            result.unwrap_err().to_string()
+                        );
+                    }
+                };
+                check_print_result(
+                    MessageType::Error,
+                    capped_logger.print(Log::error("this is bad")),
+                );
+                check_print_result(
+                    MessageType::Warning,
+                    capped_logger.print(Log::warn("this is concerning")),
+                );
+                check_print_result(
+                    MessageType::Info,
+                    capped_logger.print(Log::info("this is interesting")),
+                );
+            }
+
+            let mut uncapped_logger = PrettyLogger::builder()
+                .verbosity(verbosity)
+                .build()
+                .unwrap();
+            for _ in 0..1000 {
+                uncapped_logger
+                    .print(Log::error("things keep going wrong"))
+                    .unwrap();
             }
         }
     }
