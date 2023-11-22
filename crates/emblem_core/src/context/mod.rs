@@ -13,7 +13,7 @@ pub use module::{Module, ModuleVersion};
 use once_cell::unsync::OnceCell;
 pub use resource_limit::ResourceLimit;
 pub use resources::{Iteration, Memory, Resource, Step};
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::fmt::Debug;
 
 pub struct Context<L: Logger> {
@@ -135,6 +135,10 @@ impl Context<BatchLogger> {
             extension_state: OnceCell::new(),
             logger: RefCell::new(BatchLogger::new(Verbosity::Debug)),
         }
+    }
+
+    pub fn logger(&self) -> Ref<'_, BatchLogger> {
+        self.logger.borrow()
     }
 }
 
@@ -291,6 +295,32 @@ impl TypesetterParameters {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    use strum::IntoEnumIterator;
+
+    #[test]
+    fn warnings_as_errors() {
+        for verbosity in Verbosity::iter() {
+            for do_conversion in [false, true] {
+                let logger = BatchLogger::new(verbosity);
+                let ctx = Context::new(logger).warnings_as_errors(do_conversion);
+
+                ctx.print(Log::error("error")).unwrap();
+                ctx.print(Log::warn("warn")).unwrap();
+                ctx.print(Log::info("info")).unwrap();
+
+                let logger = ctx.logger();
+                let logs = logger.logs();
+                assert!(logs[0].msg_type() == MessageType::Error);
+                if do_conversion {
+                    assert!(logs[1].msg_type() == MessageType::Error);
+                } else {
+                    assert!(logs[1].msg_type() == MessageType::Warning);
+                }
+                assert!(logs[2].msg_type() == MessageType::Info);
+            }
+        }
+    }
 
     #[test]
     fn alloc_file_name() {
