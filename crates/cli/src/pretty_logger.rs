@@ -5,6 +5,7 @@ use annotate_snippets::{
     },
     snippet::{Annotation, AnnotationType, Slice, Snippet, SourceAnnotation},
 };
+use derive_builder::Builder;
 use emblem_core::{
     context::file_content::FileSlice,
     log::{Logger, MessageType},
@@ -12,23 +13,27 @@ use emblem_core::{
 };
 use typed_arena::Arena;
 
+#[derive(Default, Builder)]
 pub struct PrettyLogger {
+    #[builder(setter(into))]
     verbosity: Verbosity,
+
+    #[builder(default)]
     colourise: bool,
+
+    #[builder(setter(strip_option), default)]
     max_errors: Option<i32>,
+
+    #[builder(setter(skip))]
     tot_errors: i32,
+
+    #[builder(setter(skip))]
     tot_warnings: i32,
 }
 
 impl PrettyLogger {
-    pub fn new(verbosity: Verbosity, max_errors: Option<i32>, colourise: bool) -> Self {
-        Self {
-            verbosity,
-            colourise,
-            max_errors,
-            tot_errors: 0,
-            tot_warnings: 0,
-        }
+    pub fn builder() -> PrettyLoggerBuilder {
+        PrettyLoggerBuilder::default()
     }
 }
 
@@ -232,7 +237,11 @@ mod test {
 
                 let expected_errors = 3;
                 let expected_warnings = 3;
-                let mut logger = PrettyLogger::new(verbosity, None, colourise);
+                let mut logger = PrettyLoggerBuilder::default()
+                    .verbosity(verbosity)
+                    .colourise(colourise)
+                    .build()
+                    .unwrap();
                 for _ in 0..expected_errors {
                     logger.print(error.clone()).unwrap();
                 }
@@ -252,7 +261,11 @@ mod test {
     fn max_errors() {
         for verbosity in Verbosity::iter() {
             const ERROR_CAP: i32 = 3;
-            let mut capped_logger = PrettyLogger::new(verbosity, Some(ERROR_CAP), false);
+            let mut capped_logger = PrettyLogger::builder()
+                .verbosity(verbosity)
+                .max_errors(ERROR_CAP)
+                .build()
+                .unwrap();
             for i in 1..(1 + ERROR_CAP * 2) {
                 let check_print_result = |msg_type: MessageType, result: EmblemResult<()>| {
                     if dbg!(dbg!(i) < ERROR_CAP) || dbg!(!verbosity.permits_printing(msg_type)) {
@@ -280,7 +293,10 @@ mod test {
                 );
             }
 
-            let mut uncapped_logger = PrettyLogger::new(verbosity, None, false);
+            let mut uncapped_logger = PrettyLogger::builder()
+                .verbosity(verbosity)
+                .build()
+                .unwrap();
             for _ in 0..1000 {
                 uncapped_logger
                     .print(Log::error("things keep going wrong"))
