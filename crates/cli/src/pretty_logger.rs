@@ -251,29 +251,40 @@ mod test {
     #[test]
     fn max_errors() {
         for verbosity in Verbosity::iter() {
-            const ERROR_CAP: i32 = 10;
+            const ERROR_CAP: i32 = 3;
             let mut capped_logger = PrettyLogger::new(verbosity, Some(ERROR_CAP), false);
             for i in 1..(1 + ERROR_CAP * 2) {
-                capped_logger.print(Log::info("this is fine")).unwrap();
-                capped_logger
-                    .print(Log::warn("this is concerning"))
-                    .unwrap();
-
-                let error_print_result = capped_logger.print(Log::error("oh no!"));
-                if i < ERROR_CAP {
-                    error_print_result.unwrap();
-                } else {
-                    assert_eq!(
-                        indoc::formatdoc!("run aborted after {ERROR_CAP}"),
-                        error_print_result.unwrap_err().to_string()
-                    );
-                    break;
-                }
+                let check_print_result = |msg_type: MessageType, result: EmblemResult<()>| {
+                    if dbg!(dbg!(i) < ERROR_CAP) || dbg!(!verbosity.permits_printing(msg_type)) {
+                        eprintln!("OKAY? {result:?}, {verbosity:?}");
+                        result.unwrap()
+                    } else {
+                        eprintln!("ERR?  {result:?}, {verbosity:?}");
+                        assert_eq!(
+                            indoc::formatdoc!("run aborted after {i}"),
+                            result.unwrap_err().to_string()
+                        );
+                    }
+                };
+                check_print_result(
+                    MessageType::Error,
+                    capped_logger.print(Log::error("this is bad")),
+                );
+                check_print_result(
+                    MessageType::Warning,
+                    capped_logger.print(Log::warn("this is concerning")),
+                );
+                check_print_result(
+                    MessageType::Info,
+                    capped_logger.print(Log::info("this is interesting")),
+                );
             }
 
             let mut uncapped_logger = PrettyLogger::new(verbosity, None, false);
             for _ in 0..1000 {
-                uncapped_logger.print(Log::error("anyway...")).unwrap();
+                uncapped_logger
+                    .print(Log::error("things keep going wrong"))
+                    .unwrap();
             }
         }
     }
