@@ -27,10 +27,7 @@ fn main() -> ExitCode {
         .colourise(args.log.colour)
         .build()
         .expect("internal error: failed to build pretty logger");
-    let mut ctx = Context::new(logger);
-    if args.log.warnings_as_errors {
-        ctx.convert_warnings_to_errors();
-    }
+    let mut ctx = Context::new(logger).warnings_as_errors(args.log.warnings_as_errors);
 
     let r = execute(&mut ctx, &args);
     let success = r.is_ok();
