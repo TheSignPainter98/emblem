@@ -268,11 +268,9 @@ mod test {
                 .unwrap();
             for i in 1..(1 + ERROR_CAP * 2) {
                 let check_print_result = |msg_type: MessageType, result: EmblemResult<()>| {
-                    if dbg!(dbg!(i) < ERROR_CAP) || dbg!(!verbosity.permits_printing(msg_type)) {
-                        eprintln!("OKAY? {result:?}, {verbosity:?}");
+                    if i < ERROR_CAP || !verbosity.permits_printing(msg_type) {
                         result.unwrap()
                     } else {
-                        eprintln!("ERR?  {result:?}, {verbosity:?}");
                         assert_eq!(
                             indoc::formatdoc!("run aborted after {i}"),
                             result.unwrap_err().to_string()
