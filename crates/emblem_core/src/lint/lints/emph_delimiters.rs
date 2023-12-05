@@ -19,14 +19,18 @@ impl Lint for EmphDelimiters {
     fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
             Content::Sugar(Sugar::Italic { delimiter, loc, .. }) if delimiter == "*" => {
-                vec![Log::warn("asterisks used to delimit italic text").with_src(
-                    Src::new(loc).with_annotation(Note::help(loc, "use underscores instead")),
-                )]
+                vec![
+                    Log::warning("asterisks used to delimit italic text").with_src(
+                        Src::new(loc).with_annotation(Note::help(loc, "use underscores instead")),
+                    ),
+                ]
             }
             Content::Sugar(Sugar::Bold { delimiter, loc, .. }) if delimiter == "__" => {
-                vec![Log::warn("underscores used to delimit bold text").with_src(
-                    Src::new(loc).with_annotation(Note::help(loc, "use asterisks instead")),
-                )]
+                vec![
+                    Log::warning("underscores used to delimit bold text").with_src(
+                        Src::new(loc).with_annotation(Note::help(loc, "use asterisks instead")),
+                    ),
+                ]
             }
             Content::Shebang { .. }
             | Content::Word { .. }

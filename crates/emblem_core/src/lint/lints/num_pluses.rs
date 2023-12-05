@@ -59,7 +59,7 @@ impl Lint for NumPluses {
 
 impl NumPluses {
     fn message(&self, loc: &Location, invocation_loc: &Location) -> Log {
-        Log::warn("extra plus modifiers ignored").with_src(
+        Log::warning("extra plus modifiers ignored").with_src(
             Src::new(loc)
                 .with_annotation(Note::help(invocation_loc, "remove all but one plus symbol")),
         )

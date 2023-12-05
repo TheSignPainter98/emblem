@@ -32,7 +32,7 @@ impl Lint for CommandNaming {
                 ..
             } => {
                 if !CONFORMANT_NAME.is_match(name.to_str()) {
-                    return vec![Log::warn(format!(
+                    return vec![Log::warning(format!(
                         "commands should be lowercase with dashes: got ‘.{name}’"
                     ))
                     .with_src(Src::new(loc).with_annotation(Note::help(

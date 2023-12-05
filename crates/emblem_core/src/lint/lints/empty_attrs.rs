@@ -27,7 +27,7 @@ impl Lint for EmptyAttrs {
                     return vec![];
                 }
 
-                vec![Log::warn("empty attributes")
+                vec![Log::warning("empty attributes")
                     .with_src(Src::new(loc).with_annotation(Note::info(attrs.loc(), "found here")))]
             }
             Content::Shebang { .. }

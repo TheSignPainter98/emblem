@@ -65,7 +65,7 @@ impl Lint for NumAttrs {
                     };
 
                     if *max == *min && num_attrs != *max {
-                        return vec![Log::warn(format!(
+                        return vec![Log::warning(format!(
                             "too {} attributes passed to .{name}",
                             if num_attrs > *max { "many" } else { "few" }
                         ))
@@ -84,25 +84,30 @@ impl Lint for NumAttrs {
                             },
                         )))];
                     } else if num_attrs > *max {
-                        return vec![Log::warn(format!("too many attributes passed to .{name}"))
-                            .with_src(Src::new(loc).with_annotation(Note::info(
-                                report_loc,
-                                format!(
-                                    "expected at most {} {}",
-                                    max,
-                                    util::plural(*max, "attribute", "attributes")
-                                ),
-                            )))];
+                        return vec![Log::warning(format!(
+                            "too many attributes passed to .{name}"
+                        ))
+                        .with_src(Src::new(loc).with_annotation(Note::info(
+                            report_loc,
+                            format!(
+                                "expected at most {} {}",
+                                max,
+                                util::plural(*max, "attribute", "attributes")
+                            ),
+                        )))];
                     } else if num_attrs < *min {
-                        return vec![Log::warn(format!("too few attributes passed to .{name}"))
-                            .with_src(Src::new(loc).with_annotation(Note::info(
-                                report_loc,
-                                format!(
-                                    "expected at least {} {}",
-                                    min,
-                                    util::plural(*min, "attribute", "attributes")
-                                ),
-                            )))];
+                        return vec![
+                            Log::warning(format!("too few attributes passed to .{name}")).with_src(
+                                Src::new(loc).with_annotation(Note::info(
+                                    report_loc,
+                                    format!(
+                                        "expected at least {} {}",
+                                        min,
+                                        util::plural(*min, "attribute", "attributes")
+                                    ),
+                                )),
+                            ),
+                        ];
                     }
                 }
 

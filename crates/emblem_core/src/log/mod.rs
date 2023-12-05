@@ -36,7 +36,7 @@ macro_rules! log_warning {
         std::compile_error!("log_warning requires a message to log");
     };
     ($ctx:expr, $($arg:tt)+) => {
-        $crate::log::__log!($ctx, $crate::Verbosity::Terse, $crate::Log::warn, $($arg)+)
+        $crate::log::__log!($ctx, $crate::Verbosity::Terse, $crate::Log::warning, $($arg)+)
     };
 }
 
@@ -105,8 +105,7 @@ impl Log {
         Self::new(MessageType::Error, msg)
     }
 
-    // TODO(kcza): rename this to `warning`
-    pub fn warn(msg: impl Into<String>) -> Self {
+    pub fn warning(msg: impl Into<String>) -> Self {
         Self::new(MessageType::Warning, msg)
     }
 
@@ -437,7 +436,7 @@ mod test {
         Test::new("warning")
             .at_verbosities(&[Verbosity::Terse, Verbosity::Verbose, Verbosity::Debug])
             .func(|ctx| log_warning!(ctx, "oh {}!", "no"))
-            .produces_log(Log::warn("oh no!"));
+            .produces_log(Log::warning("oh no!"));
         Test::new("info")
             .at_verbosities(&[Verbosity::Verbose, Verbosity::Debug])
             .func(|ctx| log_info!(ctx, "oh {}!", "no"))
@@ -465,7 +464,7 @@ mod test {
     #[test]
     fn msg_type() {
         assert_eq!(MessageType::Error, Log::error("foo").msg_type());
-        assert_eq!(MessageType::Warning, Log::warn("foo").msg_type());
+        assert_eq!(MessageType::Warning, Log::warning("foo").msg_type());
         assert_eq!(MessageType::Info, Log::info("foo").msg_type());
     }
 
@@ -536,7 +535,7 @@ mod test {
         for warnings_as_errors in [false, true] {
             assert!(!Log::error("foo").successful(warnings_as_errors));
             assert_eq!(
-                Log::warn("foo").successful(warnings_as_errors),
+                Log::warning("foo").successful(warnings_as_errors),
                 !warnings_as_errors
             );
             assert!(Log::info("foo").successful(warnings_as_errors));

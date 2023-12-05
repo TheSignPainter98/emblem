@@ -63,7 +63,7 @@ impl Lint for NumArgs {
                         inline_args.len() + remainder_arg.iter().len() + trailer_args.len();
 
                     if *max == *min && num_args != *max {
-                        return vec![Log::warn(format!(
+                        return vec![Log::warning(format!(
                             "too {} arguments passed to .{name}",
                             if num_args > *max { "many" } else { "few" }
                         ))
@@ -82,17 +82,20 @@ impl Lint for NumArgs {
                             },
                         )))];
                     } else if num_args > *max {
-                        return vec![Log::warn(format!("too many arguments passed to .{name}"))
-                            .with_src(Src::new(loc).with_annotation(Note::info(
-                                invocation_loc,
-                                format!(
-                                    "expected at most {} {}",
-                                    max,
-                                    util::plural(*max, "argument", "arguments")
-                                ),
-                            )))];
+                        return vec![
+                            Log::warning(format!("too many arguments passed to .{name}")).with_src(
+                                Src::new(loc).with_annotation(Note::info(
+                                    invocation_loc,
+                                    format!(
+                                        "expected at most {} {}",
+                                        max,
+                                        util::plural(*max, "argument", "arguments")
+                                    ),
+                                )),
+                            ),
+                        ];
                     } else if num_args < *min {
-                        return vec![Log::warn(format!("too few arguments passed to .{name}"))
+                        return vec![Log::warning(format!("too few arguments passed to .{name}"))
                             .with_src(Src::new(loc).with_annotation(Note::info(
                                 invocation_loc,
                                 format!(

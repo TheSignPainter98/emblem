@@ -24,7 +24,7 @@ pub enum SugarType {
 
 impl SugarType {
     fn suggest(&self, name: &str, pluses: usize, loc: &Location, invocation_loc: &Location) -> Log {
-        Log::warn(format!("syntactic sugar exists for .{name}"))
+        Log::warning(format!("syntactic sugar exists for .{name}"))
             .with_src(Src::new(loc).with_annotation(Note::help(invocation_loc, "found here")))
             .with_help(match self {
                 Self::Prefix(_, Some(pre)) if pluses > 0 => format!("try using ‘{pre}’ instead"),
