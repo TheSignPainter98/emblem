@@ -20,28 +20,60 @@ pub trait Logger: Sized {
     fn report(self) -> Result<()>;
 }
 
-macro_rules! log_filter {
-    ($name:ident, $verbosity:path) => {
-        #[allow(clippy::crate_in_macro_def)]
-        #[macro_export]
-        macro_rules! $name {
-            ($logger:expr, $msg:expr) => {
-                let logger = $logger;
-                if logger.verbosity() >= $verbosity {
-                    #[allow(unused_imports)]
-                    use crate::log::messages::Message;
-                    logger.print($msg.log())
-                } else {
-                    Ok(())
-                }
-            };
-        }
+#[macro_export]
+macro_rules! log_error {
+    ($ctx:expr) => {
+        std::compile_error!("log_error requires a message to log");
+    };
+    ($ctx:expr, $($arg:tt)+) => {
+        $crate::log::__log!($ctx, $crate::Verbosity::Terse, $crate::Log::error, $($arg)+)
     };
 }
 
-log_filter!(alert, Verbosity::Terse);
-log_filter!(inform, Verbosity::Verbose);
-log_filter!(debug, Verbosity::Debug);
+#[macro_export]
+macro_rules! log_warning {
+    ($ctx:expr) => {
+        std::compile_error!("log_warning requires a message to log");
+    };
+    ($ctx:expr, $($arg:tt)+) => {
+        $crate::log::__log!($ctx, $crate::Verbosity::Terse, $crate::Log::warn, $($arg)+)
+    };
+}
+
+#[macro_export]
+macro_rules! log_info {
+    ($ctx:expr) => {
+        std::compile_error!("log_info requires a message to log");
+    };
+    ($ctx:expr, $($arg:tt)+) => {
+        $crate::log::__log!($ctx, $crate::Verbosity::Verbose, $crate::Log::info, $($arg)+)
+    };
+}
+
+#[macro_export]
+macro_rules! log_debug {
+    ($ctx:expr) => {
+        std::compile_error!("log_debug requires a message to log");
+    };
+    ($ctx:expr, $($arg:tt)+) => {
+        $crate::log::__log!($ctx, $crate::Verbosity::Debug, $crate::Log::debug, $($arg)+)
+    };
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! __log {
+    ($ctx:expr, $max_lvl:path, $log_constructor:path, $($arg:tt)*) => {{
+        let ctx: &$crate::Context<_> = $ctx;
+        if ctx.verbosity() >= $max_lvl {
+            ctx.print($log_constructor(std::format!("{}", std::format_args!($($arg)*))))
+        } else {
+            Ok(())
+        }
+    }};
+}
+#[allow(unused_imports)]
+pub use __log;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Log {
@@ -73,12 +105,18 @@ impl Log {
         Self::new(MessageType::Error, msg)
     }
 
+    // TODO(kcza): rename this to `warning`
     pub fn warn(msg: impl Into<String>) -> Self {
         Self::new(MessageType::Warning, msg)
     }
 
     #[allow(dead_code)]
     pub fn info(msg: impl Into<String>) -> Self {
+        Self::new(MessageType::Info, msg)
+    }
+
+    #[allow(dead_code)]
+    pub fn debug(msg: impl Into<String>) -> Self {
         Self::new(MessageType::Info, msg)
     }
 
@@ -336,11 +374,79 @@ impl Display for LogId {
 
 #[cfg(test)]
 mod test {
+    use strum::IntoEnumIterator;
+
     use super::*;
     use crate::{
         parser::{Location, Point},
         Context,
     };
+
+    #[test]
+    fn filters() {
+        struct Test<F: Fn(&Context<BatchLogger>) -> Result<()>> {
+            name: Cow<'static, str>,
+            printing_verbosities: &'static [Verbosity],
+            func: Option<F>,
+        }
+
+        impl<F: Fn(&Context<BatchLogger>) -> Result<()>> Test<F> {
+            fn new(name: impl Into<Cow<'static, str>>) -> Self {
+                let name = name.into();
+                Self {
+                    name,
+                    printing_verbosities: &[],
+                    func: None,
+                }
+            }
+
+            fn at_verbosities(mut self, printing_verbosities: &'static [Verbosity]) -> Self {
+                self.printing_verbosities = printing_verbosities;
+                self
+            }
+
+            fn func(mut self, func: F) -> Self {
+                self.func = Some(func);
+                self
+            }
+
+            fn produces_log(self, expected_log: Log) {
+                println!("testing {}...", self.name);
+
+                let Some(func) = self.func else {
+                    panic!("{}: test has no func to run!", self.name)
+                };
+
+                for verbosity in Verbosity::iter() {
+                    let logger = BatchLogger::new(verbosity);
+                    let ctx = Context::new(logger);
+                    func(&ctx).unwrap();
+                    if self.printing_verbosities.contains(&verbosity) {
+                        assert_eq!(ctx.logger().logs(), [expected_log.clone()])
+                    } else {
+                        assert_eq!(ctx.logger().logs(), []);
+                    }
+                }
+            }
+        }
+
+        Test::new("error")
+            .at_verbosities(&[Verbosity::Terse, Verbosity::Verbose, Verbosity::Debug])
+            .func(|ctx| log_error!(ctx, "oh {}!", "no"))
+            .produces_log(Log::error("oh no!"));
+        Test::new("warning")
+            .at_verbosities(&[Verbosity::Terse, Verbosity::Verbose, Verbosity::Debug])
+            .func(|ctx| log_warning!(ctx, "oh {}!", "no"))
+            .produces_log(Log::warn("oh no!"));
+        Test::new("info")
+            .at_verbosities(&[Verbosity::Verbose, Verbosity::Debug])
+            .func(|ctx| log_info!(ctx, "oh {}!", "no"))
+            .produces_log(Log::info("oh no!"));
+        Test::new("debug")
+            .at_verbosities(&[Verbosity::Debug])
+            .func(|ctx| log_debug!(ctx, "oh {}!", "no"))
+            .produces_log(Log::debug("oh no!"));
+    }
 
     #[test]
     fn msg() {
