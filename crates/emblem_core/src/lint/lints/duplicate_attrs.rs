@@ -46,7 +46,7 @@ impl Lint for DuplicateAttrs {
                 let mut ret = vec![];
                 for (duplicate, original) in dups {
                     ret.push(
-                        Log::warn("duplicate attributes")
+                        Log::warning("duplicate attributes")
                             .with_src({
                                 let repr = duplicate.repr();
                                 Src::new(loc)

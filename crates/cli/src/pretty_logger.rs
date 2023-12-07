@@ -184,7 +184,7 @@ impl Logger for PrettyLogger {
         let tot_warnings = self.tot_warnings;
         if tot_warnings > 0 {
             let plural = if tot_warnings > 1 { "s" } else { "" };
-            self.print(Log::warn(format!(
+            self.print(Log::warning(format!(
                 "generated {} warning{plural}",
                 tot_warnings
             )))?;
@@ -228,7 +228,7 @@ mod test {
     #[test]
     fn problem_counters() {
         let error = Log::error("some error");
-        let warn = Log::warn("some warning");
+        let warn = Log::warning("some warning");
         let info = Log::info("some info");
 
         for verbosity in Verbosity::iter() {
@@ -283,7 +283,7 @@ mod test {
                 );
                 check_print_result(
                     MessageType::Warning,
-                    capped_logger.print(Log::warn("this is concerning")),
+                    capped_logger.print(Log::warning("this is concerning")),
                 );
                 check_print_result(
                     MessageType::Info,

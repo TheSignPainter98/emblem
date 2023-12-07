@@ -19,7 +19,7 @@ impl Lint for SpiltGlue {
     fn analyse(&mut self, content: &Content) -> Vec<Log> {
         match content {
             Content::SpiltGlue { loc, .. } => {
-                vec![Log::warn("glue does not connect text fragments")
+                vec![Log::warning("glue does not connect text fragments")
                     .with_src(Src::new(loc).with_annotation(Note::info(loc, "found here")))]
             }
             Content::Shebang { .. }

@@ -306,7 +306,7 @@ mod test {
                 let ctx = Context::new(logger).warnings_as_errors(do_conversion);
 
                 ctx.print(Log::error("error")).unwrap();
-                ctx.print(Log::warn("warn")).unwrap();
+                ctx.print(Log::warning("warn")).unwrap();
                 ctx.print(Log::info("info")).unwrap();
 
                 let logger = ctx.logger();
