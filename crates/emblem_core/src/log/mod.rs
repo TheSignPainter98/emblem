@@ -419,11 +419,14 @@ mod test {
                     let logger = BatchLogger::new(verbosity);
                     let ctx = Context::new(logger);
                     func(&ctx).unwrap();
-                    if self.printing_verbosities.contains(&verbosity) {
-                        assert_eq!(ctx.logger().logs(), [expected_log.clone()])
-                    } else {
-                        assert_eq!(ctx.logger().logs(), []);
-                    }
+                    assert_eq!(
+                        ctx.logger().logs(),
+                        if self.printing_verbosities.contains(&verbosity) {
+                            vec![expected_log.clone()]
+                        } else {
+                            vec![]
+                        }
+                    );
                 }
             }
         }
