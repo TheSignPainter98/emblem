@@ -391,9 +391,8 @@ mod test {
 
         impl<F: Fn(&Context<BatchLogger>) -> Result<()>> Test<F> {
             fn new(name: impl Into<Cow<'static, str>>) -> Self {
-                let name = name.into();
                 Self {
-                    name,
+                    name: name.into(),
                     printing_verbosities: &[],
                     func: None,
                 }
