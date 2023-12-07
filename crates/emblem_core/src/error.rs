@@ -1,4 +1,4 @@
-use std::{borrow::Cow, error::Error as StdError, ffi::OsString, fmt::Display, io};
+use std::{borrow::Cow, error::Error as StdError, fmt::Display, io};
 
 use crate::{log::LogId, parser::error::ParseError, FileName, Log};
 
@@ -24,10 +24,6 @@ impl Error {
 
     pub fn parse(file_name: FileName, cause: ParseError) -> Self {
         Self::new(ErrorImpl::ParseError { file_name, cause })
-    }
-
-    pub fn string_conversion(culprit: OsString) -> Self {
-        Self::new(ErrorImpl::StringConversion { culprit })
     }
 
     pub fn too_many_errors(tot_errors: i32) -> Self {
@@ -78,9 +74,6 @@ enum ErrorImpl {
         cause: ParseError,
     },
 
-    #[error("cannot convert string to utf8: {}", culprit.to_string_lossy())]
-    StringConversion { culprit: OsString },
-
     #[error("run aborted after {tot_errors}")]
     TooManyErrors { tot_errors: i32 },
 
@@ -125,12 +118,6 @@ mod test {
             err.to_string(),
             "cannot parse 'file-name-here': Invalid token at 1:1"
         )
-    }
-
-    #[test]
-    fn string_conversion() {
-        let err = Error::string_conversion(OsString::from("wassup"));
-        assert_eq!(err.to_string(), "cannot convert string to utf8: wassup")
     }
 
     #[test]

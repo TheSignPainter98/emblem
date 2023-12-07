@@ -83,6 +83,7 @@ dependencies = [
 name = "arg_parser"
 version = "0.0.0"
 dependencies = [
+ "camino",
  "clap",
  "clap-verbosity-flag",
  "emblem_core",
@@ -153,6 +154,12 @@ name = "bumpalo"
 version = "3.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b1ce199063694f33ffb7dd4e0ee620741495c32833cde5aa08f02a0bf96f0c8"
+
+[[package]]
+name = "camino"
+version = "1.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c59e92b5a388f549b863a7bea62612c09f24c8393560709a54558a9abdfb3b9c"
 
 [[package]]
 name = "cc"
@@ -510,6 +517,7 @@ version = "0.0.0"
 name = "emblem_core"
 version = "0.0.0"
 dependencies = [
+ "camino",
  "derive-new",
  "derive_more",
  "git2",

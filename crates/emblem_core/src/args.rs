@@ -1,9 +1,14 @@
-use std::{fmt, path};
+use std::fmt;
+
+use camino::Utf8PathBuf;
+
+#[cfg(test)]
+use camino::Utf8Path;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum ArgPath {
     Stdio,
-    Path(path::PathBuf),
+    Path(Utf8PathBuf),
 }
 
 impl AsRef<ArgPath> for ArgPath {
@@ -14,20 +19,16 @@ impl AsRef<ArgPath> for ArgPath {
 
 impl fmt::Display for ArgPath {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Stdio => "-",
-                Self::Path(s) => s.to_str().unwrap_or("(invalid path)"),
-            }
-        )
+        match self {
+            Self::Stdio => write!(f, "-"),
+            Self::Path(p) => write!(f, "{p}"),
+        }
     }
 }
 
 #[cfg(test)]
 impl ArgPath {
-    pub fn path(&self) -> Option<&path::Path> {
+    pub fn path(&self) -> Option<&Utf8Path> {
         match self {
             Self::Stdio => None,
             Self::Path(p) => Some(p),

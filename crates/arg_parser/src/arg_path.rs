@@ -1,15 +1,16 @@
 use crate::RawArgs;
+use camino::Utf8PathBuf;
 use clap::{
     builder::{OsStr, StringValueParser, TypedValueParser},
     error::{Error as ClapError, ErrorKind as ClapErrorKind},
     CommandFactory,
 };
-use std::{fmt::Display, path::PathBuf};
+use std::fmt::Display;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ArgPath {
     Stdio,
-    Path(PathBuf),
+    Path(Utf8PathBuf),
 }
 
 impl ArgPath {
@@ -26,14 +27,10 @@ impl Default for ArgPath {
 
 impl Display for ArgPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Stdio => "-",
-                Self::Path(s) => s.to_str().unwrap_or("(invalid path)"),
-            }
-        )
+        match self {
+            Self::Stdio => write!(f, "-"),
+            Self::Path(p) => write!(f, "{p}"),
+        }
     }
 }
 
@@ -78,7 +75,7 @@ impl TryFrom<&str> for ArgPath {
                     .error(ClapErrorKind::InvalidValue, FILE_PATH_CANNOT_BE_EMPTY))
             }
             "-" => Ok(Self::Stdio),
-            raw => Ok(Self::Path(PathBuf::from(raw))),
+            raw => Ok(Self::Path(Utf8PathBuf::from(raw))),
         }
     }
 }
@@ -88,7 +85,7 @@ pub enum UninferredArgPath {
     #[default]
     Infer,
     Stdio,
-    Path(PathBuf),
+    Path(Utf8PathBuf),
 }
 
 impl UninferredArgPath {
@@ -113,7 +110,7 @@ impl Display for UninferredArgPath {
         let repr = match self {
             Self::Infer => "??",
             Self::Stdio => "stdio",
-            Self::Path(p) => p.to_str().unwrap(),
+            Self::Path(p) => p.as_str(),
         };
         repr.fmt(f)
     }
