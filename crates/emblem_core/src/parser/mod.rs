@@ -25,15 +25,10 @@ lalrpop_mod!(
 /// Parse an emblem source file at the given location.
 pub fn parse_file<L: Logger>(ctx: &Context<L>, mut to_parse: SearchResult) -> Result<ParsedFile> {
     let file = {
-        let raw = to_parse.path().as_os_str();
-        let mut path: &str = to_parse
-            .path()
-            .as_os_str()
-            .to_str()
-            .ok_or_else(|| Error::string_conversion(raw.to_owned()))?;
-        if path == "-" {
-            path = "(stdin)";
-        }
+        let path = match to_parse.path().as_str() {
+            "-" => "(stdin)",
+            x => x,
+        };
         ctx.alloc_file_name(path)
     };
 

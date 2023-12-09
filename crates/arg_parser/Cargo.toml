@@ -10,6 +10,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+camino = "1.1.6"
 clap = { version = "4.0.12", features = ["derive", "env", "wrap_help"] }
 clap-verbosity-flag = "2.0.0"
 emblem_core = { path = "../emblem_core" }

@@ -1,8 +1,9 @@
+use camino::{Utf8Path, Utf8PathBuf};
+
 use crate::{args::ArgPath, Error, Result};
 use std::{
     fs,
     io::{self, Read},
-    path,
 };
 
 #[cfg(test)]
@@ -98,12 +99,12 @@ use std::{
 
 #[derive(Debug)]
 pub struct SearchResult {
-    path: path::PathBuf,
+    path: Utf8PathBuf,
     file: InputFile,
 }
 
 impl SearchResult {
-    pub fn path(&self) -> &path::Path {
+    pub fn path(&self) -> &Utf8Path {
         &self.path
     }
 
@@ -117,7 +118,7 @@ impl TryFrom<&str> for SearchResult {
 
     fn try_from(value: &str) -> Result<Self> {
         Ok(Self {
-            path: path::PathBuf::from(value),
+            path: Utf8PathBuf::from(value),
             file: InputFile::from(fs::File::open(value)?),
         })
     }
@@ -129,11 +130,11 @@ impl TryFrom<&ArgPath> for SearchResult {
     fn try_from(value: &ArgPath) -> Result<Self> {
         Ok(match value {
             ArgPath::Path(p) => Self {
-                path: path::PathBuf::from(p),
+                path: Utf8PathBuf::from(p),
                 file: InputFile::from(fs::File::open(p)?),
             },
             ArgPath::Stdio => Self {
-                path: path::PathBuf::from("-"),
+                path: Utf8PathBuf::from("-"),
                 file: InputFile::from(io::stdin()), // TODO(kcza): lock this!
             },
         })
@@ -395,9 +396,9 @@ mod test {
         use io::Write;
 
         #[test]
-        fn fields() -> io::Result<()> {
+        fn fields() -> Result<()> {
             let tmpdir = tempfile::tempdir()?;
-            let path = tmpdir.path().join("fields.txt");
+            let path = Utf8PathBuf::try_from(tmpdir.path().join("fields.txt")).unwrap();
             let mut file = fs::File::create(&path)?;
             file.write_all(b"file-content")?;
 
@@ -448,7 +449,7 @@ mod test {
             let src = "from.txt";
 
             let tmpdir = tempfile::tempdir()?;
-            let path = tmpdir.path().join(src);
+            let path = Utf8PathBuf::try_from(tmpdir.path().join(src)).unwrap();
             let mut file = fs::File::create(&path)?;
             file.write_all(b"file-content")?;
 
@@ -469,7 +470,7 @@ mod test {
             {
                 let a = ArgPath::Stdio;
                 let s: SearchResult = a.as_ref().try_into()?;
-                assert_eq!(s.path, path::PathBuf::from("-"));
+                assert_eq!(s.path, Utf8PathBuf::from("-"));
                 assert!(s.file.stdin().is_some());
             }
 
