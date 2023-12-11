@@ -269,6 +269,7 @@ version = "0.0.0"
 dependencies = [
  "annotate-snippets",
  "arg_parser",
+ "camino",
  "clap",
  "clap_complete",
  "clap_mangen",

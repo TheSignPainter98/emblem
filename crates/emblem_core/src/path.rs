@@ -1,4 +1,4 @@
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 
 use crate::{args::ArgPath, Error, Result};
 use std::{
@@ -99,17 +99,16 @@ use std::{
 
 #[derive(Debug)]
 pub struct SearchResult {
-    path: Utf8PathBuf,
-    file: InputFile,
+    pub(crate) path: Utf8PathBuf,
+    pub(crate) file: InputFile,
 }
 
-impl SearchResult {
-    pub fn path(&self) -> &Utf8Path {
-        &self.path
-    }
+impl TryFrom<Utf8PathBuf> for SearchResult {
+    type Error = Error;
 
-    pub fn file(&mut self) -> &mut InputFile {
-        &mut self.file
+    fn try_from(path: Utf8PathBuf) -> Result<Self> {
+        let file = InputFile::from(fs::File::open(&path).map_err(|e| Error::io(&path, e))?);
+        Ok(Self { path, file })
     }
 }
 
@@ -119,7 +118,7 @@ impl TryFrom<&str> for SearchResult {
     fn try_from(value: &str) -> Result<Self> {
         Ok(Self {
             path: Utf8PathBuf::from(value),
-            file: InputFile::from(fs::File::open(value)?),
+            file: InputFile::from(fs::File::open(value).map_err(|e| Error::io(value, e))?),
         })
     }
 }
@@ -131,7 +130,7 @@ impl TryFrom<&ArgPath> for SearchResult {
         Ok(match value {
             ArgPath::Path(p) => Self {
                 path: Utf8PathBuf::from(p),
-                file: InputFile::from(fs::File::open(p)?),
+                file: InputFile::from(fs::File::open(p).map_err(|e| Error::io(p, e))?),
             },
             ArgPath::Stdio => Self {
                 path: Utf8PathBuf::from("-"),
@@ -397,13 +396,14 @@ mod test {
 
         #[test]
         fn fields() -> Result<()> {
-            let tmpdir = tempfile::tempdir()?;
+            let tmpdir = tempfile::tempdir().unwrap();
             let path = Utf8PathBuf::try_from(tmpdir.path().join("fields.txt")).unwrap();
-            let mut file = fs::File::create(&path)?;
-            file.write_all(b"file-content")?;
+            let mut file = fs::File::create(&path).map_err(|e| Error::io(&path, e))?;
+            file.write_all(b"file-content")
+                .map_err(|e| Error::io(&path, e))?;
 
-            let file = fs::File::open(&path)?;
-            let mut s = SearchResult {
+            let file = fs::File::open(&path).map_err(|e| Error::io(&path, e))?;
+            let s = SearchResult {
                 path: path.clone(),
                 file: InputFile::from(file),
             };
@@ -412,7 +412,11 @@ mod test {
             assert_eq!(
                 {
                     let mut buf = String::new();
-                    s.file().file().unwrap().read_to_string(&mut buf)?;
+                    s.file
+                        .file()
+                        .unwrap()
+                        .read_to_string(&mut buf)
+                        .map_err(|e| Error::io(path, e))?;
                     buf
                 },
                 "file-content"
@@ -425,17 +429,22 @@ mod test {
         fn from_str() -> Result<()> {
             let src = "from.txt";
 
-            let tmpdir = tempfile::tempdir()?;
-            let path = tmpdir.path().join(src);
-            let mut file = fs::File::create(&path)?;
-            file.write_all(b"file-content")?;
+            let tmpdir = tempfile::tempdir().unwrap();
+            let path = Utf8PathBuf::try_from(tmpdir.path().join(src)).unwrap();
+            let mut file = fs::File::create(&path).map_err(|e| Error::io(&path, e))?;
+            file.write_all(b"file-content")
+                .map_err(|e| Error::io(&path, e))?;
 
-            let mut s = SearchResult::try_from(path.to_str().unwrap())?;
+            let s = SearchResult::try_from(path.clone())?;
             assert_eq!(s.path, path);
             assert_eq!(
                 {
                     let mut buf = String::new();
-                    s.file().file().unwrap().read_to_string(&mut buf)?;
+                    s.file
+                        .file()
+                        .unwrap()
+                        .read_to_string(&mut buf)
+                        .map_err(|e| Error::io(path, e))?;
                     buf
                 },
                 "file-content",
@@ -448,19 +457,24 @@ mod test {
         fn from_arg_path() -> Result<()> {
             let src = "from.txt";
 
-            let tmpdir = tempfile::tempdir()?;
+            let tmpdir = tempfile::tempdir().unwrap();
             let path = Utf8PathBuf::try_from(tmpdir.path().join(src)).unwrap();
-            let mut file = fs::File::create(&path)?;
-            file.write_all(b"file-content")?;
+            let mut file = fs::File::create(&path).map_err(|e| Error::io(&path, e))?;
+            file.write_all(b"file-content")
+                .map_err(|e| Error::io(&path, e))?;
 
             {
-                let a = ArgPath::Path(path);
-                let mut s: SearchResult = a.as_ref().try_into()?;
+                let a = ArgPath::Path(path.clone());
+                let s: SearchResult = a.as_ref().try_into()?;
                 assert_eq!(a.path().unwrap(), s.path);
                 assert_eq!(
                     {
                         let mut buf = String::new();
-                        s.file().file().unwrap().read_to_string(&mut buf)?;
+                        s.file
+                            .file()
+                            .unwrap()
+                            .read_to_string(&mut buf)
+                            .map_err(|e| Error::io(path, e))?;
                         buf
                     },
                     "file-content",
@@ -478,14 +492,18 @@ mod test {
         }
 
         #[test]
-        fn len_hint() -> io::Result<()> {
-            let tmpdir = tempfile::tempdir()?;
-            let path = tmpdir.path().join("file.txt");
-            let mut file = fs::File::create(&path)?;
-            file.write_all(b"1234567890")?;
+        fn len_hint() -> Result<()> {
+            let tmpdir = tempfile::tempdir().unwrap();
+            let path = Utf8PathBuf::try_from(tmpdir.path().join("file.txt")).unwrap();
+            let mut file = fs::File::create(&path).map_err(|e| Error::io(&path, e))?;
+            file.write_all(b"1234567890")
+                .map_err(|e| Error::io(&path, e))?;
 
             assert_eq!(InputFile::from(io::stdin()).len_hint(), None);
-            assert_eq!(InputFile::from(File::open(path)?).len_hint(), Some(10));
+            assert_eq!(
+                InputFile::from(File::open(&path).map_err(|e| Error::io(&path, e))?).len_hint(),
+                Some(10)
+            );
 
             Ok(())
         }

@@ -1,5 +1,6 @@
 use std::{borrow::Cow, error::Error as StdError, fmt::Display, io};
 
+use camino::Utf8PathBuf;
 use emblem_core::Log;
 
 #[derive(Debug)]
@@ -13,6 +14,11 @@ impl Error {
     pub fn arg_invalid(arg: String, reason: impl Into<Cow<'static, str>>) -> Self {
         let reason = reason.into();
         Self::new(ErrorImpl::ArgInvalid { arg, reason })
+    }
+
+    pub fn io(path: impl Into<Utf8PathBuf>, cause: io::Error) -> Self {
+        let path = path.into();
+        Self::new(ErrorImpl::IO { path, cause })
     }
 
     pub fn context(self, context: impl Into<Cow<'static, str>>) -> Self {
@@ -68,8 +74,8 @@ enum ErrorImpl {
     #[error("git error: {0}")]
     Git(#[from] git2::Error),
 
-    #[error("IO error: {0}")]
-    IO(#[from] io::Error),
+    #[error("IO error accessing {path}: {cause}")]
+    IO { path: Utf8PathBuf, cause: io::Error },
 
     #[error("manifest invalid: {reason}")]
     ManifestInvalid { reason: Cow<'static, str> },
@@ -103,6 +109,18 @@ mod tests {
             Error::arg_invalid("foo".into(), ":kekw:").to_string(),
             "argument 'foo' invalid: :kekw:"
         )
+    }
+
+    #[test]
+    fn io() {
+        assert_eq!(
+            Error::io(
+                Utf8PathBuf::from("file.em"),
+                io::Error::new(io::ErrorKind::BrokenPipe, "oh no!")
+            )
+            .to_string(),
+            "IO error accessing file.em: oh no!"
+        );
     }
 
     #[test]

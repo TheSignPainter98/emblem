@@ -1,5 +1,7 @@
 use std::{borrow::Cow, error::Error as StdError, fmt::Display, io};
 
+use camino::Utf8PathBuf;
+
 use crate::{log::LogId, parser::error::ParseError, FileName, Log};
 
 #[derive(Debug)]
@@ -16,6 +18,11 @@ impl Error {
             context,
             cause: self,
         })
+    }
+
+    pub fn io(path: impl Into<Utf8PathBuf>, cause: io::Error) -> Self {
+        let path = path.into();
+        Self::new(ErrorImpl::IO { path, cause })
     }
 
     pub fn no_such_error_code(id: LogId) -> Self {
@@ -59,8 +66,8 @@ impl Display for Error {
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, thiserror::Error)]
 enum ErrorImpl {
-    #[error("IO error: {0}")]
-    IO(#[from] io::Error),
+    #[error("IO error accessing {path}: {cause}")]
+    IO { path: Utf8PathBuf, cause: io::Error },
 
     #[error("lua error: {0}")]
     Lua(#[from] mlua::Error),
@@ -98,6 +105,18 @@ mod test {
     use crate::{parser::Point, Context};
 
     use super::*;
+
+    #[test]
+    fn io() {
+        assert_eq!(
+            Error::io(
+                "file.em",
+                io::Error::new(io::ErrorKind::BrokenPipe, "oh no!")
+            )
+            .to_string(),
+            "IO error accessing file.em: oh no!"
+        );
+    }
 
     #[test]
     fn no_such_error_code() {
