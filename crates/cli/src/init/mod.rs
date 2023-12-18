@@ -37,7 +37,7 @@ impl<T: AsRef<Utf8Path>> Initialiser<T> {
 
         let git_ignore = dir.join(".gitignore");
         let main_file = dir.join("main.em");
-        let manifest_file = dir.join("emblem.yml");
+        let manifest_file = dir.join("emblem.toml");
 
         self.init_repo()?;
 
@@ -154,9 +154,9 @@ mod test {
         }
 
         {
-            let manifest_file_name = "emblem.yml";
+            let manifest_file_name = "emblem.toml";
             let manifest_file = dir.join(manifest_file_name);
-            assert!(manifest_file.exists(), "no emblem.yml");
+            assert!(manifest_file.exists(), "no emblem.toml");
             assert!(manifest_file.is_file(), "main.em is not a file");
             let found_content =
                 &fs::read_to_string(&manifest_file).map_err(|e| Error::io(&manifest_file, e))?;
@@ -203,7 +203,7 @@ mod test {
         let main_file_content = "hello, world!";
         fs::write(&main_file_path, main_file_content).map_err(|e| Error::io(&main_file_path, e))?;
 
-        let manifest_file_path = tmpdir_path.join("emblem.yml");
+        let manifest_file_path = tmpdir_path.join("emblem.toml");
         let manifest_file_content = indoc::indoc!(
             r#"
                 [document]
