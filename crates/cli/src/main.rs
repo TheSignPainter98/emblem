@@ -63,7 +63,11 @@ fn execute<L: Logger>(ctx: &mut Context<L>, args: &Args) -> Result<()> {
 
 fn load_manifest<L: Logger>(ctx: &mut Context<L>, src: &str, args: &Args) -> Result<()> {
     // TODO(kcza): improve error log here!
-    let manifest = DocManifest::try_from(fs::read_to_string(src)?.as_ref())?;
+    let manifest = DocManifest::try_from(
+        fs::read_to_string(src)
+            .map_err(|e| Error::io(src, e))?
+            .as_ref(),
+    )?;
     ctx.set_name(manifest.metadata.name);
     ctx.set_version(manifest.metadata.version.into());
 

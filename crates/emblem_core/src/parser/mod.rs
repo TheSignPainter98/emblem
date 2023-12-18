@@ -23,29 +23,29 @@ lalrpop_mod!(
 );
 
 /// Parse an emblem source file at the given location.
-pub fn parse_file<L: Logger>(ctx: &Context<L>, mut to_parse: SearchResult) -> Result<ParsedFile> {
-    let file = {
-        let path = match to_parse.path().as_str() {
+pub fn parse_file<L: Logger>(ctx: &Context<L>, to_parse: SearchResult) -> Result<ParsedFile> {
+    let path = to_parse.path;
+    let file_name = {
+        let path = match path.as_str() {
             "-" => "(stdin)",
             x => x,
         };
         ctx.alloc_file_name(path)
     };
-
     let content = {
-        let file = to_parse.file();
+        let file = to_parse.file;
         let hint = file.len_hint();
-
         let mut reader = BufReader::new(file);
         let mut buf = hint
             .and_then(|len| usize::try_from(len).ok())
             .map(String::with_capacity)
             .unwrap_or_default();
-        reader.read_to_string(&mut buf)?;
+        reader
+            .read_to_string(&mut buf)
+            .map_err(|e| Error::io(path.to_owned(), e))?;
         ctx.alloc_file_content(buf)
     };
-
-    parse(file, content)
+    parse(file_name, content)
 }
 
 /// Parse a given string of emblem source code.
