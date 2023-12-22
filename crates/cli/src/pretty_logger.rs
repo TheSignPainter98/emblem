@@ -69,6 +69,16 @@ impl Logger for PrettyLogger {
                 });
             }
 
+            if let Some(info) = log.infos() {
+                for piece in info {
+                    footer.push(Annotation {
+                        id: None,
+                        label: Some(piece),
+                        annotation_type: AnnotationType::Info,
+                    })
+                }
+            }
+
             if let Some(expected) = log.expected() {
                 let len = expected.len();
 

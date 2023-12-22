@@ -82,6 +82,7 @@ pub struct Log {
     pub(crate) id: LogId,
     pub(crate) help: Option<String>,
     pub(crate) note: Option<String>,
+    pub(crate) info: Option<Vec<String>>,
     pub(crate) srcs: Vec<Src>,
     pub(crate) explainable: bool,
     pub(crate) expected: Option<Vec<String>>,
@@ -95,6 +96,7 @@ impl Log {
             msg_type,
             help: None,
             note: None,
+            info: None,
             srcs: Vec::new(),
             explainable: false,
             expected: None,
@@ -156,6 +158,25 @@ impl Log {
 
     pub fn note(&self) -> &Option<String> {
         &self.note
+    }
+
+    pub fn add_info(mut self, info: impl Into<String>) -> Self {
+        let info = info.into();
+        if let Some(infov) = &mut self.info {
+            infov.push(info);
+        } else {
+            self.info = Some(vec![info]);
+        }
+        self
+    }
+
+    pub fn with_info(mut self, info: Vec<String>) -> Self {
+        self.info = Some(info);
+        self
+    }
+
+    pub fn infos(&self) -> Option<&[String]> {
+        self.info.as_deref()
     }
 
     pub fn with_help(mut self, help: impl Into<String>) -> Self {
@@ -486,6 +507,24 @@ mod test {
             &Some(note.clone()),
             Log::error("foo").with_note(note).note()
         );
+    }
+
+    #[test]
+    fn info() {
+        let info: Vec<String> = vec!["something", "important"]
+            .into_iter()
+            .map(ToOwned::to_owned)
+            .collect();
+        assert_eq!(
+            Some(info.as_slice()),
+            Log::error("foo").with_info(info.clone()).infos()
+        );
+
+        let mut log = Log::error("foo");
+        for piece in &info {
+            log = log.add_info(piece.clone());
+        }
+        assert_eq!(Some(info.as_slice()), log.infos());
     }
 
     #[test]
