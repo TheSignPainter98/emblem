@@ -33,15 +33,17 @@ impl Error {
         let reason = reason.into();
         Self::new(ErrorImpl::ManifestInvalid { reason })
     }
-
-    pub fn unused_args(args: Vec<String>) -> Self {
-        Self::new(ErrorImpl::UnusedArgs(args))
-    }
 }
 
 impl<T: Into<ErrorImpl>> From<T> for Error {
     fn from(cause: T) -> Self {
         Self::new(cause.into())
+    }
+}
+
+impl From<Error> for Log {
+    fn from(error: Error) -> Self {
+        (*error.0).into()
     }
 }
 
@@ -80,9 +82,6 @@ enum ErrorImpl {
     #[error("manifest invalid: {reason}")]
     ManifestInvalid { reason: Cow<'static, str> },
 
-    #[error("unused arguments: {}", .0.join(", "))]
-    UnusedArgs(Vec<String>),
-
     #[error("{context}: {cause}")]
     WithContext {
         context: Cow<'static, str>,
@@ -93,9 +92,26 @@ enum ErrorImpl {
     TomlDeserialisation(#[from] toml_edit::de::Error),
 }
 
-impl From<Error> for Log {
-    fn from(_error: Error) -> Self {
-        unimplemented!()
+impl From<ErrorImpl> for Log {
+    fn from(error: ErrorImpl) -> Self {
+        use ErrorImpl::*;
+        match error {
+            ArgInvalid { arg, reason } => {
+                Log::error(reason).add_info(format!("in argument '{arg}'"))
+            }
+            EmblemCore(e) => e.into(),
+            Git(e) => Log::error("git error").add_info(e.to_string()),
+            IO { path, cause } => {
+                Log::error(format!("cannot access {path}")).add_info(cause.to_string())
+            }
+            ManifestInvalid { reason } => {
+                Log::error("manifest invalid").add_info(reason.to_string())
+            }
+            WithContext { context, cause } => Log::from(cause).add_info(context.to_string()),
+            TomlDeserialisation(e) => {
+                Log::error(format!("cannot parse toml")).add_info(e.to_string())
+            }
+        }
     }
 }
 
@@ -132,16 +148,15 @@ mod tests {
     }
 
     #[test]
-    fn unused_args() {
-        assert_eq!(
-            Error::unused_args(
-                ["hello", "world"]
-                    .into_iter()
-                    .map(ToOwned::to_owned)
-                    .collect()
-            )
-            .to_string(),
-            "unused arguments: hello, world"
+    fn log_consistency() {
+        let core_error = emblem_core::Error::io(
+            "/dev/null",
+            io::Error::new(io::ErrorKind::BrokenPipe, "oh no!"),
         );
+        let cli_error = Error::io(
+            "/dev/null",
+            io::Error::new(io::ErrorKind::BrokenPipe, "oh no!"),
+        );
+        assert_eq!(Log::from(core_error), Log::from(cli_error));
     }
 }

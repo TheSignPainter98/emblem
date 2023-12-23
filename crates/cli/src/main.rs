@@ -14,7 +14,9 @@ pub use crate::result::Result;
 use crate::init::Initialiser;
 use crate::pretty_logger::PrettyLogger;
 use arg_parser::{Args, Command};
-use emblem_core::{log::Logger, Action, Builder, Context, Explainer, Linter};
+use emblem_core::{
+    log::Logger, log_custom_warning, Action, Builder, Context, Explainer, Linter, Log,
+};
 use manifest::DocManifest;
 use std::{collections::HashMap, fs, process::ExitCode};
 
@@ -111,27 +113,34 @@ fn load_manifest<L: Logger>(ctx: &mut Context<L>, src: &str, args: &Args) -> Res
 
         lua_info.set_general_args(general_args);
     }
-    let modules = manifest
-        .dependencies
-        .unwrap_or_default()
-        .into_iter()
-        .map(|(name, module)| {
-            let mut module = module.into_module(name.clone());
-            if let Some(args) = specific_args.remove(module.rename_as().unwrap_or(&name)) {
-                let dep_args = module.args_mut();
-                for (k2, v2) in args {
-                    dep_args.insert(k2.to_string(), v2.to_string());
+    lua_info.set_modules(
+        manifest
+            .dependencies
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(name, module)| {
+                let mut module = module.into_module(name.clone());
+                if let Some(args) = specific_args.remove(module.rename_as().unwrap_or(&name)) {
+                    let dep_args = module.args_mut();
+                    for (k2, v2) in args {
+                        dep_args.insert(k2.to_string(), v2.to_string());
+                    }
                 }
-            }
-            module
-        })
-        .collect();
+                module
+            })
+            .collect(),
+    );
     if !specific_args.is_empty() {
-        return Err(Error::unused_args(
-            specific_args.keys().map(ToString::to_string).collect(),
+        let w = Log::warning("some arguments are unused").add_info(format!(
+            "no module found for: {}",
+            specific_args
+                .keys()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join(", ")
         ));
+        log_custom_warning!(ctx, w)?;
     }
-    lua_info.set_modules(modules);
 
     Ok(())
 }

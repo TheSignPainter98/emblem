@@ -14,11 +14,23 @@ pub use self::note::Note;
 pub use self::src::Src;
 pub use self::verbosity::Verbosity;
 
-pub trait Logger: Sized {
+pub trait Logger {
     fn verbosity(&self) -> Verbosity;
     fn print(&mut self, log: Log) -> Result<()>;
     fn report(self) -> Result<()>;
 }
+
+#[macro_export]
+macro_rules! log_custom_error {
+    ($ctx:expr) => {
+        std::compile_error!("log_custom_warning requires a log");
+    };
+    ($ctx:expr, $log:expr) => {
+        $crate::log::__log!($ctx, $crate::Verbosity::Terse, $log)
+    };
+}
+#[allow(unused_imports)]
+pub use log_custom_error;
 
 #[macro_export]
 macro_rules! log_error {
@@ -26,9 +38,21 @@ macro_rules! log_error {
         std::compile_error!("log_error requires a message to log");
     };
     ($ctx:expr, $($arg:tt)+) => {
-        $crate::log::__log!($ctx, $crate::Verbosity::Terse, $crate::Log::error, $($arg)+)
+        $crate::log::log_custom_error!($ctx, Log::error(std::format!("{}", std::format_args!($($arg)+))))
     };
 }
+
+#[macro_export]
+macro_rules! log_custom_warning {
+    ($ctx:expr) => {
+        std::compile_error!("log_custom_warning requires a log");
+    };
+    ($ctx:expr, $log:expr) => {
+        $crate::log::__log!($ctx, $crate::Verbosity::Terse, $log)
+    };
+}
+#[allow(unused_imports)]
+pub use log_custom_warning;
 
 #[macro_export]
 macro_rules! log_warning {
@@ -36,9 +60,21 @@ macro_rules! log_warning {
         std::compile_error!("log_warning requires a message to log");
     };
     ($ctx:expr, $($arg:tt)+) => {
-        $crate::log::__log!($ctx, $crate::Verbosity::Terse, $crate::Log::warning, $($arg)+)
+        $crate::log::log_custom_warning!($ctx, Log::warning(std::format!("{}", std::format_args!($($arg)+))))
     };
 }
+
+#[macro_export]
+macro_rules! log_custom_info {
+    ($ctx:expr) => {
+        std::compile_error!("log_custom_info requires a log");
+    };
+    ($ctx:expr, $log:expr) => {
+        $crate::log::__log!($ctx, $crate::Verbosity::Verbose, $log)
+    };
+}
+#[allow(unused_imports)]
+pub use log_custom_info;
 
 #[macro_export]
 macro_rules! log_info {
@@ -46,9 +82,21 @@ macro_rules! log_info {
         std::compile_error!("log_info requires a message to log");
     };
     ($ctx:expr, $($arg:tt)+) => {
-        $crate::log::__log!($ctx, $crate::Verbosity::Verbose, $crate::Log::info, $($arg)+)
+        $crate::log::log_custom_info!($ctx, Log::info(std::format!("{}", std::format_args!($($arg)+))))
     };
 }
+
+#[macro_export]
+macro_rules! log_custom_debug {
+    ($ctx:expr) => {
+        std::compile_error!("log_custom_debug requires a log");
+    };
+    ($ctx:expr, $log:expr) => {
+        $crate::log::__log!($ctx, $crate::Verbosity::Debug, $log)
+    };
+}
+#[allow(unused_imports)]
+pub use log_custom_debug;
 
 #[macro_export]
 macro_rules! log_debug {
@@ -56,17 +104,17 @@ macro_rules! log_debug {
         std::compile_error!("log_debug requires a message to log");
     };
     ($ctx:expr, $($arg:tt)+) => {
-        $crate::log::__log!($ctx, $crate::Verbosity::Debug, $crate::Log::debug, $($arg)+)
+        $crate::log::log_custom_debug!($ctx, Log::debug(std::format!("{}", std::format_args!($($arg)+))))
     };
 }
 
 #[macro_export]
 #[doc(hidden)]
 macro_rules! __log {
-    ($ctx:expr, $max_lvl:path, $log_constructor:path, $($arg:tt)*) => {{
+    ($ctx:expr, $max_lvl:path, $log:expr) => {{
         let ctx: &$crate::Context<_> = $ctx;
         if ctx.verbosity() >= $max_lvl {
-            ctx.print($log_constructor(std::format!("{}", std::format_args!($($arg)*))))
+            ctx.print($log)
         } else {
             Ok(())
         }

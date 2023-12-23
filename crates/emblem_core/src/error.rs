@@ -48,6 +48,12 @@ impl<T: Into<ErrorImpl>> From<T> for Error {
     }
 }
 
+impl From<Error> for Log {
+    fn from(error: Error) -> Self {
+        (*error.0).into()
+    }
+}
+
 impl StdError for Error {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match &*self.0 {
@@ -94,9 +100,15 @@ enum ErrorImpl {
     },
 }
 
-impl From<Error> for Log {
-    fn from(_error: Error) -> Self {
-        unimplemented!()
+impl From<ErrorImpl> for Log {
+    fn from(error: ErrorImpl) -> Self {
+        use ErrorImpl::*;
+        match error {
+            IO { path, cause } => {
+                Log::error(format!("cannot access {path}")).add_info(cause.to_string())
+            }
+            _ => todo!(),
+        }
     }
 }
 
