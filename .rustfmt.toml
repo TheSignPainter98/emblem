@@ -1,0 +1,9 @@
+# The following rules cover places where rustfmt does not express a
+# sufficiently strong opinion by default. Existing rustfmt opinions should be
+# respected.
+
+# group_imports = "StdExternalCrate" # TODO(kcza): enable once stabilised https://github.com/rust-lang/rustfmt/issues/5083
+# imports_granularity = "Crate" # TODO(kcza): enable once stabilised https://github.com/rust-lang/rustfmt/issues/4991
+newline_style = "Unix"
+# reorder_impl_items = true # TODO(kcza): enable once stabilised https://github.com/rust-lang/rustfmt/issues/3363
+use_try_shorthand = true
